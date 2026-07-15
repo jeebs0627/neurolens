@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>검사 결과 리포트 (샘플) — NeuroLens | AX오픈랩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B1B3F; --ink2:#2A3651;
+  --blue:#1E5AF0; --blue-2:#4A7DFF; --blue-soft:#EEF3FF; --blue-line:#C9D8FF;
+  --green:#0FA47A; --green-2:#3EC49E; --green-soft:#EAF7F2;
+  --amber:#E8890C; --violet:#6C4CE0; --violet-2:#8E75EE; --violet-soft:#F1EDFD;
+  --rose:#E0446A;
+  --gray:#5B6478; --gray2:#8A93A8; --line:#E4E9F4;
+  --radius:20px; --maxw:880px;
+  --font-kr:'Noto Sans KR',-apple-system,sans-serif;
+  --font-num:'Sora','Noto Sans KR',sans-serif;
+  --shadow-sm:0 2px 10px rgba(11,27,63,.05);
+  --grad-blue:linear-gradient(135deg,#1E5AF0,#4A7DFF);
+  --grad-hero:linear-gradient(135deg,#1E5AF0 0%,#6C4CE0 100%);
+}
+@property --gv{syntax:'<number>';initial-value:0;inherits:false}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-kr);color:var(--ink);background:#F4F7FD;line-height:1.65;font-size:16px;-webkit-font-smoothing:antialiased}
+
+/* nav */
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+nav .in{max-width:1080px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:14px}
+nav .logo{font-family:var(--font-num);font-weight:800;font-size:16px;display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink)}
+nav .logo .mark{width:28px;height:28px;border-radius:9px;background:var(--grad-hero);display:grid;place-items:center;box-shadow:0 4px 10px rgba(60,80,230,.35)}
+nav .logo .mark svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
+nav .logo em{font-style:normal;color:var(--blue)}
+nav .back{margin-left:auto;font-size:13px;font-weight:700;color:var(--blue);text-decoration:none;background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:20px;padding:8px 18px}
+nav .back:hover{background:#E2EBFF}
+
+/* report */
+#result{max-width:var(--maxw);margin:0 auto;padding:56px 24px 70px}
+.rhead{text-align:center;margin-bottom:32px}
+.sample-badge{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--amber);background:#FDF3E3;border:1px solid #F3DCB5;border-radius:20px;padding:6px 16px;margin-bottom:16px}
+#result h1{font-size:28px;font-weight:900;letter-spacing:-.02em}
+.rsub{color:var(--gray);font-size:13.5px;margin-top:8px}
+.rdate{font-family:var(--font-num);font-size:12px;color:var(--gray2);margin-top:4px}
+
+.rcard{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:28px 32px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.rcard h3{font-size:12px;font-family:var(--font-num);font-weight:700;letter-spacing:.12em;color:var(--blue);margin-bottom:18px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.rcard h3::before{content:"";width:16px;height:2px;background:var(--grad-blue);border-radius:2px}
+.kv{display:flex;gap:10px;flex-wrap:wrap}
+.kv span{background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:9px;padding:5px 14px;font-size:13.5px}
+
+/* AI 총평 */
+.summary-card{background:linear-gradient(#fff,#fff) padding-box,var(--grad-hero) border-box;border:1.5px solid transparent;position:relative;overflow:hidden}
+.summary-card::before{content:"";position:absolute;right:-50px;top:-60px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(108,76,224,.08),transparent 70%)}
+.ai-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-num);font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#fff;background:var(--grad-hero);border-radius:12px;padding:4px 13px;margin-left:8px;vertical-align:2px;box-shadow:0 5px 12px rgba(76,60,224,.3)}
+#rSummary p{font-size:14.5px;line-height:1.9;color:var(--ink2);margin-bottom:13px;position:relative}
+#rSummary p:last-child{margin-bottom:0}
+
+/* MBTI */
+.mbti-hero{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.mbti-chip{font-family:var(--font-num);font-size:44px;font-weight:800;letter-spacing:.02em;color:#fff;background:var(--grad-hero);border-radius:20px;padding:20px 32px;box-shadow:0 14px 32px rgba(76,60,224,.28);flex:none;position:relative;overflow:hidden}
+.mbti-chip::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.16) 45%,transparent 60%)}
+.mbti-info{flex:1;min-width:240px}
+.mbti-info .nm{font-size:18px;font-weight:900;margin-bottom:6px}
+.mbti-info .nm small{font-weight:600;color:var(--violet);margin-left:8px;font-size:13px}
+.mbti-info .ds{font-size:13.5px;color:var(--gray);line-height:1.75}
+.mbti-kw{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.mbti-kw span{font-size:12px;font-weight:600;color:var(--violet);background:var(--violet-soft);border-radius:14px;padding:4px 12px}
+
+/* Big5 */
+.radar-flex{display:flex;gap:28px;align-items:center;flex-wrap:wrap;justify-content:center}
+.radar-box{flex:none}
+.radar-legend{flex:1;min-width:230px}
+.rl-row{display:grid;grid-template-columns:14px 70px 1fr 56px;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.rl-row .sw{width:12px;height:12px;border-radius:4px}
+.rl-row label{font-weight:700}
+.rl-row .mini{height:8px;background:#EDF1FA;border-radius:5px;overflow:hidden}
+.rl-row .mini i{display:block;height:100%;border-radius:5px;width:0;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+.rl-row .vv{font-family:var(--font-num);font-weight:800;font-size:13.5px;text-align:right}
+
+/* 직무적합도 */
+.fit-top{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:8px;align-items:stretch}
+@media(max-width:680px){.fit-top{grid-template-columns:1fr}}
+.fitc{position:relative;border-radius:18px;padding:24px 18px 20px;text-align:center;background:#fff;border:1px solid var(--line)}
+.fitc .rank-chip{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.08em;color:#fff;border-radius:14px;padding:4px 16px;white-space:nowrap}
+.fitc.f1{background:linear-gradient(#fff,#fff) padding-box,var(--grad-hero) border-box;border:2px solid transparent;box-shadow:0 18px 40px rgba(60,80,230,.18);transform:scale(1.03);z-index:2}
+.fitc.f1 .rank-chip{background:linear-gradient(135deg,#F2A93B,#E8890C);box-shadow:0 6px 14px rgba(232,137,12,.4)}
+.fitc.f2 .rank-chip{background:linear-gradient(135deg,#8E9AB8,#6E7C9E)}
+.fitc.f3 .rank-chip{background:linear-gradient(135deg,#CE9469,#B4744A)}
+.fitc .gauge{--gv:0;position:relative;width:92px;height:92px;margin:10px auto 12px;border-radius:50%;background:conic-gradient(var(--gc,#1E5AF0) calc(var(--gv)*1%),#EBF0FA 0);display:grid;place-items:center;transition:--gv 1.2s cubic-bezier(.2,.7,.2,1)}
+.fitc.f1 .gauge{width:106px;height:106px}
+.fitc .gauge::before{content:"";position:absolute;inset:9px;background:#fff;border-radius:50%;box-shadow:inset 0 2px 6px rgba(11,27,63,.06)}
+.fitc .gauge .gval{position:relative;font-family:var(--font-num);font-weight:800;font-size:20px;color:var(--gc,#1E5AF0);line-height:1}
+.fitc.f1 .gauge .gval{font-size:24px}
+.fitc .gauge .gval small{display:block;font-size:9px;font-weight:600;color:var(--gray2);letter-spacing:.08em;margin-top:3px}
+.fitc .job{font-size:16px;font-weight:900;margin-bottom:3px;letter-spacing:-.01em}
+.fitc.f1 .job{font-size:17.5px}
+.fitc .delta{font-size:11px;color:var(--gray2);font-weight:600}
+.fitc .delta b{color:var(--rose);font-family:var(--font-num)}
+.fitc.f1 .delta{color:var(--blue);font-weight:700}
+.fit-note{font-size:11.5px;color:var(--gray2);text-align:center;margin-bottom:24px}
+.job-list .jrow{display:grid;grid-template-columns:34px 120px 1fr 58px;align-items:center;gap:12px;margin-bottom:10px;font-size:13.5px}
+@media(max-width:600px){.job-list .jrow{grid-template-columns:30px 90px 1fr 50px}}
+.job-list .rk{font-family:var(--font-num);font-size:11px;font-weight:800;color:var(--gray);background:#F1F4FB;border:1px solid var(--line);border-radius:9px;text-align:center;padding:3px 0}
+.job-list label{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job-list .track{height:12px;background:#EEF1F9;border-radius:7px;overflow:hidden;position:relative}
+.job-list .track::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 24.6%,rgba(255,255,255,.9) 24.6% 25%)}
+.job-list .fill{display:block;height:100%;border-radius:7px;width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.job-list .sc{font-family:var(--font-num);font-weight:800;font-size:13px;text-align:right;color:var(--ink2)}
+
+details summary{cursor:pointer;color:var(--gray);font-size:13px}
+pre{margin-top:12px;padding:16px;background:#0B1B3F;color:#9DFFB0;border-radius:12px;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto}
+
+/* 케어 미리보기 */
+.mock-badge{display:inline-block;font-family:var(--font-num);font-size:9.5px;font-weight:800;letter-spacing:.12em;color:var(--amber);background:#FDF3E3;border:1px solid #F3DCB5;border-radius:10px;padding:2px 10px;margin-left:8px;vertical-align:2px}
+.care-items{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:680px){.care-items{grid-template-columns:1fr}}
+.care-it{display:flex;align-items:center;gap:12px;background:#F8FAFE;border:1px solid var(--line);border-radius:14px;padding:14px 15px;font-size:13px;font-weight:700;cursor:pointer;transition:border-color .2s,transform .2s;text-align:left}
+.care-it:hover{border-color:var(--blue-line);transform:translateY(-2px)}
+.care-it .ci{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none}
+.care-it .ci svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.care-it small{display:block;font-size:11px;font-weight:500;color:var(--gray)}
+.care-note{font-size:12px;color:var(--gray2)}
+
+/* 변화 추적 */
+.trend-flex{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.trend-chart{flex:none}
+.trend-info{flex:1;min-width:220px}
+.trend-info .big-num{font-family:var(--font-num);font-size:34px;font-weight:800;color:var(--blue)}
+.trend-info .big-num small{font-size:13px;color:var(--green);font-weight:700;margin-left:6px}
+.trend-info p{font-size:13px;color:var(--gray);margin-top:6px}
+
+/* 잠금 리포트 */
+.locked-grid{display:flex;gap:10px;flex-wrap:wrap}
+.lock-chip{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--gray);background:#F4F6FB;border:1px dashed #C9D2E6;border-radius:14px;padding:9px 16px;cursor:pointer;transition:all .2s}
+.lock-chip:hover{color:var(--violet);border-color:var(--violet-2);background:var(--violet-soft)}
+.lock-chip svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* CTA + footer */
+.cta-band{text-align:center;margin-top:34px}
+.cta-band .row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-p{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-kr);font-size:16px;font-weight:800;color:#fff;background:var(--grad-hero);border:none;border-radius:15px;padding:16px 38px;cursor:pointer;box-shadow:0 12px 28px rgba(60,80,230,.3);transition:transform .15s,box-shadow .15s}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 18px 36px rgba(60,80,230,.38)}
+.btn-o{display:inline-flex;align-items:center;gap:9px;font-family:var(--font-kr);font-size:16px;font-weight:800;color:var(--violet);background:#fff;border:1.5px solid var(--violet-2);border-radius:15px;padding:16px 34px;cursor:pointer;transition:all .15s}
+.btn-o:hover{background:var(--violet-soft);transform:translateY(-2px)}
+.cta-sub{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.btn-s{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-kr);font-size:12.5px;font-weight:700;color:var(--gray);background:#fff;border:1px solid var(--line);border-radius:20px;padding:9px 18px;cursor:pointer;transition:all .15s}
+.btn-s:hover{color:var(--blue);border-color:var(--blue-line);background:var(--blue-soft)}
+
+/* 목업 토스트 */
+#toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:#0B1B3F;color:#fff;font-size:13.5px;font-weight:600;border-radius:14px;padding:13px 24px;box-shadow:0 14px 34px rgba(11,27,63,.35);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:200;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{border-top:1px solid var(--line);background:#fff;padding:30px 0;text-align:center}
+footer p{font-size:12px;color:var(--gray)}
+.disclaimer{font-size:11.5px;color:var(--gray2);margin-top:6px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="in">
+    <a class="logo" href="index.html">
+      <span class="mark"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></span>
+      AX<em>오픈랩</em>
+    </a>
+    <a class="back" href="index.html">← 메인으로 돌아가기</a>
+  </div>
+</nav>
+
+<div id="result">
+  <div class="rhead">
+    <span class="sample-badge">⚠ SAMPLE REPORT · 가상 데이터 예시</span>
+    <h1>NeuroLens 검사 결과 리포트</h1>
+    <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
+    <div class="rdate">검사일 2026-07-15 · 리포트 ID NL-SAMPLE-0001</div>
+  </div>
+
+  <div class="rcard"><h3>Profile · 시험자 정보</h3>
+    <div class="kv">
+      <span>시험자명: 김하늘</span><span>성별: 여</span><span>연령대: 20대</span><span>검사 소요: 5분 12초</span>
+    </div>
+  </div>
+
+  <div class="rcard summary-card">
+    <h3>Overview · 종합 총평<span class="ai-badge">✦ AI GENERATED</span></h3>
+    <div id="rSummary">
+      <p>이번 검사에서 김하늘 님은 ENFP(재기발랄한 활동가) 유형의 특성이 뚜렷하게 관찰되었습니다. Big5 프로파일에서 개방성(백분위 82)과 외향성(백분위 74)이 두드러져 새로운 아이디어와 사람에게서 에너지를 얻는 성향이 강하고, 신경성(백분위 31)은 낮은 편이어서 안정적인 정서 기반 위에서 호기심과 열정이 발휘되는 모습입니다. 시선행동 측정에서도 새로운 자극에 대한 탐색적 응시 패턴이 일관되게 나타났습니다.</p>
+      <p>직업흥미유형은 EAS(진취·예술·사회형) 조합으로, 직무적합도 1위인 콘텐츠 기획자(87.4점)는 개방성과 창의적 발상이 직접 성과로 이어지는 대표 직무입니다. 2위 마케팅 전략가(84.1점)는 사람의 마음을 읽는 공감 능력과 진취적 실행력이 균형 있게 맞물리는 분야이며, 3위 UX 디자이너(81.9점)는 탐색적 시선 패턴이 시사하는 사용자 관점 전환 능력을 살릴 수 있는 대안 경로로 참고할 만합니다.</p>
+      <p>상대적으로 낮게 나타난 성실성(백분위 47)은 약점이라기보다 에너지를 쓰는 방식의 차이입니다. 아이디어를 마무리 짓는 루틴(마감 전 체크리스트, 작은 단위의 실행 계획)을 더하면 강점이 결과로 이어지는 속도가 훨씬 빨라질 것입니다. 본 결과는 시선행동과 설문을 결합한 비진단적 참고 정보이며, 반복 측정으로 변화 추세를 확인해 보시길 권합니다. 지금의 열정과 창의력을 믿고 잘 맞는 환경을 찾아가시길 응원합니다.</p>
+    </div>
+  </div>
+
+  <div class="rcard">
+    <h3>Type · MBTI 성격유형</h3>
+    <div class="mbti-hero">
+      <div class="mbti-chip">ENFP</div>
+      <div class="mbti-info">
+        <div class="nm">재기발랄한 활동가<small>흥미유형 EAS · 진취·예술·사회형</small></div>
+        <div class="ds">열정과 창의력으로 새로운 가능성을 탐색하는 유형입니다. 사람에 대한 진심 어린 관심으로 깊은 유대감을 형성합니다.</div>
+        <div class="mbti-kw"><span>#열정</span><span>#창의력</span><span>#친화력</span><span>#호기심</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rcard">
+    <h3>Big 5 · 성격 요인 프로파일</h3>
+    <div class="radar-flex">
+      <div class="radar-box" id="rRadar"></div>
+      <div class="radar-legend" id="rBig5"></div>
+    </div>
+  </div>
+
+  <div class="rcard">
+    <h3>Fit · 직무적합도 TOP</h3>
+    <div class="fit-top" id="rPodium"></div>
+    <div class="fit-note">게이지는 적합도 점수(100점 만점) 기준 · 순위 배지는 상대 순위</div>
+    <div class="job-list" id="rJobs"></div>
+  </div>
+
+  <!-- AI Agent 케어 미리보기 (목업) -->
+  <div class="rcard">
+    <h3>Care · AI Agent 오늘의 케어 제안<span class="mock-badge">PREVIEW</span></h3>
+    <div class="care-items">
+      <div class="care-it mock">
+        <span class="ci" style="background:var(--grad-blue)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg></span>
+        <span>3분 호흡 명상<small>성실성 루틴 시작 전 마음 정리</small></span>
+      </div>
+      <div class="care-it mock">
+        <span class="ci" style="background:linear-gradient(135deg,#6C4CE0,#8E75EE)"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span>
+        <span>아이디어 마감 체크리스트<small>ENFP 맞춤 · 실행 완성 루틴</small></span>
+      </div>
+      <div class="care-it mock">
+        <span class="ci" style="background:var(--grad-blue)"><svg viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg></span>
+        <span>수면 준비 가이드<small>내일의 에너지 충전</small></span>
+      </div>
+    </div>
+    <p class="care-note">Agent 케어 구독 시 검사 결과와 연동된 맞춤 루틴이 매일 갱신되고, 실천 기록이 다음 리포트에 반영됩니다.</p>
+  </div>
+
+  <!-- 변화 추적 (목업) -->
+  <div class="rcard">
+    <h3>Trend · 마음 컨디션 변화 추적<span class="mock-badge">PREVIEW</span></h3>
+    <div class="trend-flex">
+      <div class="trend-chart">
+        <svg width="320" height="130" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="tGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1E5AF0" stop-opacity=".25"/>
+              <stop offset="100%" stop-color="#1E5AF0" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="20" y1="100" x2="310" y2="100" stroke="#E4E9F4" stroke-width="1"/>
+          <path d="M40 72 L160 58 L280 34 L280 100 L40 100 Z" fill="url(#tGrad)"/>
+          <path d="M40 72 L160 58 L280 34" fill="none" stroke="#1E5AF0" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="40" cy="72" r="5" fill="#93A9E8" stroke="#fff" stroke-width="2"/>
+          <circle cx="160" cy="58" r="5" fill="#4A7DFF" stroke="#fff" stroke-width="2"/>
+          <circle cx="280" cy="34" r="6" fill="#1E5AF0" stroke="#fff" stroke-width="2.5"/>
+          <text x="40" y="118" text-anchor="middle" font-family="Sora" font-size="10" fill="#8A93A8">4/12</text>
+          <text x="160" y="118" text-anchor="middle" font-family="Sora" font-size="10" fill="#8A93A8">5/24</text>
+          <text x="280" y="118" text-anchor="middle" font-family="Sora" font-size="10" fill="#8A93A8">7/15</text>
+          <text x="40" y="58" text-anchor="middle" font-family="Sora" font-size="11" font-weight="700" fill="#8A93A8">68</text>
+          <text x="160" y="44" text-anchor="middle" font-family="Sora" font-size="11" font-weight="700" fill="#5B6478">73</text>
+          <text x="280" y="20" text-anchor="middle" font-family="Sora" font-size="12" font-weight="800" fill="#1E5AF0">79</text>
+        </svg>
+      </div>
+      <div class="trend-info">
+        <div class="big-num">79점<small>▲ +6 지난 검사 대비</small></div>
+        <p>마음 컨디션 지수가 3회 연속 상승 중입니다. Agent 케어 구독 시 검사 기록이 자동 저장되어 시계열 변화를 추적할 수 있습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 유료 리포트 잠금 (목업) -->
+  <div class="rcard">
+    <h3>Premium · 잠금 해제 가능한 추가 리포트 7종<span class="mock-badge">유료 구독</span></h3>
+    <div class="locked-grid">
+      <span class="lock-chip mock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>자아탄력성</span>
+      <span class="lock-chip mock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>정서적 어려움 가능성 (EARP)</span>
+      <span class="lock-chip mock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>DISC 행동유형</span>
+      <span class="lock-chip mock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>연인관계 적합도</span>
+      <span class="lock-chip mock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>친구관계 적합도</span>
+      <span class="lock-chip mock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>직무 적합도</span>
+      <span class="lock-chip mock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>기업문화 적합도</span>
+    </div>
+  </div>
+
+  <div class="rcard"><details><summary>원본 응답 JSON 보기 (샘플)</summary><pre id="rRaw"></pre></details></div>
+
+  <div class="cta-band">
+    <div class="row">
+      <button class="btn-p mock">✦ Agent 케어 구독하기</button>
+      <button class="btn-o mock">🔒 유료 리포트 보기</button>
+    </div>
+    <div class="cta-sub">
+      <button class="btn-s mock">📄 PDF로 저장</button>
+      <button class="btn-s mock">🔗 결과 공유하기</button>
+      <button class="btn-s mock">⏰ 재검사 알림 설정</button>
+      <button class="btn-s mock">💬 전문가 상담 연결</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<footer>
+  <p>AX오픈랩 · NeuroLens — 본 페이지는 가상의 샘플 데이터로 구성된 예시 리포트입니다.</p>
+  <p class="disclaimer">본 서비스는 비진단적 선별 및 웰니스 보조 정보를 제공하며, 의료적 진단·치료를 대체하지 않습니다.</p>
+</footer>
+
+<script>
+/* ---------- 샘플 데이터 (가상) ---------- */
+const SAMPLE = {
+  '시험자정보': { '시험자명': '김하늘', '성별': '여', '연령대': '20대' },
+  MBTI: 'ENFP',
+  '직업흥미유형': { '유형': 'EAS', '유형명': '진취·예술·사회형' },
+  BIG5: {
+    '개방성_백분위': 82.0, '성실성_백분위': 47.0, '외향성_백분위': 74.0,
+    '친화성_백분위': 68.0, '신경성_백분위': 31.0,
+  },
+  '직무적합도': [
+    { '직업': '콘텐츠 기획자',   '점수': '87.4' },
+    { '직업': '마케팅 전략가',   '점수': '84.1' },
+    { '직업': 'UX 디자이너',     '점수': '81.9' },
+    { '직업': '광고 크리에이터', '점수': '77.6' },
+    { '직업': '방송 PD',         '점수': '74.8' },
+    { '직업': '교육 컨설턴트',   '점수': '71.2' },
+    { '직업': 'HR 매니저',       '점수': '67.5' },
+    { '직업': '서비스 기획자',   '점수': '64.9' },
+    { '직업': '데이터 분석가',   '점수': '58.3' },
+    { '직업': '회계사',          '점수': '46.1' },
+  ],
+};
+
+const TRAITS = [
+  { key:'개방성', color:'#1E5AF0' },
+  { key:'성실성', color:'#0FA47A' },
+  { key:'외향성', color:'#E8890C' },
+  { key:'친화성', color:'#6C4CE0' },
+  { key:'신경성', color:'#E0446A' },
+];
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+
+/* ---------- Big5 레이더 ---------- */
+function renderRadar(values){
+  const size=300,cx=size/2,cy=size/2+6,R=104;
+  const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+r*Math.cos(a),cy+r*Math.sin(a)];};
+  const poly=r=>Array.from({length:5},(_,i)=>pt(i,r).map(v=>v.toFixed(1)).join(',')).join(' ');
+  const valPoly=values.map((v,i)=>pt(i,R*Math.max(.04,v/100)).map(x=>x.toFixed(1)).join(',')).join(' ');
+  let svg=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="radGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E5AF0" stop-opacity=".55"/>
+      <stop offset="55%" stop-color="#6C4CE0" stop-opacity=".45"/>
+      <stop offset="100%" stop-color="#0FA47A" stop-opacity=".4"/>
+    </linearGradient>
+    <filter id="radShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#1E5AF0" flood-opacity=".28"/>
+    </filter>
+  </defs>`;
+  [1,.8,.6,.4,.2].forEach((f,idx)=>{svg+=`<polygon points="${poly(R*f)}" fill="${idx===0?'#F7FAFF':'none'}" stroke="#DCE5F7" stroke-width="1"/>`;});
+  for(let i=0;i<5;i++){const[x,y]=pt(i,R);svg+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#DCE5F7" stroke-width="1"/>`;}
+  svg+=`<polygon points="${valPoly}" fill="url(#radGrad)" stroke="#4A5FE0" stroke-width="2.5" stroke-linejoin="round" filter="url(#radShadow)"/>`;
+  values.forEach((v,i)=>{
+    const[x,y]=pt(i,R*Math.max(.04,v/100));
+    svg+=`<circle cx="${x}" cy="${y}" r="5" fill="${TRAITS[i].color}" stroke="#fff" stroke-width="2.5"/>`;
+    const[lx,ly]=pt(i,R+26);
+    svg+=`<text x="${lx}" y="${ly-4}" text-anchor="middle" font-family="Noto Sans KR" font-size="12.5" font-weight="700" fill="#0B1B3F">${TRAITS[i].key}</text>
+          <text x="${lx}" y="${ly+11}" text-anchor="middle" font-family="Sora" font-size="11" font-weight="800" fill="${TRAITS[i].color}">${v.toFixed(0)}</text>`;
+  });
+  svg+=`</svg>`;
+  document.getElementById('rRadar').innerHTML=svg;
+}
+
+/* ---------- 렌더링 ---------- */
+(function render(){
+  const b=SAMPLE.BIG5;
+  const values=TRAITS.map(t=>Math.min(100,Math.max(0,parseFloat(b[t.key+'_백분위'])||0)));
+  renderRadar(values);
+  document.getElementById('rBig5').innerHTML=TRAITS.map((t,i)=>`
+    <div class="rl-row">
+      <span class="sw" style="background:${t.color}"></span>
+      <label>${t.key}</label>
+      <div class="mini"><i data-w="${values[i].toFixed(1)}%" style="background:${t.color}"></i></div>
+      <span class="vv" style="color:${t.color}">${values[i].toFixed(1)}</span>
+    </div>`).join('');
+
+  const jobs=SAMPLE['직무적합도'].map(j=>({name:j['직업'],score:parseFloat(j['점수'])}))
+    .sort((a,b2)=>b2.score-a.score);
+
+  const gaugeColors=['#1E5AF0','#6C4CE0','#0FA47A'];
+  const rankLabels=['1위 · BEST FIT','2위','3위'];
+  document.getElementById('rPodium').innerHTML=jobs.slice(0,3).map((j,i)=>{
+    const delta=i===0?'나에게 가장 잘 맞는 직무':`1위와 <b>-${(jobs[0].score-j.score).toFixed(1)}점</b> 차이`;
+    return `
+    <div class="fitc f${i+1}" style="--gc:${gaugeColors[i]}">
+      <span class="rank-chip">${rankLabels[i]}</span>
+      <div class="gauge" data-gv="${j.score.toFixed(1)}">
+        <span class="gval">${j.score.toFixed(1)}<small>/ 100</small></span>
+      </div>
+      <div class="job">${esc(j.name)}</div>
+      <div class="delta">${delta}</div>
+    </div>`;
+  }).join('');
+
+  const rest=jobs.slice(3);
+  const rMax=jobs[0].score, rMin=jobs[jobs.length-1].score;
+  const span=Math.max(rMax-rMin,.001);
+  const fillColor=s=>s>=rMax*.85?'linear-gradient(90deg,#1E5AF0,#4A7DFF)'
+                 :s>=rMax*.7?'linear-gradient(90deg,#6C4CE0,#8E75EE)'
+                 :'linear-gradient(90deg,#93A9E8,#B9C8F2)';
+  document.getElementById('rJobs').innerHTML=rest.map((j,i)=>`
+    <div class="jrow">
+      <span class="rk">${i+4}위</span>
+      <label title="${esc(j.name)}">${esc(j.name)}</label>
+      <div class="track"><i class="fill" data-w="${(18+82*(j.score-rMin)/span).toFixed(1)}%" style="background:${fillColor(j.score)}"></i></div>
+      <span class="sc">${j.score.toFixed(1)}</span>
+    </div>`).join('');
+
+  document.getElementById('rRaw').textContent=JSON.stringify(SAMPLE,null,2);
+
+  requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+    document.querySelectorAll('#result [data-w]').forEach(el=>el.style.width=el.dataset.w);
+    document.querySelectorAll('#result .gauge[data-gv]').forEach(el=>el.style.setProperty('--gv',el.dataset.gv));
+  });});
+})();
+
+/* ---------- 목업 버튼 토스트 ---------- */
+let toastTimer=null;
+document.querySelectorAll('.mock').forEach(el=>{
+  el.addEventListener('click',()=>{
+    const t=document.getElementById('toast');
+    t.textContent='✦ 목업 데모입니다 — 정식 버전에서 만나보실 수 있어요!';
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+  });
+});
+</script>
+</body>
+</html>
