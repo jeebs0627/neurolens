@@ -56,11 +56,14 @@ display:flex;align-items:center;justify-content:center;height:100vh;text-align:c
 <script>
   var raw = __RESULT__;
   try {
+    localStorage.setItem('mindgazeResult', JSON.stringify({ seq: Date.now(), data: raw }));
+  } catch (e) { console.error(e); }
+  try {
     if (window.opener && !window.opener.closed) {
       window.opener.postMessage({ type: 'mindgazeResult', data: raw }, '*');
-      setTimeout(function(){ window.close(); }, 1500);
     }
   } catch (e) { console.error(e); }
+  setTimeout(function(){ window.close(); }, 1500);
 </script></body></html>"""
 
 

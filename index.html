@@ -1016,6 +1016,8 @@ function setStatus(msg, isError = false) {
 async function startTest() {
   startBtn.disabled = true;
   document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
+  testStartedAt = Date.now();
+  try { localStorage.removeItem('mindgazeResult'); } catch (_) {}
 
   let mbrUid = CONFIG.mbrUid || '';
 
@@ -1071,6 +1073,34 @@ function openSrvy(prodUid, mbrUid, mbrId) {
   startPolling();
 }
 
+/* ---------- 결과 수신: localStorage 경유 (서버리스 배포용 주 경로) ----------
+ * /rcvrslt 결과 페이지(같은 도메인)가 localStorage에 결과를 저장하면
+ * storage 이벤트 + 폴링으로 감지한다. Vercel처럼 서버가 상태를 기억하지
+ * 못하는 환경에서도 확실하게 동작한다. */
+let testStartedAt = 0;
+
+function checkLocalResult() {
+  try {
+    const raw = localStorage.getItem('mindgazeResult');
+    if (!raw) return false;
+    const j = JSON.parse(raw);
+    if (j && j.data && j.seq > testStartedAt) {
+      localStorage.removeItem('mindgazeResult');
+      stopPolling();
+      let result;
+      try { result = JSON.parse(j.data); } catch (_) { result = { raw: j.data }; }
+      renderResult(result);
+      try { if (popup && !popup.closed) popup.close(); } catch (_) {}
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+window.addEventListener('storage', (e) => {
+  if (e.key === 'mindgazeResult') checkLocalResult();
+});
+
 /* ---------- 결과 폴링 (postMessage 유실 대비) ---------- */
 let pollTimer = null;
 let baseSeq = null;
@@ -1078,6 +1108,7 @@ let baseSeq = null;
 function startPolling() {
   stopPolling();
   pollTimer = setInterval(async () => {
+    if (checkLocalResult()) return;
     try {
       const r = await fetch('/last-result');
       const j = await r.json();

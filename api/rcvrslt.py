@@ -17,12 +17,17 @@ display:flex;align-items:center;justify-content:center;height:100vh;text-align:c
 </head><body><div><h2>✅ 검사 결과가 전달되었습니다.</h2><p>이 창은 닫아도 됩니다.</p></div>
 <script>
   var raw = __RESULT__;
+  // 1) 같은 도메인 localStorage 에 저장 → 메인 페이지가 감지 (서버리스 환경의 주 전달 경로)
+  try {
+    localStorage.setItem('mindgazeResult', JSON.stringify({ seq: Date.now(), data: raw }));
+  } catch (e) { console.error(e); }
+  // 2) 부모 창으로 직접 전달 (보조 경로)
   try {
     if (window.opener && !window.opener.closed) {
       window.opener.postMessage({ type: 'mindgazeResult', data: raw }, '*');
-      setTimeout(function(){ window.close(); }, 1500);
     }
   } catch (e) { console.error(e); }
+  setTimeout(function(){ window.close(); }, 1500);
 </script></body></html>"""
 
 
