@@ -47,7 +47,7 @@ p.lead{color:var(--gray);max-width:680px;margin-bottom:40px;font-size:15.5px}
 .ic.v{background:var(--grad-violet);box-shadow:0 8px 18px rgba(108,76,224,.28)}
 .ic.g{background:var(--grad-green);box-shadow:0 8px 18px rgba(15,164,122,.28)}
 .ic.a{background:linear-gradient(135deg,#E8890C,#F6B73C);box-shadow:0 8px 18px rgba(232,137,12,.26)}
-.ic.n{background:linear-gradient(135deg,#0B1B3F,#33477E);box-shadow:0 8px 18px rgba(11,27,63,.3)}
+.ic.nv{background:linear-gradient(135deg,#0B1B3F,#33477E);box-shadow:0 8px 18px rgba(11,27,63,.3)}
 .ic-sm{width:38px;height:38px;border-radius:11px}
 .ic-sm svg{width:19px;height:19px}
 
@@ -83,9 +83,13 @@ header.hero{position:relative;overflow:hidden;background:
   radial-gradient(560px 340px at -8% 30%, #F0EBFF 0%, transparent 60%),
   linear-gradient(180deg,#F7FAFF 0%,#FFFFFF 100%);
   border-bottom:1px solid var(--line);padding:96px 0 72px;text-align:center}
-.hero-eye{position:absolute;right:-130px;top:38%;transform:translateY(-50%);width:560px;opacity:.5;pointer-events:none}
-.hero-net{position:absolute;left:-90px;top:6%;width:380px;opacity:.4;pointer-events:none}
-@media(max-width:900px){.hero-eye{width:400px;right:-160px;opacity:.3}.hero-net{display:none}}
+.hero-img{position:absolute;right:-50px;top:50%;transform:translateY(-54%);width:540px;pointer-events:none;user-select:none;opacity:.5;filter:blur(1.4px);
+  -webkit-mask-image:radial-gradient(68% 68% at 50% 48%,#000 42%,transparent 95%);
+  mask-image:radial-gradient(68% 68% at 50% 48%,#000 42%,transparent 95%)}
+.hero-img-l{position:absolute;left:4%;top:36%;transform:translateY(-50%);width:520px;pointer-events:none;user-select:none;opacity:.5;filter:blur(.8px);
+  -webkit-mask-image:radial-gradient(64% 64% at 50% 50%,#000 40%,transparent 92%);
+  mask-image:radial-gradient(64% 64% at 50% 50%,#000 40%,transparent 92%)}
+@media(max-width:900px){.hero-img{width:380px;right:-150px;opacity:.3}.hero-img-l{display:none}}
 .hero .inner{position:relative;z-index:2}
 .hero .badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-num);font-size:11.5px;font-weight:700;letter-spacing:.13em;color:var(--blue);background:rgba(255,255,255,.75);border:1px solid var(--blue-line);padding:7px 18px;border-radius:22px;margin-bottom:26px;box-shadow:var(--shadow-sm)}
 .hero .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(15,164,122,.16);animation:pulse 2.2s infinite}
@@ -130,7 +134,8 @@ header.hero{position:relative;overflow:hidden;background:
 .persona .who{display:flex;align-items:center;gap:14px;margin-bottom:8px}
 .persona .who .no{font-family:var(--font-num);font-size:11px;font-weight:800;color:#fff;background:var(--pc-solid,#1E5AF0);border-radius:50%;width:26px;height:26px;display:grid;place-items:center;flex:none}
 .persona h3{font-size:17.5px;font-weight:900}
-.persona .role{font-size:12.5px;color:var(--gray);margin-bottom:16px}
+.persona .role{font-size:12.5px;color:var(--gray);margin-bottom:14px}
+.persona .photo{width:100%;height:150px;object-fit:cover;object-position:center 25%;border-radius:13px;margin-bottom:14px;display:block;border:1px solid var(--line)}
 .persona ul{list-style:none}
 .persona li{display:flex;gap:10px;padding:8px 0;font-size:13.5px;color:var(--ink2);border-top:1px dashed var(--line);align-items:flex-start}
 .persona li:first-child{border-top:none}
@@ -233,11 +238,6 @@ header.hero{position:relative;overflow:hidden;background:
 .gloss .gl{background:#F8FAFE;border:1px solid var(--line);border-radius:13px;padding:14px 16px;font-size:12.5px;color:var(--gray);line-height:1.6}
 .gloss .gl b{display:block;font-family:var(--font-num);font-size:13px;color:var(--blue);margin-bottom:4px}
 
-/* 한계 고지 */
-.limit-box{margin-top:20px;background:#FBFBF4;border:1px solid #E8E4C9;border-radius:var(--radius);padding:22px 26px;display:flex;gap:16px;align-items:flex-start}
-.limit-box svg{width:22px;height:22px;flex:none;margin-top:2px;stroke:#B08A1E;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.limit-box h4{font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.14em;color:#B08A1E;margin-bottom:6px}
-.limit-box p{font-size:13px;color:#6B6647;line-height:1.7}
 
 /* ============================================================
    COMPETITION (경쟁 비교)
@@ -333,6 +333,98 @@ header.hero{position:relative;overflow:hidden;background:
 .phone .bot-msg .bot{width:30px;height:30px;border-radius:50%;background:var(--grad-hero);display:grid;place-items:center;flex:none;box-shadow:0 5px 12px rgba(60,80,230,.3)}
 .phone .bot-msg .bot svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .phone .bot-msg .bubble{background:var(--grad-hero);color:#fff;font-size:11px;line-height:1.55;border-radius:14px 14px 14px 4px;padding:9px 12px;font-weight:500}
+
+/* ============================================================
+   FIELD GALLERY (현장 사진 마퀴 — img/002~008)
+============================================================ */
+.gallery{margin-top:30px;position:relative;z-index:2;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+.gallery .track{display:flex;width:max-content;animation:gslide 48s linear infinite}
+.gallery:hover .track{animation-play-state:paused}
+.gallery .set{display:flex;gap:14px;padding-right:14px}
+.gallery img{height:122px;width:auto;border-radius:14px;border:1px solid rgba(255,255,255,.28);object-fit:cover;display:block;box-shadow:0 10px 24px rgba(0,0,0,.28)}
+@keyframes gslide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:640px){.gallery img{height:92px}}
+
+/* ============================================================
+   DATA TABLES (투명한 성능 지표 · 학술 근거)
+============================================================ */
+.subhead{font-size:18px;font-weight:900;margin:38px 0 6px;letter-spacing:-.01em}
+.subhead + .subdesc{font-size:13px;color:var(--gray);margin-bottom:16px}
+.data-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+.data-card .dh{padding:14px 22px;font-size:14px;font-weight:800;display:flex;gap:9px;align-items:center;border-bottom:1px solid var(--line);background:#F8FAFE;flex-wrap:wrap}
+.data-card .dh svg{width:17px;height:17px;stroke:var(--blue);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.data-card .dh small{font-weight:500;color:var(--gray);font-size:12px}
+.data-card .tbl-wrap{overflow-x:auto}
+.data-card table{width:100%;border-collapse:collapse;font-size:12.5px}
+.data-card th{background:#F1F4FB;color:var(--gray);font-weight:700;padding:9px 16px;text-align:left;font-size:11.5px;letter-spacing:.02em;white-space:nowrap}
+.data-card td{padding:11px 16px;border-top:1px solid var(--line);color:var(--ink2);vertical-align:top;line-height:1.6}
+.data-card td:first-child{font-weight:700;color:var(--ink);white-space:nowrap}
+.data-card .pv{font-family:var(--font-num);font-weight:800;color:var(--blue);font-size:15px;white-space:nowrap}
+.data-card .cite{font-size:11px;font-weight:700;color:var(--violet);background:var(--violet-soft);border-radius:10px;padding:2px 10px;white-space:nowrap;display:inline-block}
+.evi-grid{display:grid;gap:20px;margin-top:14px}
+.evi-foot{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+@media(max-width:820px){.evi-foot{grid-template-columns:1fr}}
+.evi-foot div{background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px 18px;font-size:12.5px;color:var(--gray);line-height:1.6}
+.evi-foot b{display:block;font-family:var(--font-num);font-size:11px;letter-spacing:.1em;color:var(--blue);margin-bottom:5px}
+.src-note{font-size:11.5px;color:var(--gray2);margin-top:12px}
+
+/* ============================================================
+   MILESTONES (데이터 확보 및 실증의 시간)
+============================================================ */
+.mile-card{margin-top:26px;background:#fff;border:1px solid var(--line);border-radius:calc(var(--radius) + 6px);padding:34px 34px 30px;box-shadow:var(--shadow-sm)}
+.mile-card h3{font-size:19px;font-weight:900;margin-bottom:4px}
+.mile-card .sub{font-size:13px;color:var(--gray);margin-bottom:24px}
+.mile{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:820px){.mile{grid-template-columns:1fr}}
+.mile .yr{border:1px solid var(--line);border-radius:16px;padding:22px 20px;transition:box-shadow .25s,transform .25s}
+.mile .yr:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.mile .yb{display:inline-block;font-family:var(--font-num);font-weight:800;font-size:13px;border-radius:12px;padding:4px 15px;margin-bottom:14px}
+.mile .y24 .yb{color:var(--gray);background:#F1F4FB}
+.mile .y25 .yb{color:var(--violet);background:var(--violet-soft)}
+.mile .y26{border:1.5px solid transparent;background:linear-gradient(#fff,#fff) padding-box,var(--grad-hero) border-box}
+.mile .y26 .yb{color:#fff;background:var(--grad-hero);box-shadow:0 6px 14px rgba(60,80,230,.3)}
+.mile ul{list-style:none}
+.mile li{font-size:13px;color:var(--ink2);padding:6px 0 6px 18px;position:relative;line-height:1.55}
+.mile li::before{content:"";position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--blue-line)}
+.mile .y26 li::before{background:var(--blue)}
+.mile li small{display:block;color:var(--gray2);font-size:11.5px}
+
+/* ============================================================
+   TEAM (팀빌딩)
+============================================================ */
+.ceo-band{display:flex;gap:24px;align-items:center;background:linear-gradient(135deg,#0B1B3F 0%,#22346B 70%,#33306E 100%);color:#fff;border-radius:var(--radius);padding:32px 36px;margin-bottom:22px;position:relative;overflow:hidden;flex-wrap:wrap}
+.ceo-band::after{content:"";position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(74,125,255,.3),transparent 70%)}
+.ceo-ava{width:96px;height:96px;border-radius:24px;background:var(--grad-hero);display:grid;place-items:center;font-size:30px;font-weight:900;flex:none;box-shadow:0 12px 26px rgba(60,80,230,.45);overflow:hidden;border:2px solid rgba(255,255,255,.25)}
+.ceo-ava img,.member .ava img{width:100%;height:100%;object-fit:cover;display:block}
+.ceo-band .tagline{font-size:14.5px;color:#DCE6FF;font-weight:700;margin-top:6px}
+.ceo-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;position:relative;z-index:2}
+.ceo-chips span{font-size:12px;font-weight:600;color:#C9D8FF;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:5px 13px}
+.ceo-band .nm{font-size:21px;font-weight:900}
+.ceo-band .nm small{font-size:12.5px;font-weight:600;color:#8FB2FF;margin-left:9px}
+.ceo-band p{font-size:13px;color:#B9C4DE;margin-top:5px;max-width:520px}
+.ceo-band .axl{margin-left:auto;font-family:var(--font-num);font-weight:800;letter-spacing:.2em;font-size:13px;color:#8FB2FF;border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:11px 18px;position:relative;z-index:2}
+@media(max-width:720px){.ceo-band .axl{margin-left:0}}
+.member .mhead{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.member .ava{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:20px;flex:none;box-shadow:0 8px 18px rgba(11,27,63,.18);overflow:hidden}
+.member h3{font-size:17px;font-weight:900}
+.member .edu{font-size:12px;color:var(--gray)}
+.member ul{list-style:none}
+.member li{font-size:13px;color:var(--ink2);padding:7px 0 7px 18px;position:relative;border-top:1px dashed var(--line);line-height:1.55}
+.member li:first-child{border-top:none}
+.member li::before{content:"";position:absolute;left:4px;top:15px;width:6px;height:6px;border-radius:50%;background:var(--mcol,#1E5AF0)}
+.adv-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:20px}
+@media(max-width:820px){.adv-row{grid-template-columns:1fr}}
+.adv{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:26px 28px;transition:box-shadow .25s,transform .25s}
+.adv:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.adv .role{font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--violet);margin-bottom:9px}
+.adv h4{font-size:16.5px;font-weight:900;margin-bottom:7px}
+.adv p{font-size:12.5px;color:var(--gray);line-height:1.7}
+.adv.hire{background:var(--grad-hero);border:none;box-shadow:0 14px 30px rgba(60,80,230,.3)}
+.adv.hire .role{color:#CDE0FF}
+.adv.hire .pos{font-size:15.5px;font-weight:900;color:#fff;margin-bottom:7px}
+.adv.hire p{color:#DCE6FF}
 
 /* ============================================================
    RESULT (검사 결과)
@@ -434,6 +526,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <a href="#tech">성능검증</a>
       <a href="#compete">경쟁력</a>
       <a href="#roadmap">로드맵</a>
+      <a href="#team">팀</a>
     </div>
     <a class="cta" href="#top" onclick="document.getElementById('startBtn').focus()">검사하기</a>
   </div>
@@ -442,54 +535,16 @@ footer p{font-size:12.5px;color:var(--gray)}
 <!-- ================= HERO ================= -->
 <header class="hero" id="top">
 
-  <!-- 배경 에셋 1: 시선추적 아이(eye) 아트웍 -->
-  <svg class="hero-eye" viewBox="0 0 560 560" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <g fill="none" stroke="#9DB9F5" stroke-width="1.4">
-      <circle cx="280" cy="280" r="252" stroke-dasharray="3 9" opacity=".55"/>
-      <circle cx="280" cy="280" r="216" opacity=".4"/>
-      <circle cx="280" cy="280" r="182" stroke-dasharray="14 10" opacity=".6"/>
-      <circle cx="280" cy="280" r="148" opacity=".5"/>
-    </g>
-    <ellipse cx="280" cy="280" rx="150" ry="96" fill="none" stroke="#6E96EE" stroke-width="2.2" opacity=".7"/>
-    <circle cx="280" cy="280" r="62" fill="#DCE8FF" opacity=".85"/>
-    <g stroke="#4A7DFF" stroke-width="1.6" opacity=".75">
-      <line x1="280" y1="222" x2="280" y2="240"/><line x1="280" y1="320" x2="280" y2="338"/>
-      <line x1="222" y1="280" x2="240" y2="280"/><line x1="320" y1="280" x2="338" y2="280"/>
-      <line x1="239" y1="239" x2="252" y2="252"/><line x1="308" y1="308" x2="321" y2="321"/>
-      <line x1="321" y1="239" x2="308" y2="252"/><line x1="252" y1="308" x2="239" y2="321"/>
-    </g>
-    <circle cx="280" cy="280" r="34" fill="#1E5AF0" opacity=".8"/>
-    <circle cx="280" cy="280" r="14" fill="#0B1B3F"/>
-    <circle cx="291" cy="269" r="6" fill="#fff" opacity=".9"/>
-    <g fill="#4A7DFF" opacity=".8">
-      <circle cx="470" cy="130" r="6"/><circle cx="516" cy="196" r="4.5"/><circle cx="448" cy="228" r="3.6"/>
-      <circle cx="508" cy="300" r="5"/><circle cx="462" cy="392" r="4.2"/><circle cx="392" cy="452" r="5.4"/>
-    </g>
-    <g stroke="#9DB9F5" stroke-width="1.2" opacity=".65">
-      <line x1="470" y1="130" x2="516" y2="196"/><line x1="516" y1="196" x2="448" y2="228"/>
-      <line x1="448" y1="228" x2="508" y2="300"/><line x1="508" y1="300" x2="462" y2="392"/>
-      <line x1="462" y1="392" x2="392" y2="452"/>
-    </g>
-  </svg>
+  <!-- 배경 에셋 우측: 시선추적 아이 아트웍 (img/001.png) — 라디얼 페이드 -->
+  <img class="hero-img" src="img/001.png" alt="" aria-hidden="true">
 
-  <!-- 배경 에셋 2: 좌측 네트워크 -->
-  <svg class="hero-net" viewBox="0 0 380 420" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <g stroke="#C3D4F8" stroke-width="1.2" fill="none">
-      <line x1="60" y1="80" x2="170" y2="40"/><line x1="60" y1="80" x2="120" y2="180"/>
-      <line x1="170" y1="40" x2="260" y2="120"/><line x1="120" y1="180" x2="260" y2="120"/>
-      <line x1="120" y1="180" x2="80" y2="300"/><line x1="260" y1="120" x2="300" y2="250"/>
-      <line x1="80" y1="300" x2="210" y2="350"/><line x1="300" y1="250" x2="210" y2="350"/>
-    </g>
-    <g fill="#7C9EF0">
-      <circle cx="60" cy="80" r="7"/><circle cx="170" cy="40" r="5"/><circle cx="120" cy="180" r="9"/>
-      <circle cx="260" cy="120" r="6"/><circle cx="80" cy="300" r="5"/><circle cx="300" cy="250" r="7"/><circle cx="210" cy="350" r="6"/>
-    </g>
-  </svg>
+  <!-- 배경 에셋 좌측: AI 뉴럴넷 아트웍 (img/222.png) — 라디얼 페이드 -->
+  <img class="hero-img-l" src="img/222.png?v=2" alt="" aria-hidden="true">
 
   <div class="wrap inner">
     <span class="badge"><span class="dot"></span>WEBCAM-BASED GAZE AI · 실증 진행 중</span>
     <h1>시선이 말하는 마음,<br><em>NeuroLens</em>가 읽습니다</h1>
-    <p class="sub">일반 웹캠만으로 5분간 시선행동을 측정해<br>심리 상태를 객관적 행동 신호로 분석하는 AI 심리측정 플랫폼</p>
+    <p class="sub">일반 웹캠만으로 5분간 시선행동을 측정해<br>심리 상태를 객관적 행동 신호로 분석하는 AI 심리측정 및 웰니스 Agent 케어 플랫폼</p>
 
     <button id="startBtn" class="btn-main">
       <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -579,6 +634,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="pcard" style="--pc:var(--grad-blue);--pc-solid:#1E5AF0">
         <div class="who"><span class="no">01</span><h3>학생</h3></div>
         <div class="role">시험·진로 스트레스, 도움이 필요해도 말하기 어려움</div>
+        <img class="photo" src="img/112.png" alt="학생" loading="lazy">
         <ul>
           <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 15.5c1-.9 2.2-1.4 3.5-1.4s2.5.5 3.5 1.4M9 10h.01M15 10h.01"/></svg>감정 변화를 인지하고 표현하기 어려움</li>
           <li><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>자가보고의 사회적 바람직성 응답 편향</li>
@@ -588,6 +644,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="pcard" style="--pc:var(--grad-violet);--pc-solid:#6C4CE0">
         <div class="who"><span class="no">02</span><h3>감정노동자</h3></div>
         <div class="role">고객 응대 스트레스, 감정 소진 누적</div>
+        <img class="photo" src="img/113.png" alt="감정노동자" loading="lazy">
         <ul>
           <li><svg viewBox="0 0 24 24"><rect x="3" y="8" width="14" height="9" rx="2"/><path d="M17 10.5h2.5a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H17M6.5 8V6.5"/></svg>감정 소진이 누적되지만 인지가 지연</li>
           <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 15.5h6M9 10h.01M15 10h.01"/></svg>직무 특성상 감정 표현 억제와 위장</li>
@@ -597,6 +654,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="pcard" style="--pc:var(--grad-green);--pc-solid:#0FA47A">
         <div class="who"><span class="no">03</span><h3>보호자 · 기업</h3></div>
         <div class="role">상태 파악이 어렵고, 조기 개입·관리 체계 부재</div>
+        <img class="photo" src="img/114.png" alt="보호자와 기업" loading="lazy">
         <ul>
           <li><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>눈에 보이는 문제가 되기 전까지 파악 곤란</li>
           <li><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>검사·선별 이후의 관리 체계 부재</li>
@@ -607,13 +665,13 @@ footer p{font-size:12.5px;color:var(--gray)}
 
     <div class="common-issue">
       <span class="chip">공통 문제</span>
-      본인이 쓴 답이 실제 상태를 대변하지 못하고, 설령 발견돼도 케어로 이어지지 않는다
+      본인이 쓴 답이 실제 상태를 대변하지 못하고 자기 왜곡/과장이 발생, 설령 발견돼도 케어로 이어지지 않는다
     </div>
 
     <div class="alert-band">
       <div class="warn"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4M12 17.5h.01"/></svg></div>
       <div>
-        <h3>그리고 선별된 뒤에도 — 결과지를 받은 아이에게 <em>'내일 무엇을 해야 하는지'</em> 알려주는 사람은 없었습니다.</h3>
+        <h3>그리고 선별된 뒤에도 — 결과지를 받은 아이에게 <em>'내일 무엇을 어떻게 해야 하는지'</em> 알려주는 사람, 후속 조처가 없었습니다.</h3>
         <p>발견 이후의 '케어 단절'이, 가능했던 회복의 시간을 놓치게 합니다. NeuroLens는 측정에서 케어까지 이어지는 폐루프를 만듭니다.</p>
       </div>
     </div>
@@ -624,7 +682,7 @@ footer p{font-size:12.5px;color:var(--gray)}
 <section id="tests">
   <div class="wrap">
     <span class="eyebrow">Now · Phase 1</span>
-    <h2 class="sec">지금 만나볼 수 있는 심리측정 검사</h2>
+    <h2 class="sec">그래서 우리는 간편한 측정, 높은 정확도, 후속 케어 서비스까지<br>하나로 연계되는 <em>NeuroLens</em>를 만들었습니다</h2>
     <p class="lead">학생·일반인을 대상으로 실증 중인 웹캠 시선추적 기반 심리검사입니다. 설문 응답과 무의식적 시선 신호를 결합해 자기보고 편향을 보완합니다.</p>
 
     <div class="grid3">
@@ -669,7 +727,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <div class="more-reports">
       <div class="mr-head">
         <div class="tl">
-          <div class="ic n ic-sm" style="width:44px;height:44px;border-radius:13px"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M12 2.5 14.4 9l6.6.3-5.2 4.2 1.9 6.5L12 16.2 6.3 20l1.9-6.5L3 9.3 9.6 9z"/></svg></div>
+          <div class="ic nv ic-sm" style="width:44px;height:44px;border-radius:13px"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M12 2.5 14.4 9l6.6.3-5.2 4.2 1.9 6.5L12 16.2 6.3 20l1.9-6.5L3 9.3 9.6 9z"/></svg></div>
           <h3>추가 심리 리포트 7종<small>기본 3종과 함께 총 10종의 리포트로 '진짜 나'를 완성합니다</small></h3>
         </div>
         <span class="pro-badge">유료 구독 시 제공</span>
@@ -732,7 +790,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
       <div class="step">
         <span class="n">3</span>
-        <div class="ic n"><svg viewBox="0 0 24 24"><path d="M9.5 3.5a3 3 0 0 0-3 3c-2 .4-3.2 1.8-3.2 3.7 0 1.2.5 2.2 1.4 2.9-.4.7-.6 1.4-.6 2.2A3.8 3.8 0 0 0 8 19.1c.5 1 1.4 1.6 2.6 1.6 1 0 1.9-.5 2.4-1.2V5.2a3 3 0 0 0-3.5-1.7z"/><path d="M14.5 3.5a3 3 0 0 1 3 3c2 .4 3.2 1.8 3.2 3.7 0 1.2-.5 2.2-1.4 2.9.4.7.6 1.4.6 2.2a3.8 3.8 0 0 1-3.9 3.8c-.5 1-1.4 1.6-2.6 1.6"/></svg></div>
+        <div class="ic nv"><svg viewBox="0 0 24 24"><path d="M9.5 3.5a3 3 0 0 0-3 3c-2 .4-3.2 1.8-3.2 3.7 0 1.2.5 2.2 1.4 2.9-.4.7-.6 1.4-.6 2.2A3.8 3.8 0 0 0 8 19.1c.5 1 1.4 1.6 2.6 1.6 1 0 1.9-.5 2.4-1.2V5.2a3 3 0 0 0-3.5-1.7z"/><path d="M14.5 3.5a3 3 0 0 1 3 3c2 .4 3.2 1.8 3.2 3.7 0 1.2-.5 2.2-1.4 2.9.4.7.6 1.4.6 2.2a3.8 3.8 0 0 1-3.9 3.8c-.5 1-1.4 1.6-2.6 1.6"/></svg></div>
         <h4>AI 분석</h4><p>I-DT 기반 150+ 시선특징 추출 → BMA 설명가능 모델로 Human Model 생성</p>
       </div>
       <div class="step">
@@ -749,7 +807,6 @@ footer p{font-size:12.5px;color:var(--gray)}
   <div class="wrap">
     <span class="eyebrow">Validation</span>
     <h2 class="sec">내부 검증 AUC 0.74~0.82 —<br>참고 벤치마크 대비 <em>경쟁력 있는 성능</em></h2>
-    <p class="lead">30회 StratifiedShuffleSplit + 라벨 셔플 noise floor 검증 기준의 내부 검증 결과이며, 외부 재현 연구로 상용 신뢰도를 검증할 예정입니다.</p>
 
     <div class="vgrid">
       <div class="vcard">
@@ -794,6 +851,29 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
     </div>
 
+    <!-- 투명한 성능 지표 -->
+    <div class="data-card" style="margin-top:20px">
+      <div class="dh">
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        투명한 성능 지표
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>검사</th><th>성능 지표</th><th>수치</th><th>1줄 해석</th></tr></thead>
+          <tbody>
+            <tr><td>Big5 (성인 남성)</td><td>AUC (전체 판별력)</td><td class="pv">0.727</td><td>위험군/정상군 구분의 전체 판별력. 1.0 만점. 학계 평균 0.704 상회.</td></tr>
+            <tr><td>Big5 (성인 여성)</td><td>AUC (전체 판별력)</td><td class="pv">0.753</td><td>30회 반복 검증으로 편향 제거. 해외사 0.73 동등 이상.</td></tr>
+            <tr><td>MBTI</td><td>4글자 완전 일치율</td><td class="pv">70.8%</td><td>16개 유형 4글자 모두 일치. 학계 텍스트 기반 35~53% 대비 1.3~2.0배.</td></tr>
+            <tr><td>RIASEC (직업흥미 유형)</td><td>Top3 적중률</td><td class="pv">89.6%</td><td>실제 1·2순위가 예측 상위 3 안에 포함. 통계적 유의 (p=0.019). (고양 H 초등 5학년 실증)</td></tr>
+            <tr><td>커리어 적합도</td><td>Top-10 적중률</td><td class="pv">86.7%</td><td>263개 직업 중 실제 1순위가 예측 Top-10 안에 포함. 동종 15~35% 대비 우위.</td></tr>
+            <tr><td>정서적 어려움</td><td>AUC (전체 판별력)</td><td class="pv">0.819</td><td>내부 반복 검증 기준.</td></tr>
+            <tr><td>정서적 어려움</td><td>Recall (위험군 포착)</td><td class="pv">82.9%</td><td>실제 위험군 100명 중 약 83명을 놓치지 않고 찾아냄. (비진단적 1차 선별)</td></tr>
+            <tr><td>정서적 어려움</td><td>NPV (안전판정 신뢰도)</td><td class="pv">92.8%</td><td>안전(정상) 판정 100명 중 약 93명이 실제 안전(정상). 1차 필터로 신뢰 가능.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- 용어 해설 -->
     <div class="gloss">
       <h4><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.5 2.5 0 1 1 3.4 2.3c-.7.3-.9.8-.9 1.6M12 16.5h.01"/></svg>지표 용어, 쉽게 풀면</h4>
@@ -804,14 +884,45 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
     </div>
 
-    <!-- 정직한 한계 고지 -->
-    <div class="limit-box">
-      <svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4M12 17.5h.01"/></svg>
-      <div>
-        <h4>LIMITATION · HONEST DISCLOSURE</h4>
-        <p>정서적 스트레스 신호용 학습 표본 성인 N=452는 산업 표준(N&gt;5,000) 대비 작아 종단 확장을 진행 중입니다. 외부 재현 연구는 투자 클로징 +3개월 이내 N≥100 모집에 착수해, +9개월에 1차 결과를 공개할 예정입니다.</p>
+    <!-- 학술 근거 -->
+    <h3 class="subhead">응답 왜곡 학술 검증 + 시선 ↔ 성격 상관 연구</h3>
+    <p class="subdesc">"설문이 놓치는 것을 행동이 말한다"는 명제는 10년 이상 축적된 학계 연구 위에 서 있습니다.</p>
+    <div class="evi-grid">
+      <div class="data-card">
+        <div class="dh" style="color:var(--blue)">① 자기보고식 응답 왜곡 학술 근거</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>연구자 (연도)</th><th>국가</th><th>연구명 · 핵심 발견</th><th>NeuroLens 인용</th></tr></thead>
+            <tbody>
+              <tr><td>Griffith et al. (2007)</td><td>美</td><td>취업 지원자 within-subject 연구 — 30~50% 점수 부풀림</td><td><span class="cite">핵심 인용 · 1차 근거</span></td></tr>
+              <tr><td>Viswesvaran (1999)</td><td>美</td><td>종합분석 — 평균 0.5 표준편차 점수 상승</td><td><span class="cite">2차 근거</span></td></tr>
+              <tr><td>김재철 외 (2022)</td><td>韓</td><td>면접 현장 — 경고 메시지로도 응답왜곡 부분 감소</td><td><span class="cite">한국 맥락</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="data-card">
+        <div class="dh" style="color:var(--violet)">② 눈동자 움직임 → 성격특성 예측 — 10년간 학계 연구 (대표 4건)</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>연구자 (연도)</th><th>국가</th><th>연구명 · 핵심 발견</th><th>NeuroLens 인용</th></tr></thead>
+            <tbody>
+              <tr><td>Hoppe et al. (2012)</td><td>네덜란드</td><td>Eyes as windows to the soul — 시선 고정 ↔ Big5 상관 최초 입증</td><td><span class="cite">MOAT 학술 기반</span></td></tr>
+              <tr><td>Wu et al. (2014)</td><td>캐나다</td><td>Personality on social attention — 외향성·호의성 ↔ 얼굴 응시 길이</td><td><span class="cite">정서 자극 설계 근거</span></td></tr>
+              <tr><td>Hoppe et al. (2018)</td><td>독일</td><td>Eye Movements Predict Personality Traits — 일상 시선으로 Big5 예측</td><td><span class="cite">150여 패턴 분석 근거</span></td></tr>
+              <tr><td>Berkovsky et al. (2019)</td><td>호주</td><td>Detecting Personality Traits Using Eye-Tracking — 80% 내외 정확도</td><td><span class="cite">성능 비교 기준</span></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+    <div class="evi-foot">
+      <div><b>공통 결론</b>눈동자 움직임 패턴 ↔ 주의·정서·인지 뇌영역 상관</div>
+      <div><b>차별점</b>한국인 9,000명 보정 + 시선·응답 결합 + 정직 평가</div>
+      <div><b>축적 기간</b>10년 학계 연구 + MindGaze 자체 5년 데이터</div>
+    </div>
+    <div class="src-note">출처: Personnel Review · Journal of Applied Psychology · 한국심리학회지 · 학계 종합</div>
+
   </div>
 </section>
 
@@ -888,6 +999,66 @@ footer p{font-size:12.5px;color:var(--gray)}
         <div class="c"><div class="cno">COMMITMENT 01 · 성장</div><h4>생애주기 경험 축적</h4><p>초등부터 청년까지, 연령과 관심사는 달라도 시선추적 AI로 하나가 됩니다.</p></div>
         <div class="c"><div class="cno">COMMITMENT 02 · 확장</div><h4>참여 기반 확보</h4><p>학교·기관·지역을 넘어 현장 참여 기반을 넓혀갑니다.</p></div>
         <div class="c"><div class="cno">COMMITMENT 03 · 혁신</div><h4>AI 헬스케어 솔루션</h4><p>다양한 시선으로 만드는 AI 헬스케어 솔루션을 지향합니다.</p></div>
+      </div>
+
+      <!-- 현장 사진 슬라이딩 갤러리 (img/002~008) -->
+      <div class="gallery" aria-label="현장 실증 사진">
+        <div class="track">
+          <div class="set">
+            <img src="img/002.png" alt="현장 실증 사진 1" loading="lazy">
+            <img src="img/003.png" alt="현장 실증 사진 2" loading="lazy">
+            <img src="img/004.png" alt="현장 실증 사진 3" loading="lazy">
+            <img src="img/005.png" alt="현장 실증 사진 4" loading="lazy">
+            <img src="img/006.png" alt="현장 실증 사진 5" loading="lazy">
+            <img src="img/007.png" alt="현장 실증 사진 6" loading="lazy">
+            <img src="img/008.png" alt="현장 실증 사진 7" loading="lazy">
+          </div>
+          <div class="set" aria-hidden="true">
+            <img src="img/002.png" alt="" loading="lazy">
+            <img src="img/003.png" alt="" loading="lazy">
+            <img src="img/004.png" alt="" loading="lazy">
+            <img src="img/005.png" alt="" loading="lazy">
+            <img src="img/006.png" alt="" loading="lazy">
+            <img src="img/007.png" alt="" loading="lazy">
+            <img src="img/008.png" alt="" loading="lazy">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 데이터 확보 및 실증의 시간 -->
+    <div class="mile-card">
+      <h3>데이터 확보 및 실증의 시간</h3>
+      <div class="sub">박람회·축제·공교육 실증으로 쌓아온 현장의 기록입니다.</div>
+      <div class="mile">
+        <div class="yr y24">
+          <span class="yb">2024</span>
+          <ul>
+            <li>서울진로직업박람회</li>
+            <li>강남구진로박람회</li>
+            <li>종로구청소년축제</li>
+          </ul>
+        </div>
+        <div class="yr y25">
+          <span class="yb">2025</span>
+          <ul>
+            <li>교육부 경기에듀테크소프트랩 실증<small>8개 학교 · 1,600명 실증</small></li>
+            <li>서울진로직업박람회</li>
+            <li>강남구 취창업허브</li>
+            <li>강남구진로박람회</li>
+            <li>영등포구청소년축제</li>
+          </ul>
+        </div>
+        <div class="yr y26">
+          <span class="yb">2026 · NOW</span>
+          <ul>
+            <li>강남구진로박람회 <small>9월</small></li>
+            <li>서대문구진로박람회 <small>9월</small></li>
+            <li>KAIST Deeptech Startup Batch 참여</li>
+            <li>분당서울대병원 헬스케어혁신파크 선정</li>
+            <li>용인창업지원센터 입주 · 창업 예정 <small>9월경</small></li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -974,6 +1145,87 @@ footer p{font-size:12.5px;color:var(--gray)}
           <span class="bot"><svg viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="10" rx="3"/><circle cx="9.5" cy="13" r="1"/><circle cx="14.5" cy="13" r="1"/><path d="M12 8V5M12 5h.01"/></svg></span>
           <span class="bubble">지금 정도면 충분해요. 작은 실천이 큰 변화를 만듭니다. 함께 오늘의 케어를 완성해볼까요? 😊</span>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TEAM ================= -->
+<section id="team" style="background:#FAFBFE;border-top:1px solid var(--line)">
+  <div class="wrap">
+    <span class="eyebrow">Team Building</span>
+    <h2 class="sec">시선을 읽는 사람들, <em>AX오픈랩</em></h2>
+    <p class="lead">AI 정책·심리학·AI 알고리즘·풀스택 엔지니어링에 20년+ 산학민관 경험을 결합해 갑니다.</p>
+
+    <!-- CEO -->
+    <div class="ceo-band">
+      <div class="ceo-ava"><img src="img/지병석.png?v=2" alt="지병석 대표"></div>
+      <div class="ceo-info">
+        <div class="nm">지병석<small>대표 · Founder</small></div>
+        <p class="tagline">"AX 가속 시대, 더 나은 내일을 연구합니다."</p>
+        <div class="ceo-chips">
+          <span>아주대 e-business MBA</span>
+          <span>대통령직속 4차산업혁명위원회 사무관</span>
+          <span>한국발명진흥회 그룹장</span>
+          <span>큐리어드 CRO / AX연구기획본부장</span>
+        </div>
+      </div>
+      <div class="axl">AX OPEN LAB</div>
+    </div>
+
+    <!-- 멤버 -->
+    <div class="grid3">
+      <div class="card member" style="--mcol:#1E5AF0">
+        <div class="mhead">
+          <div class="ava" style="background:var(--grad-blue)"><img src="img/양영준.png" alt="양영준" loading="lazy"></div>
+          <div><h3>양영준</h3><div class="edu">서울대 심리학과 ('90)</div></div>
+        </div>
+        <ul>
+          <li>LG U+ 모바일금융팀 팀장</li>
+          <li>법률 AI 인텔리콘 사업본부장</li>
+          <li>라온시큐어㈜ 신성장 총괄 — 블록체인 기반 분산 ID 사업 총괄</li>
+        </ul>
+      </div>
+      <div class="card member" style="--mcol:#6C4CE0">
+        <div class="mhead">
+          <div class="ava" style="background:var(--grad-violet)"><img src="img/문성일.png" alt="문성일" loading="lazy"></div>
+          <div><h3>문성일</h3><div class="edu">관동대 컴퓨터공학</div></div>
+        </div>
+        <ul>
+          <li>풀스택 23년 경력</li>
+          <li>KT 안전관리 · 삼성화재 모바일</li>
+          <li>SKT 스마트월렛</li>
+        </ul>
+      </div>
+      <div class="card member" style="--mcol:#0FA47A">
+        <div class="mhead">
+          <div class="ava" style="background:var(--grad-green)"><img src="img/나병훈.png" alt="나병훈" loading="lazy"></div>
+          <div><h3>나병훈</h3><div class="edu">한양대 컴퓨터공학 석사</div></div>
+        </div>
+        <ul>
+          <li>AI 알고리즘 · 풀스택 25년</li>
+          <li>KT 기가지니 앱 CMS</li>
+          <li>신라/신라아이파크 면세점 · 보건복지부</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 자문 + 채용 -->
+    <div class="adv-row">
+      <div class="adv">
+        <div class="role">자문 · 시선추적</div>
+        <h4>박태정 교수</h4>
+        <p>덕성여대 디지털 SW공학부 · 서울대 컴퓨터공학 Ph.D · 시선·감정 활용 AI 영상 연구</p>
+      </div>
+      <div class="adv">
+        <div class="role">자문 · 마케팅 · 북미</div>
+        <h4>정상욱 교수</h4>
+        <p>한국외대 경영대학원 부원장 · Ph.D Marketing (U. of Iowa) · Big Data · 북미 진출 전략</p>
+      </div>
+      <div class="adv hire">
+        <div class="role">HIRING — PRE-A 자금</div>
+        <div class="pos">M3: B2B 영업 리더 1명</div>
+        <p>M6: DPO·보안 외주 · Series A 이후 CRO/CFO</p>
       </div>
     </div>
   </div>
@@ -1386,7 +1638,7 @@ const io = new IntersectionObserver((entries) => {
     }
   });
 }, { threshold: .12 });
-document.querySelectorAll('.card,.vcard,.pcard,.stage,.step,.more-reports,.field-band,.care-flex,.quad-box,.comp-table,.gloss,.limit-box,.support-box').forEach(el => {
+document.querySelectorAll('.card,.vcard,.pcard,.stage,.step,.more-reports,.field-band,.care-flex,.quad-box,.comp-table,.gloss,.support-box,.data-card,.mile-card,.ceo-band,.adv,.evi-foot').forEach(el => {
   el.style.opacity = 0;
   el.style.transform = 'translateY(18px)';
   el.style.transition = 'opacity .6s ease, transform .6s ease, box-shadow .25s, border-color .25s';
