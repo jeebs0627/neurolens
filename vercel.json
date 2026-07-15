@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/gemini", "destination": "/api/gemini" },
+    { "source": "/rcvrslt", "destination": "/api/rcvrslt" },
+    { "source": "/last-result", "destination": "/api/last-result" },
+    { "source": "/mg/:endpoint", "destination": "/api/mg?endpoint=:endpoint" }
+  ]
+}
