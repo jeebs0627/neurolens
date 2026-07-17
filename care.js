@@ -91,6 +91,40 @@ var ROUTINES = {
     desc:'오늘 거절하지 못한 것 1개를 기록하고, 다음번에 쓸 대안 문장을 만들어 둡니다.',
     steps:['오늘 거절하지 못한 것 1개 적기','"~는 어렵지만 ~는 가능해요" 대안 문장 만들기','소리 내어 한 번 연습하기'],
   },
+  /* 주간 카드 뽑기 보너스 루틴 */
+  bonusBreath: {
+    icon:'☁️', name:'마음 숨 고르기', min:3, ev:'호흡 이완',
+    desc:'3분 동안 숨의 리듬만 바라보는 짧은 쉼표 루틴입니다.',
+    steps:['편하게 앉아 어깨 힘 빼기','코로 4초 들이쉬고 6초 내쉬기','3분간 반복하며 숨만 바라보기'],
+  },
+  bonusGratitude: {
+    icon:'📔', name:'감사 노트', min:3, ev:'긍정심리학',
+    desc:'오늘 감사한 일 3가지를 작게 적어보는 루틴입니다.',
+    steps:['오늘 있었던 일 잠시 떠올리기','감사한 일 3가지 적기','가장 좋았던 하나에 밑줄 긋기'],
+  },
+  bonusWalk: {
+    icon:'🌳', name:'자연 산책', min:10, ev:'주의회복이론(ART)',
+    desc:'나무나 하늘이 보이는 길을 10분 걷습니다.',
+    steps:['폰은 주머니에 넣기','10분간 천천히 걷기','눈에 들어오는 초록을 3가지 찾기'],
+  },
+  bonusTea: {
+    icon:'🍵', name:'나만의 쉼', min:5, ev:'셀프케어 의식',
+    desc:'따뜻한 차 한 잔과 함께 아무것도 하지 않는 5분입니다.',
+    steps:['따뜻한 음료 한 잔 준비하기','알림 없는 자리에 앉기','5분간 온기와 향에만 머물기'],
+  },
+};
+
+var BONUS_POOL = ['bonusBreath', 'bonusGratitude', 'bonusWalk', 'bonusTea'];
+
+/* 감정 이모지 → 꽃 색 (마음 정원) */
+var EMOJI_META = {
+  '😄': { c:'#F2C14E', l:'기쁨' },
+  '🙂': { c:'#8FBF6C', l:'평온' },
+  '😐': { c:'#7FA8D9', l:'차분' },
+  '😟': { c:'#E58BA0', l:'불안' },
+  '😢': { c:'#9A86D9', l:'슬픔' },
+  '😠': { c:'#E07856', l:'화남' },
+  '😴': { c:'#A8B3C4', l:'피곤' },
 };
 
 var TRACK_FILL = {
@@ -159,6 +193,24 @@ function mapSignals(r) {
   return { track: track, signals: signals, rx: rx, rxWhy: rxWhy, highRisk: earp != null && earp >= 85 };
 }
 
+/* ---------- 배지 (성장·수집 기반 — 경쟁/압박 없음) ---------- */
+function everDone(s, id) {
+  for (var k in s.routineDone) if (s.routineDone[k].indexOf(id) >= 0) return true;
+  return false;
+}
+function allRxDone(s) {
+  if (!s.rx.length) return false;
+  return s.rx.every(function (id) { return everDone(s, id); });
+}
+var BADGES = [
+  { id:'firstCheckin', ic:'🌱', nm:'첫 체크인',      test:function(s){ return Object.keys(s.checkins).length >= 1; } },
+  { id:'streak3',      ic:'🍀', nm:'3일 연속',       test:function(s){ return attendance(s).streak >= 3; } },
+  { id:'rxMaster',     ic:'🌸', nm:'루틴 3종 마스터', test:allRxDone, unlock:true },
+  { id:'firstGaze',    ic:'👁️', nm:'첫 시선 호흡',   test:function(s){ return everDone(s,'gazeBreath'); } },
+  { id:'remeasure',    ic:'🔍', nm:'첫 재측정',      test:function(s){ return s.remeasured; } },
+  { id:'week',         ic:'🏡', nm:'정원 완성',      test:function(s){ return curDay(s) >= 7 && Object.keys(s.checkins).length >= 4; } },
+];
+
 /* ---------- 마음 컨디션 지수 (condIndex) ----------
  * 기준선(trait): 웰빙 메타분석 가중치 — 정서안정(100-N) 중심, 개방성 제외.
  * 오늘 상태(state): 체크인 에너지 60% + 이모지 정서가 40% + 루틴 보너스.
@@ -211,7 +263,8 @@ var KEY = 'nlCareJourney';
 function blankState() {
   return { v:1, startedAt:null, track:'adult', name:'', signals:[], rx:[],
     rxWhy:{}, base:null, channel:null, checkins:{}, routineDone:{}, points:0, ledger:[],
-    leavesUsed:{ month:'', n:0 }, remeasured:false, highRisk:false, demoOffset:0 };
+    leavesUsed:{ month:'', n:0 }, remeasured:false, highRisk:false, demoOffset:0,
+    badges:{}, weeklyCard:null };
 }
 function load(key) {
   try {
@@ -406,6 +459,47 @@ var CSS = '\
 .nlc .safety .lines{display:flex;gap:10px;flex-wrap:wrap}\
 .nlc .safety .lines a{display:inline-flex;flex-direction:column;gap:2px;text-decoration:none;background:#fff;border:1px solid #F0D5C9;border-radius:13px;padding:10px 18px;color:#B4441F;font-weight:800;font-size:14px}\
 .nlc .safety .lines a small{font-size:11px;font-weight:600;color:#A3705C}\
+/* 케어 존 — 리포트(처방) 영역과 시각적으로 구분되는 따뜻한 정원 톤 */\
+.nlc .care-zone{background:linear-gradient(180deg,#FDFAF2,#F8F3E6);border:1px solid #ECE3CD;border-radius:24px;padding:20px 16px 6px;margin-bottom:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}\
+.nlc .care-zone .ncard{border-color:#EDE6D4;box-shadow:0 2px 8px rgba(122,103,60,.07)}\
+.nlc .care-zone .ncard>h3{color:#7A8F4E}\
+.nlc .care-zone .ncard>h3::before{background:linear-gradient(135deg,#8FBF6C,#5E9C43)}\
+.nlc .cz-head{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;font-family:var(--font-num,Sora,sans-serif);font-size:12px;font-weight:800;letter-spacing:.12em;color:#6C8544;text-transform:uppercase;margin:2px 6px 16px}\
+.nlc .cz-head::before{content:"🌿";letter-spacing:0}\
+.nlc .cz-head small{font-family:var(--font-kr,sans-serif);font-weight:600;letter-spacing:0;color:#A99F87;font-size:11.5px;text-transform:none}\
+/* 마음 정원 */\
+.nlc .garden-card{background:linear-gradient(165deg,#FFFDF6,#FBF2DF)!important}\
+.nlc .garden-svg{display:block;width:100%;max-width:560px;margin:0 auto}\
+.nlc .g-legend{display:flex;gap:11px;flex-wrap:wrap;justify-content:center;margin-top:10px}\
+.nlc .g-legend span{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:#8A7F63}\
+.nlc .g-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}\
+.nlc .g-streak{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:#7A6F52;background:rgba(255,255,255,.7);border:1px dashed #E3D8BC;border-radius:12px;padding:10px 14px;margin-top:14px}\
+.nlc .g-streak b{color:#5E9C43}\
+/* 배지 */\
+.nlc .badge-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:16px;padding-top:18px;border-top:1px dashed #E8DFC8}\
+.nlc .bdg{width:74px;text-align:center}\
+.nlc .bdg .bic{width:52px;height:52px;margin:0 auto 6px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:linear-gradient(145deg,#FFF8E3,#F3E5BF);border:2px solid #E8D7A4;box-shadow:0 3px 9px rgba(160,130,40,.18)}\
+.nlc .bdg.locked .bic{background:#F3F0E7;border:2px dashed #D8D2C0;filter:grayscale(1);opacity:.55;font-size:18px}\
+.nlc .bdg .bnm{font-size:10.5px;font-weight:700;color:#7A6F52;line-height:1.35}\
+.nlc .bdg.locked .bnm{color:#B3AC99}\
+/* 주간 카드 뽑기 & 보너스/해금 루틴 */\
+.nlc .draw-box{margin-top:16px;padding:14px 16px;background:rgba(255,255,255,.75);border:1px solid #EDE4CF;border-radius:14px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}\
+.nlc .draw-box .tx{font-size:12.5px;color:#7A6F52;line-height:1.6}\
+.nlc .draw-box .tx b{color:#5E5335;display:block;font-size:13.5px}\
+.nlc .btn-warm{display:inline-flex;align-items:center;gap:8px;font-family:inherit;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(135deg,#E8A54B,#D98A2B);border:none;border-radius:12px;padding:10px 20px;cursor:pointer;box-shadow:0 8px 18px rgba(217,138,43,.3)}\
+.nlc .btn-warm:disabled{opacity:.5;cursor:not-allowed}\
+.nlc .bonus-mini{margin-top:12px;display:flex;gap:12px;align-items:center;background:#fff;border:1.5px solid #EAD9AC;border-radius:14px;padding:12px 15px;flex-wrap:wrap}\
+.nlc .bonus-mini .bi{font-size:26px}\
+.nlc .bonus-mini .bt{flex:1;min-width:170px}\
+.nlc .bonus-mini .bt b{font-size:13.5px}\
+.nlc .bonus-mini .bt small{display:block;font-size:11px;color:#8A7F63;margin-top:2px}\
+.nlc .bonus-mini .doit{width:auto;padding:8px 16px}\
+/* 공유 카드 */\
+.nlc .share-row{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}\
+/* 포인트 인라인 (Profile 카드 통합용) */\
+.nlc .pt-inline{margin-top:16px;padding-top:14px;border-top:1px dashed var(--c-line);display:flex;gap:8px 14px;align-items:center;flex-wrap:wrap}\
+.nlc .pt-inline .bal{font-family:var(--font-num,Sora,sans-serif);font-size:24px;font-weight:800;color:var(--c-violet)}\
+.nlc .pt-inline .bal small{font-size:12px}\
 /* 데모 바 & 토스트 & 공통 */\
 .nlc .demo-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px dashed #F3DCB5;background:#FDF8EC;border-radius:14px;padding:10px 14px;margin-bottom:16px;font-size:11.5px;color:#8A6A1F}\
 .nlc .demo-bar b{font-family:var(--font-num,Sora,sans-serif);letter-spacing:.08em;font-size:10px}\
@@ -429,6 +523,15 @@ function Care(container, result, opts) {
   this.opts = opts || {};
   this.key = this.opts.storageKey || KEY;
   this.state = load(this.key);
+
+  /* 구버전 상태 마이그레이션: 이미 달성한 배지는 토스트 없이 조용히 인정 */
+  if (!this.state.badges) {
+    var st0 = this.state;
+    st0.badges = {};
+    BADGES.forEach(function (b) { try { if (b.test(st0)) st0.badges[b.id] = Date.now(); } catch (_) {} });
+    if (st0.weeklyCard === undefined) st0.weeklyCard = null;
+    save(this.key, st0);
+  }
 
   if (result) { // 새 결과 수신
     var s = this.state;
@@ -522,7 +625,7 @@ Care.prototype.htmlIndex = function () {
     + '<div class="cond-flex">'
     + '<div class="cond-ring" data-cv="' + ci.today + '"><span class="cv">' + ci.today + '<small>/ 100</small></span></div>'
     + '<div class="cond-info"><div class="cond-sent">' + sent + '</div>'
-    + '<div class="cond-chips"><span>기준선 ' + ci.base + '</span><span>오늘 상태 ' + (ci.state == null ? '—' : ci.state) + '</span>' + deltaChip + cta + '</div>'
+    + '<div class="cond-chips"><span>기준선 ' + ci.base + '</span><span>오늘 상태 ' + (ci.state == null ? '—' : (ck ? ck.emoji + ' ' : '') + ci.state) + '</span>' + deltaChip + cta + '</div>'
     + '</div></div>'
     + this.htmlSpark(pts, d)
     + '</div>';
@@ -630,9 +733,7 @@ Care.prototype.htmlJourney = function () {
     return '<div class="jd ' + sl.st + '"><div class="dot">' + sl.tx + '</div><div class="lb">' + labels[i] + '</div></div>';
   }).join('');
 
-  var streakLine = s.highRisk ? '' :
-    '<div class="streak-line">🌱 이어가기 <b>' + at.streak + '일</b>'
-    + '<span>🍃 쉬어가기 잎사귀 ' + at.leavesLeft + '/2 남음 — 하루 놓쳐도 잎사귀가 대신 지켜줘요. 끊김은 벌점이 아니에요.</span></div>';
+  var streakLine = ''; /* 자비 스트릭은 마음 정원 카드로 이동 */
 
   var insight = '';
   if (d >= 3 && !s.highRisk) {
@@ -710,6 +811,164 @@ Care.prototype.htmlD7 = function () {
   return '<div class="ncard"><h3>D7 · 재확인 — 나의 7일 변화</h3>' + body + '</div>';
 };
 
+/* ----- 마음 정원 SVG (하루 = 꽃 한 송이, 감정 색 반영) ----- */
+function gardenSVG(s, forShare) {
+  var W = 560, H = forShare ? 300 : 250, baseY = H - 62;
+  var slots = 7, x0 = 60, xs = (W - 120) / (slots - 1);
+  var heights = [64, 84, 56, 92, 68, 80, 74];
+  var at = attendance(s), d = curDay(s);
+  var svg = '';
+
+  function flower(x, h, color, scale, buds) {
+    var hy = baseY - h * scale;
+    var out = '<path d="M' + x + ' ' + baseY + ' Q ' + (x + 5) + ' ' + (baseY - h * scale * .5) + ' ' + x + ' ' + (hy + 12) + '" stroke="#7FA35B" stroke-width="3" fill="none" stroke-linecap="round"/>'
+      + '<ellipse cx="' + (x - 8) + '" cy="' + (baseY - h * scale * .38) + '" rx="8" ry="4" fill="#8FBF6C" transform="rotate(-28 ' + (x - 8) + ' ' + (baseY - h * scale * .38) + ')"/>'
+      + '<ellipse cx="' + (x + 8) + '" cy="' + (baseY - h * scale * .55) + '" rx="7" ry="3.5" fill="#9CC97C" transform="rotate(24 ' + (x + 8) + ' ' + (baseY - h * scale * .55) + ')"/>';
+    for (var a = 0; a < 6; a++) {
+      out += '<ellipse cx="' + x + '" cy="' + (hy - 9 * scale) + '" rx="' + (6.4 * scale) + '" ry="' + (11 * scale) + '" fill="' + color + '" opacity=".93" transform="rotate(' + (a * 60) + ' ' + x + ' ' + hy + ')"/>';
+    }
+    out += '<circle cx="' + x + '" cy="' + hy + '" r="' + (5.5 * scale) + '" fill="#F7E9A8" stroke="#E8CE74" stroke-width="1.5"/>';
+    for (var b = 0; b < Math.min(3, buds); b++) {
+      var bx = x + (b % 2 ? 13 : -13), by = baseY - 18 - b * 13;
+      out += '<circle cx="' + bx + '" cy="' + by + '" r="4.5" fill="' + color + '" opacity=".65"/><line x1="' + x + '" y1="' + (by + 10) + '" x2="' + bx + '" y2="' + by + '" stroke="#8FBF6C" stroke-width="1.6"/>';
+    }
+    return out;
+  }
+  function leafSprout(x) { /* 쉬어가기 잎사귀가 지켜준 날 */
+    return '<path d="M' + x + ' ' + baseY + ' Q ' + (x + 3) + ' ' + (baseY - 16) + ' ' + x + ' ' + (baseY - 26) + '" stroke="#7FA35B" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+      + '<ellipse cx="' + (x - 7) + '" cy="' + (baseY - 22) + '" rx="9" ry="5" fill="#A9CF8B" transform="rotate(-30 ' + (x - 7) + ' ' + (baseY - 22) + ')"/>'
+      + '<path d="M' + (x + 7) + ' ' + (baseY - 34) + ' q 6 8 0 13 q -6 -5 0 -13" fill="#9DC3E8" stroke="#7FA8D9" stroke-width="1"/>';
+  }
+  function sprout(x, dashed) { /* 오늘(대기) 또는 쉬어간 날 */
+    return '<path d="M' + x + ' ' + baseY + ' Q ' + (x + 2) + ' ' + (baseY - 12) + ' ' + x + ' ' + (baseY - 20) + '" stroke="#9BB77F" stroke-width="2.4" fill="none" stroke-linecap="round"' + (dashed ? ' stroke-dasharray="3 3"' : '') + '/>'
+      + '<ellipse cx="' + (x - 5) + '" cy="' + (baseY - 17) + '" rx="6.5" ry="3.6" fill="#B9D8A0" transform="rotate(-28 ' + (x - 5) + ' ' + (baseY - 17) + ')"' + (dashed ? ' opacity=".6"' : '') + '/>';
+  }
+  function seed(x) {
+    return '<ellipse cx="' + x + '" cy="' + (baseY - 2) + '" rx="9" ry="4" fill="#C9B08A" opacity=".55"/><circle cx="' + x + '" cy="' + (baseY - 4) + '" r="2.4" fill="#A8865D"/>';
+  }
+
+  var plants = '', labels = '';
+  for (var i = 0; i < 7; i++) {
+    var x = x0 + i * xs, dayN = i + 1;
+    if (dayN === 7) { /* D7 = 재측정 — 황금 꽃 */
+      if (s.remeasured) plants += flower(x, heights[i], '#F2C14E', 1.12, 0);
+      else if (d >= 7) plants += sprout(x, true);
+      else plants += seed(x);
+    } else {
+      var st = at.days[i], ck = s.checkins[dayN];
+      if (st === 'done' && ck) {
+        var meta = EMOJI_META[ck.emoji] || { c: '#8FBF6C' };
+        plants += flower(x, heights[i], meta.c, .78 + (ck.energy || 50) / 220, (ck.routines || []).length);
+      }
+      else if (st === 'leaf') plants += leafSprout(x);
+      else if (st === 'today') plants += sprout(x, true);
+      else if (st === 'rest') plants += sprout(x, false);
+      else plants += seed(x);
+    }
+    labels += '<text x="' + x + '" y="' + (H - 14) + '" text-anchor="middle" font-family="Sora" font-size="9" font-weight="700" fill="#B3A683">' + dayN + '일차</text>';
+  }
+
+  var stoneY = baseY + 14;
+  svg = '<svg class="garden-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">'
+    + (forShare ? '<rect x="0" y="0" width="' + W + '" height="' + H + '" rx="18" fill="#FBF2DF"/>' : '')
+    + '<ellipse cx="' + (W / 2) + '" cy="' + (baseY + 16) + '" rx="' + (W / 2 - 34) + '" ry="20" fill="#B98A5C"/>'
+    + '<ellipse cx="' + (W / 2) + '" cy="' + (baseY + 8) + '" rx="' + (W / 2 - 40) + '" ry="16" fill="#8A6238"/>'
+    + '<ellipse cx="' + (W / 2) + '" cy="' + (baseY + 4) + '" rx="' + (W / 2 - 46) + '" ry="12" fill="#5E4526"/>'
+    + plants
+    + '<ellipse cx="' + (W - 96) + '" cy="' + stoneY + '" rx="34" ry="15" fill="#D8D2C4" stroke="#C2BBA9" stroke-width="1.5"/>'
+    + '<text x="' + (W - 96) + '" y="' + (stoneY - 1) + '" text-anchor="middle" font-family="Noto Sans KR" font-size="8" font-weight="700" fill="#8A8271">오늘도</text>'
+    + '<text x="' + (W - 96) + '" y="' + (stoneY + 9) + '" text-anchor="middle" font-family="Noto Sans KR" font-size="8" font-weight="700" fill="#8A8271">잘 해냈어요 ♥</text>'
+    + labels
+    + (forShare ? '<text x="' + (W / 2) + '" y="34" text-anchor="middle" font-family="Noto Sans KR" font-size="15" font-weight="900" fill="#5E5335">이번 주, 나는 나의 마음을 잘 돌봤어요 ♥</text>'
+        + '<text x="' + (W / 2) + '" y="52" text-anchor="middle" font-family="Sora" font-size="9" font-weight="700" letter-spacing="2" fill="#B3A683">MY MIND GARDEN · NEUROLENS</text>' : '')
+    + '</svg>';
+  return svg;
+}
+
+Care.prototype.htmlGarden = function () {
+  var s = this.state;
+  if (!s.startedAt || s.highRisk) return '';
+  var at = attendance(s), d = curDay(s);
+
+  /* 감정 색 범례 */
+  var legend = '<div class="g-legend">' + Object.keys(EMOJI_META).map(function (e) {
+    return '<span><i style="background:' + EMOJI_META[e].c + '"></i>' + e + ' ' + EMOJI_META[e].l + '</span>';
+  }).join('') + '</div>';
+
+  /* 자비 스트릭 */
+  var streak = '<div class="g-streak">🍃 이어가기 <b>' + at.streak + '일</b>'
+    + '<span>쉬어가기 잎사귀 ' + at.leavesLeft + '/2 — 하루 놓치면 잎사귀가 자리를 지켜줘요. 끊김은 벌점이 아니에요.</span></div>';
+
+  /* 배지 */
+  var self = this;
+  var badgeRow = '<div class="badge-row">' + BADGES.map(function (b) {
+    var got = !!s.badges[b.id];
+    return '<div class="bdg' + (got ? '' : ' locked') + '"><div class="bic">' + (got ? b.ic : '?') + '</div>'
+      + '<div class="bnm">' + b.nm + (b.unlock && !got ? '<br><small style="color:#C4A552">달성 시 루틴 해금</small>' : '') + '</div></div>';
+  }).join('') + '</div>';
+
+  /* 루틴 3종 마스터 → 트랙 루틴 해금 */
+  var unlockHtml = '';
+  if (s.badges.rxMaster) {
+    var extra = TRACK_FILL[s.track].filter(function (id) { return s.rx.indexOf(id) < 0; })[0];
+    if (extra && ROUTINES[extra]) {
+      var er = ROUTINES[extra];
+      var doneToday = (s.routineDone[dstr(today(s))] || []).indexOf(extra) >= 0;
+      unlockHtml = '<div class="bonus-mini"><span class="bi">' + er.icon + '</span>'
+        + '<span class="bt"><b>🔓 해금 루틴 · ' + esc(er.name) + '</b><small>루틴 3종 마스터 배지로 열렸어요 · ' + esc(er.ev) + '</small></span>'
+        + '<button class="doit' + (doneToday ? ' ok' : '') + '" data-act="routine" data-id="' + extra + '"' + (doneToday ? ' disabled' : '') + '>'
+        + (doneToday ? '✓ 오늘 완료' : '실천 +20p') + '</button></div>';
+    }
+  }
+
+  /* 주간 카드 뽑기 (가변 보상 — 주 3회 체크인) */
+  var nCk = Object.keys(s.checkins).length, drawHtml;
+  if (s.weeklyCard) {
+    var bc = ROUTINES[s.weeklyCard.id];
+    var bDone = (s.routineDone[dstr(today(s))] || []).indexOf(s.weeklyCard.id) >= 0;
+    drawHtml = '<div class="bonus-mini"><span class="bi">' + bc.icon + '</span>'
+      + '<span class="bt"><b>🎴 이번 주 보너스 루틴 · ' + esc(bc.name) + '</b><small>' + esc(bc.desc) + '</small></span>'
+      + '<button class="doit' + (bDone ? ' ok' : '') + '" data-act="routine" data-id="' + s.weeklyCard.id + '"' + (bDone ? ' disabled' : '') + '>'
+      + (bDone ? '✓ 오늘 완료' : '실천 +20p') + '</button></div>';
+  } else if (nCk >= 3) {
+    drawHtml = '<div class="draw-box"><span class="tx"><b>🎴 주간 카드 뽑기가 열렸어요!</b>체크인 3회 달성 — 이번 주 보너스 루틴 카드를 뽑아보세요.</span>'
+      + '<button class="btn-warm" data-act="draw-card">카드 뽑기 →</button></div>';
+  } else {
+    drawHtml = '<div class="draw-box"><span class="tx"><b>🎴 주간 카드 뽑기</b>체크인 ' + nCk + '/3 — 3회를 채우면 보너스 루틴 카드를 랜덤으로 얻어요.</span></div>';
+  }
+
+  /* 주간 완성 → 공유 카드 */
+  var shareHtml = '';
+  if (d >= 7) {
+    shareHtml = '<div class="share-row">'
+      + '<button class="btn-line" data-act="share-dl">🖼 내 감정의 정원 저장 (PNG)</button>'
+      + '<button class="btn-line" data-act="share-mock" data-ch="인스타그램">📸 인스타그램</button>'
+      + '<button class="btn-line" data-act="share-mock" data-ch="카카오톡">💬 카카오톡</button></div>';
+  }
+
+  return '<div class="ncard garden-card"><h3>Garden · 마음 정원</h3>'
+    + '<p style="font-size:12.5px;color:#8A7F63;margin:0 0 12px;line-height:1.65">체크인과 루틴 실천이 정원을 키워요. 그날의 감정 색이 꽃 색으로 피어나 일주일이면 <b>내 감정의 정원</b>이 완성돼요.</p>'
+    + gardenSVG(s, false) + legend + streak + drawHtml + unlockHtml + badgeRow + shareHtml
+    + '</div>';
+};
+
+/* Profile 카드에 통합되는 컴팩트 포인트 (opts.pointsEl) */
+Care.prototype.htmlPointsInline = function () {
+  var s = this.state;
+  if (s.highRisk) return '';
+  var log = s.ledger.slice(0, 4).map(function (l) {
+    return '<li><span>' + esc(l.label) + '</span><b>' + (l.delta > 0 ? '+' : '') + l.delta + 'p</b></li>';
+  }).join('') || '<li><span>아직 적립 내역이 없어요</span><b></b></li>';
+  return '<div class="nlc"><div class="pt-inline">'
+    + '<span class="bal">🪙 ' + s.points + '<small> p</small></span>'
+    + '<span class="pt-rules" style="margin:0"><span>체크인 +10p</span><span>루틴 +20p</span><span>D7 재측정 +100p</span></span>'
+    + '<span style="flex-basis:100%"></span>'
+    + '<button class="btn-line" data-act="exchange" data-cost="150" data-name="유료 리포트 2,000원 할인권">150p → 리포트 할인</button>'
+    + '<button class="btn-line" data-act="exchange" data-cost="300" data-name="구독 첫 달 30% 할인권">300p → 구독 첫 달 할인</button>'
+    + '<details style="flex-basis:100%;font-size:12px;color:var(--c-gray)"><summary style="cursor:pointer;font-weight:700">적립 내역</summary><ul class="pt-log" style="margin-top:8px">' + log + '</ul></details>'
+    + '</div></div>';
+};
+
 Care.prototype.htmlPoints = function () {
   var s = this.state;
   if (s.highRisk) return '';
@@ -730,30 +989,54 @@ Care.prototype.htmlPoints = function () {
 /* ----- 전체 페인트 ----- */
 Care.prototype.paint = function () {
   var s = this.state, d = curDay(s);
+
+  /* 새 배지 감지 → 1회 토스트 (성장 축하, 압박 없음) */
+  var newBadge = null;
+  BADGES.forEach(function (b) {
+    try { if (!s.badges[b.id] && b.test(s)) { s.badges[b.id] = Date.now(); newBadge = b; } } catch (_) {}
+  });
+  if (newBadge) save(this.key, s);
+
   var idx = this.htmlIndex();
   if (this.opts.indexEl) { // ① 결과 페이지 상단 마운트
     this.opts.indexEl.innerHTML = idx ? '<div class="nlc">' + idx + '</div>' : '';
     idx = '';
   }
+  /* Profile 카드 통합 포인트 마운트 */
+  if (this.opts.pointsEl) this.opts.pointsEl.innerHTML = this.htmlPointsInline();
+
   var html = '<div class="nlc">' + this.htmlDemoBar();
   if (s.highRisk) html += this.htmlSafety();
   html += idx;
-  html += this.htmlRx();
-  if (!s.startedAt) html += this.htmlKakaoForm();
+  html += this.htmlRx(); /* ── 리포트(처방) 영역 ── */
+
+  /* ── 케어 여정 영역 (시각적으로 구분되는 정원 톤 존) ── */
+  var zone = '';
+  if (!s.startedAt) zone += this.htmlKakaoForm();
   else {
-    html += this.htmlJourney();
+    zone += this.htmlJourney();
     if (s.channel && d === 0) {
-      html += '<div class="ncard"><h3>Check-in · D0 등록 완료</h3><div class="kko-done"><span class="ic">✅</span>'
+      zone += '<div class="ncard"><h3>Check-in · D0 등록 완료</h3><div class="kko-done"><span class="ic">✅</span>'
         + '<span>알림톡 등록이 끝났어요 (' + esc(s.channel.slot) + ' · ' + esc(s.channel.phone) + '). '
         + '내일부터 D1 체크인 링크가 도착합니다. 오늘은 처방 루틴 하나만 가볍게 실천해 보세요.</span></div></div>';
     }
-    html += this.htmlCheckin();
-    html += this.htmlD7();
+    zone += this.htmlCheckin();
+    zone += this.htmlGarden();
+    zone += this.htmlD7();
   }
-  html += this.htmlPoints();
+  if (zone) {
+    html += s.highRisk ? zone /* 안전모드: 장식 없이 담백하게 */
+      : '<div class="care-zone"><div class="cz-head">Daily Care · 7일 케어 여정<small>— 작은 실천이 정원을 키워요</small></div>' + zone + '</div>';
+  }
+  if (!this.opts.pointsEl) html += this.htmlPoints();
   html += '<p class="disc" style="text-align:center">NeuroLens Care는 비진단적 웰니스 보조 서비스입니다 · 위기 시 1393 (24시간)</p>';
   html += '<div class="nlc-toast"></div></div>';
   this.el.innerHTML = html;
+
+  if (newBadge) { /* 액션 토스트가 먼저 보이도록 배지 축하는 뒤이어 표시 */
+    var selfP = this, nb = newBadge;
+    setTimeout(function () { selfP.toast('🏅 새 배지 획득 — ' + nb.ic + ' ' + nb.nm + '!'); }, 2600);
+  }
 
   /* 링 게이지 채움 애니메이션 */
   var roots = [this.el];
@@ -884,6 +1167,7 @@ Care.prototype.openGazeBreath = function () {
 Care.prototype.bind = function () {
   this.bindTo(this.el);
   if (this.opts.indexEl) this.bindTo(this.opts.indexEl);
+  if (this.opts.pointsEl) this.bindTo(this.opts.pointsEl);
 };
 
 Care.prototype.bindTo = function (root) {
@@ -958,6 +1242,44 @@ Care.prototype.bindTo = function (root) {
       } else {
         self.toast('포인트가 ' + (cost - s.points) + 'p 부족해요 — 오늘 체크인으로 채워보세요!');
       }
+      return;
+    }
+    if (act === 'draw-card') { /* 주간 카드 뽑기 (가변 보상) */
+      e.preventDefault();
+      if (!s.weeklyCard && Object.keys(s.checkins).length >= 3) {
+        var pick = BONUS_POOL[Math.floor(Math.random() * BONUS_POOL.length)];
+        s.weeklyCard = { id: pick, ts: Date.now() };
+        self.save(); self.paint();
+        self.toast('🎴 ' + (ROUTINES[pick] ? ROUTINES[pick].name : pick) + ' 카드를 뽑았어요!');
+      }
+      return;
+    }
+    if (act === 'share-dl') { /* 내 감정의 정원 PNG 저장 */
+      e.preventDefault();
+      try {
+        var svgStr = gardenSVG(s, true).replace('class="garden-svg" ', '');
+        var blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var img = new Image();
+        img.onload = function () {
+          var c = document.createElement('canvas');
+          c.width = 1120; c.height = 600;
+          c.getContext('2d').drawImage(img, 0, 0, 1120, 600);
+          URL.revokeObjectURL(url);
+          var a = document.createElement('a');
+          a.download = 'my-mind-garden.png';
+          a.href = c.toDataURL('image/png');
+          a.click();
+          self.toast('🖼 내 감정의 정원을 저장했어요!');
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); self.toast('이미지 생성에 실패했어요 — 다시 시도해 주세요'); };
+        img.src = url;
+      } catch (_) { self.toast('이미지 생성에 실패했어요 — 다시 시도해 주세요'); }
+      return;
+    }
+    if (act === 'share-mock') {
+      e.preventDefault();
+      self.toast('📤 ' + (btn.getAttribute('data-ch') || 'SNS') + ' 공유는 정식 버전에서 열려요!');
       return;
     }
     if (act === 'subscribe') { e.preventDefault(); self.toast('✦ 구독은 정식 버전에서 열려요 — 상세 델타 리포트가 준비 중!'); return; }

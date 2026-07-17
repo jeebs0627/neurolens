@@ -586,10 +586,14 @@ footer p{font-size:12.5px;color:var(--gray)}
   <h2>NeuroLens 검사 결과 리포트</h2>
   <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
 
-  <!-- 오늘의 마음 컨디션 지수 (care.js · 리포트 상단) -->
-  <div id="condRoot"></div>
+  <!-- Profile (검사자 정보 + 마음 포인트 통합) — 리포트 최상단 -->
+  <div class="rcard"><h3>Profile · 검사자 정보</h3>
+    <div class="kv" id="rPerson"></div>
+    <div id="profilePoints"></div>
+  </div>
 
-  <div class="rcard"><h3>Profile · 시험자 정보</h3><div class="kv" id="rPerson"></div></div>
+  <!-- 오늘의 마음 컨디션 지수 (care.js) -->
+  <div id="condRoot"></div>
 
   <div class="rcard summary-card">
     <h3>Overview · 종합 총평<span class="ai-badge">✦ AI GENERATED</span></h3>
@@ -1262,7 +1266,7 @@ footer p{font-size:12.5px;color:var(--gray)}
   </div>
 </footer>
 
-<script src="care.js?v=6"></script>
+<script src="care.js?v=7"></script>
 <script>
 /* =========================================================================
  * 연동 설정 (MindGaze 웹링크 연동)
@@ -1502,11 +1506,14 @@ function renderResult(r) {
   setStatus(msg || '검사 완료');
   document.getElementById('result').style.display = 'block';
 
-  /* 시험자 정보 */
+  /* 검사자 정보 + 검사 날짜 */
   const p = r['시험자정보'] || {};
+  const now = new Date();
+  const testDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   document.getElementById('rPerson').innerHTML =
-    ['시험자명', '성별', '연령대', 'mbrId', '시험식별키']
-      .filter(k => p[k]).map(k => `<span>${k}: ${esc(p[k])}</span>`).join('') || '<span>-</span>';
+    (['시험자명', '성별', '연령대', 'mbrId', '시험식별키']
+      .filter(k => p[k]).map(k => `<span>${k === '시험자명' ? '검사자명' : k}: ${esc(p[k])}</span>`).join('') || '<span>-</span>')
+    + `<span>검사 날짜: ${testDate}</span>`;
 
   /* MBTI + 해설 */
   const mbti = String(r.MBTI || '').toUpperCase().trim();
@@ -1580,7 +1587,8 @@ function renderResult(r) {
     document.getElementById('careHome').style.display = 'none'; // 중복 표시 방지
     NLCare.render(document.getElementById('careRoot'), r, {
       onRemeasure: startTest,
-      indexEl: document.getElementById('condRoot'), // 오늘의 지수 카드 → 리포트 상단
+      indexEl: document.getElementById('condRoot'),      // 오늘의 지수 카드
+      pointsEl: document.getElementById('profilePoints'), // 마음 포인트 → Profile 카드 통합
     });
   } catch (_) {}
 

@@ -175,14 +175,16 @@ footer p{font-size:12px;color:var(--gray)}
     <div class="rdate">검사일 2026-07-15 · 리포트 ID NL-SAMPLE-0001</div>
   </div>
 
-  <!-- 오늘의 마음 컨디션 지수 (care.js · 리포트 상단) -->
-  <div id="condRoot"></div>
-
-  <div class="rcard"><h3>Profile · 시험자 정보</h3>
+  <!-- Profile (검사자 정보 + 마음 포인트 통합) — 리포트 최상단 -->
+  <div class="rcard"><h3>Profile · 검사자 정보</h3>
     <div class="kv">
-      <span>시험자명: 김하늘</span><span>성별: 여</span><span>연령대: 20대</span><span>검사 소요: 5분 12초</span>
+      <span>검사자명: 김하늘</span><span>성별: 여</span><span>연령대: 20대</span><span>검사 날짜: 2026-07-15</span><span>검사 소요: 5분 12초</span>
     </div>
+    <div id="profilePoints"></div>
   </div>
+
+  <!-- 오늘의 마음 컨디션 지수 (care.js) -->
+  <div id="condRoot"></div>
 
   <div class="rcard summary-card">
     <h3>Overview · 종합 총평<span class="ai-badge">✦ AI GENERATED</span></h3>
@@ -260,7 +262,7 @@ footer p{font-size:12px;color:var(--gray)}
   <p class="disclaimer">본 서비스는 비진단적 선별 및 웰니스 보조 정보를 제공하며, 의료적 진단·치료를 대체하지 않습니다.</p>
 </footer>
 
-<script src="care.js?v=6"></script>
+<script src="care.js?v=7"></script>
 <script>
 /* ---------- 샘플 데이터 (가상) ---------- */
 const SAMPLE = {
@@ -395,7 +397,8 @@ document.querySelectorAll('.mock').forEach(el=>{
 try {
   NLCare.render(document.getElementById('careRoot'), SAMPLE, {
     demo: true, storageKey: 'nlCareDemo',
-    indexEl: document.getElementById('condRoot'), // 오늘의 지수 카드 → 리포트 상단
+    indexEl: document.getElementById('condRoot'),     // 오늘의 지수 카드
+    pointsEl: document.getElementById('profilePoints'), // 마음 포인트 → Profile 카드 통합
   });
 } catch (e) { console.error('NLCare render 실패:', e); }
 </script>
