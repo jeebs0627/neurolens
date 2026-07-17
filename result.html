@@ -175,6 +175,9 @@ footer p{font-size:12px;color:var(--gray)}
     <div class="rdate">검사일 2026-07-15 · 리포트 ID NL-SAMPLE-0001</div>
   </div>
 
+  <!-- 오늘의 마음 컨디션 지수 (care.js · 리포트 상단) -->
+  <div id="condRoot"></div>
+
   <div class="rcard"><h3>Profile · 시험자 정보</h3>
     <div class="kv">
       <span>시험자명: 김하늘</span><span>성별: 여</span><span>연령대: 20대</span><span>검사 소요: 5분 12초</span>
@@ -217,58 +220,8 @@ footer p{font-size:12px;color:var(--gray)}
     <div class="job-list" id="rJobs"></div>
   </div>
 
-  <!-- AI Agent 케어 미리보기 (목업) -->
-  <div class="rcard">
-    <h3>Care · AI Agent 오늘의 케어 제안<span class="mock-badge">PREVIEW</span></h3>
-    <div class="care-items">
-      <div class="care-it mock">
-        <span class="ci" style="background:var(--grad-blue)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg></span>
-        <span>3분 호흡 명상<small>성실성 루틴 시작 전 마음 정리</small></span>
-      </div>
-      <div class="care-it mock">
-        <span class="ci" style="background:linear-gradient(135deg,#6C4CE0,#8E75EE)"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span>
-        <span>아이디어 마감 체크리스트<small>ENFP 맞춤 · 실행 완성 루틴</small></span>
-      </div>
-      <div class="care-it mock">
-        <span class="ci" style="background:var(--grad-blue)"><svg viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg></span>
-        <span>수면 준비 가이드<small>내일의 에너지 충전</small></span>
-      </div>
-    </div>
-    <p class="care-note">Agent 케어 구독 시 검사 결과와 연동된 맞춤 루틴이 매일 갱신되고, 실천 기록이 다음 리포트에 반영됩니다.</p>
-  </div>
-
-  <!-- 변화 추적 (목업) -->
-  <div class="rcard">
-    <h3>Trend · 마음 컨디션 변화 추적<span class="mock-badge">PREVIEW</span></h3>
-    <div class="trend-flex">
-      <div class="trend-chart">
-        <svg width="320" height="130" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="tGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#1E5AF0" stop-opacity=".25"/>
-              <stop offset="100%" stop-color="#1E5AF0" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <line x1="20" y1="100" x2="310" y2="100" stroke="#E4E9F4" stroke-width="1"/>
-          <path d="M40 72 L160 58 L280 34 L280 100 L40 100 Z" fill="url(#tGrad)"/>
-          <path d="M40 72 L160 58 L280 34" fill="none" stroke="#1E5AF0" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="40" cy="72" r="5" fill="#93A9E8" stroke="#fff" stroke-width="2"/>
-          <circle cx="160" cy="58" r="5" fill="#4A7DFF" stroke="#fff" stroke-width="2"/>
-          <circle cx="280" cy="34" r="6" fill="#1E5AF0" stroke="#fff" stroke-width="2.5"/>
-          <text x="40" y="118" text-anchor="middle" font-family="Sora" font-size="10" fill="#8A93A8">4/12</text>
-          <text x="160" y="118" text-anchor="middle" font-family="Sora" font-size="10" fill="#8A93A8">5/24</text>
-          <text x="280" y="118" text-anchor="middle" font-family="Sora" font-size="10" fill="#8A93A8">7/15</text>
-          <text x="40" y="58" text-anchor="middle" font-family="Sora" font-size="11" font-weight="700" fill="#8A93A8">68</text>
-          <text x="160" y="44" text-anchor="middle" font-family="Sora" font-size="11" font-weight="700" fill="#5B6478">73</text>
-          <text x="280" y="20" text-anchor="middle" font-family="Sora" font-size="12" font-weight="800" fill="#1E5AF0">79</text>
-        </svg>
-      </div>
-      <div class="trend-info">
-        <div class="big-num">79점<small>▲ +6 지난 검사 대비</small></div>
-        <p>마음 컨디션 지수가 3회 연속 상승 중입니다. Agent 케어 구독 시 검사 기록이 자동 저장되어 시계열 변화를 추적할 수 있습니다.</p>
-      </div>
-    </div>
-  </div>
+  <!-- Phase 1 · 케어 처방 + 7일 체크인 여정 (care.js · 인터랙티브 데모) -->
+  <div id="careRoot"></div>
 
   <!-- 유료 리포트 잠금 (목업) -->
   <div class="rcard">
@@ -307,6 +260,7 @@ footer p{font-size:12px;color:var(--gray)}
   <p class="disclaimer">본 서비스는 비진단적 선별 및 웰니스 보조 정보를 제공하며, 의료적 진단·치료를 대체하지 않습니다.</p>
 </footer>
 
+<script src="care.js?v=4"></script>
 <script>
 /* ---------- 샘플 데이터 (가상) ---------- */
 const SAMPLE = {
@@ -436,6 +390,14 @@ document.querySelectorAll('.mock').forEach(el=>{
     toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
   });
 });
+
+/* ---------- Phase 1 · 케어 처방 + 체크인 여정 (인터랙티브 데모) ---------- */
+try {
+  NLCare.render(document.getElementById('careRoot'), SAMPLE, {
+    demo: true, storageKey: 'nlCareDemo',
+    indexEl: document.getElementById('condRoot'), // 오늘의 지수 카드 → 리포트 상단
+  });
+} catch (e) { console.error('NLCare render 실패:', e); }
 </script>
 </body>
 </html>

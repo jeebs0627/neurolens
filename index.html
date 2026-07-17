@@ -586,6 +586,9 @@ footer p{font-size:12.5px;color:var(--gray)}
   <h2>NeuroLens 검사 결과 리포트</h2>
   <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
 
+  <!-- 오늘의 마음 컨디션 지수 (care.js · 리포트 상단) -->
+  <div id="condRoot"></div>
+
   <div class="rcard"><h3>Profile · 시험자 정보</h3><div class="kv" id="rPerson"></div></div>
 
   <div class="rcard summary-card">
@@ -620,8 +623,21 @@ footer p{font-size:12.5px;color:var(--gray)}
     <div class="job-list" id="rJobs"></div>
   </div>
 
+  <!-- Phase 1 · 케어 처방 + 7일 체크인 여정 (care.js) -->
+  <div id="careRoot"></div>
+
   <div class="rcard"><details><summary>원본 응답 JSON 보기</summary><pre id="rRaw"></pre></details></div>
 </div>
+
+<!-- ================= CARE HOME (재방문 체크인 · 검사 없이 진입) ================= -->
+<section id="careHome" style="display:none;padding:64px 0;background:#FAFBFE;border-top:1px solid var(--line)">
+  <div class="wrap" style="max-width:880px">
+    <span class="eyebrow">Daily Care</span>
+    <h2 class="sec">오늘의 체크인 — <em>7일 실천 여정</em></h2>
+    <p style="font-size:13.5px;color:var(--gray);margin-bottom:26px">지난 검사에서 처방된 루틴과 체크인 여정입니다. 알림톡 링크로 언제든 이 화면으로 돌아올 수 있어요.</p>
+    <div id="careRootHome"></div>
+  </div>
+</section>
 
 <!-- ================= PROBLEM ================= -->
 <section id="problem" style="background:#FAFBFE;border-top:1px solid var(--line)">
@@ -1246,6 +1262,7 @@ footer p{font-size:12.5px;color:var(--gray)}
   </div>
 </footer>
 
+<script src="care.js?v=4"></script>
 <script>
 /* =========================================================================
  * 연동 설정 (MindGaze 웹링크 연동)
@@ -1557,6 +1574,16 @@ function renderResult(r) {
     </div>`).join('');
 
   document.getElementById('rRaw').textContent = JSON.stringify(r, null, 2);
+
+  /* Phase 1 · 케어 처방 + 체크인 여정 렌더 (결과 신호 → 루틴 매핑) */
+  try {
+    document.getElementById('careHome').style.display = 'none'; // 중복 표시 방지
+    NLCare.render(document.getElementById('careRoot'), r, {
+      onRemeasure: startTest,
+      indexEl: document.getElementById('condRoot'), // 오늘의 지수 카드 → 리포트 상단
+    });
+  } catch (_) {}
+
   document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
 
   requestAnimationFrame(() => {
@@ -1631,6 +1658,20 @@ function esc(s) {
   return String(s).replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
+
+/* ---------- 재방문 사용자: 검사 없이 체크인 여정 표시 ----------
+ * 알림톡 D1~D7 링크(?checkin=1)로 진입하거나, 여정이 진행 중이면
+ * 검사를 다시 하지 않아도 케어 홈 섹션을 바로 보여준다. */
+try {
+  if (window.NLCare && NLCare.hasJourney()) {
+    var careHome = document.getElementById('careHome');
+    careHome.style.display = 'block';
+    NLCare.render(document.getElementById('careRootHome'), null, { onRemeasure: startTest });
+    if (new URLSearchParams(location.search).get('checkin')) {
+      setTimeout(function () { careHome.scrollIntoView({ behavior: 'smooth' }); }, 150);
+    }
+  }
+} catch (_) {}
 
 /* ---------- 스크롤 등장 애니메이션 ---------- */
 const io = new IntersectionObserver((entries) => {
