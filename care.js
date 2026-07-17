@@ -53,6 +53,12 @@ var ROUTINES = {
     desc:'안정된 지금의 상태를 더 단단하게 만드는 기록 루틴입니다.',
     steps:['오늘 감사한 것 3가지 적기','내일 기대되는 것 1가지 적기','잠들기 전 한 번 다시 읽기'],
   },
+  gazeBreath: {
+    icon:'👁️', name:'시선 바이오피드백 호흡', min:2, ev:'호흡 페이싱 × 시선추적 (NeuroLens 자체 기술)',
+    desc:'화면 위를 천천히 도는 원을 눈으로 따라가며 들숨 4초·날숨 8초 호흡. 시선 일치율이 실시간으로 표시됩니다.',
+    steps:['편한 자세로 화면을 바라보기','원이 커질 때 4초 들이쉬기','원이 작아질 때 8초 내쉬기'],
+    pro: true,
+  },
   /* 학생 트랙 */
   examAnxiety: {
     icon:'✍️', name:'시험 전 불안 쏟아내기 3분', min:3, ev:'Ramirez & Beilock · Science 2011',
@@ -304,6 +310,32 @@ var CSS = '\
 .nlc .rx .doit{width:100%;font-family:inherit;font-size:13px;font-weight:800;color:var(--c-blue);background:var(--c-bsoft);border:1px solid var(--c-bline);border-radius:11px;padding:10px 0;cursor:pointer;transition:all .15s}\
 .nlc .rx .doit:hover{background:#E2EBFF}\
 .nlc .rx .doit.ok{color:var(--c-green);background:#fff;border-color:#BFE8D9;cursor:default}\
+/* PRO 루틴 배너 (시선 바이오피드백 호흡) */\
+.nlc .pro-rx{margin-top:14px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:linear-gradient(135deg,#12224E,#2A1E5C);border-radius:16px;padding:18px 20px;position:relative;overflow:hidden}\
+.nlc .pro-rx::before{content:"";position:absolute;right:-40px;top:-50px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(142,117,238,.25),transparent 70%)}\
+.nlc .pro-rx .l{flex:1;min-width:230px;position:relative}\
+.nlc .pro-rx .pro-flag{display:inline-block;font-family:var(--font-num,Sora,sans-serif);font-size:9.5px;font-weight:800;letter-spacing:.12em;color:#FFD98A;background:rgba(255,217,138,.14);border:1px solid rgba(255,217,138,.35);border-radius:10px;padding:3px 10px;margin-bottom:8px}\
+.nlc .pro-rx b{display:block;color:#fff;font-size:15px;font-weight:800;margin-bottom:5px}\
+.nlc .pro-rx .pd{font-size:12px;color:#B9C4DE;line-height:1.65}\
+.nlc .pro-rx .btn-violet{position:relative;flex:none}\
+/* 시선 호흡 오버레이 */\
+#nlcGaze{position:fixed;inset:0;z-index:10000;background:radial-gradient(120% 120% at 50% 40%,#16265A 0%,#0B1B3F 55%,#070F26 100%);font-family:var(--font-kr,"Noto Sans KR",sans-serif);overflow:hidden}\
+#nlcGaze .gz-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:16px 20px;z-index:5}\
+#nlcGaze .gz-chip{font-size:12px;font-weight:700;color:#C9D8FF;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:6px 14px}\
+#nlcGaze .gz-chip b{color:#fff;font-family:Sora,sans-serif}\
+#nlcGaze .gz-close{margin-left:auto;font-family:inherit;font-size:13px;font-weight:700;color:#C9D8FF;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:8px 18px;cursor:pointer}\
+#nlcGaze .gz-close:hover{background:rgba(255,255,255,.16);color:#fff}\
+#nlcGaze .gz-orb{position:absolute;left:0;top:0;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8E75EE,#4A7DFF 55%,#1E5AF0);box-shadow:0 0 70px 18px rgba(94,120,255,.4),inset 0 0 26px rgba(255,255,255,.28);will-change:transform}\
+#nlcGaze .gz-phase{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);text-align:center;color:#fff;z-index:5}\
+#nlcGaze .gz-phase .ph{font-size:26px;font-weight:900;letter-spacing:.02em}\
+#nlcGaze .gz-phase .ph small{font-family:Sora,sans-serif;font-size:22px;margin-left:8px;color:#9FB4EF}\
+#nlcGaze .gz-phase .note{font-size:12px;color:#8FA2D4;margin-top:6px}\
+#nlcGaze .gz-end{position:absolute;inset:0;display:grid;place-items:center;background:rgba(7,15,38,.82);backdrop-filter:blur(6px);z-index:10}\
+#nlcGaze .gz-end .box{background:#fff;border-radius:20px;padding:34px 40px;text-align:center;max-width:340px}\
+#nlcGaze .gz-end .big{font-family:Sora,sans-serif;font-size:40px;font-weight:800;color:#1E5AF0}\
+#nlcGaze .gz-end .big small{font-size:14px;color:#8A93A8}\
+#nlcGaze .gz-end p{font-size:13px;color:#5B6478;line-height:1.7;margin:10px 0 18px}\
+#webgazerVideoContainer{top:auto!important;bottom:14px!important;left:14px!important;transform:scale(.85);transform-origin:bottom left;border-radius:12px;overflow:hidden;opacity:.85}\
 /* 여정 스트립 */\
 .nlc .journey{display:flex;gap:6px;align-items:flex-start;justify-content:space-between;margin:6px 0 14px}\
 .nlc .jd{flex:1;text-align:center;min-width:0}\
@@ -398,12 +430,21 @@ function Care(container, result, opts) {
   this.key = this.opts.storageKey || KEY;
   this.state = load(this.key);
 
-  if (result) { // 새 결과 수신 → 신호 매핑 갱신 (여정 진행 중이면 처방은 유지)
-    var m = mapSignals(result);
+  if (result) { // 새 결과 수신
     var s = this.state;
-    s.name = (result['시험자정보'] || {})['시험자명'] || s.name || '';
+    var newName = String((result['시험자정보'] || {})['시험자명'] || '');
+    // 진행 중인 여정이 다른 시험자의 것이면 → 새 여정으로 리셋 (처방이 이전 사람 것으로 고정되는 문제 방지)
+    if (s.startedAt && newName && s.name && newName !== s.name) {
+      s = this.state = blankState();
+    }
+    var m = mapSignals(result);
+    s.name = newName || s.name || '';
     s.track = m.track;
-    if (!s.startedAt || !s.rx.length) { s.signals = m.signals; s.rx = m.rx; s.rxWhy = m.rxWhy; }
+    // 여정 시작 전엔 항상 최신 결과로 재처방. 진행 중엔 처방 유지하되,
+    // 매핑 정보가 없는 구버전 상태(rxWhy 없음)는 최신 결과로 복구.
+    if (!s.startedAt || !s.rx.length || !s.rxWhy || !Object.keys(s.rxWhy).length) {
+      s.signals = m.signals; s.rx = m.rx; s.rxWhy = m.rxWhy;
+    }
     s.base = computeBaseline(result) || s.base;
     s.highRisk = m.highRisk;
     save(this.key, s);
@@ -535,9 +576,17 @@ Care.prototype.htmlRx = function () {
       + '</div>';
   }).join('');
   var who = s.name ? esc(s.name) + '님의 ' : '';
+  /* PRO · 시선 바이오피드백 호흡 — 측정 기술 = 케어 기술 (안전모드에선 상업 톤 제거를 위해 숨김) */
+  var proBanner = s.highRisk ? '' :
+    '<div class="pro-rx"><div class="l">'
+    + '<span class="pro-flag">PRO · 구독 전용</span>'
+    + '<b>👁️ 시선 바이오피드백 호흡</b>'
+    + '<span class="pd">화면 위를 도는 원을 눈으로 따라가며 들숨 4초 · 날숨 8초. 웹캠 시선추적으로 <b style="display:inline;color:#DCE5FF;font-size:12px">시선 일치율</b>이 실시간 표시되는 NeuroLens만의 루틴이에요.</span>'
+    + '</div><button class="btn-violet" data-act="gaze-breath">데모 체험하기 →</button></div>';
   return '<div class="ncard"><h3>Care Rx · ' + who + '측정 신호 기반 오늘의 처방 3종'
     + '<span class="live-tag">SIGNAL-MATCHED</span></h3>'
     + '<div class="rx-grid">' + cards + '</div>'
+    + proBanner
     + '<p class="disc">위 루틴은 시선행동 측정 신호와 연동해 자동 처방된 <b>웰니스 참고 활동</b>이며, 의료적 진단·치료를 대체하지 않습니다.</p>'
     + '</div>';
 };
@@ -718,6 +767,119 @@ Care.prototype.paint = function () {
   }); });
 };
 
+/* ----- 시선 바이오피드백 호흡 (PRO 데모) -----
+ * 원을 눈으로 따라가며 들숨 4초·날숨 8초 페이싱. WebGazer(CDN)로 시선
+ * 일치율을 실시간 표시하고, 웹캠/CDN 불가 시 호흡 페이싱만 실행. */
+Care.prototype.openGazeBreath = function () {
+  if (document.getElementById('nlcGaze')) return;
+  var self = this, s = this.state;
+  var DUR = 90; // 세션 90초
+  var ov = document.createElement('div');
+  ov.id = 'nlcGaze';
+  ov.innerHTML =
+    '<div class="gz-top">'
+    + '<span class="gz-chip">👁 시선 일치율 <b data-ref="acc">측정 준비…</b></span>'
+    + '<span class="gz-chip">⏱ <b data-ref="left">' + DUR + 's</b></span>'
+    + '<button class="gz-close" data-ref="close">종료 ✕</button></div>'
+    + '<div class="gz-orb" data-ref="orb"></div>'
+    + '<div class="gz-phase"><div class="ph"><span data-ref="ph">준비</span><small data-ref="cnt"></small></div>'
+    + '<div class="note" data-ref="note">원을 눈으로 따라가며, 원이 커질 때 들이쉬고 작아질 때 내쉬세요</div></div>';
+  document.body.appendChild(ov);
+
+  var $ = function (k) { return ov.querySelector('[data-ref="' + k + '"]'); };
+  var orb = $('orb'), raf = null, tick = null, t0 = null, done = false, lastFrame = 0;
+  var gaze = null, hits = 0, samples = 0, wgOn = false;
+
+  /* WebGazer 지연 로드 (실패해도 호흡 페이싱은 계속) */
+  var sc = document.createElement('script');
+  sc.src = 'https://cdn.jsdelivr.net/npm/webgazer@3.3.0/dist/webgazer.min.js';
+  sc.onload = function () {
+    try {
+      window.webgazer.showPredictionPoints(false)
+        .setGazeListener(function (d) { if (d) gaze = d; })
+        .begin()
+        .then(function () { wgOn = true; $('acc').textContent = '보정 중…'; })
+        .catch(function () { $('acc').textContent = '웹캠 사용 불가'; });
+    } catch (_) { $('acc').textContent = '웹캠 사용 불가'; }
+  };
+  sc.onerror = function () { $('acc').textContent = '오프라인 — 페이싱만 진행'; };
+  document.head.appendChild(sc);
+
+  function frame(now) {
+    if (done) return;
+    if (t0 == null) t0 = now;
+    lastFrame = performance.now();
+    var t = (now - t0) / 1000;
+    if (t >= DUR) return finish();
+    /* 궤도: 화면 중앙 주위를 느리게 도는 타원 */
+    var rw = Math.min(innerWidth, innerHeight);
+    var cx = innerWidth / 2 + Math.cos(t / 8) * rw * .24;
+    var cy = innerHeight / 2 + Math.sin(t / 8) * rw * .16;
+    /* 호흡: 12초 주기 — 들숨 4초(커짐) → 날숨 8초(작아짐) */
+    var ph = t % 12, scale, label, cnt;
+    if (ph < 4) { scale = .5 + .5 * (ph / 4); label = '들이쉬세요'; cnt = Math.ceil(4 - ph); }
+    else { scale = 1 - .5 * ((ph - 4) / 8); label = '내쉬세요'; cnt = Math.ceil(12 - ph); }
+    orb.style.transform = 'translate(' + cx + 'px,' + cy + 'px) translate(-50%,-50%) scale(' + scale.toFixed(3) + ')';
+    $('ph').textContent = label; $('cnt').textContent = cnt;
+    $('left').textContent = Math.ceil(DUR - t) + 's';
+    if (wgOn && gaze) { /* 일치 판정: 원 중심 반경 = 화면 대각선의 16% */
+      samples++;
+      if (Math.hypot(gaze.x - cx, gaze.y - cy) < Math.hypot(innerWidth, innerHeight) * .16) hits++;
+      if (samples % 10 === 0 && samples > 30) $('acc').textContent = Math.round(100 * hits / samples) + '%';
+    }
+    if (raf) cancelAnimationFrame(raf); // 백업 틱과 중복 예약 방지 — 항상 1개만 유지
+    raf = requestAnimationFrame(frame);
+  }
+
+  function cleanup() {
+    done = true;
+    if (raf) cancelAnimationFrame(raf);
+    if (tick) clearInterval(tick);
+    try { if (wgOn) window.webgazer.end(); } catch (_) {}
+    try { var v = document.getElementById('webgazerVideoContainer'); if (v) v.remove(); } catch (_) {}
+    ov.remove();
+  }
+
+  function finish() {
+    done = true;
+    if (raf) cancelAnimationFrame(raf);
+    if (tick) clearInterval(tick);
+    var acc = samples > 30 ? Math.round(100 * hits / samples) : null;
+    var earned = false;
+    if (!s.highRisk) {
+      var k = dstr(today(s));
+      s.routineDone[k] = s.routineDone[k] || [];
+      if (s.routineDone[k].indexOf('gazeBreath') < 0) {
+        s.routineDone[k].push('gazeBreath');
+        addPoints(s, '루틴 실천 · 시선 바이오피드백 호흡', 20);
+        earned = true;
+      }
+      self.save(); self.paint();
+    }
+    var end = document.createElement('div');
+    end.className = 'gz-end';
+    end.innerHTML = '<div class="box">'
+      + (acc != null
+          ? '<div class="big">' + acc + '<small> % 시선 일치율</small></div>'
+          : '<div class="big" style="font-size:26px">호흡 완료 🌊</div>')
+      + '<p>90초 동안 호흡과 시선을 함께 가라앉혔어요.'
+      + (earned ? ' <b style="color:#6C4CE0">+20p 적립!</b>' : '')
+      + '<br>정식 버전(구독)에서는 매 세션의 일치율·호흡 리듬이 리포트에 쌓여요.</p>'
+      + '<button class="btn-violet" data-ref="end-close" style="border:none;cursor:pointer">닫기</button></div>';
+    ov.appendChild(end);
+    end.querySelector('[data-ref="end-close"]').addEventListener('click', cleanup);
+    try { if (wgOn) window.webgazer.end(); } catch (_) {}
+    try { var v = document.getElementById('webgazerVideoContainer'); if (v) v.remove(); } catch (_) {}
+  }
+
+  $('close').addEventListener('click', cleanup);
+  raf = requestAnimationFrame(frame);
+  /* rAF가 스로틀되는 환경(백그라운드 탭 등)에서도 페이싱이 진행되도록 백업 틱 */
+  tick = setInterval(function () {
+    if (!done && performance.now() - lastFrame > 400) frame(performance.now());
+  }, 500);
+};
+
 /* ----- 이벤트 (위임, 1회 바인딩 — 본문 + 상단 지수 마운트) ----- */
 Care.prototype.bind = function () {
   this.bindTo(this.el);
@@ -742,6 +904,7 @@ Care.prototype.bindTo = function (root) {
     var act = btn.getAttribute('data-act');
     var s = self.state;
 
+    if (act === 'gaze-breath') { e.preventDefault(); self.openGazeBreath(); return; }
     if (act === 'goto-checkin') {
       e.preventDefault();
       var f = self.el.querySelector('[data-act-form="checkin"]');

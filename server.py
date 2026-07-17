@@ -101,7 +101,13 @@ class Handler(SimpleHTTPRequestHandler):
             prompt = body.get("prompt", "")
             payload = json.dumps({
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 2048},
+                # thinkingBudget 0: 2.5-flash의 내부 사고 토큰이 maxOutputTokens를
+                # 소모해 총평이 중간에 잘리는 문제 방지
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "maxOutputTokens": 3072,
+                    "thinkingConfig": {"thinkingBudget": 0},
+                },
             }).encode("utf-8")
             url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
                    f"{GEMINI_MODEL}:generateContent")
