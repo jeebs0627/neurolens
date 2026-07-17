@@ -584,7 +584,11 @@ footer p{font-size:12.5px;color:var(--gray)}
 <!-- ================= RESULT (검사 후 표시) ================= -->
 <div id="result">
   <h2>NeuroLens 검사 결과 리포트</h2>
-  <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
+  <div class="rsub" style="margin-bottom:14px">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
+  <div style="display:flex;gap:8px;justify-content:center;margin-bottom:30px">
+    <button onclick="document.querySelector('.summary-card').scrollIntoView({behavior:'smooth'})" style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-kr);font-size:12.5px;font-weight:700;color:var(--gray);background:#fff;border:1px solid var(--line);border-radius:20px;padding:8px 16px;cursor:pointer">📊 리포트 Zone 바로가기</button>
+    <button onclick="document.getElementById('careRoot').scrollIntoView({behavior:'smooth'})" style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-kr);font-size:12.5px;font-weight:700;color:var(--gray);background:#fff;border:1px solid var(--line);border-radius:20px;padding:8px 16px;cursor:pointer">🌿 케어 Zone 바로가기</button>
+  </div>
 
   <!-- Profile (검사자 정보 + 마음 포인트 통합) — 리포트 최상단 -->
   <div class="rcard"><h3>Profile · 검사자 정보</h3>
@@ -1266,7 +1270,7 @@ footer p{font-size:12.5px;color:var(--gray)}
   </div>
 </footer>
 
-<script src="care.js?v=7"></script>
+<script src="care.js?v=10"></script>
 <script>
 /* =========================================================================
  * 연동 설정 (MindGaze 웹링크 연동)

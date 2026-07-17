@@ -173,6 +173,10 @@ footer p{font-size:12px;color:var(--gray)}
     <h1>NeuroLens 검사 결과 리포트</h1>
     <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
     <div class="rdate">검사일 2026-07-15 · 리포트 ID NL-SAMPLE-0001</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
+      <button class="btn-s" onclick="document.querySelector('.summary-card').scrollIntoView({behavior:'smooth'})">📊 리포트 Zone 바로가기</button>
+      <button class="btn-s" onclick="document.getElementById('careRoot').scrollIntoView({behavior:'smooth'})">🌿 케어 Zone 바로가기</button>
+    </div>
   </div>
 
   <!-- Profile (검사자 정보 + 마음 포인트 통합) — 리포트 최상단 -->
@@ -262,7 +266,7 @@ footer p{font-size:12px;color:var(--gray)}
   <p class="disclaimer">본 서비스는 비진단적 선별 및 웰니스 보조 정보를 제공하며, 의료적 진단·치료를 대체하지 않습니다.</p>
 </footer>
 
-<script src="care.js?v=7"></script>
+<script src="care.js?v=10"></script>
 <script>
 /* ---------- 샘플 데이터 (가상) ---------- */
 const SAMPLE = {
