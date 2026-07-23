@@ -43,43 +43,6 @@ nav .back:hover{background:#E2EBFF}
 .rsub{color:var(--gray);font-size:13.5px;margin-top:8px}
 .rdate{font-family:var(--font-num);font-size:12px;color:var(--gray2);margin-top:4px}
 
-/* ── Zone 네비게이션 & 구분 헤더 (01 Profile · 02 Today · 03 Report · 04 Care) ── */
-.znav{position:sticky;top:66px;z-index:90;display:flex;gap:4px;justify-content:center;flex-wrap:wrap;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:28px;padding:5px;max-width:620px;margin:20px auto 0;box-shadow:var(--shadow-sm)}
-.znav a{font-size:12.5px;font-weight:700;color:var(--gray);text-decoration:none;border-radius:20px;padding:8px 15px;transition:all .15s;white-space:nowrap}
-.znav a:hover{color:var(--blue);background:var(--blue-soft)}
-.znav a.on{color:#fff;background:var(--grad-hero);box-shadow:0 4px 12px rgba(60,80,230,.28)}
-section.zone{scroll-margin-top:140px}
-.zone-head{display:flex;align-items:center;gap:12px;margin:46px 2px 16px}
-section.zone:first-of-type .zone-head{margin-top:28px}
-.zone-head .zn{font-family:var(--font-num);font-size:10px;font-weight:800;letter-spacing:.1em;color:#fff;background:var(--zc,var(--grad-blue));border-radius:9px;padding:4px 11px;white-space:nowrap}
-.zone-head .zt{font-size:18px;font-weight:900;letter-spacing:-.01em}
-.zone-head .zt small{font-size:12px;font-weight:700;color:var(--gray)}
-.zone-head .zs{font-size:11.5px;color:var(--gray2)}
-.zone-head::after{content:"";flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
-@media(max-width:640px){.zone-head .zs{display:none}}
-
-/* ── 검사자 프로필 대시보드 ── */
-.profile-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:20px}
-.pf-band{position:relative;background:var(--grad-hero);padding:22px 28px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;overflow:hidden}
-.pf-band::after{content:"";position:absolute;right:-70px;top:-90px;width:230px;height:230px;border-radius:50%;background:rgba(255,255,255,.13)}
-.pf-band::before{content:"";position:absolute;left:34%;bottom:-70px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.07)}
-.pf-avatar{width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.55);display:grid;place-items:center;font-size:18px;font-weight:900;color:#fff;flex:none;position:relative;letter-spacing:-.02em}
-.pf-id{flex:1;min-width:190px;color:#fff;position:relative}
-.pf-name{font-size:21px;font-weight:900;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.pf-tags{display:flex;gap:5px}
-.pf-tags span{font-size:11px;font-weight:700;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);border-radius:12px;padding:2.5px 11px}
-.pf-role{font-size:12.5px;opacity:.88;margin-top:5px}
-.pf-day{flex:none;text-align:center;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:16px;padding:9px 20px;position:relative}
-.pf-day b{display:block;font-family:var(--font-num);font-size:21px;font-weight:800;line-height:1.2}
-.pf-day small{font-size:10px;font-weight:700;letter-spacing:.06em;opacity:.85}
-.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
-@media(max-width:680px){.pf-stats{grid-template-columns:repeat(2,1fr)}}
-.pf-stat{background:#F9FBFF;padding:14px 10px;text-align:center}
-.pf-stat small{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--gray2);margin-bottom:4px}
-.pf-stat b{font-family:var(--font-num);font-size:14px;font-weight:800;color:var(--ink)}
-.pf-body{padding:2px 28px 20px}
-@media(max-width:600px){.pf-band{padding:18px 18px}.pf-body{padding:2px 18px 18px}}
-
 .rcard{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:28px 32px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
 .rcard h3{font-size:12px;font-family:var(--font-num);font-weight:700;letter-spacing:.12em;color:var(--blue);margin-bottom:18px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .rcard h3::before{content:"";width:16px;height:2px;background:var(--grad-blue);border-radius:2px}
@@ -240,45 +203,22 @@ footer p{font-size:12px;color:var(--gray)}
     <h1>NeuroLens 검사 결과 리포트</h1>
     <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
     <div class="rdate">검사일 2026-07-15 · 리포트 ID NL-SAMPLE-0001</div>
-    <nav class="znav" id="znav">
-      <a href="#zoneProfile" class="on">👤 검사자 정보</a>
-      <a href="#zoneToday">💚 오늘의 컨디션</a>
-      <a href="#zoneReport">📊 분석 리포트</a>
-      <a href="#zoneCare">🌿 케어 & 실천</a>
-    </nav>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
+      <button class="btn-s" onclick="document.querySelector('.summary-card').scrollIntoView({behavior:'smooth'})">📊 리포트 Zone 바로가기</button>
+      <button class="btn-s" onclick="document.getElementById('careRoot').scrollIntoView({behavior:'smooth'})">🌿 케어 Zone 바로가기</button>
+    </div>
   </div>
 
-  <!-- ══ Zone 01 · 검사자 정보 대시보드 ══ -->
-  <section class="zone" id="zoneProfile">
-    <div class="zone-head" style="--zc:var(--grad-blue)"><span class="zn">01 · PROFILE</span><span class="zt">검사자 정보</span><span class="zs">누가 · 언제 · 어떻게 측정했나</span></div>
-    <div class="profile-card">
-      <div class="pf-band">
-        <div class="pf-avatar">하늘</div>
-        <div class="pf-id">
-          <div class="pf-name">김하늘 <span class="pf-tags"><span>여성</span><span>20대</span></span></div>
-          <div class="pf-role">NeuroLens 시선행동 검사 · 1차 측정 완료</div>
-        </div>
-        <div class="pf-day"><b id="pfDay">D0</b><small>7일 케어 여정</small></div>
-      </div>
-      <div class="pf-stats">
-        <div class="pf-stat"><small>검사 날짜</small><b>2026-07-15</b></div>
-        <div class="pf-stat"><small>검사 소요</small><b>5분 12초</b></div>
-        <div class="pf-stat"><small>측정 방식</small><b>시선행동 + 설문</b></div>
-        <div class="pf-stat"><small>리포트 ID</small><b>NL-SAMPLE-0001</b></div>
-      </div>
-      <div class="pf-body"><div id="profilePoints"></div></div>
+  <!-- Profile (검사자 정보 + 마음 포인트 통합) — 리포트 최상단 -->
+  <div class="rcard"><h3>Profile · 검사자 정보</h3>
+    <div class="kv">
+      <span>검사자명: 김하늘</span><span>성별: 여</span><span>연령대: 20대</span><span>검사 날짜: 2026-07-15</span><span>검사 소요: 5분 12초</span>
     </div>
-  </section>
+    <div id="profilePoints"></div>
+  </div>
 
-  <!-- ══ Zone 02 · 오늘의 마음 컨디션 (EAI) — care.js 마운트 ══ -->
-  <section class="zone" id="zoneToday">
-    <div class="zone-head" style="--zc:linear-gradient(135deg,#0FA47A,#3EC49E)"><span class="zn">02 · TODAY</span><span class="zt">오늘의 마음 컨디션 <small>(EAI: 정서회복력 지수)</small></span><span class="zs">매일 30초 체크인으로 갱신</span></div>
-    <div id="condRoot"></div>
-  </section>
-
-  <!-- ══ Zone 03 · 분석 리포트 ══ -->
-  <section class="zone" id="zoneReport">
-    <div class="zone-head" style="--zc:var(--grad-hero)"><span class="zn">03 · REPORT</span><span class="zt">분석 리포트</span><span class="zs">이번 측정이 말해주는 나</span></div>
+  <!-- 오늘의 마음 컨디션 지수 (care.js) -->
+  <div id="condRoot"></div>
 
   <div class="rcard summary-card">
     <h3>Overview · 종합 총평<span class="ai-badge">✦ AI GENERATED</span></h3>
@@ -327,6 +267,9 @@ footer p{font-size:12px;color:var(--gray)}
     <div class="riasec-note">Holland 직업흥미 이론(John L. Holland): 사람의 직업 흥미는 6가지 유형으로 나뉘며, 자신의 흥미와 일치하는 작업 환경에서 일할 때 잠재력이 가장 잘 발휘됩니다.</div>
   </div>
 
+  <!-- Phase 1 · 케어 처방 + 7일 체크인 여정 (care.js · 인터랙티브 데모) -->
+  <div id="careRoot"></div>
+
   <!-- 유료 리포트 잠금 (목업) -->
   <div class="rcard">
     <h3>Premium · 잠금 해제 가능한 추가 리포트 7종<span class="mock-badge">유료 구독</span></h3>
@@ -340,13 +283,6 @@ footer p{font-size:12px;color:var(--gray)}
       <span class="lock-chip mock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>기업문화 적합도</span>
     </div>
   </div>
-  </section>
-
-  <!-- ══ Zone 04 · 케어 & 실천 (care.js · 인터랙티브 데모) ══ -->
-  <section class="zone" id="zoneCare">
-    <div class="zone-head" style="--zc:linear-gradient(135deg,#8FBF6C,#5E9C43)"><span class="zn">04 · CARE</span><span class="zt">케어 & 실천</span><span class="zs">측정을 실천으로 잇는 7일 여정</span></div>
-    <div id="careRoot"></div>
-  </section>
 
   <div class="rcard"><details><summary>원본 응답 JSON 보기 (샘플)</summary><pre id="rRaw"></pre></details></div>
 
@@ -371,56 +307,8 @@ footer p{font-size:12px;color:var(--gray)}
   <p class="disclaimer">본 서비스는 비진단적 선별 및 웰니스 보조 정보를 제공하며, 의료적 진단·치료를 대체하지 않습니다.</p>
 </footer>
 
-<script src="care.js?v=11"></script>
+<script src="care.js?v=10"></script>
 <script>
-/* ---------- 가상 체크인 시드 (D1~D4) — 오늘의 마음 컨디션(EAI) 데모 ----------
- * 여정 시작 4일 차 상태를 미리 심어, 리포트에서 D0 기준선 → D4까지의
- * EAI 추세와 마음 정원이 채워진 모습을 바로 볼 수 있게 합니다. */
-(function seedDemoJourney(){
-  var KEY='nlCareDemo', FLAG='nlCareDemoSeeded';
-  try{
-    if(localStorage.getItem(FLAG)) return;                    // 1회만 시드
-    var cur=null; try{cur=JSON.parse(localStorage.getItem(KEY));}catch(_){}
-    if(cur && cur.startedAt){ localStorage.setItem(FLAG,'1'); return; } // 진행 중 여정 보존
-    function ds(off){var d=new Date();d.setDate(d.getDate()-off);
-      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-    var now=Date.now(), DAY=86400000, rd={};
-    rd[ds(3)]=['microBA'];
-    rd[ds(2)]=['microBA','gratitude'];
-    rd[ds(1)]=['gratitude','roleOff'];
-    rd[ds(0)]=['microBA','gratitude','roleOff'];
-    localStorage.setItem(KEY, JSON.stringify({
-      v:1, startedAt:ds(4), track:'adult', name:'김하늘',
-      signals:[], rx:[], rxWhy:{}, base:null,
-      channel:{phone:'010-1234-5678', slot:'저녁 8시', ts:now-4*DAY},
-      checkins:{
-        1:{emoji:'😟', energy:42, routines:['microBA'], ts:now-3*DAY},
-        2:{emoji:'😐', energy:55, routines:['microBA','gratitude'], ts:now-2*DAY},
-        3:{emoji:'🙂', energy:68, routines:['gratitude','roleOff'], ts:now-DAY},
-        4:{emoji:'😄', energy:76, routines:['microBA','gratitude','roleOff'], ts:now}
-      },
-      routineDone:rd, points:200,
-      ledger:[
-        {t:now,label:'루틴 실천 · 퇴근 전 역할 벗기 의식',delta:20},
-        {t:now,label:'루틴 실천 · 감사 3가지 + 내일 기대 1가지',delta:20},
-        {t:now,label:'루틴 실천 · 2분 마이크로 행동활성화',delta:20},
-        {t:now,label:'D4 데일리 체크인',delta:10},
-        {t:now-DAY,label:'루틴 실천 · 퇴근 전 역할 벗기 의식',delta:20},
-        {t:now-DAY,label:'루틴 실천 · 감사 3가지 + 내일 기대 1가지',delta:20},
-        {t:now-DAY,label:'D3 데일리 체크인',delta:10},
-        {t:now-2*DAY,label:'루틴 실천 · 감사 3가지 + 내일 기대 1가지',delta:20},
-        {t:now-2*DAY,label:'루틴 실천 · 2분 마이크로 행동활성화',delta:20},
-        {t:now-2*DAY,label:'D2 데일리 체크인',delta:10},
-        {t:now-3*DAY,label:'루틴 실천 · 2분 마이크로 행동활성화',delta:20},
-        {t:now-3*DAY,label:'D1 데일리 체크인',delta:10}
-      ],
-      leavesUsed:{month:ds(0).slice(0,7), n:0},
-      remeasured:false, highRisk:false, demoOffset:0
-    }));
-    localStorage.setItem(FLAG,'1');
-  }catch(_){}
-})();
-
 /* ---------- 샘플 데이터 (가상) ---------- */
 const SAMPLE = {
   '시험자정보': { '시험자명': '김하늘', '성별': '여', '연령대': '20대' },
@@ -613,30 +501,6 @@ try {
     pointsEl: document.getElementById('profilePoints'), // 마음 포인트 → Profile 카드 통합
   });
 } catch (e) { console.error('NLCare render 실패:', e); }
-
-/* ---------- Profile 대시보드 · 여정 일차(D-day) 표시 ---------- */
-try {
-  var ci = NLCare.condIndex('nlCareDemo');
-  var pfDay = document.getElementById('pfDay');
-  if (pfDay && ci && ci.day >= 0) pfDay.textContent = 'D' + Math.min(ci.day, 7);
-} catch (e) {}
-
-/* ---------- Zone 네비 스크롤스파이 ---------- */
-(function(){
-  var links = document.querySelectorAll('#znav a');
-  if (!links.length || !('IntersectionObserver' in window)) return;
-  var map = {};
-  links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
-  var obs = new IntersectionObserver(function(es){
-    es.forEach(function(en){
-      if (!en.isIntersecting) return;
-      links.forEach(function(a){ a.classList.remove('on'); });
-      var a = map[en.target.id];
-      if (a) a.classList.add('on');
-    });
-  }, { rootMargin: '-30% 0px -60% 0px' });
-  document.querySelectorAll('section.zone').forEach(function(s){ obs.observe(s); });
-})();
 </script>
 </body>
 </html>

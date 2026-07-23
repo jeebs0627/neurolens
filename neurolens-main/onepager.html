@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NeuroLens 1-Pager — 문제 · 기술 · 해결 · 사업화 | AX오픈랩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B1B3F; --ink2:#2A3651;
+  --blue:#1E5AF0; --blue-2:#4A7DFF; --blue-soft:#EEF3FF; --blue-line:#C9D8FF;
+  --green:#0FA47A; --green-soft:#EAF7F2;
+  --amber:#E8890C; --violet:#6C4CE0; --violet-soft:#F1EDFD;
+  --rose:#E0446A; --rose-soft:#FDEEF2;
+  --gray:#5B6478; --gray2:#8A93A8; --line:#E4E9F4;
+  --font-kr:'Noto Sans KR',-apple-system,sans-serif;
+  --font-num:'Sora','Noto Sans KR',sans-serif;
+  --grad-hero:linear-gradient(135deg,#1E5AF0 0%,#6C4CE0 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-kr);color:var(--ink);background:#DDE4F0;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:24px}
+
+/* ---------- 슬라이드 캔버스 (1600×920) ---------- */
+.slide{width:1600px;min-width:1600px;height:920px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(11,27,63,.18);padding:34px 40px 30px;display:flex;flex-direction:column;gap:16px;position:relative;overflow:hidden}
+.slide::before{content:"";position:absolute;right:-140px;top:-160px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(74,125,255,.1),transparent 68%)}
+
+/* ---------- 헤더 ---------- */
+.head{display:flex;align-items:flex-start;gap:24px}
+.head .left{flex:1}
+.ask{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--blue);border:1.5px solid var(--blue-line);background:var(--blue-soft);border-radius:8px;padding:5px 14px;margin-bottom:10px}
+h1{font-size:31px;font-weight:900;letter-spacing:-.02em;line-height:1.32}
+h1 em{font-style:normal;background:var(--grad-hero);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.head .sub{font-size:14px;color:var(--gray);margin-top:8px;max-width:1000px;line-height:1.6}
+.head .sub b{color:var(--ink)}
+.brand{flex:none;text-align:right}
+.brand .logo{font-family:var(--font-num);font-weight:800;font-size:18px}
+.brand .logo em{font-style:normal;color:var(--blue)}
+.brand .tag{font-family:var(--font-num);font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--gray2);margin-top:3px}
+
+/* ---------- 4단 메인 ---------- */
+.main{flex:1;display:grid;grid-template-columns:1fr 30px 1.12fr 30px 1.12fr 30px 1.06fr;align-items:stretch}
+.arrow{display:flex;align-items:center;justify-content:center}
+.arrow svg{width:20px;height:20px;stroke:#B8C6EA;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.col{border:1.5px solid var(--line);border-radius:16px;padding:18px 18px 16px;display:flex;flex-direction:column;position:relative;background:#fff}
+.col.c1{border-top:5px solid var(--rose)}
+.col.c2{border-top:5px solid var(--blue)}
+.col.c3{border-top:5px solid var(--violet)}
+.col.c4{border-top:5px solid var(--green)}
+.step{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.step .n{font-family:var(--font-num);font-size:13px;font-weight:800;color:#fff;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none}
+.c1 .step .n{background:var(--rose)} .c2 .step .n{background:var(--blue)}
+.c3 .step .n{background:var(--violet)} .c4 .step .n{background:var(--green)}
+.step .lb{font-size:17px;font-weight:900;letter-spacing:-.01em}
+.step .en{font-family:var(--font-num);font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--gray2);margin-left:auto}
+.col h3{font-size:14.5px;font-weight:900;line-height:1.5;margin-bottom:10px}
+.c1 h3 b{color:var(--rose)} .c2 h3 b{color:var(--blue)} .c3 h3 b{color:var(--violet)} .c4 h3 b{color:var(--green)}
+.col ul{list-style:none;flex:0}
+.col li{font-size:12px;color:var(--ink2);padding:4.5px 0 4.5px 15px;position:relative;line-height:1.5}
+.col li::before{content:"";position:absolute;left:2px;top:11px;width:6px;height:6px;border-radius:50%}
+.c1 li::before{background:var(--rose)} .c2 li::before{background:var(--blue)}
+.c3 li::before{background:var(--violet)} .c4 li::before{background:var(--green)}
+.col li b{color:var(--ink)}
+.divider{height:1px;background:var(--line);margin:9px 0}
+
+/* 문제 컬럼 */
+.quote{background:var(--rose-soft);border:1px solid #F5CBD7;border-radius:11px;padding:10px 13px;font-size:12.5px;font-weight:800;color:#B4335A;line-height:1.5;margin-bottom:10px}
+.quote small{display:block;font-weight:500;color:#C4708D;font-size:10.5px;margin-top:3px}
+.persona-mini{display:flex;gap:6px;margin-top:auto;padding-top:10px}
+.persona-mini span{flex:1;text-align:center;font-size:10.5px;font-weight:700;color:var(--gray);background:#F4F6FB;border:1px solid var(--line);border-radius:9px;padding:6px 4px}
+
+/* 기술 컬럼 */
+.metric-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:auto;padding-top:10px}
+.metric{border:1px solid var(--blue-line);background:var(--blue-soft);border-radius:10px;padding:8px 10px}
+.metric .v{font-family:var(--font-num);font-size:16px;font-weight:800;color:var(--blue);line-height:1.15}
+.metric .k{font-size:10px;color:var(--gray);margin-top:2px;line-height:1.35}
+.metric.g{background:var(--green-soft);border-color:#BFE8D9}
+.metric.g .v{color:var(--green)}
+
+/* 해결 컬럼: 4-step 파이프라인 */
+.pipe{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.pipe .p{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:7px 11px;background:#FBFCFF}
+.pipe .p .pn{font-family:var(--font-num);font-size:10px;font-weight:800;color:#fff;background:var(--violet);width:19px;height:19px;border-radius:50%;display:grid;place-items:center;flex:none}
+.pipe .p .pt{font-size:12px;font-weight:800}
+.pipe .p .pd{font-size:10.5px;color:var(--gray);margin-left:auto;text-align:right;line-height:1.35}
+.pipe .p.opt{border-style:dashed;border-color:#C9D2E6;background:#F8F9FD}
+.pipe .p.opt .pn{background:var(--gray2)}
+.phase-chips{display:flex;gap:5px;margin-top:auto;padding-top:8px}
+.phase-chips span{flex:1;text-align:center;font-size:10px;font-weight:800;border-radius:9px;padding:6px 3px;line-height:1.3}
+.phase-chips .pc1{color:var(--blue);background:var(--blue-soft);border:1px solid var(--blue-line)}
+.phase-chips .pc2{color:var(--green);background:var(--green-soft);border:1px solid #BFE8D9}
+.phase-chips .pc3{color:var(--violet);background:var(--violet-soft);border:1px solid #DCD2F7}
+
+/* 사업화 컬럼 */
+.biz{display:flex;flex-direction:column;gap:6px}
+.biz .b{border:1px solid var(--line);border-radius:10px;padding:7px 11px;display:flex;align-items:center;gap:9px}
+.biz .b .when{font-family:var(--font-num);font-size:9px;font-weight:800;letter-spacing:.06em;color:var(--gray);background:#F1F4FB;border-radius:8px;padding:3px 8px;flex:none;width:74px;text-align:center}
+.biz .b .bt{font-size:12px;font-weight:800}
+.biz .b .bp{font-size:10.5px;color:var(--gray);margin-left:auto;text-align:right;line-height:1.35}
+.biz .b.now{border-color:var(--green);background:#F5FBF9}
+.biz .b.now .when{color:#fff;background:var(--green)}
+.moat{background:linear-gradient(135deg,#F4F1FE,#F7F5FF);border:1px solid #DCD2F7;border-radius:11px;padding:9px 12px;margin-top:auto}
+.moat .t{font-size:11.5px;font-weight:900;color:var(--violet);margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.moat p{font-size:10.5px;color:var(--gray);line-height:1.5}
+
+/* ---------- 스탯 스트립 ---------- */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.stat{border:1px solid var(--line);border-radius:13px;padding:12px 16px;display:flex;align-items:center;gap:12px;background:#FBFCFF}
+.stat .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none}
+.stat .ic svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.stat .v{font-family:var(--font-num);font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.stat .v small{font-size:11px;font-weight:700}
+.stat .k{font-size:10.5px;color:var(--gray);margin-top:1px;line-height:1.3}
+
+/* ---------- 하단 밴드 ---------- */
+.bottom{background:linear-gradient(135deg,#0B1B3F,#1A2C5E);color:#fff;border-radius:13px;padding:15px 26px;text-align:center;font-size:15.5px;font-weight:800;letter-spacing:-.01em}
+.bottom em{font-style:normal;color:#8FB2FF}
+
+/* ---------- 인쇄 ---------- */
+@media print{
+  body{background:#fff;padding:0}
+  .slide{box-shadow:none;border-radius:0}
+  @page{size:420mm 245mm;margin:0}
+}
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- 헤더 -->
+  <div class="head">
+    <div class="left">
+      <span class="ask">AX오픈랩이 세상을 바꾸고 싶은 "NeuroLens"는?</span>
+      <h1>5분 웹캠 측정으로 정신건강 위험 신호를 선별하고,<br>웰니스 Agent 관리와 임상검증으로 확장하는 <em>AX Deeptech 플랫폼</em></h1>
+      <div class="sub">5분 웹캠 측정으로 위험 신호를 <b>선별</b>하고, <b>웰니스 Agent</b>로 추적·관리하며, 외부 재현과 임상적 유용성이 확인된 기능을 축적해 <b>AX 헬스케어 제품화 및 SaMD 인허가 여부</b>를 추진해갑니다.</div>
+    </div>
+    <div class="brand">
+      <div class="logo">AX<em>오픈랩</em></div>
+      <div class="tag">NEUROLENS · 2026</div>
+    </div>
+  </div>
+
+  <!-- 4단: 문제 → 기술 → 해결 → 사업화 -->
+  <div class="main">
+
+    <!-- ① 문제 -->
+    <div class="col c1">
+      <div class="step"><span class="n">1</span><span class="lb">문제</span><span class="en">PROBLEM</span></div>
+      <div class="quote">"괜찮아요"라고 답한 아이의<br>시선은 괜찮지 않았습니다<small>자기보고는 실제 상태를 놓친다</small></div>
+      <ul>
+        <li>자기보고식 검사, 취업·평가 상황에서 <b>30~50% 점수 부풀림</b> (Griffith et al. 2007)</li>
+        <li>감정 소진·위험 신호를 <b>스스로 축소</b>해 보고 — 자기 왜곡/과장 발생</li>
+        <li>설령 선별돼도 <b>'내일 무엇을 어떻게 해야 하는지'</b> 알려주는 후속 조처 부재</li>
+        <li>가정·학교·기업 간 <b>정보·연계 단절</b>, 조기 개입 실패</li>
+      </ul>
+      <div class="persona-mini"><span>학생</span><span>감정노동자</span><span>보호자·기업</span></div>
+    </div>
+    <div class="arrow"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+
+    <!-- ② 기술 -->
+    <div class="col c2">
+      <div class="step"><span class="n">2</span><span class="lb">기술</span><span class="en">TECHNOLOGY</span></div>
+      <h3>설문이 놓치는 것을 <b>행동(시선)</b>이 말합니다</h3>
+      <ul>
+        <li><b>일반 웹캠만으로 5분</b> · 비접촉·비침습 시선행동 측정</li>
+        <li>I-DT 기반 <b>150+ 시선특징</b> 추출 → BMA 설명가능 AI로 <b>Human Model</b> 생성</li>
+        <li>10년 학계 연구(Hoppe·Wu·Berkovsky) + <b>한국인 9,000명 보정</b> · 시선·응답 결합</li>
+      </ul>
+      <div class="metric-row">
+        <div class="metric"><div class="v">AUC 0.819</div><div class="k">정서적 스트레스 신호 (EARP)<br>Recall 82.9% · NPV 92.8%</div></div>
+        <div class="metric"><div class="v">0.727~0.753</div><div class="k">Big5 AUC (성인)<br>텍스트 기반 35~53% 대비 우위</div></div>
+        <div class="metric g"><div class="v">89.6%</div><div class="k">직업흥미 Top3 적중률<br>경기도교육연구원 공동 PoC</div></div>
+        <div class="metric g"><div class="v">86.7%</div><div class="k">커리어 적합도 Top-10 적중률<br>263개 직업 기준</div></div>
+      </div>
+    </div>
+    <div class="arrow"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+
+    <!-- ③ 해결 -->
+    <div class="col c3">
+      <div class="step"><span class="n">3</span><span class="lb">해결</span><span class="en">SOLUTION</span></div>
+      <h3>측정 → 예측 → 개입 → 재측정, <b>케어 폐루프</b></h3>
+      <div class="pipe">
+        <div class="p"><span class="pn">1</span><span class="pt">웹캠 시선행동 측정</span><span class="pd">5분 · 시선추적 알고리즘<br>비접촉·비침습</span></div>
+        <div class="p"><span class="pn">2</span><span class="pt">Human Model / 리포트</span><span class="pd">AI 위험도 산출 · 10종+ 영역<br>임상적 해석 근거 제공</span></div>
+        <div class="p"><span class="pn">3</span><span class="pt">데일리 웰니스 Agent</span><span class="pd">맞춤 코칭 · 상태 추적·알림<br>보호자/관리자 대시보드</span></div>
+        <div class="p opt"><span class="pn">4</span><span class="pt">SaMD Gate <span style="font-size:9px;color:var(--gray2)">(검증 후 Option)</span></span><span class="pd">외부재현 · 임상적 유용성 검증<br>SaMD 인허가 여부 검토</span></div>
+      </div>
+      <div class="phase-chips">
+        <span class="pc1">CURRENT<br>비진단 선별</span>
+        <span class="pc2">NEXT<br>웰니스 Agent</span>
+        <span class="pc3">OPTION<br>외부재현 후 SaMD</span>
+      </div>
+    </div>
+    <div class="arrow"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+
+    <!-- ④ 사업화 -->
+    <div class="col c4">
+      <div class="step"><span class="n">4</span><span class="lb">사업화</span><span class="en">BUSINESS</span></div>
+      <h3>제품 → 플랫폼 → 구독, <b>3단 수익 모델</b></h3>
+      <div class="biz">
+        <div class="b now"><span class="when">TODAY</span><span class="bt">심리 리포트 10종</span><span class="bp">B2C·B2B·B2G<br>무료~₩10,000 / 라이선스</span></div>
+        <div class="b"><span class="when">'26 Q3 β</span><span class="bt">Human Model API</span><span class="bp">AI Agent 표준 입력<br>한계비용 ≈ 0 · 비선형 성장</span></div>
+        <div class="b"><span class="when">'26 Q4 β</span><span class="bt">AI Coaching Agent</span><span class="bp">월 ₩9,900~19,900 구독<br>ARR · 시계열 추적</span></div>
+      </div>
+      <ul style="margin-top:6px">
+        <li>교육부 에듀테크소프트랩 <b>'적합'</b> · 경기 8개교 공교육 실증</li>
+        <li><b>분당서울대병원 헬스케어혁신파크 선정</b> · KAIST Deeptech Batch</li>
+      </ul>
+      <div class="moat">
+        <div class="t">🛡 강력한 IP Moat</div>
+        <p>전용실시 특허(2건) 확보 계약 · 자체 특허출원(1건) + 개량특허연구</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 스탯 스트립 -->
+  <div class="stats">
+    <div class="stat"><span class="ic" style="background:linear-gradient(135deg,#1E5AF0,#4A7DFF)"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v6c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 12v6c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-6"/></svg></span><div><div class="v" style="color:var(--blue)">9,200<small>명+@</small></div><div class="k">학습 데이터셋</div></div></div>
+    <div class="stat"><span class="ic" style="background:linear-gradient(135deg,#6C4CE0,#8E75EE)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></span><div><div class="v" style="color:var(--violet)">4,514<small>만</small></div><div class="k">시선좌표 데이터</div></div></div>
+    <div class="stat"><span class="ic" style="background:linear-gradient(135deg,#0FA47A,#3EC49E)"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-5 9 5v12M9 21v-6h6v6"/></svg></span><div><div class="v" style="color:var(--green)">1,600<small>명+</small></div><div class="k">경기북부 공교육(초중고) 실증</div></div></div>
+    <div class="stat"><span class="ic" style="background:linear-gradient(135deg,#0B1B3F,#33477E)"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 7.8-8 9-4.6-1.2-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4.5"/></svg></span><div><div class="v">TRL 7</div><div class="k">시선측정·리포트 모듈 현장 실증<br>Agent 풀스택 MVP 개발 단계</div></div></div>
+    <div class="stat"><span class="ic" style="background:linear-gradient(135deg,#E8890C,#F6B73C)"><svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/></svg></span><div><div class="v" style="color:var(--amber)">특허 2+1<small>건</small></div><div class="k">전용실시 확보 계약 + 자체출원<br>개량특허연구</div></div></div>
+  </div>
+
+  <!-- 하단 메시지 -->
+  <div class="bottom">💡 공교육 심리측정 서비스(비규제 시장)에서 시작해 <em>의료가치를 확보한 웰니스 헬스케어 영역</em>으로 확장해 갑니다.</div>
+
+</div>
+</body>
+</html>

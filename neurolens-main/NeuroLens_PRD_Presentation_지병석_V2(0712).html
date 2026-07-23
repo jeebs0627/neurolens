@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroLens PRD A-29 — 심사위원용 요약</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B1B3F;          /* 딥 네이비 */
+  --blue:#1E5AF0;         /* 브랜드 블루 */
+  --blue-soft:#EEF3FF;    /* 스카이 틴트 */
+  --blue-line:#C9D8FF;
+  --green:#0FA47A;        /* 웰니스/NEXT */
+  --green-soft:#EAF7F2;
+  --amber:#E8890C;        /* 리스크/게이트 */
+  --amber-soft:#FDF3E3;
+  --violet:#6C4CE0;
+  --violet-soft:#F1EDFD;
+  --gray:#5B6478;
+  --line:#E4E9F4;
+  --bg:#FFFFFF;
+  --radius:14px;
+  --maxw:1120px;
+  --font-kr:'Noto Sans KR',-apple-system,sans-serif;
+  --font-num:'Sora','Noto Sans KR',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-kr);color:var(--ink);background:var(--bg);line-height:1.65;font-size:16px;-webkit-font-smoothing:antialiased}
+::selection{background:var(--blue);color:#fff}
+
+/* ---------- 공통 레이아웃 ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+section.part{padding:88px 0 72px;border-top:1px solid var(--line)}
+section.part:first-of-type{border-top:none}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-num);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);margin-bottom:14px}
+.eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 4px var(--blue-soft)}
+h2.part-title{font-size:clamp(26px,3.4vw,38px);font-weight:900;letter-spacing:-.02em;line-height:1.28;margin-bottom:10px}
+h2.part-title em{font-style:normal;color:var(--blue)}
+.part-sub{color:var(--gray);font-size:16.5px;max-width:760px;margin-bottom:36px}
+.part-sub strong{color:var(--ink)}
+
+/* ---------- 상단 네비 ---------- */
+nav#topnav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav#topnav .inner{max-width:var(--maxw);margin:0 auto;padding:0 28px;display:flex;align-items:center;gap:20px;height:56px}
+nav#topnav .logo{font-family:var(--font-num);font-weight:800;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+nav#topnav .logo span{color:var(--blue)}
+nav#topnav .links{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav#topnav .links::-webkit-scrollbar{display:none}
+nav#topnav a{font-size:13px;font-weight:500;color:var(--gray);text-decoration:none;padding:6px 11px;border-radius:20px;white-space:nowrap;transition:all .15s}
+nav#topnav a:hover,nav#topnav a:focus-visible{color:var(--blue);background:var(--blue-soft)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ---------- 히어로 ---------- */
+header.hero{position:relative;overflow:hidden;background:linear-gradient(180deg,#F7FAFF 0%,#FFFFFF 100%);padding:76px 0 64px;border-bottom:1px solid var(--line)}
+.hero .badge{display:inline-block;font-family:var(--font-num);font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--blue);background:var(--blue-soft);border:1px solid var(--blue-line);padding:6px 14px;border-radius:20px;margin-bottom:22px}
+.hero h1{font-size:clamp(34px,5vw,56px);font-weight:900;letter-spacing:-.03em;line-height:1.22;max-width:820px}
+.hero h1 .hl{position:relative;color:var(--blue)}
+.hero p.lede{margin-top:20px;font-size:clamp(16px,1.8vw,19px);color:var(--gray);max-width:720px}
+.hero p.lede b{color:var(--ink)}
+/* scanpath 시그니처 */
+.scanpath{position:absolute;right:-40px;top:20px;width:520px;height:420px;pointer-events:none;opacity:.9}
+.scanpath .sacc{fill:none;stroke:var(--blue-line);stroke-width:1.5;stroke-dasharray:4 5}
+.scanpath .fix{fill:#fff;stroke:var(--blue);stroke-width:2}
+.scanpath .fix.big{fill:var(--blue-soft)}
+.gaze-dot{fill:var(--blue)}
+@media (prefers-reduced-motion:no-preference){
+  .gaze-dot{animation:gaze 9s ease-in-out infinite}
+  @keyframes gaze{
+    0%{transform:translate(60px,300px)}12%{transform:translate(60px,300px)}
+    22%{transform:translate(210px,120px)}34%{transform:translate(210px,120px)}
+    44%{transform:translate(400px,210px)}58%{transform:translate(400px,210px)}
+    68%{transform:translate(300px,340px)}82%{transform:translate(300px,340px)}
+    92%{transform:translate(60px,300px)}100%{transform:translate(60px,300px)}
+  }
+}
+/* 히어로 하단 증거 지표 */
+.proof{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:52px}
+.proof .cell{background:#fff;padding:20px 18px}
+.proof .num{font-family:var(--font-num);font-size:clamp(20px,2.2vw,27px);font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.proof .num small{font-size:.62em;font-weight:700;color:var(--blue)}
+.proof .lbl{font-size:12.5px;color:var(--gray);margin-top:3px}
+
+/* ---------- 카드/그리드 공통 ---------- */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g5{grid-template-columns:repeat(5,1fr)}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:22px;transition:box-shadow .2s,transform .2s}
+.card:hover{box-shadow:0 10px 30px rgba(11,27,63,.08)}
+.card h4{font-size:16px;font-weight:700;margin-bottom:8px;letter-spacing:-.01em}
+.card p{font-size:14px;color:var(--gray)}
+.card .tag{display:inline-block;font-family:var(--font-num);font-size:11px;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:12px;margin-bottom:12px}
+.tag.b{background:var(--blue-soft);color:var(--blue)}
+.tag.g{background:var(--green-soft);color:var(--green)}
+.tag.a{background:var(--amber-soft);color:var(--amber)}
+.tag.v{background:var(--violet-soft);color:var(--violet)}
+
+/* 인사이트 바 (IR덱 전구 밴드 오마주) */
+.insight{margin-top:36px;background:var(--ink);color:#fff;border-radius:var(--radius);padding:20px 26px;display:flex;gap:16px;align-items:flex-start;font-size:15.5px;line-height:1.6}
+.insight .ic{flex:none;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:16px}
+.insight b{color:#9DBBFF}
+
+/* ---------- 문제 정의 테이블형 ---------- */
+.problem-row{display:grid;grid-template-columns:1.1fr 1fr 1.2fr;gap:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;background:#fff}
+.problem-row>div{padding:16px 20px;font-size:14px}
+.problem-row .p1{background:var(--blue-soft);font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:10px}
+.problem-row .p1 .no{font-family:var(--font-num);font-size:11px;font-weight:800;color:var(--blue);background:#fff;border:1px solid var(--blue-line);border-radius:10px;padding:2px 8px;flex:none}
+.problem-row .p2{color:var(--gray);border-left:1px solid var(--line);display:flex;align-items:center}
+.problem-row .p3{border-left:1px solid var(--line);display:flex;align-items:center;gap:8px;font-weight:500}
+.problem-row .p3::before{content:"→";color:var(--green);font-weight:800;flex:none}
+.problem-head{display:grid;grid-template-columns:1.1fr 1fr 1.2fr;padding:0 20px 8px;font-family:var(--font-num);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--gray)}
+.problem-head span:nth-child(2),.problem-head span:nth-child(3){padding-left:20px}
+
+/* whynow */
+.whynow{margin-top:30px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.whynow .card{border-top:3px solid var(--blue)}
+.whynow .card b{display:block;font-size:14.5px;margin-bottom:5px}
+.whynow .card p{font-size:13.5px}
+
+/* ---------- 폐루프 플로우 ---------- */
+.loop{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;justify-content:center;margin:8px 0 4px}
+.loop .step{flex:1;min-width:150px;background:#fff;border:1.5px solid var(--blue-line);border-radius:var(--radius);padding:18px 14px;text-align:center;position:relative}
+.loop .step .n{font-family:var(--font-num);font-weight:800;font-size:12px;color:#fff;background:var(--blue);width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;margin-bottom:8px}
+.loop .step b{display:block;font-size:14.5px;letter-spacing:-.01em}
+.loop .step span{display:block;font-size:12px;color:var(--gray);margin-top:4px}
+.loop .arrow{align-self:center;padding:0 6px;color:var(--blue);font-weight:800;font-size:18px;flex:none}
+.loop-back{margin-top:14px;text-align:center;font-size:13px;color:var(--green);font-weight:700}
+.loop-back .pill{display:inline-block;background:var(--green-soft);border:1px dashed var(--green);border-radius:20px;padding:8px 18px}
+
+/* 모듈 테이블 */
+table.modtable{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;font-size:14px;margin-top:28px}
+table.modtable th{background:var(--ink);color:#fff;text-align:left;padding:12px 16px;font-size:13px;font-weight:700}
+table.modtable td{padding:12px 16px;border-top:1px solid var(--line);vertical-align:top}
+table.modtable td:first-child{font-weight:700;white-space:nowrap;font-family:var(--font-num);font-size:13px}
+table.modtable tr td .st{display:inline-block;font-size:11px;font-weight:700;border-radius:10px;padding:2px 9px}
+.st.done{background:var(--blue-soft);color:var(--blue)}
+.st.new{background:var(--green-soft);color:var(--green)}
+.st.must{background:var(--amber-soft);color:var(--amber)}
+
+/* ---------- 4대 지능화 ---------- */
+.intel{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.intel .card{padding:26px}
+.intel .head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.intel .glyph{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:21px;flex:none}
+.intel .glyph.b{background:var(--blue-soft)} .intel .glyph.g{background:var(--green-soft)}
+.intel .glyph.v{background:var(--violet-soft)} .intel .glyph.a{background:var(--amber-soft)}
+.intel h3{font-size:19px;font-weight:900;letter-spacing:-.01em}
+.intel h3 small{display:block;font-family:var(--font-num);font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--gray)}
+.intel .goal{font-size:14px;color:var(--gray);margin-bottom:14px}
+.kpis{display:flex;flex-wrap:wrap;gap:8px}
+.kpis .kpi{background:#F7F9FE;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:500}
+.kpis .kpi b{font-family:var(--font-num);color:var(--blue);font-weight:800}
+
+/* 성능 바 */
+.perf{margin-top:34px;background:#F7FAFF;border:1px solid var(--blue-line);border-radius:var(--radius);padding:26px}
+.perf h4{font-size:15px;font-weight:700;margin-bottom:4px}
+.perf .note{font-size:12.5px;color:var(--gray);margin-bottom:18px}
+.bar-row{display:grid;grid-template-columns:180px 1fr 74px;align-items:center;gap:14px;margin-bottom:14px}
+.bar-row .bl{font-size:13.5px;font-weight:700}
+.bar-row .bl small{display:block;font-weight:400;color:var(--gray);font-size:11.5px}
+.bar-track{height:12px;background:#E6ECFA;border-radius:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--blue),#6C93FF);width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.bar-fill.g{background:linear-gradient(90deg,var(--green),#4CC9A4)}
+.bar-row .bv{font-family:var(--font-num);font-weight:800;font-size:16px;text-align:right}
+</style>
+</head>
+<body>
+
+<nav id="topnav" aria-label="섹션 이동">
+  <div class="inner">
+    <div class="logo">Neuro<span>Lens</span> PRD A-29</div>
+    <div class="links">
+      <a href="#summary">요약</a>
+      <a href="#problem">문제·기회</a>
+      <a href="#product">제품 구조</a>
+      <a href="#intel">4대 지능화</a>
+      <a href="#market">시장</a>
+      <a href="#bm">비즈니스 모델</a>
+      <a href="#roadmap">로드맵·KPI</a>
+      <a href="#safety">안전·리스크</a>
+      <a href="#final">최종 기준</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <svg class="scanpath" viewBox="0 0 520 420" aria-hidden="true">
+    <path class="sacc" d="M60 300 L210 120 L400 210 L300 340 Z"/>
+    <circle class="fix big" cx="60" cy="300" r="26"/>
+    <circle class="fix" cx="210" cy="120" r="16"/>
+    <circle class="fix big" cx="400" cy="210" r="34"/>
+    <circle class="fix" cx="300" cy="340" r="20"/>
+    <circle class="gaze-dot" r="7"/>
+  </svg>
+  <div class="wrap">
+    <span class="badge">PRD A-29 · 2026-07-12 · 투자유치형 제품 요구사항 정의서</span>
+    <h1>일회성 심리검사를<br><span class="hl">반복 가능한 데이터·구독·API 사업</span>으로<br>전환한다</h1>
+    <p class="lede"><b>NeuroLens</b>는 일반 웹캠 5분 측정으로 정신건강 위험 신호를 선별하고, <b>Human Model</b>과 <b>웰니스 AI Agent</b>로 반복 관리하는 AX DeepTech 플랫폼입니다. 의료 진단을 약속하지 않고, <b>비진단 선별·웰니스</b>에서 매출을 먼저 검증합니다.</p>
+    <div class="proof" role="list">
+      <div class="cell" role="listitem"><div class="num">9,200<small>명+</small></div><div class="lbl">한국인 학습 데이터셋</div></div>
+      <div class="cell" role="listitem"><div class="num">4,514<small>만</small></div><div class="lbl">시선좌표 데이터</div></div>
+      <div class="cell" role="listitem"><div class="num">1,600<small>명</small></div><div class="lbl">경기도 8개교 현장 실증</div></div>
+      <div class="cell" role="listitem"><div class="num">TRL 7</div><div class="lbl">측정 코어 기술 성숙도</div></div>
+      <div class="cell" role="listitem"><div class="num">0.819</div><div class="lbl">우울 위험 선별 AUC</div></div>
+      <div class="cell" role="listitem"><div class="num">150<small>+</small></div><div class="lbl">시선행동 특징 (I-DT)</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ PART 0. Executive Summary ══════════ -->
+<section class="part" id="summary">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 0 · Executive Summary</span>
+    <h2 class="part-title">투자 포인트는 정확도가 아니라 <em>결합 구조</em>입니다</h2>
+    <p class="part-sub">측정 1회로 끝나지 않는 <strong>폐루프</strong>: 측정 → 예측 → 개입 → 재측정 → 모델 개선. 데이터가 쌓일수록 개인·기관의 추세 예측과 개입 최적화가 좋아집니다.</p>
+    <div class="grid g4">
+      <div class="card"><span class="tag b">CORE</span><h4>검증된 코어</h4><p>9,200명 데이터, 4,514만 좌표, 8개교 1,600명 실증으로 이미 현장에서 작동을 확인한 측정 엔진</p></div>
+      <div class="card"><span class="tag g">EXPAND</span><h4>확장 구조</h4><p>측정 1회 매출 → 기관 라이선스 → Agent 구독 → Human Model API 사용료로 매출원 전환</p></div>
+      <div class="card"><span class="tag v">FLYWHEEL</span><h4>데이터 플라이휠</h4><p>반복 측정 데이터가 모델을 개선하고, 개선된 모델이 서비스·API 가치를 다시 끌어올리는 순환</p></div>
+      <div class="card"><span class="tag a">DE-RISK</span><h4>규제 리스크 분리</h4><p>비규제 웰니스 매출을 먼저 만들고, 독립 외부재현 이후 SaMD를 '옵션'으로만 추진</p></div>
+    </div>
+    <div class="insight"><div class="ic">💡</div><div><b>핵심 사업 가설</b> — "일회성 심리검사를 반복 가능한 데이터·구독·API 사업으로 전환할 수 있는가." 이를 <b>자동화·예측·시뮬레이션·최적화</b> 4대 지능화의 하나의 폐루프로 증명합니다.</div></div>
+  </div>
+</section>
+
+<!-- ══════════ PART 1. 문제 정의 ══════════ -->
+<section class="part" id="problem" style="background:#FAFBFE">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 1 · Problem &amp; Opportunity</span>
+    <h2 class="part-title">"괜찮아요"라고 답한 아이의 시선은 <em>괜찮지 않았습니다</em></h2>
+    <p class="part-sub">자기보고식 단독 검사는 위험군을 놓치고, 발견 이후에도 케어로 이어지지 않습니다. 구조적 문제 5가지가 각각 <strong>사업 기회</strong>로 전환됩니다.</p>
+    <div class="problem-head"><span>구조적 문제</span><span>현장 영향</span><span>NeuroLens의 사업 기회</span></div>
+    <div class="problem-row"><div class="p1"><span class="no">01</span>자기보고 응답 편향·왜곡</div><div class="p2">위험군 누락, 데이터 신뢰성 저하</div><div class="p3">무의식 시선신호 + 간편 자기보고 결합</div></div>
+    <div class="problem-row"><div class="p1"><span class="no">02</span>객관검사의 높은 비용·인력 의존</div><div class="p2">학교·기업 전수검사, 반복 측정 곤란</div><div class="p3">범용 웹캠 + 자동 분석으로 단위비용 절감</div></div>
+    <div class="problem-row"><div class="p1"><span class="no">03</span>1회성 결과 전달</div><div class="p2">후속 행동·추적·재검 연결 부재</div><div class="p3">Agent 구독과 반복관리 매출 창출</div></div>
+    <div class="problem-row"><div class="p1"><span class="no">04</span>대규모 운영의 병목</div><div class="p2">교사·상담사·EAP 담당자 수작업 과다</div><div class="p3">관리자 대시보드 + 위험군 자동 우선순위화</div></div>
+    <div class="problem-row"><div class="p1"><span class="no">05</span>의료 확장 전 임상·규제 리스크</div><div class="p2">초기 의료기기 접근 시 시간·자본 소모</div><div class="p3">비진단·웰니스로 매출 검증 후 단계 진입</div></div>
+
+    <div class="whynow">
+      <div class="card"><b>현장 적용성 확인</b><p>1,600명 규모 공교육 실증으로 웹캠 기반 시선측정의 현장 적용 가능성 검증 완료</p></div>
+      <div class="card"><b>AI Agent 시장 개화</b><p>Agent 개인화 품질의 병목은 신뢰할 수 있는 인간 상태 데이터 — Ground Truth 수요 급증</p></div>
+      <div class="card"><b>반복 관리 수요</b><p>학교·기업·기관은 일회성 검사가 아닌 반복 측정 + 사후관리 체계를 요구</p></div>
+      <div class="card"><b>제품화 전환 시점</b><p>측정 코어 TRL 7, Agent 풀스택 MVP 단계 — 자금이 성과로 전환되는 시점</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PART 2·3. 비전과 시장 ══════════ -->
+<section class="part" id="market">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 2–3 · Vision &amp; Beachhead</span>
+    <h2 class="part-title">행동 신호를 이해하고 매일 더 적합한 케어를 선택하는 <em>Human Model 인프라</em></h2>
+    <p class="part-sub"><strong>비규제 우선 원칙</strong> — 초기 제품 문구는 "진단·치료·확진"이 아니라 <strong>선별 보조 · 상태 리포트 · 웰니스 코칭 · 상담 연계</strong>. 의료 기능은 외부재현·규제 게이트 통과 후 별도 제품으로 분리합니다.</p>
+
+    <div class="grid g4" style="margin-bottom:34px">
+      <div class="card"><span class="tag b">고객에게</span><p style="color:var(--ink);font-weight:500">5분 웹캠 측정으로 현재 상태를 이해하고 필요한 웰니스 행동까지 연결</p></div>
+      <div class="card"><span class="tag g">기관에게</span><p style="color:var(--ink);font-weight:500">대규모 대상자의 위험 신호와 변화 추세를 자동 선별하는 운영 시스템</p></div>
+      <div class="card"><span class="tag v">파트너에게</span><p style="color:var(--ink);font-weight:500">AI Agent가 활용하는 구조화된 Human Model API</p></div>
+      <div class="card"><span class="tag a">투자자에게</span><p style="color:var(--ink);font-weight:500">검사를 데이터 구독·API 플랫폼으로 전환하는 AI·바이오헬스 딥테크</p></div>
+    </div>
+
+    <div class="stagegrid">
+      <div class="stage s1"><div class="rank">1차 · Beachhead</div><h4>학교·교육기관 B2G</h4><p>경기도 8개교 1,600명 실증, 교육부 에듀테크소프트랩 적합 판정·에듀집 등재라는 확보된 레퍼런스에서 시작</p><div class="meta"><span>규제 부담 <b>낮음</b></span><span>레퍼런스 <b>높음</b></span><span>MVP 우선순위 <b>1</b></span></div></div>
+      <div class="stage s2"><div class="rank">2차 · 확장</div><h4>기업 EAP·감정노동 B2B</h4><p>반복 측정, 익명 집단 추세, 조기개입 연계 — 고마진·반복 매출의 핵심 확장 축</p><div class="meta"><span>반복매출 <b>높음</b></span><span>MVP 우선순위 <b>2</b></span></div></div>
+      <div class="stage s3"><div class="rank">3차 · 플랫폼</div><h4>AI Agent 개발사 B2B2C</h4><p>Human Model API 호출량 과금으로 외부 코칭·교육·HR Agent에 공급 — 타사 유통망 활용</p><div class="meta"><span>반복매출 <b>매우 높음</b></span><span>판매주기 <b>짧음</b></span></div></div>
+      <div class="stage s4"><div class="rank">4차 · 옵션</div><h4>의료기관·SaMD</h4><p>독립 외부재현·규제 게이트 통과 후 임상용 기능 별도 제품화 — Base Case 매출에 미포함</p><div class="meta"><span>규제 부담 <b>높음</b></span><span>포지션 <b>Upside 옵션</b></span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PART 4. 제품 구조 ══════════ -->
+<section class="part" id="product" style="background:#FAFBFE">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 4 · Product Architecture</span>
+    <h2 class="part-title">측정에서 재측정까지, <em>End-to-End 폐루프</em></h2>
+    <p class="part-sub">모든 모듈이 수익원과 1:1로 연결됩니다. 검증된 코어는 재활용하고, 신규 개발은 리포트·대시보드·Agent에 집중합니다.</p>
+
+    <div class="loop">
+      <div class="step"><span class="n">1</span><b>웹캠 5분 측정</b><span>캘리브레이션·품질검사</span></div><div class="arrow">→</div>
+      <div class="step"><span class="n">2</span><b>시선특징 추출</b><span>I-DT · 150+ 특징</span></div><div class="arrow">→</div>
+      <div class="step"><span class="n">3</span><b>BMA Human Model</b><span>위험도+불확실성 산출</span></div><div class="arrow">→</div>
+      <div class="step"><span class="n">4</span><b>리포트 · API</b><span>개인/기관/JSON</span></div><div class="arrow">→</div>
+      <div class="step"><span class="n">5</span><b>웰니스 Agent</b><span>루틴·코칭·재측정</span></div>
+    </div>
+    <div class="loop-back"><span class="pill">↻ 추세 데이터·모델 고도화 — 반복될수록 예측과 개입이 정교해지는 데이터 플라이휠</span></div>
+
+    <table class="modtable">
+      <thead><tr><th>모듈</th><th>주요 기능</th><th>초기 상태</th><th>수익 연결</th></tr></thead>
+      <tbody>
+        <tr><td>Measurement SDK</td><td>웹캠 캘리브레이션, 5분 측정, 품질검사, 특징추출</td><td><span class="st done">코어 재활용</span></td><td>측정 패키지 · 기관 라이선스</td></tr>
+        <tr><td>Human Model Engine</td><td>BMA 기반 프로파일·위험도·불확실성 산출</td><td><span class="st done">모델 고도화</span></td><td>리포트 · API</td></tr>
+        <tr><td>User Report</td><td>개인 상태 요약, 변화 추세, 비의료적 권고</td><td><span class="st new">신규 MVP</span></td><td>구독 전환</td></tr>
+        <tr><td>Admin Dashboard</td><td>진행률, 위험 우선순위, 집단 추세, 연계 이력</td><td><span class="st new">신규 MVP</span></td><td>B2G · B2B 계약</td></tr>
+        <tr><td>Wellness Agent</td><td>상태별 루틴, 코칭, 알림, 재측정</td><td><span class="st new">신규 MVP</span></td><td>월 구독 · 기관 Seat</td></tr>
+        <tr><td>Human Model API</td><td>JSON 프로파일, 버전, 신뢰도, 이벤트</td><td><span class="st new">엔드포인트 1개</span></td><td>호출량 · 파트너 계약</td></tr>
+        <tr><td>Validation &amp; Safety</td><td>동의, 로그, 위기대응 SOP, 모델 모니터링</td><td><span class="st must">필수 신규</span></td><td>계약·임상·투자 리스크 감소</td></tr>
+      </tbody>
+    </table>
+
+    <div class="insight"><div class="ic">🎯</div><div><b>P0 — 4주 코어 MVP</b> · 측정 세션 / 자동 품질점검 / 시선특징 추출 / Human Model 1종 / 개인 리포트 / 관리자 대시보드 / API v0 / 안전·동의 — 8개 기능으로 <b>측정→리포트→분기</b>의 최소 폐루프를 완성합니다.</div></div>
+  </div>
+</section>
+
+<!-- ══════════ PART 5. 4대 지능화 ══════════ -->
+<section class="part" id="intel">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 5 · Intelligence Requirements — 제품의 심장</span>
+    <h2 class="part-title"><em>자동화 · 예측 · 시뮬레이션 · 최적화</em>, 하나의 폐루프</h2>
+    <p class="part-sub">기능 나열이 아니라, 네 가지 지능화가 <strong>동시에 작동</strong>해야 반복 매출과 데이터 해자가 만들어집니다. 각 항목마다 정량 성공 기준을 정의했습니다.</p>
+    <div class="intel">
+      <div class="card">
+        <div class="head"><div class="glyph b">⚙️</div><h3>자동화 <small>AUTOMATION</small></h3></div>
+        <p class="goal">측정 준비 → 위험군 분류 → 후속 행동 → 재측정까지 운영자 수작업 최소화. 일반군은 Agent로, 주의군은 관리자 확인으로, 고위험은 SOP에 따라 전문상담으로 자동 분기.</p>
+        <div class="kpis">
+          <span class="kpi">리포트 생성 <b>60초 이내</b></span>
+          <span class="kpi">자동 처리율 <b>90%+</b></span>
+          <span class="kpi">관리자 1명 = <b>500명</b> 캠페인</span>
+          <span class="kpi"><b>수작업 엑셀 제거</b></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="head"><div class="glyph g">📈</div><h3>예측 <small>PREDICTION</small></h3></div>
+        <p class="goal">단일 점수를 넘어 현재 위험도 + 악화 가능성 + 개입 필요도를 추정. 확정값 대신 <b>위험구간 + 신뢰도·불확실성</b>을 함께 표시하고, "우울증이다"가 아닌 "추가 확인이 필요한 위험 신호"로 제시.</p>
+        <div class="kpis">
+          <span class="kpi">AUC <b>0.819</b> 기준선 유지</span>
+          <span class="kpi">Recall <b>82.9%</b></span>
+          <span class="kpi">NPV <b>92%</b></span>
+          <span class="kpi">드리프트 <b>월 1회</b> 모니터링</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="head"><div class="glyph v">🧪</div><h3>시뮬레이션 <small>SIMULATION</small></h3></div>
+        <p class="goal">개입 전 행동 시나리오와 예상 효과를 비교. "2주 루틴 수행 시 예상 변화 범위", "주 1회 vs 월 1회 재측정 민감도", 기관 운영부하·매출 시뮬레이터. 인과를 단정하지 않는 <b>범위형</b> 표시, 의료 치료효과는 시뮬레이션하지 않음.</p>
+        <div class="kpis">
+          <span class="kpi">가정·데이터 버전 <b>100% 표시</b></span>
+          <span class="kpi">3개 시나리오 <b>5분 내</b> 비교</span>
+          <span class="kpi">오차 <b>분기별</b> 검토</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="head"><div class="glyph a">🎛️</div><h3>최적화 <small>OPTIMIZATION</small></h3></div>
+        <p class="goal">개인에겐 최적의 다음 행동을, 기관엔 효율적 자원 배분을 추천. 안전 규칙 기반 → 세그먼트 휴리스틱 → A/B 테스트 → Contextual Bandit 순으로 단계적 고도화.</p>
+        <div class="kpis">
+          <span class="kpi">Agent 4주 유지율 <b>30%+</b></span>
+          <span class="kpi">콘텐츠 완료율 <b>40%+</b></span>
+          <span class="kpi">재측정 전환율 <b>35%+</b></span>
+          <span class="kpi">위험군 검토시간 <b>−50%</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="perf">
+      <h4>검증된 예측 성능 — 내부 성능 기준선 (Part 8 모델 거버넌스: 외부재현 전 임상 성능과 혼동 금지 명시)</h4>
+      <p class="note">외부재현 연구는 데이터 누수 없는 사전 정의 프로토콜과 95% 신뢰구간 보고를 원칙으로 합니다.</p>
+      <div class="bar-row"><div class="bl">우울 위험 선별 AUC<small>변별력</small></div><div class="bar-track"><div class="bar-fill" data-w="81.9%"></div></div><div class="bv">0.819</div></div>
+      <div class="bar-row"><div class="bl">Recall (재현율)<small>고위험군을 놓치지 않음</small></div><div class="bar-track"><div class="bar-fill" data-w="82.9%"></div></div><div class="bv">82.9%</div></div>
+      <div class="bar-row" style="margin-bottom:0"><div class="bl">NPV (음성예측도)<small>정상군을 먼저 안심 → 정밀검사 효율화</small></div><div class="bar-track"><div class="bar-fill g" data-w="92.25%"></div></div><div class="bv">92.25%</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PART 10. 비즈니스 모델 ══════════ -->
+<section class="part" id="bm" style="background:#FAFBFE">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 10 · Business Model &amp; Pricing</span>
+    <h2 class="part-title">현금흐름은 기관, 반복매출은 Agent, <em>기업가치는 API와 의료옵션</em></h2>
+    <p class="part-sub">5개 매출원이 시간축을 따라 겹겹이 쌓입니다. 가격은 확정값이 아니라 <strong>PoC와 고객 인터뷰로 검증할 가설</strong>입니다.</p>
+
+    <div class="revgrid">
+      <div class="rev"><div class="rv-top"><span class="tag b">B2G</span><b>기관 라이선스</b></div><p>학교·지자체 / 연간 라이선스·인원 패키지</p><div class="price">연 300만~500만원 <small>/ 학교</small></div><div class="role">가장 빠른 레퍼런스 · 매출</div></div>
+      <div class="rev"><div class="rv-top"><span class="tag b">B2B</span><b>기업 EAP</b></div><p>기업·EAP사 / 연간 계약 + 대상 인원</p><div class="price">연 500만~1,000만원+</div><div class="role">반복 측정 · 고마진 확장</div></div>
+      <div class="rev"><div class="rv-top"><span class="tag g">B2C</span><b>Wellness Agent</b></div><p>개인·기관 / 월 구독 또는 Seat</p><div class="price">월 9,900~19,900원 <small>가설</small></div><div class="role">1회 검사 → 반복 매출 전환</div></div>
+      <div class="rev"><div class="rv-top"><span class="tag v">API</span><b>Human Model API</b></div><p>Agent 개발사 / 호출량·MAU·최소보장</p><div class="price">무료 개발구간 + 종량 과금</div><div class="role">플랫폼 확장성 · 최고 총이익률</div></div>
+      <div class="rev"><div class="rv-top"><span class="tag a">OPTION</span><b>의료 옵션</b></div><p>병원·보험·공공 / 임상 계약·라이선스</p><div class="price">외부재현 이후</div><div class="role">Base Case 외 추가 Upside</div></div>
+    </div>
+
+    <div class="moneyflow">
+      <span>낮은 한계비용 측정</span><i>→</i><span>기관 단위 대량 판매</span><i>→</i><span>재측정·Agent 구독으로 LTV 증가</span><i>→</i><span>API로 타사 유통망 활용</span><i>→</i><span>데이터 축적 = 모델·서비스 가치 상승</span>
+    </div>
+
+    <div class="insight"><div class="ic">🧮</div><div><b>Unit Economics 검증 항목</b> — 기관 CAC · 1인 추가 측정 변동비 · Agent 월 추론비용 · API 총이익률 · 갱신률과 재측정률 · 세그먼트별 회수기간. 숫자로 증명 가능한 항목만 약속합니다.</div></div>
+  </div>
+</section>
+
+<!-- ══════════ PART 11·13. 로드맵과 KPI ══════════ -->
+<section class="part" id="roadmap">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 11 · 13 · Roadmap &amp; Investor Gates</span>
+    <h2 class="part-title">12개월, <em>분기마다 리스크를 하나씩 제거</em>합니다</h2>
+    <p class="part-sub">제품 리스크 → 반복사용·외부검증 → 매출·투자 증거 순으로, 각 분기의 KPI가 다음 분기의 전제 조건이 됩니다.</p>
+
+    <div class="timeline">
+      <div class="tstep">
+        <div class="twhen">2026 Q3</div><div class="ttitle">제품 리스크 제거</div>
+        <ul><li>법인 설립 · IP 라이선스 권리 명문화</li><li>4주 코어 MVP + API v0 완성</li><li>측정 성공률 <b>85%+</b></li><li>디자인 파트너 <b>2곳+</b></li></ul>
+      </div>
+      <div class="tstep">
+        <div class="twhen">2026 Q4</div><div class="ttitle">반복 사용 · 외부 검증 착수</div>
+        <ul><li>Wellness Agent 베타 출시</li><li>초기 사용자 <b>500명+</b> / 기관 PoC</li><li>4주 유지율·재측정률 검증</li><li>병원 공동연구 IRB 제출 · API 파트너 <b>1곳+</b></li></ul>
+      </div>
+      <div class="tstep">
+        <div class="twhen">2027 H1</div><div class="ttitle">매출 · 투자 증거</div>
+        <ul><li>교육기관 <b>10개교</b> 라이선스</li><li>EAP 유료계약 <b>2건+</b></li><li>Agent MAU <b>1만 명</b></li><li>Seed <b>1~2억원</b> 클로징 · 외부재현 중간 데이터</li></ul>
+      </div>
+      <div class="tstep">
+        <div class="twhen">2027 Q2</div><div class="ttitle">Pre-A 준비</div>
+        <ul><li>최적화 추천 · API 과금 가동</li><li>SaMD Gate 판단</li><li>ARR 기반 트랙션으로 Pre-A 진입</li></ul>
+      </div>
+    </div>
+
+    <h3 class="subh">투자자 관점의 6대 Gate — 실패 시 대응까지 사전 정의</h3>
+    <div class="gategrid">
+      <div class="gate"><b>Product</b><p>측정 성공률·자동 리포트·Agent 반복 사용</p><span>실패 시: 측정환경 제한·대상 축소</span></div>
+      <div class="gate"><b>Market</b><p>유료 PoC·갱신의향·가격수용성</p><span>실패 시: 학교 중심으로 집중</span></div>
+      <div class="gate"><b>Data</b><p>독립 재현, 편향·불확실성 공개</p><span>실패 시: 의료 확장 지연, 웰니스 유지</span></div>
+      <div class="gate"><b>IP</b><p>라이선스 범위·데이터 사용권·자체 특허</p><span>실패 시: 재협상·에스크로·자체화</span></div>
+      <div class="gate"><b>Safety</b><p>위기대응 SOP·개인정보 체계</p><span>실패 시: Agent 기능 제한</span></div>
+      <div class="gate"><b>Funding</b><p>12개월 마일스톤 대비 런웨이</p><span>실패 시: 기능범위 축소·매출 우선</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PART 9·14·15. 안전·범위제외·리스크 ══════════ -->
+<section class="part" id="safety" style="background:#FAFBFE">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 9 · 14 · 15 · Safety, Scope &amp; Risk</span>
+    <h2 class="part-title">약속하지 않는 것을 먼저 밝히는 것이 <em>신뢰의 설계</em>입니다</h2>
+    <p class="part-sub">안전·개인정보 원칙을 제품 요구사항으로 내장하고, 범위 제외를 명시하며, 리스크마다 완화책을 짝지었습니다.</p>
+
+    <div class="grid g2" style="align-items:start">
+      <div class="card">
+        <span class="tag g">안전·개인정보·윤리 — 제품에 내장</span>
+        <ul class="checklist">
+          <li>미성년자 동의·보호자/기관 절차를 채널별 정의</li>
+          <li>원본 영상 저장은 기본값 아님 — 필요 시 별도 동의</li>
+          <li>고위험 신호는 자동 진단이 아닌 <b>"추가 확인 필요"</b> + 전문채널 안내</li>
+          <li>자해·위기 표현 감지 시 즉시 중단·전문기관 안내·관리자 SOP</li>
+          <li>집단 리포트는 최소 인원 기준 이하 비공개</li>
+          <li>사용자 데이터 열람·정정·삭제 요청권 보장</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag a">범위 제외 — 이번 단계에서 약속하지 않는 것</span>
+        <ul class="checklist x">
+          <li>정신질환 확진 또는 치료 효과 보장</li>
+          <li>임상적 응급판단의 완전 자동화</li>
+          <li>외부재현 전 성능의 의료현장 일반화</li>
+          <li>초기부터 모든 연령·질환·기기 지원</li>
+          <li>SaMD 매출의 Base Case 포함</li>
+          <li>완전 자율형 Agent의 상담사 대체 주장</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subh">주요 리스크 × 완화책</h3>
+    <div class="riskgrid">
+      <div class="risk"><b>브라우저·조도·기기 편차</b><p>자동 품질점검 · 지원환경 제한 · 재측정 정책</p></div>
+      <div class="risk"><b>외부재현 미완료</b><p>웰니스 매출 우선 · 사전 정의 독립연구</p></div>
+      <div class="risk"><b>IP·데이터 권리 불명확</b><p>전용실시 범위 · 데이터 사용권 · 개량발명 귀속 명문화</p></div>
+      <div class="risk"><b>1인 창업 실행병목</b><p>AI개발·임상·RA 파트너 외주/자문 체계</p></div>
+      <div class="risk"><b>Agent 안전사고</b><p>금지영역 · 위기대응 SOP · Human-in-the-loop</p></div>
+      <div class="risk"><b>긴 공공 영업주기</b><p>행사·PoC·API·B2C로 단기 매출 보완</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PART 17. 최종 판단 기준 ══════════ -->
+<section class="part" id="final">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Part 17 · Final Success Criteria</span>
+    <h2 class="part-title">"완성"의 기준은 기능 수가 아니라 <em>동시 작동</em>입니다</h2>
+    <p class="part-sub">네 가지가 동시에 작동하고, 그것이 <strong>기관 라이선스 · Agent 구독 · API 사용료</strong>라는 실제 반복 매출과 데이터 해자로 연결되는 것 — 이것이 Seed 투자유치 가능성을 판단하는 최종 기준입니다.</p>
+    <div class="finalgrid">
+      <div class="fin"><span class="fn">1</span><b>자동화</b><p>500명 단위 캠페인이 수작업 없이 운영된다</p></div>
+      <div class="fin"><span class="fn">2</span><b>예측</b><p>현재 위험과 변화 가능성을 불확실성과 함께 설명한다</p></div>
+      <div class="fin"><span class="fn">3</span><b>시뮬레이션</b><p>개입·운영·가격 시나리오를 실행 전에 비교한다</p></div>
+      <div class="fin"><span class="fn">4</span><b>최적화</b><p>반복 데이터로 다음 행동과 자원 배분이 점점 더 좋아진다</p></div>
+    </div>
+    <div class="closing">
+      <p>기존 심리·정신건강 측정의 왜곡·오류를 보정하는 NeuroLens는<br>시선 추적으로 <b>'객관적 생체 신호'</b>를 읽어냅니다.<br>오늘의 일상 관리 Agent를 시작으로, 내일의 확실한 임상 근거로 이어갑니다.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <div>NeuroLens · PRD A-29 Revised (2026-07-12) 심사위원용 요약 — AX 오픈랩 · 대표 지병석(예비창업자)</div>
+    <div class="fnote">본 문서는 의료 진단·치료를 직접 약속하지 않으며, 초기 제품은 비진단 선별과 웰니스 관리에 한정합니다.</div>
+  </div>
+</footer>
+
+<style>
+/* ---------- 시장 스테이지 ---------- */
+.stagegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stage{border:1px solid var(--line);border-radius:var(--radius);padding:22px;background:#fff;position:relative;overflow:hidden}
+.stage::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.stage.s1::before{background:var(--blue)} .stage.s2::before{background:var(--green)}
+.stage.s3::before{background:var(--violet)} .stage.s4::before{background:var(--amber)}
+.stage .rank{font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--gray);margin-bottom:8px}
+.stage.s1 .rank{color:var(--blue)} .stage.s2 .rank{color:var(--green)} .stage.s3 .rank{color:var(--violet)} .stage.s4 .rank{color:var(--amber)}
+.stage h4{font-size:16.5px;font-weight:900;margin-bottom:8px;letter-spacing:-.01em}
+.stage p{font-size:13.5px;color:var(--gray);margin-bottom:14px}
+.stage .meta{display:flex;flex-wrap:wrap;gap:6px}
+.stage .meta span{font-size:11.5px;background:#F7F9FE;border:1px solid var(--line);border-radius:10px;padding:3px 9px;color:var(--gray)}
+.stage .meta b{color:var(--ink)}
+
+/* ---------- 매출원 ---------- */
+.revgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.rev{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column}
+.rev .rv-top{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.rev .rv-top b{font-size:15px;letter-spacing:-.01em}
+.rev .rv-top .tag{align-self:flex-start;margin-bottom:0}
+.rev p{font-size:12.5px;color:var(--gray);margin-bottom:12px}
+.rev .price{font-family:var(--font-num);font-weight:800;font-size:15px;color:var(--ink);letter-spacing:-.02em;margin-top:auto}
+.rev .price small{font-weight:600;color:var(--gray);font-size:11px}
+.rev .role{font-size:11.5px;color:var(--blue);font-weight:700;margin-top:6px;padding-top:8px;border-top:1px dashed var(--line)}
+.moneyflow{margin-top:26px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fff;border:1.5px dashed var(--blue-line);border-radius:var(--radius);padding:16px 20px;font-size:13.5px;font-weight:600}
+.moneyflow i{font-style:normal;color:var(--blue);font-weight:800}
+
+/* ---------- 타임라인 ---------- */
+.timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:44px}
+.tstep{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;position:relative}
+.tstep::after{content:"→";position:absolute;right:-15px;top:24px;color:var(--blue-line);font-weight:800;font-size:18px;z-index:1}
+.tstep:last-child::after{display:none}
+.twhen{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.08em;color:#fff;background:var(--blue);display:inline-block;border-radius:10px;padding:3px 11px;margin-bottom:10px}
+.tstep:nth-child(3) .twhen{background:var(--green)}
+.tstep:nth-child(4) .twhen{background:var(--ink)}
+.ttitle{font-weight:900;font-size:15.5px;margin-bottom:10px;letter-spacing:-.01em}
+.tstep ul{list-style:none}
+.tstep li{font-size:13px;color:var(--gray);padding:5px 0 5px 16px;position:relative;border-top:1px solid #F1F4FA}
+.tstep li:first-child{border-top:none}
+.tstep li::before{content:"·";position:absolute;left:4px;color:var(--blue);font-weight:900}
+.tstep li b{font-family:var(--font-num);color:var(--ink)}
+.subh{font-size:17px;font-weight:900;letter-spacing:-.01em;margin:0 0 16px}
+
+/* ---------- Gate ---------- */
+.gategrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.gate{background:#fff;border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:12px;padding:16px 18px}
+.gate b{font-family:var(--font-num);font-size:13px;letter-spacing:.04em;color:var(--amber)}
+.gate p{font-size:13.5px;font-weight:600;margin:6px 0 8px}
+.gate span{font-size:12px;color:var(--gray);display:block;border-top:1px dashed var(--line);padding-top:8px}
+
+/* ---------- 체크리스트/리스크 ---------- */
+.checklist{list-style:none;margin-top:6px}
+.checklist li{font-size:14px;padding:9px 0 9px 28px;position:relative;border-top:1px solid #F1F4FA;color:var(--ink)}
+.checklist li:first-child{border-top:none}
+.checklist li::before{content:"✓";position:absolute;left:2px;color:var(--green);font-weight:900}
+.checklist.x li::before{content:"✕";color:var(--amber)}
+.checklist li b{color:var(--blue)}
+.riskgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.risk{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.risk b{font-size:14px;display:block;margin-bottom:6px}
+.risk p{font-size:12.5px;color:var(--gray)}
+.risk p::before{content:"완화 → ";color:var(--green);font-weight:800}
+
+/* ---------- 최종 기준 ---------- */
+.finalgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:36px}
+.fin{background:linear-gradient(180deg,#F7FAFF,#fff);border:1.5px solid var(--blue-line);border-radius:var(--radius);padding:24px;text-align:center}
+.fin .fn{font-family:var(--font-num);display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;margin-bottom:12px}
+.fin b{display:block;font-size:17px;font-weight:900;margin-bottom:6px}
+.fin p{font-size:13px;color:var(--gray)}
+.closing{background:var(--ink);border-radius:var(--radius);padding:40px 32px;text-align:center;color:#DCE6FF;font-size:clamp(15px,1.8vw,18px);line-height:1.9}
+.closing b{color:#9DBBFF}
+
+/* ---------- 푸터 ---------- */
+.foot{border-top:1px solid var(--line);padding:28px 0 40px;font-size:13px;color:var(--gray)}
+.foot .fnote{margin-top:6px;font-size:12px;color:#9AA3B5}
+
+/* ---------- 스크롤 리빌 ---------- */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.reveal.on{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.bar-fill{transition:none}}
+
+/* ---------- 반응형 ---------- */
+@media (max-width:980px){
+  .proof{grid-template-columns:repeat(3,1fr)}
+  .grid.g4,.whynow,.stagegrid,.finalgrid,.timeline{grid-template-columns:repeat(2,1fr)}
+  .revgrid{grid-template-columns:repeat(2,1fr)}
+  .intel{grid-template-columns:1fr}
+  .gategrid,.riskgrid{grid-template-columns:repeat(2,1fr)}
+  .tstep::after{display:none}
+  .scanpath{opacity:.25}
+}
+@media (max-width:640px){
+  section.part{padding:60px 0 48px}
+  .proof{grid-template-columns:repeat(2,1fr)}
+  .grid.g4,.grid.g2,.whynow,.stagegrid,.finalgrid,.timeline,.revgrid,.gategrid,.riskgrid{grid-template-columns:1fr}
+  .problem-row,.problem-head{grid-template-columns:1fr}
+  .problem-head span:nth-child(2),.problem-head span:nth-child(3){display:none}
+  .problem-row .p2,.problem-row .p3{border-left:none;border-top:1px solid var(--line)}
+  .bar-row{grid-template-columns:1fr;gap:6px}
+  .bar-row .bv{text-align:left}
+  .loop .arrow{display:none}
+  .loop{gap:10px}
+  .loop .step{min-width:100%}
+  table.modtable{font-size:12.5px;display:block;overflow-x:auto}
+}
+</style>
+
+<script>
+// 스크롤 리빌
+const items=document.querySelectorAll('.card,.problem-row,.stage,.rev,.tstep,.gate,.risk,.fin,.step,.proof .cell');
+items.forEach(el=>el.classList.add('reveal'));
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target)}})},{threshold:.12});
+items.forEach(el=>io.observe(el));
+// 성능 바 채우기
+const bars=document.querySelectorAll('.bar-fill');
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.style.width=e.target.dataset.w;io2.unobserve(e.target)}})},{threshold:.4});
+bars.forEach(b=>io2.observe(b));
+</script>
+</body>
+</html>

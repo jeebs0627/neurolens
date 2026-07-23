@@ -637,9 +637,9 @@ Care.prototype.htmlIndex = function () {
   var cta = (!ci.checked && d >= 1 && d <= 6)
     ? '<button class="btn-line" data-act="goto-checkin">✍ 30초 체크인 하러 가기</button>' : '';
 
-  return '<div class="ncard"><h3>Today · 오늘의 마음 컨디션 (EAI: 정서회복력 지수) <span class="wellness-tag">비진단 참고 지표</span></h3>'
+  return '<div class="ncard"><h3>Today · 오늘의 마음 컨디션 <span class="wellness-tag">비진단 참고 지표</span></h3>'
     + '<div class="cond-flex">'
-    + '<div class="cond-ring" data-cv="' + ci.today + '"><span class="cv">' + ci.today + '<small>EAI / 100</small></span></div>'
+    + '<div class="cond-ring" data-cv="' + ci.today + '"><span class="cv">' + ci.today + '<small>/ 100</small></span></div>'
     + '<div class="cond-info"><div class="cond-sent">' + sent + '</div>'
     + '<div class="cond-chips"><span>기준선 ' + ci.base + '</span><span>오늘 상태 ' + (ci.state == null ? '—' : (ck ? ck.emoji + ' ' : '') + ci.state) + '</span>' + deltaChip + cta + '</div>'
     + '</div></div>'
