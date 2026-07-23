@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>검사 결과 리포트 — NeuroLens | AX오픈랩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B1B3F; --ink2:#2A3651;
+  --blue:#1E5AF0; --blue-2:#4A7DFF; --blue-soft:#EEF3FF; --blue-line:#C9D8FF;
+  --green:#0FA47A; --green-2:#3EC49E; --green-soft:#EAF7F2;
+  --amber:#E8890C; --violet:#6C4CE0; --violet-2:#8E75EE; --violet-soft:#F1EDFD;
+  --rose:#E0446A;
+  --gray:#5B6478; --gray2:#8A93A8; --line:#E4E9F4;
+  --radius:20px; --maxw:880px;
+  --font-kr:'Noto Sans KR',-apple-system,sans-serif;
+  --font-num:'Sora','Noto Sans KR',sans-serif;
+  --shadow-sm:0 2px 10px rgba(11,27,63,.05);
+  --grad-blue:linear-gradient(135deg,#1E5AF0,#4A7DFF);
+  --grad-hero:linear-gradient(135deg,#1E5AF0 0%,#6C4CE0 100%);
+}
+@property --gv{syntax:'<number>';initial-value:0;inherits:false}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-kr);color:var(--ink);background:#F4F7FD;line-height:1.65;font-size:16px;-webkit-font-smoothing:antialiased}
+
+/* nav */
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+nav .in{max-width:1080px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:14px}
+nav .logo{font-family:var(--font-num);font-weight:800;font-size:16px;display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink)}
+nav .logo .mark{width:28px;height:28px;border-radius:9px;background:var(--grad-hero);display:grid;place-items:center;box-shadow:0 4px 10px rgba(60,80,230,.35)}
+nav .logo .mark svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
+nav .logo em{font-style:normal;color:var(--blue)}
+nav .back{margin-left:auto;font-size:13px;font-weight:700;color:var(--blue);text-decoration:none;background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:20px;padding:8px 18px}
+nav .back:hover{background:#E2EBFF}
+
+/* report */
+#result{max-width:var(--maxw);margin:0 auto;padding:56px 24px 70px}
+.rhead{text-align:center;margin-bottom:32px}
+#result h1{font-size:28px;font-weight:900;letter-spacing:-.02em}
+.rsub{color:var(--gray);font-size:13.5px;margin-top:8px}
+.rdate{font-family:var(--font-num);font-size:12px;color:var(--gray2);margin-top:4px}
+
+/* 로딩/에러 */
+.load-card{max-width:520px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:40px 34px;text-align:center;box-shadow:var(--shadow-sm)}
+.load-card h2{font-size:19px;font-weight:900;margin-bottom:10px}
+.load-card p{font-size:13.5px;color:var(--gray);line-height:1.75;margin-bottom:18px}
+.load-card a{display:inline-block;font-size:14px;font-weight:800;color:#fff;background:var(--grad-hero);border-radius:13px;padding:12px 28px;text-decoration:none}
+.spinner{display:inline-block;width:18px;height:18px;border:2.5px solid var(--blue-line);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-4px;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{font-size:14px;color:var(--gray);padding:10px 0}
+
+/* ── Zone 네비게이션 & 구분 헤더 ── */
+.znav{position:sticky;top:66px;z-index:90;display:flex;gap:4px;justify-content:center;flex-wrap:wrap;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:28px;padding:5px;max-width:620px;margin:20px auto 0;box-shadow:var(--shadow-sm)}
+.znav a{font-size:12.5px;font-weight:700;color:var(--gray);text-decoration:none;border-radius:20px;padding:8px 15px;transition:all .15s;white-space:nowrap}
+.znav a:hover{color:var(--blue);background:var(--blue-soft)}
+.znav a.on{color:#fff;background:var(--grad-hero);box-shadow:0 4px 12px rgba(60,80,230,.28)}
+section.zone{scroll-margin-top:140px}
+.zone-head{display:flex;align-items:center;gap:12px;margin:46px 2px 16px}
+section.zone:first-of-type .zone-head{margin-top:28px}
+.zone-head .zn{font-family:var(--font-num);font-size:10px;font-weight:800;letter-spacing:.1em;color:#fff;background:var(--zc,var(--grad-blue));border-radius:9px;padding:4px 11px;white-space:nowrap}
+.zone-head .zt{font-size:18px;font-weight:900;letter-spacing:-.01em}
+.zone-head .zt small{font-size:12px;font-weight:700;color:var(--gray)}
+.zone-head .zs{font-size:11.5px;color:var(--gray2)}
+.zone-head::after{content:"";flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+@media(max-width:640px){.zone-head .zs{display:none}}
+
+/* ── 검사자 프로필 대시보드 ── */
+.profile-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:20px}
+.pf-band{position:relative;background:var(--grad-hero);padding:22px 28px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;overflow:hidden}
+.pf-band::after{content:"";position:absolute;right:-70px;top:-90px;width:230px;height:230px;border-radius:50%;background:rgba(255,255,255,.13)}
+.pf-band::before{content:"";position:absolute;left:34%;bottom:-70px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.07)}
+.pf-avatar{width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.55);display:grid;place-items:center;font-size:18px;font-weight:900;color:#fff;flex:none;position:relative;letter-spacing:-.02em}
+.pf-id{flex:1;min-width:190px;color:#fff;position:relative}
+.pf-name{font-size:21px;font-weight:900;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.pf-tags{display:flex;gap:5px}
+.pf-tags span{font-size:11px;font-weight:700;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);border-radius:12px;padding:2.5px 11px}
+.pf-role{font-size:12.5px;opacity:.88;margin-top:5px}
+.pf-day{flex:none;text-align:center;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:16px;padding:9px 20px;position:relative}
+.pf-day b{display:block;font-family:var(--font-num);font-size:21px;font-weight:800;line-height:1.2}
+.pf-day small{font-size:10px;font-weight:700;letter-spacing:.06em;opacity:.85}
+.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
+@media(max-width:680px){.pf-stats{grid-template-columns:repeat(2,1fr)}}
+.pf-stat{background:#F9FBFF;padding:14px 10px;text-align:center}
+.pf-stat small{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--gray2);margin-bottom:4px}
+.pf-stat b{font-family:var(--font-num);font-size:14px;font-weight:800;color:var(--ink)}
+.pf-body{padding:2px 28px 20px}
+@media(max-width:600px){.pf-band{padding:18px 18px}.pf-body{padding:2px 18px 18px}}
+
+.rcard{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:28px 32px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.rcard h3{font-size:12px;font-family:var(--font-num);font-weight:700;letter-spacing:.12em;color:var(--blue);margin-bottom:18px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.rcard h3::before{content:"";width:16px;height:2px;background:var(--grad-blue);border-radius:2px}
+
+/* AI 총평 */
+.summary-card{background:linear-gradient(#fff,#fff) padding-box,var(--grad-hero) border-box;border:1.5px solid transparent;position:relative;overflow:hidden}
+.summary-card::before{content:"";position:absolute;right:-50px;top:-60px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(108,76,224,.08),transparent 70%)}
+.ai-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-num);font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#fff;background:var(--grad-hero);border-radius:12px;padding:4px 13px;margin-left:8px;vertical-align:2px;box-shadow:0 5px 12px rgba(76,60,224,.3)}
+#rSummary p{font-size:14.5px;line-height:1.9;color:var(--ink2);margin-bottom:13px;position:relative}
+#rSummary p:last-child{margin-bottom:0}
+
+/* MBTI */
+.mbti-hero{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.mbti-chip{font-family:var(--font-num);font-size:44px;font-weight:800;letter-spacing:.02em;color:#fff;background:var(--grad-hero);border-radius:20px;padding:20px 32px;box-shadow:0 14px 32px rgba(76,60,224,.28);flex:none;position:relative;overflow:hidden}
+.mbti-chip::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.16) 45%,transparent 60%)}
+.mbti-info{flex:1;min-width:240px}
+.mbti-info .nm{font-size:18px;font-weight:900;margin-bottom:6px}
+.mbti-info .ds{font-size:13.5px;color:var(--gray);line-height:1.75}
+.mbti-kw{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.mbti-kw span{font-size:12px;font-weight:600;color:var(--violet);background:var(--violet-soft);border-radius:14px;padding:4px 12px}
+
+/* Big5 */
+.radar-flex{display:flex;gap:28px;align-items:center;flex-wrap:wrap;justify-content:center}
+.radar-box{flex:none}
+.radar-legend{flex:1;min-width:230px}
+.rl-row{display:grid;grid-template-columns:14px 70px 1fr 56px;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.rl-row .sw{width:12px;height:12px;border-radius:4px}
+.rl-row label{font-weight:700}
+.rl-row .mini{height:8px;background:#EDF1FA;border-radius:5px;overflow:hidden}
+.rl-row .mini i{display:block;height:100%;border-radius:5px;width:0;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+.rl-row .vv{font-family:var(--font-num);font-weight:800;font-size:13.5px;text-align:right}
+
+/* 직무적합도 */
+.fit-top{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:8px;align-items:stretch}
+@media(max-width:680px){.fit-top{grid-template-columns:1fr}}
+.fitc{position:relative;border-radius:18px;padding:24px 18px 20px;text-align:center;background:#fff;border:1px solid var(--line)}
+.fitc .rank-chip{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.08em;color:#fff;border-radius:14px;padding:4px 16px;white-space:nowrap}
+.fitc.f1{background:linear-gradient(#fff,#fff) padding-box,var(--grad-hero) border-box;border:2px solid transparent;box-shadow:0 18px 40px rgba(60,80,230,.18);transform:scale(1.03);z-index:2}
+.fitc.f1 .rank-chip{background:linear-gradient(135deg,#F2A93B,#E8890C);box-shadow:0 6px 14px rgba(232,137,12,.4)}
+.fitc.f2 .rank-chip{background:linear-gradient(135deg,#8E9AB8,#6E7C9E)}
+.fitc.f3 .rank-chip{background:linear-gradient(135deg,#CE9469,#B4744A)}
+.fitc .gauge{--gv:0;position:relative;width:92px;height:92px;margin:10px auto 12px;border-radius:50%;background:conic-gradient(var(--gc,#1E5AF0) calc(var(--gv)*1%),#EBF0FA 0);display:grid;place-items:center;transition:--gv 1.2s cubic-bezier(.2,.7,.2,1)}
+.fitc.f1 .gauge{width:106px;height:106px}
+.fitc .gauge::before{content:"";position:absolute;inset:9px;background:#fff;border-radius:50%;box-shadow:inset 0 2px 6px rgba(11,27,63,.06)}
+.fitc .gauge .gval{position:relative;font-family:var(--font-num);font-weight:800;font-size:20px;color:var(--gc,#1E5AF0);line-height:1}
+.fitc.f1 .gauge .gval{font-size:24px}
+.fitc .gauge .gval small{display:block;font-size:9px;font-weight:600;color:var(--gray2);letter-spacing:.08em;margin-top:3px}
+.fitc .job{font-size:16px;font-weight:900;margin-bottom:3px;letter-spacing:-.01em}
+.fitc.f1 .job{font-size:17.5px}
+.fitc .delta{font-size:11px;color:var(--gray2);font-weight:600}
+.fitc .delta b{color:var(--rose);font-family:var(--font-num)}
+.fitc.f1 .delta{color:var(--blue);font-weight:700}
+.fit-note{font-size:11.5px;color:var(--gray2);text-align:center;margin-bottom:24px}
+.job-list .jrow{display:grid;grid-template-columns:34px 120px 1fr 58px;align-items:center;gap:12px;margin-bottom:10px;font-size:13.5px}
+@media(max-width:600px){.job-list .jrow{grid-template-columns:30px 90px 1fr 50px}}
+.job-list .rk{font-family:var(--font-num);font-size:11px;font-weight:800;color:var(--gray);background:#F1F4FB;border:1px solid var(--line);border-radius:9px;text-align:center;padding:3px 0}
+.job-list label{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job-list .track{height:12px;background:#EEF1F9;border-radius:7px;overflow:hidden;position:relative}
+.job-list .track::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 24.6%,rgba(255,255,255,.9) 24.6% 25%)}
+.job-list .fill{display:block;height:100%;border-radius:7px;width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.job-list .sc{font-family:var(--font-num);font-weight:800;font-size:13px;text-align:right;color:var(--ink2)}
+
+/* 총평 요약 태그 */
+.sum-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;position:relative;z-index:1}
+.sum-tags .stag{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;border-radius:20px;padding:5px 14px 5px 6px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+.sum-tags .stag i{font-style:normal;font-family:var(--font-num);font-size:9.5px;font-weight:800;letter-spacing:.06em;color:#fff;border-radius:12px;padding:2.5px 9px;background:var(--tc,#1E5AF0);white-space:nowrap}
+.sum-tags .stag b{color:var(--tc,#1E5AF0);white-space:nowrap}
+
+/* 직업흥미유형 (Holland RIASEC) */
+.holland-hero{display:flex;gap:26px;align-items:center;flex-wrap:wrap;margin-bottom:26px}
+.holland-chip{flex:none;text-align:center;color:#fff;background:var(--grad-hero);border-radius:20px;padding:18px 30px;box-shadow:0 14px 32px rgba(76,60,224,.28);position:relative;overflow:hidden}
+.holland-chip::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.16) 45%,transparent 60%)}
+.holland-chip .hc-code{display:block;font-family:var(--font-num);font-size:38px;font-weight:800;letter-spacing:.08em;line-height:1.1}
+.holland-chip .hc-name{display:block;font-size:12.5px;font-weight:700;opacity:.92;margin-top:5px}
+.holland-info{flex:1;min-width:240px}
+.holland-info .ds{font-size:13.5px;color:var(--gray);line-height:1.8}
+.holland-info .ds b{color:var(--ink)}
+.riasec-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding-top:12px}
+@media(max-width:860px){.riasec-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:520px){.riasec-grid{grid-template-columns:repeat(2,1fr)}}
+.ri-cell{position:relative;text-align:center;border:1px solid var(--line);border-radius:16px;padding:20px 10px 15px;background:#F8FAFE;transition:transform .25s,box-shadow .25s}
+.ri-cell .badge-rk{position:absolute;top:-11px;left:50%;transform:translateX(-50%);font-family:var(--font-num);font-size:9.5px;font-weight:800;letter-spacing:.05em;color:#fff;border-radius:12px;padding:3px 11px;white-space:nowrap}
+.ri-cell .ric{width:44px;height:44px;margin:0 auto 9px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-num);font-weight:800;font-size:18px;color:#fff;background:#C6CEDF}
+.ri-cell .rin{font-size:13px;font-weight:800}
+.ri-cell .rie{font-size:9.5px;color:var(--gray2);font-family:var(--font-num);font-weight:600;letter-spacing:.04em;margin-top:1px}
+.ri-cell .rid{font-size:10.5px;color:var(--gray);line-height:1.55;margin-top:8px;word-break:keep-all}
+.ri-cell.on{background:#fff;border-color:transparent;box-shadow:0 0 0 1.5px var(--rc),0 12px 26px rgba(11,27,63,.10);transform:translateY(-3px)}
+.ri-cell.on .ric{background:var(--rc);box-shadow:0 6px 14px rgba(11,27,63,.18)}
+.ri-cell.on .rin{color:var(--rc)}
+.ri-cell.off{opacity:.5}
+.riasec-note{font-size:11.5px;color:var(--gray2);text-align:center;margin-top:18px;word-break:keep-all}
+
+details summary{cursor:pointer;color:var(--gray);font-size:13px}
+pre{margin-top:12px;padding:16px;background:#0B1B3F;color:#9DFFB0;border-radius:12px;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto}
+
+/* CTA + footer */
+.cta-band{text-align:center;margin-top:34px}
+.cta-band .row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-s{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-kr);font-size:12.5px;font-weight:700;color:var(--gray);background:#fff;border:1px solid var(--line);border-radius:20px;padding:9px 18px;cursor:pointer;transition:all .15s}
+.btn-s:hover{color:var(--blue);border-color:var(--blue-line);background:var(--blue-soft)}
+#toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:#0B1B3F;color:#fff;font-size:13.5px;font-weight:600;border-radius:14px;padding:13px 24px;box-shadow:0 14px 34px rgba(11,27,63,.35);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:200;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{border-top:1px solid var(--line);background:#fff;padding:30px 0;text-align:center}
+footer p{font-size:12px;color:var(--gray)}
+.disclaimer{font-size:11.5px;color:var(--gray2);margin-top:6px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="in">
+    <a class="logo" href="index.html">
+      <span class="mark"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></span>
+      AX<em>오픈랩</em>
+    </a>
+    <a class="back" href="index.html">← 메인으로 돌아가기</a>
+  </div>
+</nav>
+
+<!-- 로딩 / 에러 -->
+<div class="load-card" id="loadCard">
+  <h2><span class="spinner"></span>리포트를 불러오는 중…</h2>
+  <p>검사 결과 데이터를 확인하고 있습니다.</p>
+</div>
+
+<div id="result" style="display:none">
+  <div class="rhead">
+    <h1>NeuroLens 검사 결과 리포트</h1>
+    <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
+    <div class="rdate" id="rDate"></div>
+    <nav class="znav" id="znav">
+      <a href="#zoneProfile" class="on">👤 검사자 정보</a>
+      <a href="#zoneToday">💚 오늘의 컨디션</a>
+      <a href="#zoneReport">📊 분석 리포트</a>
+      <a href="#zoneCare">🌿 케어 & 실천</a>
+    </nav>
+  </div>
+
+  <!-- ══ Zone 01 · 검사자 정보 대시보드 ══ -->
+  <section class="zone" id="zoneProfile">
+    <div class="zone-head" style="--zc:var(--grad-blue)"><span class="zn">01 · PROFILE</span><span class="zt">검사자 정보</span><span class="zs">누가 · 언제 · 어떻게 측정했나</span></div>
+    <div class="profile-card">
+      <div class="pf-band">
+        <div class="pf-avatar" id="pfAvatar">🙂</div>
+        <div class="pf-id">
+          <div class="pf-name"><span id="pfName">-</span> <span class="pf-tags" id="pfTags"></span></div>
+          <div class="pf-role">NeuroLens 시선행동 검사 · 측정 완료</div>
+        </div>
+        <div class="pf-day"><b id="pfDay">D0</b><small>7일 케어 여정</small></div>
+      </div>
+      <div class="pf-stats">
+        <div class="pf-stat"><small>검사 날짜</small><b id="pfDate">-</b></div>
+        <div class="pf-stat"><small>측정 방식</small><b>시선행동 + 설문</b></div>
+        <div class="pf-stat"><small>저장 위치</small><b id="pfStore">-</b></div>
+        <div class="pf-stat"><small>리포트 ID</small><b id="pfRid">-</b></div>
+      </div>
+      <div class="pf-body"><div id="profilePoints"></div></div>
+    </div>
+  </section>
+
+  <!-- ══ Zone 02 · 오늘의 마음 컨디션 (EAI) — care.js 마운트 ══ -->
+  <section class="zone" id="zoneToday">
+    <div class="zone-head" style="--zc:linear-gradient(135deg,#0FA47A,#3EC49E)"><span class="zn">02 · TODAY</span><span class="zt">오늘의 마음 컨디션 <small>(EAI: 정서회복력 지수)</small></span><span class="zs">매일 30초 체크인으로 갱신</span></div>
+    <div id="condRoot"></div>
+  </section>
+
+  <!-- ══ Zone 03 · 분석 리포트 ══ -->
+  <section class="zone" id="zoneReport">
+    <div class="zone-head" style="--zc:var(--grad-hero)"><span class="zn">03 · REPORT</span><span class="zt">분석 리포트</span><span class="zs">이번 측정이 말해주는 나</span></div>
+
+  <div class="rcard summary-card">
+    <h3>Overview · 종합 총평<span class="ai-badge">✦ AI GENERATED</span></h3>
+    <div class="sum-tags" id="rSumTags"></div>
+    <div id="rSummary"><div class="loading"><span class="spinner"></span>AI가 검사 결과를 분석해 총평을 작성하고 있습니다...</div></div>
+  </div>
+
+  <div class="rcard">
+    <h3>Type · MBTI 성격유형</h3>
+    <div class="mbti-hero">
+      <div class="mbti-chip" id="rMbti">-</div>
+      <div class="mbti-info">
+        <div class="nm" id="rMbtiName">-</div>
+        <div class="ds" id="rMbtiDesc">-</div>
+        <div class="mbti-kw" id="rMbtiKw"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rcard">
+    <h3>Big 5 · 성격 요인 프로파일</h3>
+    <div class="radar-flex">
+      <div class="radar-box" id="rRadar"></div>
+      <div class="radar-legend" id="rBig5"></div>
+    </div>
+  </div>
+
+  <div class="rcard">
+    <h3>Fit · 직무적합도 TOP</h3>
+    <div class="fit-top" id="rPodium"></div>
+    <div class="fit-note">게이지는 적합도 점수(100점 만점) 기준 · 순위 배지는 상대 순위</div>
+    <div class="job-list" id="rJobs"></div>
+  </div>
+
+  <div class="rcard" id="rHollandCard" style="display:none">
+    <h3>Interest · 직업흥미유형 (Holland RIASEC)</h3>
+    <div class="holland-hero">
+      <div class="holland-chip" id="rHollandChip"></div>
+      <div class="holland-info"><div class="ds" id="rHollandDesc"></div></div>
+    </div>
+    <div class="riasec-grid" id="rRiasec"></div>
+    <div class="riasec-note">Holland 직업흥미 이론(John L. Holland): 사람의 직업 흥미는 6가지 유형으로 나뉘며, 자신의 흥미와 일치하는 작업 환경에서 일할 때 잠재력이 가장 잘 발휘됩니다.</div>
+  </div>
+  </section>
+
+  <!-- ══ Zone 04 · 케어 & 실천 (care.js) ══ -->
+  <section class="zone" id="zoneCare">
+    <div class="zone-head" style="--zc:linear-gradient(135deg,#8FBF6C,#5E9C43)"><span class="zn">04 · CARE</span><span class="zt">케어 & 실천</span><span class="zs">측정을 실천으로 잇는 7일 여정</span></div>
+    <div id="careRoot"></div>
+  </section>
+
+  <div class="rcard"><details><summary>원본 응답 JSON 보기</summary><pre id="rRaw"></pre></details></div>
+
+  <div class="cta-band">
+    <div class="row">
+      <button class="btn-s" onclick="window.print()">📄 인쇄 / PDF 저장</button>
+      <a class="btn-s" href="index.html" style="text-decoration:none">🏠 메인으로</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<footer>
+  <p>AX오픈랩 · NeuroLens — 검사 결과 리포트</p>
+  <p class="disclaimer">본 서비스는 비진단적 선별 및 웰니스 보조 정보를 제공하며, 의료적 진단·치료를 대체하지 않습니다.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
+<script src="care.js?v=11"></script>
+<script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+
+/* ---------- MBTI 해설 사전 ---------- */
+const MBTI_DESC = {
+  ISTJ:{n:'청렴결백한 논리주의자',d:'사실에 근거해 신중하고 책임감 있게 행동하는 유형입니다. 체계와 규칙을 중시하며, 맡은 일은 끝까지 완수하는 신뢰의 아이콘입니다.',k:['체계적','책임감','신중함','실용주의']},
+  ISFJ:{n:'용감한 수호자',d:'따뜻하고 헌신적이며 주변 사람을 세심하게 배려하는 유형입니다. 조용하지만 강한 책임감으로 공동체를 지탱합니다.',k:['헌신','배려','성실','안정 지향']},
+  INFJ:{n:'선의의 옹호자',d:'깊은 통찰력과 확고한 신념을 지닌 이상주의자입니다. 사람과 세상에 의미 있는 변화를 만들고자 하는 조용한 열정이 있습니다.',k:['통찰력','이상주의','공감','신념']},
+  INTJ:{n:'용의주도한 전략가',d:'독립적 사고와 장기적 비전으로 목표를 설계하는 전략가형입니다. 지적 호기심이 강하고 효율과 논리를 중시합니다.',k:['전략적','독립적','분석력','비전']},
+  ISTP:{n:'만능 재주꾼',d:'상황을 냉철하게 관찰하고 손으로 문제를 해결하는 실용주의자입니다. 위기 상황에서 침착하게 최적의 해법을 찾아냅니다.',k:['문제해결','유연함','관찰력','실행력']},
+  ISFP:{n:'호기심 많은 예술가',d:'온화하고 감성이 풍부하며 자신만의 미적 감각으로 세상을 경험하는 유형입니다. 자유로운 환경에서 잠재력이 빛납니다.',k:['감성','온화함','미적 감각','자유로움']},
+  INFP:{n:'열정적인 중재자',d:'깊은 내면 가치와 상상력을 지닌 이상주의자입니다. 진정성을 중요하게 여기며 사람들의 가능성을 믿고 응원합니다.',k:['진정성','상상력','공감','가치 지향']},
+  INTP:{n:'논리적인 사색가',d:'지적 탐구 자체를 즐기는 아이디어 뱅크입니다. 복잡한 개념을 분석하고 새로운 관점으로 재구성하는 데 탁월합니다.',k:['논리','탐구심','창의적 사고','객관성']},
+  ESTP:{n:'모험을 즐기는 사업가',d:'에너지가 넘치고 현실 감각이 뛰어난 행동파입니다. 순간의 기회를 포착하고 과감하게 실행하는 승부사 기질이 있습니다.',k:['행동력','현실 감각','대담함','순발력']},
+  ESFP:{n:'자유로운 영혼의 연예인',d:'밝은 에너지로 주변을 즐겁게 만드는 분위기 메이커입니다. 현재를 충실히 즐기며 사람들과의 교류에서 힘을 얻습니다.',k:['사교성','긍정 에너지','즉흥성','표현력']},
+  ENFP:{n:'재기발랄한 활동가',d:'열정과 창의력으로 새로운 가능성을 탐색하는 유형입니다. 사람에 대한 진심 어린 관심으로 깊은 유대감을 형성합니다.',k:['열정','창의력','친화력','호기심']},
+  ENTP:{n:'뜨거운 논쟁을 즐기는 변론가',d:'지적 도전과 브레인스토밍을 즐기는 혁신가입니다. 고정관념에 도전하며 기발한 아이디어로 판을 바꿉니다.',k:['혁신','토론','기지','도전정신']},
+  ESTJ:{n:'엄격한 관리자',d:'체계와 질서를 세우고 조직을 효율적으로 이끄는 타고난 관리자입니다. 명확한 기준과 실행력으로 결과를 만들어냅니다.',k:['리더십','조직력','결단력','효율']},
+  ESFJ:{n:'사교적인 외교관',d:'타인의 필요를 민감하게 읽고 조화로운 관계를 만드는 유형입니다. 협력과 소속감을 중시하며 공동체에 헌신합니다.',k:['협력','친절','조화','책임감']},
+  ENFJ:{n:'정의로운 사회운동가',d:'사람들의 성장을 돕고 공동의 목표로 이끄는 카리스마 있는 멘토형입니다. 공감과 설득의 힘으로 변화를 만듭니다.',k:['카리스마','공감','성장 지원','설득력']},
+  ENTJ:{n:'대담한 통솔자',d:'명확한 비전과 추진력으로 목표를 향해 조직을 이끄는 지도자형입니다. 도전적인 문제일수록 강한 에너지를 발휘합니다.',k:['통솔력','추진력','전략','자신감']},
+};
+
+/* ---------- 직업흥미유형 (Holland RIASEC) ---------- */
+const RIASEC = {
+  R:{n:'현실형',e:'Realistic',    c:'#5B7A99',d:'도구·기계를 다루는 구체적이고 실제적인 활동을 선호'},
+  I:{n:'탐구형',e:'Investigative',c:'#1E5AF0',d:'분석적이고 호기심이 많아 연구와 탐험을 즐김'},
+  A:{n:'예술형',e:'Artistic',     c:'#E0446A',d:'창의적이고 자유로운 표현과 개방된 환경을 선호'},
+  S:{n:'사회형',e:'Social',       c:'#0FA47A',d:'사람들을 돕고 가르치는 역할에서 보람을 느낌'},
+  E:{n:'기업형',e:'Enterprising', c:'#E8890C',d:'리더십과 영향력을 발휘해 목표 달성을 추구'},
+  C:{n:'관습형',e:'Conventional', c:'#6C4CE0',d:'체계적이고 질서 정연한 정확한 작업을 선호'},
+};
+
+function renderHolland(h){
+  const card=document.getElementById('rHollandCard');
+  const code=String((h&&h['유형'])||'').toUpperCase().replace(/[^RIASEC]/g,'');
+  if(!code){card.style.display='none';return;}
+  card.style.display='';
+  const rank={};
+  [...code].forEach((ch,i)=>{if(!(ch in rank))rank[ch]=i+1;});
+  document.getElementById('rHollandChip').innerHTML=
+    `<span class="hc-code">${esc(code)}</span><span class="hc-name">${esc(h['유형명']||'')}</span>`;
+  const names=[...code].map(ch=>RIASEC[ch]?RIASEC[ch].n:ch);
+  document.getElementById('rHollandDesc').innerHTML=
+    `시선행동 측정과 설문을 종합한 결과, 회원님의 직업 흥미는 <b>${names.map(esc).join(' → ')}</b> 순의 조합으로 나타났습니다. 아래 6가지 유형 중 강조된 카드가 회원님의 흥미 프로파일입니다.`;
+  const rkStyle=['linear-gradient(135deg,#F2A93B,#E8890C)','linear-gradient(135deg,#8E9AB8,#6E7C9E)','linear-gradient(135deg,#CE9469,#B4744A)'];
+  const rkLabel=['1순위 · 주흥미','2순위','3순위'];
+  document.getElementById('rRiasec').innerHTML=[...'RIASEC'].map(ch=>{
+    const t=RIASEC[ch],rk=rank[ch];
+    return `
+    <div class="ri-cell ${rk?'on':'off'}" style="--rc:${t.c}">
+      ${rk&&rk<=3?`<span class="badge-rk" style="background:${rkStyle[rk-1]}">${rkLabel[rk-1]}</span>`:''}
+      <div class="ric">${ch}</div>
+      <div class="rin">${t.n}</div>
+      <div class="rie">${t.e}</div>
+      <div class="rid">${t.d}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Big5 레이더 ---------- */
+const TRAITS = [
+  { key:'개방성', color:'#1E5AF0' },
+  { key:'성실성', color:'#0FA47A' },
+  { key:'외향성', color:'#E8890C' },
+  { key:'친화성', color:'#6C4CE0' },
+  { key:'신경성', color:'#E0446A' },
+];
+
+function renderRadar(values){
+  const size=300,cx=size/2,cy=size/2+6,R=104;
+  const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+r*Math.cos(a),cy+r*Math.sin(a)];};
+  const poly=r=>Array.from({length:5},(_,i)=>pt(i,r).map(v=>v.toFixed(1)).join(',')).join(' ');
+  const valPoly=values.map((v,i)=>pt(i,R*Math.max(.04,v/100)).map(x=>x.toFixed(1)).join(',')).join(' ');
+  let svg=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="radGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E5AF0" stop-opacity=".55"/>
+      <stop offset="55%" stop-color="#6C4CE0" stop-opacity=".45"/>
+      <stop offset="100%" stop-color="#0FA47A" stop-opacity=".4"/>
+    </linearGradient>
+    <filter id="radShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#1E5AF0" flood-opacity=".28"/>
+    </filter>
+  </defs>`;
+  [1,.8,.6,.4,.2].forEach((f,idx)=>{svg+=`<polygon points="${poly(R*f)}" fill="${idx===0?'#F7FAFF':'none'}" stroke="#DCE5F7" stroke-width="1"/>`;});
+  for(let i=0;i<5;i++){const[x,y]=pt(i,R);svg+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#DCE5F7" stroke-width="1"/>`;}
+  svg+=`<polygon points="${valPoly}" fill="url(#radGrad)" stroke="#4A5FE0" stroke-width="2.5" stroke-linejoin="round" filter="url(#radShadow)"/>`;
+  values.forEach((v,i)=>{
+    const[x,y]=pt(i,R*Math.max(.04,v/100));
+    svg+=`<circle cx="${x}" cy="${y}" r="5" fill="${TRAITS[i].color}" stroke="#fff" stroke-width="2.5"/>`;
+    const[lx,ly]=pt(i,R+26);
+    svg+=`<text x="${lx}" y="${ly-4}" text-anchor="middle" font-family="Noto Sans KR" font-size="12.5" font-weight="700" fill="#0B1B3F">${TRAITS[i].key}</text>
+          <text x="${lx}" y="${ly+11}" text-anchor="middle" font-family="Sora" font-size="11" font-weight="800" fill="${TRAITS[i].color}">${isNaN(v)?'-':v.toFixed(0)}</text>`;
+  });
+  svg+=`</svg>`;
+  document.getElementById('rRadar').innerHTML=svg;
+}
+
+/* ---------- 리포트 렌더링 ---------- */
+function renderReport(r, meta){
+  document.getElementById('loadCard').style.display='none';
+  document.getElementById('result').style.display='block';
+
+  /* 프로필 대시보드 */
+  const p=r['시험자정보']||{};
+  const name=p['시험자명']||'회원';
+  const d=meta.date?new Date(meta.date):new Date();
+  const dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  document.getElementById('pfName').textContent=name;
+  document.getElementById('pfAvatar').textContent=name.length>=2?name.slice(-2):name||'🙂';
+  document.getElementById('pfTags').innerHTML=
+    [p['성별'],p['연령대']].filter(Boolean).map(t=>`<span>${esc(t)}</span>`).join('');
+  document.getElementById('pfDate').textContent=dateStr;
+  document.getElementById('pfStore').textContent=meta.id?'클라우드 저장':'이 브라우저';
+  document.getElementById('pfRid').textContent=meta.id?('NL-'+meta.id.slice(0,8).toUpperCase()):'LOCAL';
+  document.getElementById('rDate').textContent='검사일 '+dateStr+(meta.id?' · 리포트 ID NL-'+meta.id.slice(0,8).toUpperCase():' · 이 브라우저에 저장된 결과');
+
+  /* MBTI */
+  const mbti=String(r.MBTI||'').toUpperCase().trim();
+  const info=MBTI_DESC[mbti];
+  document.getElementById('rMbti').textContent=mbti||'-';
+  document.getElementById('rMbtiName').textContent=info?info.n:'';
+  document.getElementById('rMbtiDesc').textContent=info?info.d:'';
+  document.getElementById('rMbtiKw').innerHTML=info?info.k.map(k=>`<span>#${esc(k)}</span>`).join(''):'';
+
+  /* Big5 */
+  const b=r.BIG5||{};
+  const values=TRAITS.map(t=>{
+    const v=parseFloat(b[t.key+'_백분위']);
+    return isNaN(v)?0:Math.min(100,Math.max(0,v));
+  });
+  renderRadar(values);
+  document.getElementById('rBig5').innerHTML=TRAITS.map((t,i)=>`
+    <div class="rl-row">
+      <span class="sw" style="background:${t.color}"></span>
+      <label>${t.key}</label>
+      <div class="mini"><i data-w="${values[i].toFixed(1)}%" style="background:${t.color}"></i></div>
+      <span class="vv" style="color:${t.color}">${values[i].toFixed(1)}</span>
+    </div>`).join('');
+
+  /* 직무적합도 */
+  const jobs=(Array.isArray(r['직무적합도'])?r['직무적합도']:[])
+    .map(j=>({name:j['직업'],score:parseFloat(j['점수'])}))
+    .filter(j=>j.name&&!isNaN(j.score))
+    .sort((a,b2)=>b2.score-a.score);
+  const gaugeColors=['#1E5AF0','#6C4CE0','#0FA47A'];
+  const rankLabels=['1위 · BEST FIT','2위','3위'];
+  document.getElementById('rPodium').innerHTML=jobs.slice(0,3).map((j,i)=>{
+    const delta=i===0?'나에게 가장 잘 맞는 직무':`1위와 <b>-${(jobs[0].score-j.score).toFixed(1)}점</b> 차이`;
+    return `
+    <div class="fitc f${i+1}" style="--gc:${gaugeColors[i]}">
+      <span class="rank-chip">${rankLabels[i]}</span>
+      <div class="gauge" data-gv="${Math.min(100,Math.max(0,j.score)).toFixed(1)}">
+        <span class="gval">${j.score.toFixed(1)}<small>/ 100</small></span>
+      </div>
+      <div class="job">${esc(j.name)}</div>
+      <div class="delta">${delta}</div>
+    </div>`;
+  }).join('');
+  const rest=jobs.slice(3);
+  const rMax=jobs.length?jobs[0].score:100, rMin=jobs.length?jobs[jobs.length-1].score:0;
+  const span=Math.max(rMax-rMin,.001);
+  const fillColor=s=>s>=rMax*.85?'linear-gradient(90deg,#1E5AF0,#4A7DFF)'
+                 :s>=rMax*.7?'linear-gradient(90deg,#6C4CE0,#8E75EE)'
+                 :'linear-gradient(90deg,#93A9E8,#B9C8F2)';
+  document.getElementById('rJobs').innerHTML=rest.map((j,i)=>`
+    <div class="jrow">
+      <span class="rk">${i+4}위</span>
+      <label title="${esc(j.name)}">${esc(j.name)}</label>
+      <div class="track"><i class="fill" data-w="${(18+82*(j.score-rMin)/span).toFixed(1)}%" style="background:${fillColor(j.score)}"></i></div>
+      <span class="sc">${j.score.toFixed(1)}</span>
+    </div>`).join('');
+
+  /* 직업흥미유형 */
+  const h=r['직업흥미유형']||{};
+  renderHolland(h);
+
+  /* 총평 요약 태그 */
+  const hiTrait=TRAITS[values.indexOf(Math.max(...values))];
+  const sumTags=[];
+  if(mbti) sumTags.push({lb:'MBTI',v:mbti,c:'#6C4CE0'});
+  if(values.some(v=>v>0)) sumTags.push({lb:'BIG5 TOP1',v:hiTrait.key,c:'#1E5AF0'});
+  if(jobs[0]) sumTags.push({lb:'직무적합 TOP1',v:jobs[0].name,c:'#0FA47A'});
+  if(h['유형']) sumTags.push({lb:'흥미유형',v:h['유형']+(h['유형명']?'·'+h['유형명']:''),c:'#E8890C'});
+  document.getElementById('rSumTags').innerHTML=sumTags.map(t=>
+    `<span class="stag" style="--tc:${t.c}"><i>${t.lb}</i><b>${esc(t.v)}</b></span>`).join('');
+
+  document.getElementById('rRaw').textContent=JSON.stringify(r,null,2);
+
+  /* 케어 존 — 본인 결과일 때만 (다른 회원 리포트 열람 시 내 여정 오염 방지) */
+  if(meta.mine){
+    try{
+      NLCare.render(document.getElementById('careRoot'), r, {
+        indexEl: document.getElementById('condRoot'),
+        pointsEl: document.getElementById('profilePoints'),
+      });
+    }catch(e){console.error('NLCare render 실패:',e);}
+    try{
+      const ci=NLCare.condIndex();
+      if(ci&&ci.day>=0) document.getElementById('pfDay').textContent='D'+Math.min(ci.day,7);
+    }catch(e){}
+  }else{
+    document.getElementById('zoneToday').style.display='none';
+    document.getElementById('zoneCare').innerHTML=
+      '<div class="zone-head" style="--zc:linear-gradient(135deg,#8FBF6C,#5E9C43)"><span class="zn">04 · CARE</span><span class="zt">케어 & 실천</span></div>'
+      +'<div class="rcard" style="text-align:center;color:var(--gray);font-size:13.5px">케어 여정은 검사자 본인의 브라우저에서 표시됩니다.</div>';
+    document.querySelector('#znav a[href="#zoneToday"]').style.display='none';
+  }
+
+  requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+    document.querySelectorAll('#result [data-w]').forEach(el=>el.style.width=el.dataset.w);
+    document.querySelectorAll('#result .gauge[data-gv]').forEach(el=>el.style.setProperty('--gv',el.dataset.gv));
+  });});
+
+  requestSummary(r,mbti,info,values,jobs,h);
+}
+
+/* ---------- Gemini AI 총평 (실패 시 규칙 기반 폴백) ---------- */
+async function requestSummary(r,mbti,info,values,jobs,holland){
+  const box=document.getElementById('rSummary');
+  const p=r['시험자정보']||{};
+  const prompt=`당신은 심리측정 전문가입니다. 아래 시선추적 기반 심리검사 결과를 종합해 한국어 총평을 작성하세요.
+
+[검사 결과]
+- 시험자: ${p['시험자명']||'익명'} (${p['성별']||'-'}, ${p['연령대']||'-'})
+- MBTI: ${mbti}${info?' ('+info.n+')':''}
+- Big5 백분위: 개방성 ${values[0]}, 성실성 ${values[1]}, 외향성 ${values[2]}, 친화성 ${values[3]}, 신경성 ${values[4]}
+- 직업흥미유형(Holland): ${holland['유형']||'-'} (${holland['유형명']||'-'})
+- 직무적합도 1~3위: ${jobs.slice(0,3).map((j,i)=>`${i+1}위 ${j.name}(${j.score.toFixed(1)}점)`).join(', ')}
+- 직무적합도 4~5위 참고: ${jobs.slice(3,5).map(j=>`${j.name}(${j.score.toFixed(1)})`).join(', ')||'-'}
+
+[작성 규칙 — 반드시 지킬 것]
+- 전체 분량은 공백 포함 최소 300자 이상(약 350~450자)으로 충분히 상세하게 작성.
+- 정확히 3개 문단으로 구성.
+- 1문단: MBTI 유형(${mbti})의 핵심 특성과 Big5에서 두드러진 상·하위 요인 2가지를 연결해 성격의 큰 그림을 해석.
+- 2문단: 직무적합도 1위, 2위, 3위 직무를 각각 이름을 언급하며, 왜 이 성격·흥미 조합에서 해당 직무가 잘 맞는지 하나씩 간단히 해설. 직업흥미유형(Holland) 결과도 연결.
+- 3문단: 보완하면 좋을 점 1가지와 따뜻한 격려로 마무리.
+- 전문적이되 따뜻하고 자연스러운 존댓말. 의료적 진단 표현 금지.
+- 마크다운, 제목, 목록 없이 순수 문단 텍스트만. 문단 사이는 빈 줄로 구분.`;
+
+  try{
+    const res=await fetch('/gemini',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt}),
+    });
+    const j=await res.json();
+    if(!j.text) throw new Error(j.error||'응답 없음');
+    box.innerHTML=j.text.trim().split(/\n\s*\n/).map(par=>`<p>${esc(par.trim())}</p>`).join('');
+  }catch(e){
+    box.innerHTML=buildFallbackSummary(mbti,info,values,jobs,holland);
+  }
+}
+
+function buildFallbackSummary(mbti,info,values,jobs,holland){
+  const tNames=TRAITS.map(t=>t.key);
+  const hiIdx=values.indexOf(Math.max(...values));
+  const loIdx=values.indexOf(Math.min(...values));
+  const top3=jobs.slice(0,3);
+  const kw=info?info.k.slice(0,2).join('·'):'자신만의 강점';
+  const p1=`이번 검사에서 ${mbti||'해당'} 유형${info?`(${info.n})`:''}의 특성이 뚜렷하게 관찰되었습니다. ${info?info.d+' ':''}Big5 프로파일에서는 ${tNames[hiIdx]}(백분위 ${values[hiIdx].toFixed(0)})이 상대적으로 두드러져 이러한 성향을 뒷받침하고, ${tNames[loIdx]}(백분위 ${values[loIdx].toFixed(0)})은 낮은 편으로 나타나 안정적인 정서 기반 위에서 강점이 발휘되는 모습입니다.`;
+  let p2=`직업흥미유형은 ${holland['유형']||'-'}${holland['유형명']?`(${holland['유형명']})`:''} 조합으로 나타났습니다.`;
+  if(top3[0]) p2+=` 직무적합도 1위인 ${top3[0].name}(${top3[0].score.toFixed(1)}점)은 ${kw} 성향이 직접적으로 발휘될 수 있는 대표 직무입니다.`;
+  if(top3[1]) p2+=` 2위 ${top3[1].name}(${top3[1].score.toFixed(1)}점) 역시 흥미유형과 성격 요인이 균형 있게 맞물리는 분야이며,`;
+  if(top3[2]) p2+=` 3위 ${top3[2].name}(${top3[2].score.toFixed(1)}점)은 강점을 다른 환경에서 확장해볼 수 있는 대안적 경로로 참고할 만합니다.`;
+  const p3=`상대적으로 낮게 나타난 ${tNames[loIdx]} 영역은 약점이라기보다 에너지를 쓰는 방식의 차이입니다. 본 결과는 시선행동 측정과 설문을 결합한 비진단적 참고 정보이며, 반복 측정으로 변화 추세를 확인하면 자신을 더 깊이 이해하는 데 도움이 됩니다. 지금의 강점을 믿고 잘 맞는 환경을 찾아가시길 응원합니다.`;
+  return [p1,p2,p3].map(t=>`<p>${esc(t)}</p>`).join('');
+}
+
+/* ---------- 데이터 로드: ?id=UUID (Supabase) → 없으면 직전 검사(localStorage) ---------- */
+function showError(title,msg){
+  document.getElementById('loadCard').innerHTML=
+    `<h2>${esc(title)}</h2><p>${esc(msg)}</p><a href="index.html">메인으로 돌아가기</a>`;
+}
+
+(async function load(){
+  const id=new URLSearchParams(location.search).get('id');
+  try{
+    if(id){
+      if(!NLAuth.enabled){ showError('Supabase 미설정','저장된 리포트를 불러오려면 supabase-config.js 설정이 필요합니다. SUPABASE_SETUP.md를 참고하세요.'); return; }
+      const u=await NLAuth.getUser();
+      if(!u){ showError('로그인이 필요합니다','저장된 리포트는 본인 계정으로 로그인한 뒤 열람할 수 있습니다. 메인 페이지 우측 상단에서 로그인해 주세요.'); return; }
+      const row=await NLAuth.getResult(id);
+      if(!row){ showError('리포트를 찾을 수 없습니다','존재하지 않거나 열람 권한이 없는 리포트입니다.'); return; }
+      renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id});
+      return;
+    }
+    /* 직전 검사 결과 (비로그인 포함) */
+    let j=null;
+    try{ j=JSON.parse(localStorage.getItem('nlLastResult')); }catch(_){}
+    if(j&&j.result){
+      renderReport(j.result,{id:j.savedId||null,date:new Date(j.ts||Date.now()).toISOString(),mine:true});
+      return;
+    }
+    showError('표시할 검사 결과가 없습니다','아직 이 브라우저에서 완료된 검사가 없습니다. 메인 페이지에서 검사를 진행해 주세요.');
+  }catch(e){
+    console.error(e);
+    showError('리포트 로드 오류','결과를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+  }
+})();
+
+/* ---------- Zone 네비 스크롤스파이 ---------- */
+(function(){
+  var links=document.querySelectorAll('#znav a');
+  if(!links.length||!('IntersectionObserver' in window))return;
+  var map={};
+  links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+  var obs=new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(!en.isIntersecting)return;
+      links.forEach(function(a){a.classList.remove('on');});
+      var a=map[en.target.id];
+      if(a)a.classList.add('on');
+    });
+  },{rootMargin:'-30% 0px -60% 0px'});
+  document.querySelectorAll('section.zone').forEach(function(s){obs.observe(s);});
+})();
+</script>
+</body>
+</html>
