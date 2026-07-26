@@ -150,6 +150,12 @@ header.hero{position:relative;overflow:hidden;background:
 .alert-band h3 em{font-style:normal;color:#8FB2FF}
 .alert-band p{font-size:13px;color:#B9C4DE}
 
+/* 진행 중인 케어 안내 (소개 페이지 · 링크만) */
+.care-entry{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:space-between;background:linear-gradient(135deg,#F6FBF4,#EEF6EA);border:1.5px solid #D6E8CD;border-radius:18px;padding:20px 26px}
+.care-entry .ce-tx{flex:1;min-width:240px}
+.care-entry .ce-tx b{display:block;font-size:15.5px;font-weight:900;color:#3F6F3A;margin-bottom:4px}
+.care-entry .ce-tx span{font-size:13px;color:#5E7A55;line-height:1.7}
+
 /* ============================================================
    TESTS (검사 3종 + 추가 리포트 7종)
 ============================================================ */
@@ -682,13 +688,20 @@ footer p{font-size:12.5px;color:var(--gray)}
   </div>
 </div>
 
-<!-- ================= CARE HOME (재방문 체크인 · 검사 없이 진입) ================= -->
-<section id="careHome" style="display:none;padding:64px 0;background:#FAFBFE;border-top:1px solid var(--line)">
+<!-- ================= 진행 중인 케어 안내 (링크만 · 내용은 리포트 페이지에서) =================
+     체크인 · 컨디션 · 케어 · Agent 상담 · Premium 리포트는 모두 report.html 의 콘텐츠다.
+     소개 페이지에는 렌더하지 않고, 리포트로 가는 입구만 둔다. -->
+<section id="careEntry" style="display:none;padding:38px 0;background:#FAFBFE;border-top:1px solid var(--line)">
   <div class="wrap" style="max-width:880px">
-    <span class="eyebrow">Daily Care</span>
-    <h2 class="sec">오늘의 체크인 — <em>7일 실천 여정</em></h2>
-    <p style="font-size:13.5px;color:var(--gray);margin-bottom:26px">지난 검사에서 처방된 루틴과 체크인 여정입니다. 알림톡 링크로 언제든 이 화면으로 돌아올 수 있어요.</p>
-    <div id="careRootHome"></div>
+    <div class="care-entry">
+      <div class="ce-tx">
+        <b>🌿 진행 중인 케어 코스가 있어요</b>
+        <span id="ceSub">오늘의 체크인과 케어 여정은 결과 리포트에서 이어갈 수 있어요.</span>
+      </div>
+      <button class="btn-main" id="ceBtn" style="font-size:15px;padding:13px 30px;white-space:nowrap">
+        📄 결과 리포트에서 이어가기
+      </button>
+    </div>
   </div>
 </section>
 
@@ -1352,7 +1365,7 @@ footer p{font-size:12.5px;color:var(--gray)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
-<script src="care.js?v=11"></script>
+<script src="care.js?v=16"></script>
 <script>
 /* =========================================================================
  * 연동 설정 (MindGaze 웹링크 연동)
@@ -1560,12 +1573,7 @@ async function renderResult(r) {
   document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
   try { window.open(lastReportUrl, '_blank'); } catch (_) {}
 
-  /* 4) 케어 홈 여정 갱신 (검사 결과 신호 → 루틴 재처방) */
-  try {
-    const careHome = document.getElementById('careHome');
-    careHome.style.display = 'block';
-    NLCare.render(document.getElementById('careRootHome'), r, { onRemeasure: startTest });
-  } catch (_) {}
+  /* 4) 케어 여정은 report.html 에서 렌더된다 (소개 페이지에는 표시하지 않음) */
 }
 document.getElementById('openReportBtn').addEventListener('click', () => window.open(lastReportUrl, '_blank'));
 
@@ -1705,17 +1713,28 @@ document.getElementById('mpLogout').addEventListener('click', async () => {
   myModal.classList.remove('open');
 });
 
-/* ---------- 재방문 사용자: 검사 없이 체크인 여정 표시 ----------
- * 알림톡 D1~D7 링크(?checkin=1)로 진입하거나, 여정이 진행 중이면
- * 검사를 다시 하지 않아도 케어 홈 섹션을 바로 보여준다. */
+/* ---------- 재방문 사용자: 리포트로 가는 입구만 노출 ----------
+ * 체크인·컨디션·케어·Agent 상담·Premium 은 모두 report.html 의 콘텐츠다.
+ * 소개 페이지에서는 렌더하지 않고, 알림톡 링크(?checkin=1)로 들어오면 리포트로 보낸다. */
 try {
-  if (window.NLCare && NLCare.hasJourney()) {
-    var careHome = document.getElementById('careHome');
-    careHome.style.display = 'block';
-    NLCare.render(document.getElementById('careRootHome'), null, { onRemeasure: startTest });
-    if (new URLSearchParams(location.search).get('checkin')) {
-      setTimeout(function () { careHome.scrollIntoView({ behavior: 'smooth' }); }, 150);
-    }
+  var q = new URLSearchParams(location.search);
+  var wantCheckin = !!q.get('checkin');
+  /* care.js 가 ?care= 토큰을 이미 채택했으므로 그대로 report.html 로 넘긴다 */
+  if (wantCheckin) {
+    location.replace('report.html');
+  } else if (window.NLCare && NLCare.hasJourney()) {
+    var entry = document.getElementById('careEntry');
+    entry.style.display = 'block';
+    try {
+      var c = NLCare.course();
+      if (c && c.day >= 0) {
+        document.getElementById('ceSub').textContent =
+          c.cycle + '차 코스 D' + Math.min(c.day, 7) + ' 진행 중 — 오늘의 체크인과 케어 여정은 결과 리포트에서 이어갈 수 있어요.';
+      }
+    } catch (_) {}
+    document.getElementById('ceBtn').addEventListener('click', function () {
+      window.open('report.html', '_blank');
+    });
   }
 } catch (_) {}
 
