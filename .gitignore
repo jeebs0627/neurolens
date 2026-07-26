@@ -1,0 +1,7 @@
+# 로컬 개발용 · 비밀키
+gemini.key
+.claude/
+.vercel/
+__pycache__/
+*.pyc
+.DS_Store

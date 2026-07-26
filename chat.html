@@ -228,17 +228,16 @@ textarea::placeholder{color:#B5BCC8}
 
 <div id="toast"></div>
 
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-
-const CFG = {
-  url: 'https://qonoakggniupuxwvzmmw.supabase.co',
-  key: 'sb_publishable_hl6-Y_kMQelu2DByu4bE4g_V9Ru3jNo',
-};
-/* 같은 오리진의 다른 페이지(리포트·관리자)와 로그인 세션을 공유하고 토큰도 자동 갱신된다 */
-const sb = createClient(CFG.url, CFG.key, {
-  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'nl-auth' },
-});
+<!-- 사이트 전체(index.html · report.html · auth.js)와 동일한 Supabase 클라이언트를 쓴다.
+     → 메인에서 로그인하면 이 창도 같은 세션으로 인식된다 (저장소 키·라이브러리 버전 일치) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script>
+const RAW = window.NL_SUPABASE || {};
+const CFG = { url: RAW.url, key: RAW.anonKey || RAW.key };
+const sb = (window.supabase && CFG.url && CFG.key)
+  ? window.supabase.createClient(CFG.url, CFG.key)   /* 기본 저장소 = auth.js 와 공유 */
+  : null;
 const FN = CFG.url + '/functions/v1/chat';
 
 /* 샘플 리포트(?demo=1)는 실제 사용자 여정과 섞이지 않도록 별도 기기 토큰을 쓴다 */
@@ -344,6 +343,16 @@ function crisisCard() {
     + '<a href="tel:119">119<small>응급</small></a>'
     + '</div>';
   log.appendChild(d); bottom();
+}
+/* 시스템 알림(상담 말풍선이 아닌 안내) */
+function sysNote(html) {
+  const d = document.createElement('div');
+  d.className = 'notice';
+  d.style.background = '#FFF6E9';
+  d.style.borderColor = '#F0DFB8';
+  d.innerHTML = html;
+  log.appendChild(d);
+  bottom();
 }
 let toastT = null;
 function toast(m) {
@@ -519,8 +528,19 @@ async function send() {
     if (r.risk === 'high' || r.risk === 'watch') crisisCard();
   } catch (e) {
     thinking(false);
-    if (String(e.message) !== 'login_required' && String(e.message) !== 'no_session') {
-      bubble('assistant', '답변을 만드는 중 문제가 생겼어요. 한 번만 더 말씀해 주시겠어요?');
+    const m = String(e.message || e);
+    if (m !== 'login_required' && m !== 'no_session') {
+      /* 원인을 뭉개지 않고 구분해서 알린다 — 코드 문제와 사용량/설정 문제는 대응이 다르다 */
+      if (/\b429\b|quota|RESOURCE_EXHAUSTED/i.test(m)) {
+        sysNote('⏳ <b>오늘 AI 사용량 한도에 도달했어요.</b><br>'
+          + 'Gemini API 무료 등급은 모델당 요청 수가 제한됩니다. '
+          + '결제(유료 등급)를 활성화하면 바로 정상 이용할 수 있어요. '
+          + '잠시 뒤 다시 시도하면 일부 복구될 수 있습니다.');
+      } else if (/key_missing/i.test(m)) {
+        sysNote('🔑 <b>AI 키가 설정되지 않았어요.</b> 관리자에게 문의해 주세요.');
+      } else {
+        bubble('assistant', '답변을 만드는 중 문제가 생겼어요. 한 번만 더 말씀해 주시겠어요?');
+      }
       console.error(e);
     }
   } finally {
@@ -563,6 +583,11 @@ window.addEventListener('pagehide', () => finish(true));
 
 /* ---------- 부팅: 이미 로그인돼 있으면 바로 상담 시작 ---------- */
 (async function boot() {
+  if (!sb) {
+    showGate();
+    setMsg('Supabase 설정이 필요합니다. supabase-config.js를 확인해 주세요.', 'err');
+    return;
+  }
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     $('em').value = session.user?.email || '';
@@ -571,6 +596,11 @@ window.addEventListener('pagehide', () => finish(true));
     showGate();
     $('em').focus();
   }
+  /* 메인 창에서 로그인/로그아웃하면 이 창도 따라간다 */
+  sb.auth.onAuthStateChange((evt) => {
+    if (evt === 'SIGNED_IN' && $('gate').hidden === false && !sessionId) afterLogin();
+    if (evt === 'SIGNED_OUT') { sessionId = null; history = []; showGate(); }
+  });
 })();
 </script>
 </body>

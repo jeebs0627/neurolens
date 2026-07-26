@@ -310,17 +310,14 @@ td .st{font-family:var(--font-num);font-size:10px;font-weight:800;letter-spacing
 
 <div id="toast"></div>
 
+<script src="supabase-config.js"></script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
-const CFG = {
-  url: 'https://qonoakggniupuxwvzmmw.supabase.co',
-  key: 'sb_publishable_hl6-Y_kMQelu2DByu4bE4g_V9Ru3jNo',
-};
-/* 채팅 창(chat.html)과 같은 storageKey → 같은 오리진에서 로그인 세션 공유 */
-const sb = createClient(CFG.url, CFG.key, {
-  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'nl-auth' },
-});
+/* supabase-config.js 의 설정을 그대로 사용 (사이트 전체와 같은 세션 저장소) */
+const RAW = window.NL_SUPABASE || {};
+const CFG = { url: RAW.url, key: RAW.anonKey || RAW.key };
+const sb = createClient(CFG.url, CFG.key);
 
 const $ = (id) => document.getElementById(id);
 let cfg = null, dirty = false, docs = [];

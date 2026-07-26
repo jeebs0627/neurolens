@@ -186,6 +186,13 @@ pre{margin-top:12px;padding:16px;background:#0B1B3F;color:#9DFFB0;border-radius:
 /* CTA + footer */
 .cta-band{text-align:center;margin-top:34px}
 .cta-band .row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-agent-cta{display:inline-flex;align-items:center;gap:9px;font-family:var(--font-kr);font-size:16px;font-weight:800;color:#fff;background:linear-gradient(135deg,#6C9C4A,#4E8038);border:none;border-radius:15px;padding:16px 34px;cursor:pointer;box-shadow:0 12px 28px rgba(78,128,56,.3);transition:transform .15s,box-shadow .15s}
+.btn-agent-cta:hover{transform:translateY(-2px);box-shadow:0 18px 36px rgba(78,128,56,.38)}
+/* 존 접기/펼치기 */
+.zfold{flex:none;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--gray);background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 13px;cursor:pointer;transition:all .15s;margin-left:auto}
+.zfold:hover{color:var(--blue);border-color:var(--blue-line);background:var(--blue-soft)}
+.zone-head:has(.zfold)::after{display:none}
+section.zone.folded > *:not(.zone-head){display:none}
 .btn-s{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-kr);font-size:12.5px;font-weight:700;color:var(--gray);background:#fff;border:1px solid var(--line);border-radius:20px;padding:9px 18px;cursor:pointer;transition:all .15s}
 .btn-s:hover{color:var(--blue);border-color:var(--blue-line);background:var(--blue-soft)}
 #toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:#0B1B3F;color:#fff;font-size:13.5px;font-weight:600;border-radius:14px;padding:13px 24px;box-shadow:0 14px 34px rgba(11,27,63,.35);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:200;white-space:nowrap}
@@ -220,9 +227,11 @@ footer p{font-size:12px;color:var(--gray)}
     <div class="rdate" id="rDate"></div>
     <nav class="znav" id="znav">
       <a href="#zoneProfile" class="on">👤 검사자 정보</a>
+      <a href="#zoneCheckin">✍ 오늘 체크인</a>
       <a href="#zoneToday">💚 오늘의 컨디션</a>
       <a href="#zoneReport">📊 분석 리포트</a>
-      <a href="#zoneCare">🌿 케어 & 실천</a>
+      <a href="#zoneCare">🌿 케어 &amp; 실천</a>
+      <a href="#zoneAgent">🗨 Agent 상담</a>
     </nav>
   </div>
 
@@ -248,15 +257,21 @@ footer p{font-size:12px;color:var(--gray)}
     </div>
   </section>
 
-  <!-- ══ Zone 02 · 오늘의 마음 컨디션 (EAI) — care.js 마운트 ══ -->
+  <!-- ══ Zone 02 · 데일리 체크인 (care.js 마운트) — 매일 반복하는 행위라 위로 ══ -->
+  <section class="zone" id="zoneCheckin">
+    <div class="zone-head" style="--zc:linear-gradient(135deg,#1E5AF0,#6C4CE0)"><span class="zn">02 · TODAY</span><span class="zt">데일리 체크인</span><span class="zs">매일 30초 · 여기서 체크인하고 포인트 확인</span></div>
+    <div id="checkinRoot"></div>
+  </section>
+
+  <!-- ══ Zone 03 · 오늘의 마음 컨디션 (EAI) — care.js 마운트 ══ -->
   <section class="zone" id="zoneToday">
-    <div class="zone-head" style="--zc:linear-gradient(135deg,#0FA47A,#3EC49E)"><span class="zn">02 · TODAY</span><span class="zt">오늘의 마음 컨디션 <small>(EAI: 정서회복력 지수)</small></span><span class="zs">매일 30초 체크인으로 갱신</span></div>
+    <div class="zone-head" style="--zc:linear-gradient(135deg,#0FA47A,#3EC49E)"><span class="zn">03 · CONDITION</span><span class="zt">오늘의 마음 컨디션 <small>(EAI: 정서회복력 지수)</small></span><span class="zs">측정 기준선 + 오늘 체크인으로 갱신</span></div>
     <div id="condRoot"></div>
   </section>
 
-  <!-- ══ Zone 03 · 분석 리포트 ══ -->
+  <!-- ══ Zone 04 · 분석 리포트 ══ -->
   <section class="zone" id="zoneReport">
-    <div class="zone-head" style="--zc:var(--grad-hero)"><span class="zn">03 · REPORT</span><span class="zt">분석 리포트</span><span class="zs">이번 측정이 말해주는 나</span></div>
+    <div class="zone-head" style="--zc:var(--grad-hero)"><span class="zn">04 · REPORT</span><span class="zt">분석 리포트</span><span class="zs">이번 측정이 말해주는 나</span></div>
 
   <div class="rcard summary-card">
     <h3>Overview · 종합 총평<span class="ai-badge">✦ AI GENERATED</span></h3>
@@ -302,16 +317,31 @@ footer p{font-size:12px;color:var(--gray)}
   </div>
   </section>
 
-  <!-- ══ Zone 04 · 케어 & 실천 (care.js) ══ -->
+  <!-- ══ Zone 05 · 케어 & 실천 (care.js) ══ -->
   <section class="zone" id="zoneCare">
-    <div class="zone-head" style="--zc:linear-gradient(135deg,#8FBF6C,#5E9C43)"><span class="zn">04 · CARE</span><span class="zt">케어 & 실천</span><span class="zs">측정을 실천으로 잇는 7일 여정</span></div>
+    <div class="zone-head" style="--zc:linear-gradient(135deg,#8FBF6C,#5E9C43)"><span class="zn">05 · CARE</span><span class="zt">케어 &amp; 실천</span><span class="zs">측정을 실천으로 잇는 7일 케어 코스</span></div>
     <div id="careRoot"></div>
+  </section>
+
+  <!-- ══ Zone 06 · Agent 상담 매니저 (care.js) ══ -->
+  <section class="zone" id="zoneAgent">
+    <div class="zone-head" style="--zc:linear-gradient(135deg,#6C9C4A,#4E8038)"><span class="zn">06 · AGENT</span><span class="zt">Agent 상담 매니저</span><span class="zs">검사 결과·오늘의 컨디션·지난 대화를 기억하는 AI 상담</span></div>
+    <div id="agentRoot"></div>
+  </section>
+
+  <!-- ══ Zone 07 · Premium 잠금 리포트 (care.js) ══ -->
+  <section class="zone" id="zonePremium">
+    <div class="zone-head" style="--zc:linear-gradient(135deg,#E8A54B,#D98A2B)"><span class="zn">07 · PREMIUM</span><span class="zt">추가 리포트</span><span class="zs">유료 구독 또는 적립 포인트로 해금</span></div>
+    <div id="premiumRoot"></div>
   </section>
 
   <div class="rcard"><details><summary>원본 응답 JSON 보기</summary><pre id="rRaw"></pre></details></div>
 
   <div class="cta-band">
     <div class="row">
+      <button class="btn-agent-cta" id="ctaChat">🗨 Agent 상담 매니저 대화하기</button>
+    </div>
+    <div class="row" style="margin-top:12px">
       <button class="btn-s" onclick="window.print()">📄 인쇄 / PDF 저장</button>
       <a class="btn-s" href="index.html" style="text-decoration:none">🏠 메인으로</a>
     </div>
@@ -328,7 +358,7 @@ footer p{font-size:12px;color:var(--gray)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
-<script src="care.js?v=11"></script>
+<script src="care.js?v=16"></script>
 <script>
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 
@@ -523,10 +553,34 @@ function renderReport(r, meta){
   if(meta.mine){
     try{
       NLCare.render(document.getElementById('careRoot'), r, {
-        indexEl: document.getElementById('condRoot'),
-        pointsEl: document.getElementById('profilePoints'),
+        checkinEl: document.getElementById('checkinRoot'),   // 02 데일리 체크인
+        indexEl:   document.getElementById('condRoot'),      // 03 오늘의 마음 컨디션
+        pointsEl:  document.getElementById('profilePoints'), // 마음 포인트 → Profile
+        agentEl:   document.getElementById('agentRoot'),     // 06 Agent 상담 매니저
+        premiumEl: document.getElementById('premiumRoot'),   // 07 Premium 잠금 리포트
+        /* 존 번호는 report.html 의 zone-head 가 담당하므로 카드 내부 번호는 숨긴다 */
+        zoneChrome: false,
       });
     }catch(e){console.error('NLCare render 실패:',e);}
+    /* Agent 상담 매니저가 검사 결과에 근거해 답하도록 구조화 결과를 서버에 보관 */
+    try{
+      const b=r.BIG5||{}, pv=(k)=>{const v=parseFloat(b[k+'_백분위']);return isNaN(v)?null:v;};
+      const h=r['직업흥미유형']||{};
+      const jl=(r['직무적합도']||[]).map(j=>({name:j['직업'],score:parseFloat(j['점수'])}))
+        .sort((x,y)=>y.score-x.score);
+      NLCare.saveReport({
+        report_id: meta.id||null,
+        assessment_date: (meta.date||'').slice(0,10),
+        user:{ display_name:(r['시험자정보']||{})['시험자명']||null,
+               age_band:(r['시험자정보']||{})['연령대']||null },
+        measurement:{ method:['gaze','questionnaire'] },
+        mbti: r.MBTI?{type:String(r.MBTI).toUpperCase()}:null,
+        big5:{ openness:pv('개방성'), conscientiousness:pv('성실성'), extraversion:pv('외향성'),
+               agreeableness:pv('친화성'), neuroticism:pv('신경성') },
+        riasec: h['유형']?{code:h['유형'],name:h['유형명']||null}:null,
+        career_fit: jl.slice(0,5).map((j,i)=>({rank:i+1,role:j.name,score:j.score})),
+      }, null);
+    }catch(e){}
     try{
       const ci=NLCare.condIndex();
       if(ci&&ci.day>=0) document.getElementById('pfDay').textContent='D'+Math.min(ci.day,7);
@@ -645,6 +699,36 @@ function showError(title,msg){
     });
   },{rootMargin:'-30% 0px -60% 0px'});
   document.querySelectorAll('section.zone').forEach(function(s){obs.observe(s);});
+})();
+
+/* ---------- Agent 상담 매니저 열기 (하단 CTA) ---------- */
+document.getElementById('ctaChat').addEventListener('click',function(){
+  try{ NLCare.openChat(); }
+  catch(e){ window.open('chat.html','nlAgentChat','width=420,height=760'); }
+});
+
+/* ---------- 존 접기/펼치기 (상태는 브라우저에 기억) ---------- */
+(function(){
+  var KEY='nlZoneFoldReport';
+  function map(){ try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(_){return{};} }
+  function save(m){ try{localStorage.setItem(KEY,JSON.stringify(m));}catch(_){} }
+  var st=map();
+  document.querySelectorAll('section.zone').forEach(function(sec){
+    var head=sec.querySelector('.zone-head');
+    if(!head||head.querySelector('.zfold'))return;
+    var b=document.createElement('button');
+    b.type='button'; b.className='zfold';
+    var folded=!!st[sec.id];
+    sec.classList.toggle('folded',folded);
+    b.textContent=folded?'펼치기 ▾':'접기 ▴';
+    b.addEventListener('click',function(){
+      var f=!sec.classList.contains('folded');
+      sec.classList.toggle('folded',f);
+      b.textContent=f?'펼치기 ▾':'접기 ▴';
+      st=map(); st[sec.id]=f; save(st);
+    });
+    head.appendChild(b);
+  });
 })();
 </script>
 </body>
