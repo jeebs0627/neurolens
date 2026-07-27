@@ -56,6 +56,9 @@ header{
 
 /* ── 로그인 게이트 ── */
 #gate{flex:1;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;padding:24px 22px}
+/* display:flex가 hidden 속성(UA 스타일)을 덮어쓰므로 명시적으로 숨김 처리
+   — 없으면 로그인 후에도 로그인/회원가입 폼이 채팅 위에 계속 보인다 */
+#gate[hidden]{display:none}
 #gate .lock{width:56px;height:56px;border-radius:18px;margin:0 auto 16px;display:grid;place-items:center;
   background:linear-gradient(140deg,#8FBF6C,#5E9C43);box-shadow:0 8px 20px rgba(94,156,67,.28)}
 #gate .lock svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
