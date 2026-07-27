@@ -3,9 +3,83 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NeuroLens — 시선이 말하는 마음 | AX오픈랩</title>
+
+<!-- ===== SEO =====
+     ※ 커스텀 도메인 연결 시 아래 SITE_URL(canonical · og:url · JSON-LD)을 함께 교체할 것 -->
+<title>웹캠 시선추적 AI 심리검사 | NeuroLens 뉴로렌즈</title>
+<meta name="description" content="일반 웹캠만으로 5분간 시선행동을 측정해 심리 상태를 분석하는 AI 심리검사. Big 5 성격요인·직업흥미유형·MBTI·직무 적합도 리포트를 무료로 제공하고, AI Agent가 검사 이후 케어까지 이어갑니다." />
+<meta name="author" content="AX오픈랩 (AX OPEN LAB)" />
+<meta name="robots" content="index, follow, max-image-preview:large" />
+<meta name="theme-color" content="#1E5AF0" />
+<link rel="canonical" href="https://neurolens-xi.vercel.app/" />
+
+<!-- Open Graph (카카오톡 · 슬랙 · 페이스북 링크 미리보기) -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="NeuroLens · AX오픈랩" />
+<meta property="og:locale" content="ko_KR" />
+<meta property="og:url" content="https://neurolens-xi.vercel.app/" />
+<meta property="og:title" content="웹캠 시선추적 AI 심리검사 | NeuroLens 뉴로렌즈" />
+<meta property="og:description" content="일반 웹캠만으로 5분, 시선행동을 측정해 심리 상태를 읽습니다. Big 5·직업흥미유형·MBTI·직무 적합도 리포트 무료 제공." />
+<meta property="og:image" content="https://neurolens-xi.vercel.app/img/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="NeuroLens — 웹캠 시선추적 기반 AI 심리검사" />
+
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="웹캠 시선추적 AI 심리검사 | NeuroLens 뉴로렌즈" />
+<meta name="twitter:description" content="일반 웹캠만으로 5분, 시선행동을 측정해 심리 상태를 읽습니다. Big 5·직업흥미유형·MBTI·직무 적합도 리포트 무료 제공." />
+<meta name="twitter:image" content="https://neurolens-xi.vercel.app/img/og-cover.png" />
+
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="img/favicon-192.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://neurolens-xi.vercel.app/#org",
+      "name": "AX오픈랩",
+      "alternateName": "AX OPEN LAB",
+      "url": "https://neurolens-xi.vercel.app/",
+      "logo": "https://neurolens-xi.vercel.app/img/favicon-192.png"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://neurolens-xi.vercel.app/#website",
+      "url": "https://neurolens-xi.vercel.app/",
+      "name": "NeuroLens",
+      "inLanguage": "ko-KR",
+      "publisher": { "@id": "https://neurolens-xi.vercel.app/#org" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "NeuroLens",
+      "alternateName": "뉴로렌즈",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web browser",
+      "url": "https://neurolens-xi.vercel.app/",
+      "image": "https://neurolens-xi.vercel.app/img/og-cover.png",
+      "description": "일반 웹캠만으로 5분간 시선행동을 측정해 심리 상태를 분석하는 AI 심리검사 및 웰니스 케어 플랫폼. Big 5 성격요인, 직업흥미유형(Holland RIASEC), 16개 성격유형(MBTI), 직무 적합도 리포트를 제공합니다.",
+      "inLanguage": "ko-KR",
+      "publisher": { "@id": "https://neurolens-xi.vercel.app/#org" },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "KRW",
+        "description": "기본 리포트 4종 무료 제공"
+      }
+    }
+  ]
+}
+</script>
 <style>
 /* ============================================================
    DESIGN TOKENS
@@ -634,11 +708,11 @@ footer p{font-size:12.5px;color:var(--gray)}
 <!-- ================= HERO ================= -->
 <header class="hero" id="top">
 
-  <!-- 배경 에셋 우측: 시선추적 아이 아트웍 (img/001.png) — 라디얼 페이드 -->
-  <img class="hero-img" src="img/001.png" alt="" aria-hidden="true">
+  <!-- 배경 에셋 우측: 시선추적 아이 아트웍 (img/001.webp) — 라디얼 페이드 -->
+  <img width="595" height="627" class="hero-img" src="img/001.webp" alt="" aria-hidden="true">
 
-  <!-- 배경 에셋 좌측: AI 뉴럴넷 아트웍 (img/222.png) — 라디얼 페이드 -->
-  <img class="hero-img-l" src="img/222.png?v=2" alt="" aria-hidden="true">
+  <!-- 배경 에셋 좌측: AI 뉴럴넷 아트웍 (img/222.webp) — 라디얼 페이드 -->
+  <img width="701" height="434" class="hero-img-l" src="img/222.webp" alt="" aria-hidden="true">
 
   <div class="wrap inner">
     <span class="badge"><span class="dot"></span>WEBCAM-BASED GAZE AI · 실증 진행 중</span>
@@ -719,7 +793,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="pcard" style="--pc:var(--grad-blue);--pc-solid:#1E5AF0">
         <div class="who"><span class="no">01</span><h3>학생</h3></div>
         <div class="role">시험·진로·관계 스트레스, 도움이 필요해도 말하기 어려워요.</div>
-        <img class="photo" src="img/112.png" alt="학생" loading="lazy">
+        <img width="158" height="153" class="photo" src="img/112.webp" alt="시험·진로·관계 스트레스를 겪는 학생 — NeuroLens 심리검사 대상 사용자" loading="lazy">
         <ul>
           <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 15.5c1-.9 2.2-1.4 3.5-1.4s2.5.5 3.5 1.4M9 10h.01M15 10h.01"/></svg>감정 변화를 인지하고 표현하기 어려움</li>
           <li><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>자가보고의 사회적 바람직성 응답 편향</li>
@@ -729,7 +803,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="pcard" style="--pc:var(--grad-violet);--pc-solid:#6C4CE0">
         <div class="who"><span class="no">02</span><h3>감정노동자</h3></div>
         <div class="role">고객 응대 스트레스, 감정 소진 누적으로 힘들어요.</div>
-        <img class="photo" src="img/113.png" alt="감정노동자" loading="lazy">
+        <img width="157" height="155" class="photo" src="img/113.webp" alt="고객 응대로 감정 소진을 겪는 감정노동자 — NeuroLens 심리검사 대상 사용자" loading="lazy">
         <ul>
           <li><svg viewBox="0 0 24 24"><rect x="3" y="8" width="14" height="9" rx="2"/><path d="M17 10.5h2.5a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H17M6.5 8V6.5"/></svg>감정 소진이 누적되지만 인지가 지연</li>
           <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 15.5h6M9 10h.01M15 10h.01"/></svg>직무 특성상 감정 표현 억제와 위장</li>
@@ -739,7 +813,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="pcard" style="--pc:var(--grad-green);--pc-solid:#0FA47A">
         <div class="who"><span class="no">03</span><h3>보호자 · 기업</h3></div>
         <div class="role">상태 파악이 어렵고, 언제 개입하고 관리해야 할지 막막해요.</div>
-        <img class="photo" src="img/114.png" alt="보호자와 기업/기관" loading="lazy">
+        <img width="160" height="156" class="photo" src="img/114.webp" alt="구성원의 심리 상태 파악이 어려운 보호자와 기업·기관 담당자" loading="lazy">
         <ul>
           <li><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>눈에 보이는 문제가 되기 전까지 파악 곤란</li>
           <li><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>검사·선별 이후의 관리 체계 부재</li>
@@ -768,7 +842,7 @@ footer p{font-size:12.5px;color:var(--gray)}
   <div class="wrap">
     <span class="eyebrow">Now · Phase 1</span>
     <h2 class="sec">그래서 우리는 간편한 측정, 높은 정확도, 후속 케어 서비스까지<br>하나로 연계되는 <em>NeuroLens</em>를 만들었습니다</h2>
-    <p class="lead">학생·일반인을 대상으로 실증 중인 웹캠 시선추적 기반 AI 심리검사 서비스입니다. 설문 응답과 무의식적 시선 신호를 결합해 자기보고 편향을 보완하고, Agent가 케어합니다.</p>
+    <p class="lead">뉴로렌즈(NeuroLens)는 학생·일반인을 대상으로 실증 중인 웹캠 시선추적 기반 AI 심리검사 서비스입니다. 설문 응답과 무의식적 시선 신호를 결합해 자기보고 편향을 보완하고, Agent가 케어합니다.</p>
 
     <div class="grid4">
       <div class="card tcard" style="--cb:#1E5AF0;--cb-soft:var(--blue-soft);--cb-grad:var(--grad-blue);--cb-sh:rgba(30,90,240,.3)">
@@ -1103,22 +1177,22 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="gallery" aria-label="현장 실증 사진">
         <div class="track">
           <div class="set">
-            <img src="img/002.png" alt="현장 실증 사진 1" loading="lazy">
-            <img src="img/003.png" alt="현장 실증 사진 2" loading="lazy">
-            <img src="img/004.png" alt="현장 실증 사진 3" loading="lazy">
-            <img src="img/005.png" alt="현장 실증 사진 4" loading="lazy">
-            <img src="img/006.png" alt="현장 실증 사진 5" loading="lazy">
-            <img src="img/007.png" alt="현장 실증 사진 6" loading="lazy">
-            <img src="img/008.png" alt="현장 실증 사진 7" loading="lazy">
+            <img width="1163" height="781" src="img/002.webp" alt="진로체험 부스에서 노트북 웹캠으로 시선추적 심리검사를 받는 학생" loading="lazy">
+            <img width="1194" height="781" src="img/003.webp" alt="'시선추적 AI 성격검사' 배너가 걸린 박람회 부스에서 검사를 진행하는 현장" loading="lazy">
+            <img width="664" height="590" src="img/004.webp" alt="노트북과 링라이트가 놓인 검사 부스에 줄지어 앉아 시선추적 검사에 참여하는 학생들" loading="lazy">
+            <img width="1159" height="717" src="img/005.webp" alt="웹캠 시선추적 AI 심리검사 현장 실증 — 검사에 참여하는 참가자" loading="lazy">
+            <img width="1082" height="674" src="img/006.webp" alt="야외 행사 부스에서 웹캠 시선추적 심리검사를 체험하는 참가자들" loading="lazy">
+            <img width="1189" height="728" src="img/007.webp" alt="웹캠 시선추적 AI 심리검사 현장 실증 — 검사 진행 모습" loading="lazy">
+            <img width="1125" height="619" src="img/008.webp" alt="웹캠 시선추적 AI 심리검사 현장 실증 — 검사 부스 운영 모습" loading="lazy">
           </div>
           <div class="set" aria-hidden="true">
-            <img src="img/002.png" alt="" loading="lazy">
-            <img src="img/003.png" alt="" loading="lazy">
-            <img src="img/004.png" alt="" loading="lazy">
-            <img src="img/005.png" alt="" loading="lazy">
-            <img src="img/006.png" alt="" loading="lazy">
-            <img src="img/007.png" alt="" loading="lazy">
-            <img src="img/008.png" alt="" loading="lazy">
+            <img width="1163" height="781" src="img/002.webp" alt="" loading="lazy">
+            <img width="1194" height="781" src="img/003.webp" alt="" loading="lazy">
+            <img width="664" height="590" src="img/004.webp" alt="" loading="lazy">
+            <img width="1159" height="717" src="img/005.webp" alt="" loading="lazy">
+            <img width="1082" height="674" src="img/006.webp" alt="" loading="lazy">
+            <img width="1189" height="728" src="img/007.webp" alt="" loading="lazy">
+            <img width="1125" height="619" src="img/008.webp" alt="" loading="lazy">
           </div>
         </div>
       </div>
@@ -1258,7 +1332,7 @@ footer p{font-size:12.5px;color:var(--gray)}
 
     <!-- CEO -->
     <div class="ceo-band">
-      <div class="ceo-ava"><img src="img/지병석.png?v=2" alt="지병석 대표"></div>
+      <div class="ceo-ava"><img width="404" height="318" src="img/지병석.webp" alt="지병석 대표"></div>
       <div class="ceo-info">
         <div class="nm">지병석<small>대표 · Founder</small></div>
         <p class="tagline">"AX 가속 시대, 더 나은 내일을 연구합니다."</p>
@@ -1280,7 +1354,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <div class="grid3">
       <div class="card member" style="--mcol:#1E5AF0">
         <div class="mhead">
-          <div class="ava" style="background:var(--grad-blue)"><img src="img/양영준.png" alt="양영준" loading="lazy"></div>
+          <div class="ava" style="background:var(--grad-blue)"><img width="65" height="75" src="img/양영준.webp" alt="양영준" loading="lazy"></div>
           <div><h3>양영준</h3><div class="edu">서울대 심리학과</div></div>
         </div>
         <ul>
@@ -1291,7 +1365,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
       <div class="card member" style="--mcol:#6C4CE0">
         <div class="mhead">
-          <div class="ava" style="background:var(--grad-violet)"><img src="img/문성일.png" alt="문성일" loading="lazy"></div>
+          <div class="ava" style="background:var(--grad-violet)"><img width="72" height="80" src="img/문성일.webp" alt="문성일" loading="lazy"></div>
           <div><h3>문성일</h3><div class="edu">관동대 컴퓨터공학</div></div>
         </div>
         <ul>
@@ -1302,7 +1376,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
       <div class="card member" style="--mcol:#0FA47A">
         <div class="mhead">
-          <div class="ava" style="background:var(--grad-green)"><img src="img/나병훈.png" alt="나병훈" loading="lazy"></div>
+          <div class="ava" style="background:var(--grad-green)"><img width="75" height="81" src="img/나병훈.webp" alt="나병훈" loading="lazy"></div>
           <div><h3>나병훈</h3><div class="edu">한양대 컴퓨터공학 석사</div></div>
         </div>
         <ul>

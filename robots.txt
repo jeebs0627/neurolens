@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /$
+Allow: /index.html
+
+# 개인 결과 · 상담 · 관리자 화면은 색인하지 않는다
+Disallow: /admin.html
+Disallow: /chat_admin.html
+Disallow: /chat.html
+Disallow: /report.html
+Disallow: /result.html
+Disallow: /api/
+Disallow: /rcvrslt
+Disallow: /last-result
+Disallow: /mg/
+
+Sitemap: https://neurolens-xi.vercel.app/sitemap.xml
