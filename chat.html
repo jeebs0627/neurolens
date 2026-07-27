@@ -163,7 +163,7 @@ textarea::placeholder{color:#B5BCC8}
   </span>
   <span class="htl">
     <b>심리케어 컨설턴트</b>
-    <small id="hstat">로그인이 필요합니다</small>
+    <small id="hstat">로그인 확인 중…</small>
   </span>
   <button class="hbtn" id="btnNew" title="새 대화 시작 (지금까지의 대화는 요약해 기억합니다)" hidden>
     <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
@@ -176,8 +176,10 @@ textarea::placeholder{color:#B5BCC8}
   </button>
 </header>
 
-<!-- ================= 로그인 게이트 ================= -->
-<div id="gate">
+<!-- ================= 로그인 게이트 =================
+     기본 hidden — 부팅 시 메인 창(index.html)의 Supabase 세션을 먼저 확인하고,
+     로그인돼 있지 않을 때만 노출한다 (로그인 상태에서는 이 영역이 보이지 않음) -->
+<div id="gate" hidden>
   <span class="lock" aria-hidden="true">
     <svg viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
   </span>
@@ -581,14 +583,16 @@ $('btnClose').addEventListener('click', () => { finish(true); window.close(); })
 window.addEventListener('beforeunload', () => finish(true));
 window.addEventListener('pagehide', () => finish(true));
 
-/* ---------- 부팅: 이미 로그인돼 있으면 바로 상담 시작 ---------- */
+/* ---------- 부팅: 메인 창(index.html)과 세션 공유 — 이미 로그인돼 있으면
+ * 로그인 화면 없이 자동 로그인으로 바로 상담을 시작한다 ---------- */
 (async function boot() {
   if (!sb) {
     showGate();
     setMsg('Supabase 설정이 필요합니다. supabase-config.js를 확인해 주세요.', 'err');
     return;
   }
-  const { data: { session } } = await sb.auth.getSession();
+  let session = null;
+  try { session = (await sb.auth.getSession()).data.session; } catch (_) {}
   if (session) {
     $('em').value = session.user?.email || '';
     await afterLogin();
