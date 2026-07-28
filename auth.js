@@ -74,6 +74,27 @@ window.NLAuth = {
     return client.auth.signOut();
   },
 
+  /** 비밀번호 재설정 메일 발송 — 메일의 링크를 열면 이 페이지로 돌아와 새 비밀번호를 설정한다 */
+  resetPassword: function (email) {
+    if (!client) return noClient();
+    var redirect = location.origin + location.pathname;
+    return client.auth.resetPasswordForEmail(email, { redirectTo: redirect })
+      .then(function (r) { if (r.error) throw r.error; return true; });
+  },
+
+  /** 재설정 링크로 복귀한 세션에서 새 비밀번호 저장 */
+  updatePassword: function (password) {
+    if (!client) return noClient();
+    return client.auth.updateUser({ password: password })
+      .then(function (r) { if (r.error) throw r.error; return r.data.user; });
+  },
+
+  /** 비밀번호 재설정 링크로 진입했을 때 콜백 (PASSWORD_RECOVERY 이벤트) */
+  onRecovery: function (cb) {
+    if (!client) return;
+    client.auth.onAuthStateChange(function (ev) { if (ev === 'PASSWORD_RECOVERY') cb(); });
+  },
+
   /** 내 프로필 (profiles 행) — {id, email, name, role, created_at} | null */
   getProfile: function () {
     if (!client) return Promise.resolve(null);

@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#0B1B3F; --ink2:#2A3651; --gray:#5B6478; --gray2:#8A93A8; --line:#E4E9F4;
+  --ink:#0B1B3F; --ink2:#2A3651; --gray:#5B6478; --gray2:#626E85; --line:#E4E9F4;
   --blue:#1E5AF0; --blue-soft:#EEF3FF; --blue-line:#C9D8FF;
   --green:#0FA47A; --green-soft:#EAF7F2; --amber:#E8890C; --violet:#6C4CE0;
   --violet-soft:#F1EDFD; --rose:#E0446A;
@@ -159,6 +159,15 @@ td .st{font-family:var(--font-num);font-size:10px;font-weight:800;letter-spacing
 
 <!-- ================= 관리 화면 ================= -->
 <main id="app">
+  <!-- 위기(high) 실시간 알림 배너 — 30초 폴링, 확인(ack) 전까지 유지 -->
+  <style>
+    #alertBar{display:none;background:#FFF1F2;border:1.5px solid #F5C2C7;border-radius:14px;padding:14px 16px;margin-bottom:16px}
+    #alertBar>b{display:block;color:#C0264B;font-size:14.5px;margin-bottom:4px}
+    #alertBar .alert-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed #F0D2D6;font-size:12.5px}
+    #alertBar .alert-row .pv{flex:1;color:#5A6478;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #alertBar .alert-row .tm{color:#98A2B8;flex:none}
+  </style>
+  <div id="alertBar" role="alert"></div>
   <div class="tabs">
     <button data-tab="basic" class="on">💬 인사말 · 지침</button>
     <button data-tab="rag">📚 외부 파일 학습</button>
@@ -371,9 +380,67 @@ async function boot() {
   $('btnOut').style.display = '';
   $('btnPreview').style.display = '';
   $('who').textContent = (prof.name || prof.email) + ' · 관리자';
+  meId = session.user.id;
   await loadConfig();
   await loadDocs();
   await loadSessions();
+  loadAlerts();
+  if (!alertTimer) alertTimer = setInterval(loadAlerts, 30000);
+}
+
+/* ---------------- 위기(high) 실시간 알림 ----------------
+ * chat 함수가 high 위기 신호 감지 시 chat_alerts 에 적재 → 여기서 30초 폴링.
+ * 확인(ack) 처리 전까지 배너가 유지되고, 새 알림은 브라우저 알림으로도 통지한다. */
+let meId = null, alertTimer = null;
+const alertSeen = new Set();
+
+async function loadAlerts() {
+  const { data, error } = await sb.from('chat_alerts').select('*')
+    .is('ack_at', null).order('created_at', { ascending: false }).limit(20);
+  if (error) return; /* 테이블 미생성 등 — 조용히 무시 */
+  const rows = data || [];
+  const bar = $('alertBar');
+  if (!rows.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+
+  /* 새로 나타난 알림은 브라우저 알림으로도 통지 */
+  rows.forEach((a) => {
+    if (alertSeen.has(a.id)) return;
+    alertSeen.add(a.id);
+    if (window.Notification && Notification.permission === 'granted') {
+      try { new Notification('🚨 NeuroLens 위기 신호 감지', { body: String(a.preview || '').slice(0, 80) }); } catch (_) {}
+    }
+  });
+
+  const notiBtn = (window.Notification && Notification.permission === 'default')
+    ? ' <button class="btn" id="alertNotiBtn" style="margin-left:8px">🔔 브라우저 알림 켜기</button>' : '';
+  bar.innerHTML = `<b>🚨 위기 신호 ${rows.length}건 — 즉시 확인이 필요합니다${notiBtn}</b>`
+    + rows.map((a) => `
+      <div class="alert-row">
+        <span class="tm">${fmtDate(a.created_at)}</span>
+        <span class="pv">${esc(a.preview || '(내용 없음)')}</span>
+        <button class="btn" data-open="${esc(a.session_id || '')}">세션 보기</button>
+        <button class="btn" data-ack="${esc(a.id)}">확인</button>
+      </div>`).join('');
+  bar.style.display = '';
+
+  const nb = $('alertNotiBtn');
+  if (nb) nb.addEventListener('click', () => Notification.requestPermission().then(() => loadAlerts()));
+  bar.querySelectorAll('[data-ack]').forEach((b) => b.addEventListener('click', async () => {
+    const { error: e2 } = await sb.from('chat_alerts')
+      .update({ ack_at: new Date().toISOString(), ack_by: meId }).eq('id', b.dataset.ack);
+    if (e2) { toast('확인 처리에 실패했어요'); return; }
+    toast('알림을 확인 처리했어요');
+    loadAlerts();
+  }));
+  bar.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', async () => {
+    /* 대화 기록 탭으로 이동해 high 필터로 해당 세션을 펼친다 */
+    document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x.dataset.tab === 'logs'));
+    document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('on', p.id === 'pane-logs'));
+    $('riskFilter').value = 'high';
+    await loadSessions();
+    const d = document.querySelector(`.sess[data-sid="${b.dataset.open}"]`);
+    if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }));
 }
 
 /* ---------------- 탭 ---------------- */

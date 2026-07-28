@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#22304A; --ink2:#3C4A63; --gray:#6B7689; --gray2:#98A2B3;
+  --ink:#22304A; --ink2:#3C4A63; --gray:#6B7689; --gray2:#6E7A8F;
   --line:#E7E2D8;
   --blue:#1E5AF0; --violet:#6C4CE0; --rose:#D9536F;
   --sage:#7FA86B; --sage-dark:#5E8C4A;
@@ -109,7 +109,7 @@ main::-webkit-scrollbar-thumb{background:#DED8CB;border-radius:3px}
   color:var(--ink2);box-shadow:0 3px 12px rgba(120,105,70,.07)}
 .row.me .bub{background:var(--bubble-me);color:#fff;border-bottom-right-radius:6px;
   box-shadow:0 6px 16px rgba(76,60,224,.24)}
-.tstamp{font-size:9.5px;color:var(--gray2);align-self:flex-end;flex:none;padding-bottom:3px;font-family:var(--font-num)}
+.tstamp{font-size:10.5px;color:var(--gray2);align-self:flex-end;flex:none;padding-bottom:3px;font-family:var(--font-num)}
 
 .think{display:flex;gap:5px;align-items:center;padding:14px 16px;background:#fff;
   border:1px solid #EDE7DA;border-radius:17px;border-bottom-left-radius:6px}
@@ -150,7 +150,7 @@ textarea::placeholder{color:#B5BCC8}
 .send:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
 .send:not(:disabled):hover{transform:translateY(-1px) scale(1.04)}
 .send svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.disc{font-size:10px;color:var(--gray2);text-align:center;margin-top:9px;line-height:1.55}
+.disc{font-size:11px;color:var(--gray2);text-align:center;margin-top:9px;line-height:1.55}
 
 #toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%) translateY(10px);
   background:#22304A;color:#fff;font-size:12.5px;font-weight:600;border-radius:12px;
@@ -234,6 +234,12 @@ textarea::placeholder{color:#B5BCC8}
 
 <div id="toast"></div>
 
+<style>
+  /* 지난 대화 복원 턴 — 흐리게, 현재 시각 타임스탬프는 숨김(과거 대화이므로) */
+  .row.old { opacity: .55; }
+  .row.old .tstamp { display: none; }
+</style>
+
 <!-- 사이트 전체(index.html · report.html · auth.js)와 동일한 Supabase 클라이언트를 쓴다.
      → 메인에서 로그인하면 이 창도 같은 세션으로 인식된다 (저장소 키·라이브러리 버전 일치) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -313,6 +319,14 @@ function mdLite(s) {
 function hhmm() {
   const d = new Date();
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+/* 복원된 지난 대화의 시점 표기 (예: 7월 26일 21:40) */
+function fmtWhen(iso) {
+  try {
+    const d = new Date(iso);
+    return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 '
+      + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  } catch (_) { return ''; }
 }
 function bottom() { log.scrollTop = log.scrollHeight; }
 const PIC = '<span class="pic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-8.7-9C2.2 8.5 4.5 5.6 7.5 5.6c1.9 0 3.4 1 4.5 2.5 1.1-1.5 2.6-2.5 4.5-2.5 3 0 5.3 2.9 4.2 6.4C19 16.6 12 21 12 21z"/></svg></span>';
@@ -486,6 +500,22 @@ async function begin() {
       ? (r.cycle ? r.cycle + '차 코스 · 검사 결과 연결됨' : '검사 결과 연결됨')
       : '검사 결과 미연결 · 일반 상담';
 
+    /* 지난 대화 이어보기 — 직전 세션(7일 보관 원문)의 마지막 턴을 흐리게 복원 */
+    if (Array.isArray(r.restore) && r.restore.length) {
+      const h = document.createElement('div');
+      h.className = 'notice';
+      h.innerHTML = '💬 <b>지난 대화 이어보기</b>' + (r.restoredAt ? ' — ' + fmtWhen(r.restoredAt) + '의 대화예요.' : '');
+      log.appendChild(h);
+      r.restore.forEach((m) => {
+        bubble(m.role === 'assistant' ? 'assistant' : 'user', m.content);
+        log.lastElementChild.classList.add('old');
+      });
+      const dv = document.createElement('div');
+      dv.className = 'notice';
+      dv.style.textAlign = 'center';
+      dv.textContent = '─ 여기서부터 새 대화 ─';
+      log.appendChild(dv);
+    }
     if (r.continued) {
       const n = document.createElement('div');
       n.className = 'notice';
@@ -531,6 +561,7 @@ async function send() {
     if (!r.ok) throw new Error(r.detail || r.error || 'send_failed');
     bubble('assistant', r.reply);
     history.push({ role: 'assistant', content: r.reply });
+    if (r.checkinLogged) toast('✅ 오늘의 체크인을 기록했어요 — 리포트 페이지에서도 확인할 수 있어요');
     if (r.risk === 'high' || r.risk === 'watch') crisisCard();
   } catch (e) {
     thinking(false);
