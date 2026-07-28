@@ -169,17 +169,10 @@ nav .menu-btn svg{width:19px;height:19px;stroke:var(--ink);stroke-width:2;stroke
    HERO (배경: 아이(eye) 아트웍 + 뉴럴 네트워크)
 ============================================================ */
 header.hero{position:relative;overflow:hidden;background:
-  radial-gradient(760px 420px at 88% -6%, #E2ECFF 0%, transparent 62%),
-  radial-gradient(560px 340px at -8% 30%, #F0EBFF 0%, transparent 60%),
+  linear-gradient(180deg, rgba(255,255,255,0) 82%, #FFFFFF 100%),
+  url('img/bg001.png') center / cover no-repeat,
   linear-gradient(180deg,#F7FAFF 0%,#FFFFFF 100%);
   border-bottom:1px solid var(--line);padding:96px 0 72px;text-align:center}
-.hero-img{position:absolute;right:-50px;top:50%;transform:translateY(-54%);width:540px;pointer-events:none;user-select:none;opacity:.5;filter:blur(1.4px);
-  -webkit-mask-image:radial-gradient(68% 68% at 50% 48%,#000 42%,transparent 95%);
-  mask-image:radial-gradient(68% 68% at 50% 48%,#000 42%,transparent 95%)}
-.hero-img-l{position:absolute;left:4%;top:36%;transform:translateY(-50%);width:520px;pointer-events:none;user-select:none;opacity:.5;filter:blur(.8px);
-  -webkit-mask-image:radial-gradient(64% 64% at 50% 50%,#000 40%,transparent 92%);
-  mask-image:radial-gradient(64% 64% at 50% 50%,#000 40%,transparent 92%)}
-@media(max-width:900px){.hero-img{width:380px;right:-150px;opacity:.3}.hero-img-l{display:none}}
 .hero .inner{position:relative;z-index:2}
 .hero .badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-num);font-size:11.5px;font-weight:700;letter-spacing:.13em;color:var(--blue);background:rgba(255,255,255,.75);border:1px solid var(--blue-line);padding:7px 18px;border-radius:22px;margin-bottom:26px;box-shadow:var(--shadow-sm)}
 .hero .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(15,164,122,.16);animation:pulse 2.2s infinite}
@@ -623,14 +616,8 @@ footer p{font-size:12.5px;color:var(--gray)}
   </div>
 </nav>
 
-<!-- ================= HERO ================= -->
+<!-- ================= HERO (배경: img/bg001.png 단일 배경 이미지) ================= -->
 <header class="hero" id="top">
-
-  <!-- 배경 에셋 우측: 시선추적 아이 아트웍 (img/001.webp) — 라디얼 페이드 -->
-  <img width="595" height="627" class="hero-img" src="img/001.webp" alt="" aria-hidden="true">
-
-  <!-- 배경 에셋 좌측: AI 뉴럴넷 아트웍 (img/222.webp) — 라디얼 페이드 -->
-  <img width="701" height="434" class="hero-img-l" src="img/222.webp" alt="" aria-hidden="true">
 
   <div class="wrap inner">
     <span class="badge"><span class="dot"></span>WEBCAM-BASED GAZE AI · 실증 진행 중</span>

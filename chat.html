@@ -262,6 +262,12 @@ const $ = (id) => document.getElementById(id);
 const log = $('log'), msgEl = $('msg'), sendBtn = $('btnSend'), stat = $('hstat');
 
 let sessionId = null, history = [], busy = false, ended = false, name = '회원', mode = 'in';
+let authUid = null; /* 현재 로그인 계정 — 계정이 바뀌면 화면·상태를 반드시 초기화한다 */
+
+/* 이전 대화의 말풍선·카드 전부 제거 (계정 전환 시 앞 사람 대화가 남지 않도록) */
+function clearLog() {
+  log.querySelectorAll('.row, .chips, .crisis, .notice:not(#intro)').forEach((e) => e.remove());
+}
 
 /* ---------- 기기 토큰 (리포트 페이지와 공유 · 검사 결과 연결용) ---------- */
 function uuid4() {
@@ -271,14 +277,26 @@ function uuid4() {
     return (c === 'x' ? r : (r & 3 | 8)).toString(16);
   });
 }
-function careToken() {
+/* 기기 토큰의 주인 계정 — report.html이 본인 리포트를 열 때 기록한다 */
+function tokenOwner() {
+  try { return localStorage.getItem('nlCareTokenOwner'); } catch (_) { return null; }
+}
+/* 다른 계정이 같은 기기에서 로그인하면 계정별 별도 토큰을 발급한다
+ * → 앞 사람의 검사 결과·케어 여정이 이 계정의 상담 컨텍스트로 연결되지 않는다 */
+function isForeignAccount(uid) {
+  const owner = DEMO ? null : tokenOwner();
+  return !!(owner && uid && owner !== uid);
+}
+function careTokenFor(uid) {
+  const key = isForeignAccount(uid) ? (TOKEN_KEY + ':' + uid) : TOKEN_KEY;
   try {
-    let t = localStorage.getItem(TOKEN_KEY);
-    if (!t || !UUID_RE.test(t)) { t = uuid4(); localStorage.setItem(TOKEN_KEY, t); }
+    let t = localStorage.getItem(key);
+    if (!t || !UUID_RE.test(t)) { t = uuid4(); localStorage.setItem(key, t); }
     return t;
   } catch (_) { return uuid4(); }
 }
 function localName() {
+  if (isForeignAccount(authUid)) return null; /* 남의 여정에 저장된 이름을 쓰지 않는다 */
   try {
     const s = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
     return (s && s.name) || null;
@@ -296,7 +314,7 @@ async function call(payload, opts) {
       apikey: CFG.key,
       Authorization: 'Bearer ' + session.access_token,
     },
-    body: JSON.stringify(Object.assign({ token: careToken() }, payload)),
+    body: JSON.stringify(Object.assign({ token: careTokenFor(session.user.id) }, payload)),
     keepalive: !!(opts && opts.keepalive),
   });
   const j = await res.json().catch(() => ({}));
@@ -473,7 +491,7 @@ $('btnReset').addEventListener('click', async () => {
 $('btnOut').addEventListener('click', async () => {
   finish(false);
   await sb.auth.signOut();
-  log.querySelectorAll('.row,.chips,.crisis,.notice:not(#intro)').forEach((e) => e.remove());
+  clearLog();
   sessionId = null; history = [];
   showGate();
   setMsg('로그아웃했어요.', 'ok');
@@ -481,6 +499,12 @@ $('btnOut').addEventListener('click', async () => {
 
 async function afterLogin() {
   const { data: { user } } = await sb.auth.getUser();
+  /* 계정이 바뀌었으면 이전 계정의 대화 화면·상태를 완전히 비운다 */
+  if (authUid && user && authUid !== user.id) {
+    clearLog();
+    sessionId = null; history = [];
+  }
+  authUid = user?.id || null;
   showChat(user?.email);
   await begin();
 }
@@ -488,6 +512,7 @@ async function afterLogin() {
 /* ---------- 세션 시작 ---------- */
 async function begin() {
   stat.textContent = '연결 중…';
+  clearLog(); /* 새 세션은 항상 빈 화면에서 — 이전 계정/세션 대화가 남지 않게 */
   try {
     const r = await call({ action: 'begin', name: localName() });
     if (!r.ok) throw new Error(r.error || 'begin_failed');
@@ -608,7 +633,7 @@ $('btnNew').addEventListener('click', async () => {
   if (busy) return;
   if (history.length >= 2 && !confirm('지금 대화를 마치고 새로 시작할까요?\n지금까지의 내용은 요약해 기억합니다.')) return;
   finish(false);
-  log.querySelectorAll('.row,.chips,.crisis,.notice:not(#intro)').forEach((e) => e.remove());
+  clearLog();
   await new Promise((r) => setTimeout(r, 400));
   await begin();
   toast('🌱 새 대화를 시작했어요');
@@ -638,7 +663,7 @@ window.addEventListener('pagehide', () => finish(true));
   /* 메인 창에서 로그인/로그아웃하면 이 창도 따라간다 */
   sb.auth.onAuthStateChange((evt) => {
     if (evt === 'SIGNED_IN' && $('gate').hidden === false && !sessionId) afterLogin();
-    if (evt === 'SIGNED_OUT') { sessionId = null; history = []; showGate(); }
+    if (evt === 'SIGNED_OUT') { sessionId = null; history = []; authUid = null; clearLog(); showGate(); }
   });
 })();
 </script>
