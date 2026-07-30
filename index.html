@@ -1877,7 +1877,9 @@ document.getElementById('mpLogout').addEventListener('click', async () => {
 
 /* ---------- 재방문 사용자: 리포트로 가는 입구만 노출 ----------
  * 체크인·컨디션·케어·Agent 상담·Premium 은 모두 report.html 의 콘텐츠다.
- * 소개 페이지에서는 렌더하지 않고, 알림톡 링크(?checkin=1)로 들어오면 리포트로 보낸다. */
+ * 소개 페이지에서는 렌더하지 않고, 알림톡 링크(?checkin=1)로 들어오면 리포트로 보낸다.
+ * 케어 입구는 이 기기 케어 데이터의 주인 계정으로 로그인한 경우에만 노출한다
+ * — 비로그인·다른 계정 상태에서 이전 사용자의 여정이 보이면 안 된다. */
 try {
   var q = new URLSearchParams(location.search);
   var wantCheckin = !!q.get('checkin');
@@ -1886,7 +1888,6 @@ try {
     location.replace('report.html');
   } else if (NLCareLite.hasJourney()) {
     var entry = document.getElementById('careEntry');
-    entry.style.display = 'block';
     try {
       var c = NLCareLite.course();
       if (c && c.day >= 0) {
@@ -1896,6 +1897,12 @@ try {
     } catch (_) {}
     document.getElementById('ceBtn').addEventListener('click', function () {
       window.open('report.html', '_blank');
+    });
+    /* 로그인/로그아웃 변화에 즉시 반응해 노출·숨김을 갱신한다 */
+    NLAuth.onAuth(function (u) {
+      var owner = null;
+      try { owner = localStorage.getItem('nlCareTokenOwner'); } catch (_) {}
+      entry.style.display = (u && (!owner || owner === u.id)) ? 'block' : 'none';
     });
   }
 } catch (_) {}

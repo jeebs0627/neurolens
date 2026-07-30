@@ -626,11 +626,21 @@ function showError(title,msg){
       renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id});
       return;
     }
-    /* 직전 검사 결과 (비로그인 포함) */
+    /* 직전 검사 결과 (localStorage) — 계정에 저장된 결과라면 본인 로그인 시에만 표시한다.
+     * 로그아웃 후에도 이 브라우저에 남은 이전 계정의 리포트가 열리면 안 된다. */
     let j=null;
     try{ j=JSON.parse(localStorage.getItem('nlLastResult')); }catch(_){}
     if(j&&j.result){
-      renderReport(j.result,{id:j.savedId||null,date:new Date(j.ts||Date.now()).toISOString(),mine:true});
+      if(j.savedId&&NLAuth.enabled){
+        const u=await NLAuth.getUser();
+        if(!u){ showError('로그인이 필요합니다','저장된 리포트는 본인 계정으로 로그인한 뒤 열람할 수 있습니다. 메인 페이지 우측 상단에서 로그인해 주세요.'); return; }
+        const row=await NLAuth.getResult(j.savedId);
+        if(!row){ showError('리포트를 찾을 수 없습니다','존재하지 않거나 열람 권한이 없는 리포트입니다.'); return; }
+        renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id});
+        return;
+      }
+      /* 비로그인 검사(계정 미저장) 결과는 검사 직후 흐름 그대로 표시 */
+      renderReport(j.result,{id:null,date:new Date(j.ts||Date.now()).toISOString(),mine:true});
       return;
     }
     showError('표시할 검사 결과가 없습니다','아직 이 브라우저에서 완료된 검사가 없습니다. 메인 페이지에서 검사를 진행해 주세요.');
