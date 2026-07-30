@@ -196,7 +196,7 @@ footer p{font-size:12px;color:var(--gray)}
 <div id="result">
   <div class="rhead">
     <span class="sample-badge">⚠ SAMPLE REPORT · 가상 데이터 예시</span>
-    <span class="sample-badge" id="sampleDay" style="color:var(--green);background:var(--green-soft);border-color:#BFE8D9">📅 코스 4일차 진행 중</span>
+    <span class="sample-badge" id="sampleDay" style="color:var(--green);background:var(--green-soft);border-color:#BFE8D9">📅 3차 코스 5일차 진행 중</span>
     <h1>NeuroLens 검사 결과 리포트</h1>
     <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
     <div class="rdate" id="sampleDate">검사일 (D0) · 리포트 ID NL-SAMPLE-0001</div>
@@ -323,7 +323,7 @@ window.NL_SUPABASE = {
   key: 'sb_publishable_hl6-Y_kMQelu2DByu4bE4g_V9Ru3jNo',
 };
 </script>
-<script src="care.js?v=17"></script>
+<script src="care.js?v=18"></script>
 <script src="report-render.js"></script>
 <script>
 /* ---------- 샘플 데이터 (가상) ---------- */
@@ -394,7 +394,19 @@ document.querySelectorAll('.mock').forEach(el=>{
 try {
   NLCare.render(document.getElementById('careRoot'), SAMPLE, {
     demo: true, storageKey: 'nlCareDemo',
-    seedDay: 4, // 처음 열면 4일차 진행 중 상태로 — 코스가 어떻게 흘러가는지 바로 보이게
+    seedDay: 5,      // 처음 열면 5일차 진행 중 상태로 — 코스가 어떻게 흘러가는지 바로 보이게
+    seedV: 'c3d5',   // 시드 시나리오 버전 — 바꾸면 기존 방문자의 데모 상태도 새로 시드된다
+    seedBase: 85,    // 3차 코스(재측정) 기준선 — 코스 추이 67 → 72 → 85의 현재 값
+    seedHistory: [   // 지난 코스 이력 (과거 → 최근): 1차 63→67, 2차 67→72
+      { base: 63, start: 63, end: 67, notes: [
+        { d: 2, emoji: '😐', note: '호흡 루틴, 반신반의했는데 생각보다 차분해진다' },
+        { d: 5, emoji: '🙂', note: '처음으로 체크인 시간이 기다려졌다' },
+      ] },
+      { base: 67, start: 67, end: 72, notes: [
+        { d: 3, emoji: '🙂', note: '지난 코스보다 회복이 빨라진 게 느껴진다' },
+        { d: 6, emoji: '😄', note: '산책 루틴이 습관이 됐다 — 6일 연속 성공!' },
+      ] },
+    ],
 
     checkinEl: document.getElementById('checkinRoot'),   // 01 데일리 체크인
     indexEl: document.getElementById('condRoot'),        // 02 오늘의 마음 컨디션
@@ -459,7 +471,7 @@ try {
   });
 })();
 
-/* ---------- 샘플 리포트 헤더 날짜를 진행 중인 코스(D4)에 맞춰 표시 ---------- */
+/* ---------- 샘플 리포트 헤더 날짜를 진행 중인 코스(3차 D5)에 맞춰 표시 ---------- */
 (function syncSampleDates() {
   try {
     const c = NLCare.course('nlCareDemo');
@@ -467,8 +479,9 @@ try {
     d0.setDate(d0.getDate() - Math.max(0, c.day));
     const fmt = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
     document.getElementById('sampleDate').textContent =
-      `검사일 ${fmt(d0)} (D0) · 리포트 ID NL-SAMPLE-0001`;
-    document.getElementById('sampleDay').textContent = `📅 코스 ${c.day}일차 진행 중`;
+      (c.cycle > 1 ? `${c.cycle}차 재측정일 ` : `검사일 `) + `${fmt(d0)} (D0) · 리포트 ID NL-SAMPLE-0001`;
+    document.getElementById('sampleDay').textContent =
+      `📅 ${c.cycle > 1 ? c.cycle + '차 코스 ' : '코스 '}${c.day}일차 진행 중`;
     document.getElementById('sampleTestDate').textContent = `검사 날짜: ${fmt(d0)}`;
   } catch (_) { /* 시드 실패 시 기본 표기 유지 */ }
 })();
