@@ -570,8 +570,10 @@ var SIM_DAYS = [
   { e:'🙂', en:70, rt:1, note:'6일째. 이 정도면 나 잘하고 있다' },
 ];
 
-/* 샘플 리포트용 시드 — D{day} 진행 중 상태를 만든다 (D1~D{day-1} 체크인 완료) */
-function seedDemo(s, day) {
+/* 샘플 리포트용 시드 — D{day} 진행 중 상태를 만든다 (D1~D{day-1} 체크인 완료)
+ * opts.seedHistory(과거→최근 순 [{base,start,end,notes}])가 있으면 지난 코스
+ * 이력까지 만들어 N차 코스 진행 중인 재방문 사용자처럼 보여준다 */
+function seedDemo(s, day, opts) {
   day = Math.max(1, Math.min(7, day || 4));
   var start = new Date();
   start.setDate(start.getDate() - day);
@@ -579,6 +581,40 @@ function seedDemo(s, day) {
   s.demoOffset = 0;
   s.channel = s.channel || { phone: '010-1234-5678', slot: '저녁 8시', ts: Date.now() };
   s.checkins = {}; s.routineDone = {}; s.points = 0; s.ledger = [];
+  s.weeklyCard = null; s.remeasured = false;
+
+  var courses = (opts && opts.seedHistory) || [];
+  if (courses.length) {
+    s.cycle = courses.length + 1;
+    s.history = [];
+    courses.forEach(function (co, ci) {
+      /* 코스 n: D0~D7(8일)을 현재 코스 시작일에서 역산 — 직전 코스의 D7이 다음 코스의 D0 */
+      var st2 = new Date(start);
+      st2.setDate(st2.getDate() - 7 * (courses.length - ci));
+      var en2 = new Date(st2);
+      en2.setDate(en2.getDate() + 7);
+      var cks = {}, trend = [{ d: 0, v: co.start }];
+      for (var k = 1; k <= 6; k++) {
+        var v = Math.round(co.start + (co.end - co.start) * k / 6);
+        var en3 = Math.max(20, Math.min(95, 2 * v - co.base)); /* 지수 = (기준선+상태)/2 역산 */
+        var em = en3 >= 72 ? '😄' : en3 >= 55 ? '🙂' : en3 >= 42 ? '😐' : '😟';
+        var note = null;
+        (co.notes || []).forEach(function (n) { if (n.d === k) { note = n.note; em = n.emoji || em; } });
+        cks[k] = { emoji: em, energy: en3, routines: (s.rx || []).slice(0, 1 + k % 2), note: note, ts: st2.getTime() + k * 86400000 };
+        trend.push({ d: k, v: v });
+      }
+      s.history.unshift({
+        n: ci + 1, startedAt: dstr(st2), endedAt: dstr(en2),
+        base: co.base != null ? co.base : co.start,
+        start: co.start, end: co.end, delta: co.end - co.start, nCheckins: 6,
+        checkins: cks, trend: trend, notes: (co.notes || []).slice(),
+        days: ['done', 'done', 'done', 'done', 'done', 'done'],
+        rx: (s.rx || []).slice(), remeasured: true, track: s.track,
+      });
+      addPoints(s, (ci + 1) + '차 코스 완주 · D7 재측정', 100);
+    });
+  }
+
   for (var i = 0; i < day - 1 && i < SIM_DAYS.length; i++) {
     var v = SIM_DAYS[i], d = i + 1;
     var dd = new Date(start);
@@ -642,9 +678,19 @@ function Care(container, result, opts) {
   }
 
   /* 샘플 리포트: 처음 열면 코스 중반(기본 D4)부터 보여준다 — 1일차만 보이면
-   * 7일 코스가 어떻게 진행되는지 알 수 없기 때문 */
-  if (this.opts.demo && this.opts.seedDay && !this.state.startedAt) {
-    seedDemo(this.state, this.opts.seedDay);
+   * 7일 코스가 어떻게 진행되는지 알 수 없기 때문.
+   * seedV가 바뀌면 기존 데모 상태를 버리고 새 시나리오로 다시 시드한다 */
+  if (this.opts.demo && this.opts.seedDay
+      && (!this.state.startedAt || (this.opts.seedV && this.state.seedV !== this.opts.seedV))) {
+    seedDemo(this.state, this.opts.seedDay, this.opts);
+    if (this.opts.seedV) this.state.seedV = this.opts.seedV;
+    save(this.key, this.state);
+  }
+  /* 데모 기준선 고정 — 위의 result 재계산이 시드된 기준선을 되돌리지 않도록 매 로드 적용
+   * (코스 추이 차트의 "진행 중" 값 = 체크인 전 기준선) */
+  if (this.opts.demo && this.opts.seedBase != null && this.state.base
+      && this.state.base.score !== this.opts.seedBase) {
+    this.state.base.score = this.opts.seedBase;
     save(this.key, this.state);
   }
   if (!document.getElementById('nlcStyle')) {
