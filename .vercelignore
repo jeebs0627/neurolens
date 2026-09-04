@@ -1,0 +1,13 @@
+# Vercel 은 저장소의 모든 파일을 공개 URL 로 서빙한다.
+# 문서·로컬 스크립트·비밀키·DB 소스는 배포본에 포함하지 않는다.
+*.md
+/server.py
+/start.bat
+gemini.key
+*.key
+/NeuroLens_PRD_*.html
+/index.html.html
+/supabase/
+/.bkit/
+/.claude/
+/__pycache__/

@@ -2,7 +2,24 @@
   "rewrites": [
     { "source": "/gemini", "destination": "/api/gemini" },
     { "source": "/rcvrslt", "destination": "/api/rcvrslt" },
-    { "source": "/last-result", "destination": "/api/last-result" },
     { "source": "/mg/:endpoint", "destination": "/api/mg?endpoint=:endpoint" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=()" }
+      ]
+    },
+    {
+      "source": "/(admin|chat_admin|chat|report|result)\\.html",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
   ]
 }

@@ -289,6 +289,8 @@ function blankState() {
     badges:{}, weeklyCard:null,
     /* 케어 코스 사이클 */
     cycle:1, history:[], pendingNewCycle:false,
+    /* 재측정 대기: 어떤 결과에서 눌렀는지(지문)와 시각 — 같은 옛 결과로 다시 열어도 새 코스가 시작되지 않게 */
+    pendingFp:'', pendingAt:0, resultFp:'',
     /* 포인트로 해금한 잠금 리포트 */
     unlocked:{},
     /* 서버 동기화 — outbox: 전송 실패한 변경(오프라인 대비 재시도 큐) */
@@ -653,16 +655,42 @@ function Care(container, result, opts) {
     save(this.key, st0);
   }
 
+  var finishing = null; /* 재측정 → 코스 전환 서버 확정 (bootSync 는 이 뒤에 실행) */
   if (result) { // 새 결과 수신
     var s = this.state;
     var newName = String((result['시험자정보'] || {})['시험자명'] || '');
     // 진행 중인 여정이 다른 시험자의 것이면 → 새 여정으로 리셋 (처방이 이전 사람 것으로 고정되는 문제 방지)
     if (s.startedAt && newName && s.name && newName !== s.name) {
       s = this.state = blankState();
+      /* 공용 PC: 이전 사람의 서버 여정(포인트·전화번호)이 새 사람에게 복원되지 않도록 기기 토큰도 새로 발급 */
+      try { localStorage.setItem(TOKEN_KEY, uuid4()); } catch (_) {}
     }
-    /* D7 재측정으로 돌아온 경우 → 지난 코스를 보관하고 새 코스(새 기준선·새 처방)로 전환 */
+    var fp = resultFingerprint(result);
+    /* D7 재측정으로 돌아온 경우 → 지난 코스를 보관하고 새 코스(새 기준선·새 처방)로 전환.
+     * 단, 같은(옛) 결과를 다시 연 것이면 전환하지 않고, 48시간이 지난 대기는 무효로 본다. */
     var fresh = false;
-    if (s.pendingNewCycle && s.startedAt) { archiveCourse(s); startCourse(s); fresh = true; }
+    if (s.pendingNewCycle && s.startedAt) {
+      var stale = s.pendingAt && (Date.now() - s.pendingAt > 48 * 3600000);
+      var same = s.pendingFp && fp === s.pendingFp;
+      if (stale) { s.pendingNewCycle = false; s.pendingFp = ''; s.pendingAt = 0; }
+      else if (!same) {
+        var sum0 = courseSummary(s), days0 = attendance(s).days, notes0 = courseNotes(s);
+        var base0 = s.base ? s.base.score : null;
+        s.remeasured = true; /* 보관되는 코스 기록에 재측정 완료로 남긴다 */
+        archiveCourse(s); startCourse(s); fresh = true;
+        s.pendingFp = ''; s.pendingAt = 0;
+        if (this.syncOn()) {
+          /* 서버가 보상(+100p) · 코스 보관 · 다음 코스 · 알림톡 재예약을 한 번에 확정한다 */
+          finishing = this.push('care_finish_course', {
+            p_base_score: base0, p_start_score: sum0.start, p_end_score: sum0.end,
+            p_trend: [], p_days: days0, p_notes: notes0, p_remeasured: true,
+          }, { repaint: false });
+        } else if (!s.highRisk) {
+          addPoints(s, 'D7 미니 재측정 완료', 100);
+        }
+      }
+    }
+    s.resultFp = fp;
     var m = mapSignals(result);
     s.name = newName || s.name || '';
     s.track = m.track;
@@ -701,7 +729,25 @@ function Care(container, result, opts) {
   }
   this.bind();
   this.paint();
-  this.bootSync(result); /* 서버 상태 동기화 (설정·온라인일 때만) */
+  /* 서버 상태 동기화 (설정·온라인일 때만). 재측정 코스 전환이 있으면 그 확정을 먼저 기다린다 —
+   * 그렇지 않으면 sync_init 응답(옛 코스)이 방금 보관한 코스를 덮어쓴다. */
+  var self0 = this;
+  if (finishing) finishing.then(function () { self0.bootSync(result); }, function () { self0.bootSync(result); });
+  else this.bootSync(result);
+}
+
+/* 결과 지문: 같은 결과를 다시 연 것인지 구분하는 용도 (개인정보는 넣지 않는다) */
+function resultFingerprint(r) {
+  try {
+    var b = r.BIG5 || {}, keys = Object.keys(b).sort();
+    var parts = [String(r.MBTI || ''), String(((r['직업흥미유형'] || {})['유형']) || '')];
+    for (var i = 0; i < keys.length; i++) parts.push(keys[i] + '=' + b[keys[i]]);
+    var jobs = Array.isArray(r['직무적합도']) ? r['직무적합도'].slice(0, 3) : [];
+    for (var j = 0; j < jobs.length; j++) parts.push(String(jobs[j]['직업'] || '') + ':' + String(jobs[j]['점수'] || ''));
+    var str = parts.join('|'), h = 0;
+    for (var k = 0; k < str.length; k++) { h = ((h << 5) - h + str.charCodeAt(k)) | 0; }
+    return String(h);
+  } catch (_) { return ''; }
 }
 
 Care.prototype.save = function () { save(this.key, this.state); };
@@ -747,41 +793,84 @@ Care.prototype.applyServer = function (res) {
   return true;
 };
 
-/* 변경 1건 전송 → 실패 시 outbox에 적재(다음 기회 재시도) */
+/* 서버가 거부한 이유 → 사용자 문구 (없으면 조용히 정정만) */
+var REJECT_MSG = {
+  bad_day:   '체크인 날짜가 서버 기준과 달라 반영되지 않았어요. 서버 시각(한국 기준)으로 다시 맞췄어요.',
+  no_course: '아직 코스가 시작되지 않아 서버에 기록되지 않았어요. 알림 채널을 먼저 등록해 주세요.',
+  bad_phone: '휴대폰 번호 형식이 맞지 않아 알림을 등록하지 못했어요.',
+  bad_item:  '지금은 해금할 수 없는 항목이에요.',
+};
+
+/* 변경 1건 전송. 모든 쓰기에는 op_id(UUID)를 붙여 재전송이 이중 처리되지 않게 한다.
+ *  · 네트워크 실패 → outbox 적재(같은 op_id 로 재시도)
+ *  · 서버 거부(ok:false) → 로컬 낙관 상태를 서버 스냅샷으로 되돌리고 이유를 알린다
+ *  · not_found(여정 미생성) → 결과가 들어오면 여정이 생기므로 outbox 에 남긴다 */
 Care.prototype.push = function (fn, params, opts) {
   if (!this.syncOn()) return Promise.resolve(null);
-  var self = this, o = opts || {};
-  return Sync.call(fn, params).then(function (res) {
-    var changed = self.applyServer(res);
-    if (res && res.ok === false && res.error === 'insufficient') {
-      /* 서버 잔액이 부족 → 로컬 낙관적 처리를 되돌리고 알림 */
-      self.paint();
-      self.toast('포인트가 ' + res.need + 'p 부족해요 (서버 기준) — 체크인·루틴으로 모아보세요');
-      return res;
+  var self = this, o = opts || {}, p = {};
+  for (var k in (params || {})) if (Object.prototype.hasOwnProperty.call(params, k)) p[k] = params[k];
+  if (!p.p_op_id) p.p_op_id = uuid4();
+  return Sync.call(fn, p).then(function (res) {
+    if (res && res.ok === false) {
+      if (res.error === 'not_found') {
+        self.enqueue(fn, p);
+        return res;
+      }
+      /* 거부 응답에 서버 상태가 함께 오면 그것으로, 아니면 다시 받아와서 로컬을 정정한다 */
+      var fix = (res.journey || res.ledger) ? Promise.resolve(res) : Sync.call('care_sync_pull', {}).catch(function () { return null; });
+      return fix.then(function (snap) {
+        if (snap && snap.ok !== false) self.applyServer(snap);
+        else if (snap && snap.journey) self.applyServer(Object.assign({}, snap, { ok: true }));
+        self.paint();
+        if (res.error === 'insufficient') {
+          self.toast('포인트가 ' + (res.need != null ? res.need : '조금') + 'p 부족해요 (서버 기준) — 체크인·루틴으로 모아보세요');
+        } else if (REJECT_MSG[res.error]) {
+          self.toast(REJECT_MSG[res.error]);
+        }
+        return res;
+      });
     }
+    var changed = self.applyServer(res);
     if (changed && o.repaint !== false) self.paint();
     return res;
   }).catch(function (e) {
-    if (String(e.message || e) === 'sync_off') return null;
-    self.state.outbox.push({ fn: fn, params: params, at: Date.now() });
-    if (self.state.outbox.length > 40) self.state.outbox.shift();
-    self.save();
+    var m = String(e.message || e);
+    if (m === 'sync_off') return null;
+    /* 4xx 는 다시 보내도 같은 결과 — 큐에 넣지 않는다 (5xx·네트워크 오류만 재시도) */
+    if (/^HTTP 4\d\d/.test(m)) return null;
+    self.enqueue(fn, p);
     return null;
   });
 };
 
-/* 밀린 변경 재전송 (부팅 시 · 동기화 성공 직후) */
+Care.prototype.enqueue = function (fn, params) {
+  var ob = this.state.outbox;
+  for (var i = 0; i < ob.length; i++) if (ob[i].params && ob[i].params.p_op_id === params.p_op_id) return;
+  ob.push({ fn: fn, params: params, at: Date.now() });
+  if (ob.length > 40) ob.shift();
+  this.save();
+};
+
+/* 밀린 변경 재전송 (부팅 시 · 동기화 성공 직후). 같은 op_id 로 보내므로 서버가 중복을 걸러 준다. */
 Care.prototype.flushOutbox = function () {
   var s = this.state, self = this;
   if (!this.syncOn() || !s.outbox.length) return Promise.resolve();
-  var queue = s.outbox.slice(0, 10);
-  s.outbox = s.outbox.slice(queue.length);
+  var cutoff = Date.now() - 7 * 86400000;
+  var queue = s.outbox.filter(function (j) { return j.at > cutoff; }).slice(0, 10);
+  s.outbox = s.outbox.filter(function (j) { return j.at > cutoff && queue.indexOf(j) < 0; });
   this.save();
   return queue.reduce(function (chain, job) {
     return chain.then(function () {
+      if (job.params && !job.params.p_op_id) job.params.p_op_id = uuid4();
       return Sync.call(job.fn, job.params)
-        .then(function (res) { self.applyServer(res); })
-        .catch(function () { s.outbox.push(job); self.save(); });
+        .then(function (res) {
+          if (res && res.ok === false && res.error === 'not_found') { s.outbox.push(job); self.save(); return; }
+          self.applyServer(res);
+        })
+        .catch(function (e) {
+          if (/^HTTP 4\d\d/.test(String(e.message || e))) return; /* 영구 오류는 버린다 */
+          s.outbox.push(job); self.save();
+        });
     });
   }, Promise.resolve()).then(function () { self.paint(); });
 };
@@ -1861,6 +1950,8 @@ Care.prototype.openGazeBreath = function () {
         s.routineDone[k].push('gazeBreath');
         addPoints(s, '루틴 실천 · 시선 바이오피드백 호흡', 20);
         earned = true;
+        /* 서버 원장에도 기록 — 로컬만 적립하면 다음 동기화에서 사라진다 */
+        self.push('care_log_routine', { p_routine_id: 'gazeBreath', p_label: '시선 바이오피드백 호흡', p_done_on: k });
       }
       self.save(); self.paint();
     }
@@ -2011,16 +2102,19 @@ Care.prototype.bindTo = function (root) {
     if (act === 'remeasure') {
       e.preventDefault();
       if (!s.remeasured) {
-        s.remeasured = true;
-        addPoints(s, 'D7 미니 재측정 완료', 100);
         if (typeof self.opts.onRemeasure === 'function') {
-          /* 실제 재측정 → 새 결과가 들어오면 지난 코스를 보관하고 다음 코스로 자동 전환 */
+          /* 실제 재측정: 보상(+100p)과 코스 전환은 **새 결과가 들어온 뒤** 서버(care_finish_course)가 확정한다.
+           * 버튼만 누르고 측정을 안 하면 아무것도 적립되지 않는다. */
           s.pendingNewCycle = true;
+          s.pendingFp = s.resultFp || '';
+          s.pendingAt = Date.now();
           self.save(); self.paint();
-          self.toast('👁 재측정을 시작합니다 · +100p 적립 — 결과가 다음 코스의 기준선이 돼요');
-          self.push('care_log_remeasure', {});
+          self.toast('👁 재측정을 시작합니다 — 새 결과가 들어오면 +100p 와 함께 다음 코스가 열려요');
           self.opts.onRemeasure();
         } else {
+          /* 데모(샘플 리포트): 서버에 쓰지 않으므로 로컬에서만 완료 처리 */
+          s.remeasured = true;
+          addPoints(s, 'D7 미니 재측정 완료', 100);
           self.save(); self.paint();
           self.toast('👁 재측정 완료(데모) · +100p 적립');
         }

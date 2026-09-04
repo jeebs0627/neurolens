@@ -60,5 +60,12 @@ git push -u origin main
 ## 주의
 
 - **API 키를 코드에 다시 하드코딩하지 마세요.** 커밋 이력에 한 번 올라가면 삭제해도 남습니다.
-- `last-result` 폴링은 서버리스에서 항상 빈 값을 반환합니다(무상태).
-  결과 전달은 postMessage로 정상 동작하며, 폴링까지 복원하려면 Vercel KV 연동이 필요합니다.
+  GitHub 웹 업로드("Add files via upload")는 `.gitignore`를 적용하지 않으므로 `gemini.key`가 함께 올라갑니다.
+  반드시 `git push`로 배포하세요. (2026-09-04: 노출된 키는 폐기·재발급 대상)
+- `.vercelignore` 가 문서(*.md)·로컬 스크립트·PRD·`supabase/` 를 배포본에서 제외합니다.
+  Vercel은 저장소의 모든 파일을 공개 URL로 서빙하므로 내부 문서를 루트에 두면 그대로 노출됩니다.
+- `/gemini` 는 프롬프트가 아니라 구조화된 결과 필드만 받습니다(서버에서 프롬프트 조립). 같은 사이트에서 온
+  요청만 처리하며, 총평은 리포트당 1회 생성해 `test_results.summary` 에 저장됩니다.
+- `/last-result` 폴링 엔드포인트는 제거했습니다. 결과 전달은 `/rcvrslt` → localStorage + postMessage 입니다.
+- DB 함수(care_* RPC)의 원본은 `supabase/migrations/` 입니다. Supabase 대시보드에서 직접 고치지 말고
+  마이그레이션 파일을 추가한 뒤 적용하세요.

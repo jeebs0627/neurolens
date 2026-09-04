@@ -202,7 +202,7 @@ textarea::placeholder{color:#B5BCC8}
     </div>
     <div class="fld">
       <label for="pw">비밀번호</label>
-      <input type="password" id="pw" autocomplete="current-password" required minlength="8" placeholder="8자 이상">
+      <input type="password" id="pw" autocomplete="current-password" required minlength="6" placeholder="6자 이상">
     </div>
     <button class="gbtn" type="submit" id="gbtn">로그인하고 상담 시작</button>
   </form>
@@ -367,6 +367,18 @@ function thinking(on) {
     t.innerHTML = PIC + '<div class="think"><i></i><i></i><i></i></div>';
     log.appendChild(t); bottom();
   } else if (t) t.remove();
+}
+/* 위기 신호 1차 스크리닝(클라이언트 사본) — 서버 응답이 실패했을 때도 안내 카드를 띄우기 위한 최소 목록.
+ * 운영 기준 목록은 Edge Function `chat` 의 screenRisk 와 맞춘다. */
+function screenRiskLocal(text) {
+  const t = String(text || '').replace(/\s/g, '');
+  const high = ['죽을방법', '자살방법', '유서', '번개탄', '목맬', '목을맬', '투신', '뛰어내릴', '뛰어내리',
+    '약을모아', '수면제를모', '오늘죽', '지금죽을', '내일죽', '다죽여', '죽여버릴', '죽어버리', '자살'];
+  const watch = ['죽고싶', '사라지고싶', '없어지고싶', '끝내고싶', '자해', '살기싫', '살고싶지않',
+    '숨쉬기힘들', '다포기', '혼자못견', '학대', '성폭력', '폭행당', '죽을래', '한강'];
+  for (const k of high) if (t.includes(k)) return 'high';
+  for (const k of watch) if (t.includes(k)) return 'watch';
+  return 'none';
 }
 function crisisCard() {
   if ($('crisisCard')) return;
@@ -591,6 +603,19 @@ async function send() {
   } catch (e) {
     thinking(false);
     const m = String(e.message || e);
+    /* 응답 생성에 실패했더라도 위기 신호가 있으면 안내 창구는 반드시 보인다.
+     * (자·타해 문장은 모델 안전필터에 걸려 예외로 떨어질 확률이 높다 — 그때 안내가 사라지면 안 된다) */
+    const risk = screenRiskLocal(text);
+    if (risk !== 'none') {
+      bubble('assistant', '지금 많이 힘드신 것 같아요. 제가 답을 만드는 데 문제가 생겼지만, 혼자 견디지 않으셔도 됩니다. '
+        + '아래 창구는 24시간 열려 있고, 즉시 위험하다고 느껴지면 112 또는 119에 바로 연락해 주세요.');
+      crisisCard();
+      history.pop(); /* 응답 없는 사용자 턴은 다음 요청에 섞지 않는다 */
+      console.error(e);
+      busy = false; sendBtn.disabled = false; msgEl.focus();
+      return;
+    }
+    history.pop();
     if (m !== 'login_required' && m !== 'no_session') {
       /* 원인을 뭉개지 않고 구분해서 알린다 — 코드 문제와 사용량/설정 문제는 대응이 다르다 */
       if (/\b429\b|quota|RESOURCE_EXHAUSTED/i.test(m)) {

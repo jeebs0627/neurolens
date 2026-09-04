@@ -367,7 +367,7 @@ footer p{font-size:12px;color:var(--gray)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
-<script src="care.js?v=17"></script>
+<script src="care.js?v=19"></script>
 <script src="report-render.js"></script>
 <script>
 /* 본인 리포트일 때 서버에 보관하는 구조화 결과 — AI 총평 생성 후 saveReport 재호출에 재사용 */
@@ -491,7 +491,7 @@ function renderReport(r, meta){
     document.querySelectorAll('#result .gauge[data-gv]').forEach(el=>el.style.setProperty('--gv',el.dataset.gv));
   });});
 
-  requestSummary(r,mbti,info,values,jobs,h);
+  requestSummary(r,mbti,info,values,jobs,h,meta);
   loadDelta(r,meta);
 }
 
@@ -555,41 +555,60 @@ function renderDelta(cur,prev,prevDate,curNo,prevNo){
   document.getElementById('rDeltaCard').style.display='';
 }
 
-/* ---------- Gemini AI 총평 (실패 시 규칙 기반 폴백) ---------- */
-async function requestSummary(r,mbti,info,values,jobs,holland){
-  const box=document.getElementById('rSummary');
+/* ---------- AI 총평: 리포트당 1회 생성 → 저장 → 재열람 시 재사용 ----------
+ * 프롬프트는 서버(/gemini)가 조립한다. 여기서는 구조화된 결과 필드만 보낸다.
+ * 캐시 위치: 계정 저장 리포트 → test_results.summary, 비로그인 → localStorage nlLastResult.summary */
+function paintSummary(text){
+  document.getElementById('rSummary').innerHTML=
+    String(text).trim().split(/\n\s*\n/).map(par=>`<p>${esc(par.trim())}</p>`).join('');
+}
+function localSummary(meta){
+  try{
+    const j=JSON.parse(localStorage.getItem('nlLastResult'));
+    if(j&&j.summary&&j.ts&&meta.ts&&j.ts===meta.ts) return j.summary;
+  }catch(_){}
+  return '';
+}
+function storeSummary(meta,text){
+  if(meta.id&&meta.mine&&NLAuth.enabled&&NLAuth.client){
+    NLAuth.client.from('test_results').update({summary:text,summary_at:new Date().toISOString()}).eq('id',meta.id)
+      .then(r=>{ if(r.error) console.warn('총평 저장 실패:',r.error.message); });
+  }
+  try{
+    const j=JSON.parse(localStorage.getItem('nlLastResult'));
+    if(j&&(!meta.ts||j.ts===meta.ts)){ j.summary=text; localStorage.setItem('nlLastResult',JSON.stringify(j)); }
+  }catch(_){}
+}
+async function requestSummary(r,mbti,info,values,jobs,holland,meta){
+  meta=meta||{};
+  const cached=meta.summary||localSummary(meta);
+  if(cached){
+    paintSummary(cached);
+    try{ if(careReportPayload) NLCare.saveReport(careReportPayload, cached); }catch(_){}
+    return;
+  }
   const p=r['시험자정보']||{};
-  const prompt=`당신은 심리측정 전문가입니다. 아래 시선추적 기반 심리검사 결과를 종합해 한국어 총평을 작성하세요.
-
-[검사 결과]
-- 시험자: ${p['시험자명']||'익명'} (${p['성별']||'-'}, ${p['연령대']||'-'})
-- MBTI: ${mbti}${info?' ('+info.n+')':''}
-- Big5 백분위: 개방성 ${values[0]}, 성실성 ${values[1]}, 외향성 ${values[2]}, 친화성 ${values[3]}, 신경성 ${values[4]}
-- 직업흥미유형(Holland): ${holland['유형']||'-'} (${holland['유형명']||'-'})
-- 직무적합도 1~3위: ${jobs.slice(0,3).map((j,i)=>`${i+1}위 ${j.name}(${j.score.toFixed(1)}점)`).join(', ')}
-- 직무적합도 4~5위 참고: ${jobs.slice(3,5).map(j=>`${j.name}(${j.score.toFixed(1)})`).join(', ')||'-'}
-
-[작성 규칙 — 반드시 지킬 것]
-- 전체 분량은 공백 포함 최소 300자 이상(약 350~450자)으로 충분히 상세하게 작성.
-- 정확히 3개 문단으로 구성.
-- 1문단: MBTI 유형(${mbti})의 핵심 특성과 Big5에서 두드러진 상·하위 요인 2가지를 연결해 성격의 큰 그림을 해석.
-- 2문단: 직무적합도 1위, 2위, 3위 직무를 각각 이름을 언급하며, 왜 이 성격·흥미 조합에서 해당 직무가 잘 맞는지 하나씩 간단히 해설. 직업흥미유형(Holland) 결과도 연결.
-- 3문단: 보완하면 좋을 점 1가지와 따뜻한 격려로 마무리.
-- 전문적이되 따뜻하고 자연스러운 존댓말. 의료적 진단 표현 금지.
-- 마크다운, 제목, 목록 없이 순수 문단 텍스트만. 문단 사이는 빈 줄로 구분.`;
-
+  const payload={
+    name:p['시험자명']||'', gender:p['성별']||'', age:p['연령대']||'',
+    mbti:mbti, mbtiName:info?info.n:'',
+    big5:values.map(v=>Math.round(v)),
+    holland:holland['유형']||'', hollandName:holland['유형명']||'',
+    jobs:jobs.slice(0,5).map(j=>({name:j.name,score:Math.round(j.score*10)/10})),
+  };
   try{
     const res=await fetch('/gemini',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt}),
+      body:JSON.stringify(payload),
     });
     const j=await res.json();
     if(!j.text) throw new Error(j.error||'응답 없음');
-    box.innerHTML=j.text.trim().split(/\n\s*\n/).map(par=>`<p>${esc(par.trim())}</p>`).join('');
+    const text=j.text.trim();
+    paintSummary(text);
+    storeSummary(meta,text);
     /* AI 총평을 서버에도 보관 → Agent 상담 매니저가 AI_OVERVIEW 에 근거해 답할 수 있다 */
-    try{ if(careReportPayload) NLCare.saveReport(careReportPayload, j.text.trim()); }catch(_){}
+    try{ if(careReportPayload) NLCare.saveReport(careReportPayload, text); }catch(_){}
   }catch(e){
-    box.innerHTML=buildFallbackSummary(mbti,info,values,jobs,holland);
+    document.getElementById('rSummary').innerHTML=buildFallbackSummary(mbti,info,values,jobs,holland);
   }
 }
 
@@ -613,6 +632,21 @@ function showError(title,msg){
   document.getElementById('loadCard').innerHTML=
     `<h2>${esc(title)}</h2><p>${esc(msg)}</p><a href="index.html">메인으로 돌아가기</a>`;
 }
+/* 비로그인 검사 결과 상단 안내 — 가입은 메인 페이지 모달에서 (index.html#signup) */
+function showGuestBanner(){
+  if(!(window.NLAuth&&NLAuth.enabled))return;
+  NLAuth.getUser().then(u=>{
+    if(u||document.getElementById('guestBanner'))return;
+    const b=document.createElement('div');
+    b.id='guestBanner';
+    b.style.cssText='max-width:1040px;margin:14px auto 0;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#EEF3FF,#F6F1FF);border:1px solid #DCE5F7;display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between';
+    b.innerHTML='<div style="font-size:13.5px;line-height:1.6;color:#4B5670"><b style="color:#0B1B3F">이 리포트는 지금 이 브라우저에만 저장돼 있어요.</b> '
+      +'가입하면 계정에 보관되고 7일 케어 · AI 상담 · 다음 검사와의 비교가 이어집니다.</div>'
+      +'<a href="index.html#signup" target="_blank" rel="noopener" style="white-space:nowrap;font-weight:800;font-size:13.5px;color:#fff;background:#1E5AF0;padding:10px 16px;border-radius:10px;text-decoration:none">가입하고 저장하기 →</a>';
+    const host=document.getElementById('result');
+    host.insertBefore(b,host.firstChild);
+  }).catch(()=>{});
+}
 
 (async function load(){
   const id=new URLSearchParams(location.search).get('id');
@@ -623,7 +657,7 @@ function showError(title,msg){
       if(!u){ showError('로그인이 필요합니다','저장된 리포트는 본인 계정으로 로그인한 뒤 열람할 수 있습니다. 메인 페이지 우측 상단에서 로그인해 주세요.'); return; }
       const row=await NLAuth.getResult(id);
       if(!row){ showError('리포트를 찾을 수 없습니다','존재하지 않거나 열람 권한이 없는 리포트입니다.'); return; }
-      renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id});
+      renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id,summary:row.summary||''});
       return;
     }
     /* 직전 검사 결과 (localStorage) — 계정에 저장된 결과라면 본인 로그인 시에만 표시한다.
@@ -636,11 +670,12 @@ function showError(title,msg){
         if(!u){ showError('로그인이 필요합니다','저장된 리포트는 본인 계정으로 로그인한 뒤 열람할 수 있습니다. 메인 페이지 우측 상단에서 로그인해 주세요.'); return; }
         const row=await NLAuth.getResult(j.savedId);
         if(!row){ showError('리포트를 찾을 수 없습니다','존재하지 않거나 열람 권한이 없는 리포트입니다.'); return; }
-        renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id});
+        renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id,summary:row.summary||'',ts:j.ts||0});
         return;
       }
-      /* 비로그인 검사(계정 미저장) 결과는 검사 직후 흐름 그대로 표시 */
-      renderReport(j.result,{id:null,date:new Date(j.ts||Date.now()).toISOString(),mine:true});
+      /* 비로그인 검사(계정 미저장) 결과는 검사 직후 흐름 그대로 표시 + 저장 안내 */
+      renderReport(j.result,{id:null,date:new Date(j.ts||Date.now()).toISOString(),mine:true,ts:j.ts||0,summary:j.summary||''});
+      showGuestBanner();
       return;
     }
     showError('표시할 검사 결과가 없습니다','아직 이 브라우저에서 완료된 검사가 없습니다. 메인 페이지에서 검사를 진행해 주세요.');

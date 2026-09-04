@@ -121,6 +121,31 @@ function renderBig5Legend(values){
     </div>`).join('');
 }
 
+/* ---------- 직무적합도 → 실제 채용 검색 링크 (리포트가 행동으로 이어지게) ---------- */
+const JOB_LINKS=[
+  {k:'고용24', u:n=>'https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?keyword='+encodeURIComponent(n)},
+  {k:'사람인', u:n=>'https://www.saramin.co.kr/zf_user/search?searchword='+encodeURIComponent(n)},
+  {k:'잡코리아', u:n=>'https://www.jobkorea.co.kr/Search/?stext='+encodeURIComponent(n)},
+];
+function jobLinks(name,cls){
+  return `<div class="${cls||'joblinks'}">`+JOB_LINKS.map(l=>
+    `<a href="${l.u(name)}" target="_blank" rel="noopener nofollow" title="${esc(name)} 채용 검색 · ${l.k}">${l.k}</a>`
+  ).join('')+`</div>`;
+}
+(function injectJobLinkStyle(){
+  if(document.getElementById('nlJobLinkStyle'))return;
+  const st=document.createElement('style'); st.id='nlJobLinkStyle';
+  st.textContent=
+    '.joblinks{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px}'
+   +'.joblinks a,.joblinks-sm a{font-size:11px;font-weight:700;letter-spacing:.02em;text-decoration:none;color:#3B5FA8;'
+   +'background:#EEF3FF;border:1px solid #D7E2FA;border-radius:999px;padding:3px 9px;line-height:1.5;white-space:nowrap}'
+   +'.joblinks a:hover,.joblinks-sm a:hover{background:#1E5AF0;border-color:#1E5AF0;color:#fff}'
+   +'.joblinks-sm{display:flex;gap:4px;margin-left:8px}.joblinks-sm a{padding:1px 7px;font-size:10.5px}'
+   +'.jobs-note{font-size:12px;color:#7C859C;margin-top:10px}'
+   +'@media (max-width:640px){.joblinks-sm{display:none}}';
+  document.head.appendChild(st);
+})();
+
 /* ---------- 직무적합도 (TOP3 포디움 + 4위 이하 리스트) ---------- */
 function renderFit(jobs){
   const gaugeColors=['#1E5AF0','#6C4CE0','#0FA47A'];
@@ -135,6 +160,7 @@ function renderFit(jobs){
       </div>
       <div class="job">${esc(j.name)}</div>
       <div class="delta">${delta}</div>
+      ${jobLinks(j.name)}
     </div>`;
   }).join('');
   const rest=jobs.slice(3);
@@ -146,10 +172,11 @@ function renderFit(jobs){
   document.getElementById('rJobs').innerHTML=rest.map((j,i)=>`
     <div class="jrow">
       <span class="rk">${i+4}위</span>
-      <label title="${esc(j.name)}">${esc(j.name)}</label>
+      <label title="${esc(j.name)}">${esc(j.name)}${i<2?jobLinks(j.name,'joblinks-sm'):''}</label>
       <div class="track"><i class="fill" data-w="${(18+82*(j.score-rMin)/span).toFixed(1)}%" style="background:${fillColor(j.score)}"></i></div>
       <span class="sc">${j.score.toFixed(1)}</span>
-    </div>`).join('');
+    </div>`).join('')
+    +(jobs.length?`<p class="jobs-note">직무 이름 아래 버튼을 누르면 고용24(워크넷)·사람인·잡코리아에서 해당 직무 채용공고를 바로 검색합니다.</p>`:'');
 }
 
 /* ---------- 총평 상단 요약 태그: MBTI · Big5 TOP1 · 직무적합 TOP1 · 흥미유형 ---------- */

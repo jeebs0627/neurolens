@@ -176,6 +176,12 @@ header.hero{position:relative;overflow:hidden;background:
 .hero .inner{position:relative;z-index:2}
 .hero .badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-num);font-size:11.5px;font-weight:700;letter-spacing:.13em;color:var(--blue);background:rgba(255,255,255,.75);border:1px solid var(--blue-line);padding:7px 18px;border-radius:22px;margin-bottom:26px;box-shadow:var(--shadow-sm)}
 .hero .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(15,164,122,.16);animation:pulse 2.2s infinite}
+.hero .hero-actions{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.hero .btn-sample{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--blue);background:rgba(255,255,255,.82);border:1.5px solid var(--blue-line);border-radius:14px;padding:15px 24px;text-decoration:none;box-shadow:var(--shadow-sm);transition:transform .18s,box-shadow .18s,border-color .18s}
+.hero .btn-sample svg{width:18px;height:18px}
+.hero .btn-sample:hover{transform:translateY(-2px);border-color:var(--blue);box-shadow:0 10px 24px rgba(30,90,240,.14)}
+.hero .btn-sample:focus-visible{outline:3px solid rgba(30,90,240,.35);outline-offset:2px}
+.hero .sub b{color:var(--blue)}
 .hero h1{font-size:clamp(32px,5vw,54px);font-weight:900;letter-spacing:-.03em;line-height:1.24}
 .hero h1 em{font-style:normal;background:var(--grad-hero);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .hero p.sub{color:var(--gray);font-size:clamp(15px,1.6vw,18px);max-width:580px;margin:20px auto 36px}
@@ -620,22 +626,26 @@ footer p{font-size:12.5px;color:var(--gray)}
 <header class="hero" id="top">
 
   <div class="wrap inner">
-    <span class="badge"><span class="dot"></span>WEBCAM-BASED GAZE AI · 실증 진행 중</span>
-    <h1>시선이 말하는 마음,<br><em>NeuroLens</em>가 읽습니다</h1>
-    <p class="sub">일반 웹캠만으로 5분간 시선행동을 측정해 심리 상태를 <br>객관적 행동 신호로 분석하는 AI 심리측정 및 웰니스 Agent 케어 플랫폼</p>
+    <span class="badge"><span class="dot"></span>WEBCAM-BASED GAZE AI · 경기도 8개교 1,600명 실증 완료</span>
+    <h1>5분 웹캠 검사로<br>성격·직무적합 리포트 4종을 <em>무료</em>로</h1>
+    <p class="sub">로그인 없이 바로 시작. 일반 웹캠으로 시선행동을 측정해 Big 5·직업흥미·MBTI·직무 적합도를 읽고, <br>검사 뒤에는 <b>NeuroLens</b>의 7일 케어와 AI 상담이 이어집니다.</p>
 
-    <button id="startBtn" class="btn-main">
-      <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
-      검사하기
-    </button>
-    <div class="meta">
-      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>웹캠만 있으면 OK</span>
-      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>약 5분 소요</span>
-      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>별도 장비 불필요</span>
+    <div class="hero-actions">
+      <button id="startBtn" class="btn-main">
+        <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        무료 검사 시작
+      </button>
+      <a class="btn-sample" href="result.html" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+        샘플 리포트 먼저 보기
+      </a>
     </div>
-    <a href="result.html" target="_blank" rel="noopener"
-       style="display:inline-block;margin-top:14px;font-size:14px;font-weight:700;color:var(--blue);text-decoration:none;border-bottom:1.5px dashed rgba(30,90,240,.45);padding-bottom:2px">
-      📄 검사 전에 샘플 리포트 미리보기 →</a>
+    <div class="meta">
+      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>로그인 없이 시작</span>
+      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>PC · 노트북 웹캠</span>
+      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>약 5분 소요</span>
+      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>결과 즉시 확인</span>
+    </div>
     <p id="status"></p>
 
     <div class="gaze-visual" aria-hidden="true">
@@ -1435,15 +1445,12 @@ function setStatus(msg, isError = false) {
 
 /* ---------- 검사 시작 ---------- */
 async function startTest() {
-  /* 비로그인 상태면 안내 후 로그인 화면으로 이동 (Supabase 미설정 환경은 그대로 진행) */
-  if (window.NLAuth && NLAuth.enabled) {
-    let user = null;
-    try { user = await NLAuth.getUser(); } catch (_) {}
-    if (!user) {
-      alert('로그인 해 주세요');
-      openAuthModal('login');
-      return;
-    }
+  /* 로그인 없이 바로 검사한다. 결과 화면에서 "저장하고 7일 케어 받기"로 가입을 안내하고,
+   * 가입·로그인 직후 방금 결과를 계정에 저장한다 (savePendingResult). */
+  if (isMobileDevice()) {
+    setStatus('시선추적 검사는 웹캠이 있는 PC·노트북에서 진행할 수 있어요. 이 페이지 링크를 PC에서 열어 주세요.', true);
+    try { if (navigator.share) navigator.share({ title: 'NeuroLens 무료 검사', url: location.origin + '/' }); } catch (_) {}
+    return;
   }
   startBtn.disabled = true;
   document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
@@ -1532,57 +1539,75 @@ window.addEventListener('storage', (e) => {
   if (e.key === 'mindgazeResult') checkLocalResult();
 });
 
-/* ---------- 결과 폴링 (postMessage 유실 대비) ----------
- * 검사(5분)보다 넉넉한 15분 상한을 두고, 검사 창이 닫히면 20초 유예 후 중단한다
- * — 창을 닫고 이탈해도 2초 폴링이 무한히 돌지 않게. */
+/* ---------- 결과 대기 (localStorage 감시 + 검사 창 상태 감시) ----------
+ * 서버 폴링(/last-result)은 서버리스에서 항상 빈 값이라 제거했다. 결과는 같은 도메인의
+ * /rcvrslt 페이지가 localStorage 에 쓰고(storage 이벤트), 보조로 2초마다 직접 확인한다.
+ * 검사 창이 닫히면 20초 유예 뒤 대기를 멈추고 버튼을 바로 되살린다 — 창을 닫고 이탈했을 때
+ * 버튼이 15분 동안 잠겨 있던 문제 해결. 상한은 15분. */
 let pollTimer = null;
-let baseSeq = null;
 let pollStartedAt = 0;
+let popupClosedAt = 0;
 const POLL_MAX_MS = 15 * 60 * 1000;
+const CLOSE_GRACE_MS = 20 * 1000;
+
+function isMobileDevice() {
+  const ua = navigator.userAgent || '';
+  const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) && coarse && Math.min(screen.width, screen.height) < 820;
+}
+
+function resetTestUI(msg, isError) {
+  stopPolling();
+  startBtn.disabled = false;
+  if (msg) setStatus(msg, !!isError);
+}
 
 function startPolling() {
   stopPolling();
   pollStartedAt = Date.now();
-  pollTimer = setInterval(async () => {
-    if (Date.now() - pollStartedAt > POLL_MAX_MS) {
-      stopPolling();
-      setStatus('결과 수신 대기를 중단했습니다. 검사를 마쳤다면 「검사하기」를 다시 눌러 진행해 주세요.', true);
-      startBtn.disabled = false;
+  popupClosedAt = 0;
+  pollTimer = setInterval(() => {
+    if (checkLocalResult()) return;
+    const now = Date.now();
+    if (now - pollStartedAt > POLL_MAX_MS) {
+      resetTestUI('결과 수신 대기를 중단했습니다. 검사를 마쳤다면 「무료 검사 시작」을 다시 눌러 진행해 주세요.', true);
       return;
     }
-    if (checkLocalResult()) return;
-    try {
-      const r = await fetch('/last-result');
-      const j = await r.json();
-      if (baseSeq === null) { baseSeq = j.seq; return; }
-      if (j.seq > baseSeq && j.data) {
-        stopPolling();
-        let result;
-        try { result = JSON.parse(j.data); } catch (_) { result = { raw: j.data }; }
-        renderResult(result);
-        try { if (popup && !popup.closed) popup.close(); } catch (_) {}
+    let closed = false;
+    try { closed = !popup || popup.closed; } catch (_) { closed = false; }
+    if (closed) {
+      if (!popupClosedAt) { popupClosedAt = now; setStatus('검사 창이 닫혔어요. 결과가 도착했는지 잠시 확인 중…'); }
+      else if (now - popupClosedAt > CLOSE_GRACE_MS) {
+        resetTestUI('검사 창이 닫혔습니다. 검사를 끝까지 마치지 않았다면 「무료 검사 시작」으로 다시 시작할 수 있어요.');
       }
-    } catch (_) { /* 서버 일시 오류 무시 */ }
+    } else if (popupClosedAt) {
+      popupClosedAt = 0;
+    }
   }, 2000);
 }
 
 function stopPolling() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-  baseSeq = null;
 }
 
-/* ---------- 결과 수신 (팝업 postMessage) ---------- */
+/* ---------- 결과 수신 (팝업 postMessage) ----------
+ * 결과 메시지는 같은 오리진(/rcvrslt 페이지)에서 온 것만 받는다 — 임의 사이트가 postMessage 로
+ * 가짜 결과를 심는 경로 차단. 'mindgazeclose' 는 검사 제공사(mindgaze.ai) 창에서 온다. */
+const MINDGAZE_ORIGINS = ['https://mindgaze.ai', 'https://www.mindgaze.ai'];
 window.addEventListener('message', (e) => {
   if (e.data === 'mindgazeclose') {
+    if (e.origin !== location.origin && MINDGAZE_ORIGINS.indexOf(e.origin) < 0) return;
     try { if (popup && !popup.closed) popup.close(); } catch (_) {}
     setStatus('검사 창이 닫혔습니다.');
     startBtn.disabled = false;
-    /* 마지막 결과 저장이 늦게 도착할 수 있어 20초만 더 기다렸다 폴링을 멈춘다 */
+    /* 마지막 결과 저장이 늦게 도착할 수 있어 20초만 더 기다렸다 대기를 멈춘다 */
     checkLocalResult();
     setTimeout(stopPolling, 20000);
     return;
   }
   if (!e.data || e.data.type !== 'mindgazeResult') return;
+  if (e.origin !== location.origin) return;
+  if (popup && e.source && e.source !== popup) return;
   stopPolling();
   let result;
   try { result = typeof e.data.data === 'string' ? JSON.parse(e.data.data) : e.data.data; }
@@ -1616,12 +1641,14 @@ async function renderResult(r) {
   const stamp = { ts: Date.now(), savedId: null, result: r };
   try { localStorage.setItem('nlLastResult', JSON.stringify(stamp)); } catch (_) {}
 
-  /* 2) 로그인 상태면 Supabase에 저장 → 마이페이지 검사 이력 */
-  let hint = '💡 로그인 후 검사하면 마이페이지에서 검사 이력을 언제든 다시 볼 수 있어요.';
+  /* 2) 로그인 상태면 Supabase에 저장 → 마이페이지 검사 이력. 비로그인이면 결과 화면에서 가입을 안내한다. */
+  let hint = '';
+  let guest = true;
   if (window.NLAuth && NLAuth.enabled) {
     try {
       const u = await NLAuth.getUser();
       if (u) {
+        guest = false;
         const id = await NLAuth.saveResult(r);
         if (id) {
           stamp.savedId = id;
@@ -1632,11 +1659,14 @@ async function renderResult(r) {
         }
       }
     } catch (_) {}
+  } else {
+    guest = false;
   }
   lastReportUrl = stamp.savedId ? 'report.html?id=' + stamp.savedId : 'report.html';
 
   /* 3) 완료 카드 표시 + 리포트 새 창 (차단 시 버튼 클릭으로 열기) */
   document.getElementById('doneHint').textContent = hint;
+  renderGuestCta(guest);
   document.getElementById('result').style.display = 'block';
   document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
   try { window.open(lastReportUrl, '_blank'); } catch (_) {}
@@ -1644,6 +1674,52 @@ async function renderResult(r) {
   /* 4) 케어 여정은 report.html 에서 렌더된다 (소개 페이지에는 표시하지 않음) */
 }
 document.getElementById('openReportBtn').addEventListener('click', () => window.open(lastReportUrl, '_blank'));
+
+/* ----- 비로그인 검사 → 결과 화면에서 가입 전환 -----
+ * "이 리포트를 저장하고 7일 케어를 받으려면 가입" — 결과를 본 뒤가 가입 동기가 가장 큰 순간. */
+function renderGuestCta(show) {
+  let box = document.getElementById('guestCta');
+  if (!show) { if (box) box.remove(); return; }
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'guestCta';
+    box.style.cssText = 'margin:22px auto 0;max-width:520px;padding:18px 20px;border-radius:16px;background:linear-gradient(135deg,#EEF3FF,#F6F1FF);border:1px solid #DCE5F7;text-align:left';
+    box.innerHTML =
+      '<div style="font-weight:800;font-size:15px;color:#0B1B3F;margin-bottom:6px">이 리포트를 내 계정에 저장할까요?</div>'
+      + '<p style="margin:0 0 12px;font-size:13.5px;line-height:1.7;color:#4B5670">지금은 이 브라우저에만 남아 있어요. 가입하면 리포트가 계정에 보관되고, '
+      + '<b>7일 케어 코스</b>와 <b>AI 상담</b>이 이어지며, 다음 검사와 비교해 변화를 볼 수 있어요.</p>'
+      + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
+      + '<button type="button" class="btn-main" id="guestSignup" style="font-size:14px;padding:12px 22px">가입하고 저장하기</button>'
+      + '<button type="button" id="guestLogin" style="font-size:14px;padding:12px 18px;border-radius:12px;border:1.5px solid #DCE5F7;background:#fff;color:#1E5AF0;font-weight:700;cursor:pointer">이미 회원이에요 · 로그인</button>'
+      + '</div>';
+    document.querySelector('#result .done-card').appendChild(box);
+    box.querySelector('#guestSignup').addEventListener('click', () => openAuthModal('signup'));
+    box.querySelector('#guestLogin').addEventListener('click', () => openAuthModal('login'));
+  }
+}
+
+/* 가입·로그인 직후: 이 브라우저에 남은 직전 결과(24시간 이내, 미저장)를 계정에 저장한다 */
+let pendingSaveBusy = false;
+async function savePendingResult(u) {
+  if (!u || pendingSaveBusy || !(window.NLAuth && NLAuth.enabled)) return;
+  let stamp = null;
+  try { stamp = JSON.parse(localStorage.getItem('nlLastResult')); } catch (_) {}
+  if (!stamp || !stamp.result || stamp.savedId) return;
+  if (!stamp.ts || Date.now() - stamp.ts > 24 * 3600 * 1000) return;
+  pendingSaveBusy = true;
+  try {
+    const id = await NLAuth.saveResult(stamp.result);
+    if (id) {
+      stamp.savedId = id;
+      try { localStorage.setItem('nlLastResult', JSON.stringify(stamp)); } catch (_) {}
+      lastReportUrl = 'report.html?id=' + id;
+      const hintEl = document.getElementById('doneHint');
+      if (hintEl) hintEl.textContent = '✅ 방금 검사 결과가 내 계정에 저장되었습니다 — 마이페이지 → 검사 내역에서 언제든 다시 볼 수 있어요.';
+      renderGuestCta(false);
+    }
+  } catch (_) {}
+  pendingSaveBusy = false;
+}
 
 /* =========================================================================
  * 회원 인증 UI — 우측 상단 로그인/마이페이지 (Supabase · auth.js)
@@ -1674,7 +1750,20 @@ function renderAuthArea(user) {
     document.getElementById('navMyBtn').addEventListener('click', openMyPage);
   }
 }
-if (window.NLAuth) NLAuth.onAuth(renderAuthArea); else renderAuthArea(null);
+if (window.NLAuth) {
+  NLAuth.onAuth(function (u) {
+    renderAuthArea(u);
+    savePendingResult(u); /* 비로그인 검사 → 가입/로그인 직후 결과를 계정에 저장 */
+  });
+} else {
+  renderAuthArea(null);
+}
+/* report.html 의 "가입하고 저장하기" 링크 → 가입 모달 바로 열기 */
+if (location.hash === '#signup' || location.hash === '#login') {
+  const mode = location.hash.slice(1);
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+  setTimeout(() => { try { openAuthModal(mode); } catch (_) {} }, 0);
+}
 
 /* ----- 모바일 햄버거 메뉴 ----- */
 (function () {

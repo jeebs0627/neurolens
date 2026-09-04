@@ -24,7 +24,8 @@ display:flex;align-items:center;justify-content:center;height:100vh;text-align:c
   // 2) 부모 창으로 직접 전달 (보조 경로)
   try {
     if (window.opener && !window.opener.closed) {
-      window.opener.postMessage({ type: 'mindgazeResult', data: raw }, '*');
+      // 같은 오리진(메인 페이지)에만 전달 — 임의 사이트가 opener 인 경우 결과가 새지 않게
+      window.opener.postMessage({ type: 'mindgazeResult', data: raw }, location.origin);
     }
   } catch (e) { console.error(e); }
   setTimeout(function(){ window.close(); }, 1500);
@@ -40,7 +41,12 @@ class handler(BaseHTTPRequestHandler):
         res_json = params.get("resSrvyJson", [""])[0]
         if not res_json:  # raw JSON body로 오는 경우 대비
             res_json = body
-        html = RESULT_HTML.replace("__RESULT__", json.dumps(res_json))
+        # json.dumps 는 '<' 를 이스케이프하지 않아 "</script>" 가 섞인 본문이 스크립트를 탈출할 수 있다.
+        # <, >, & 를 \u 이스케이프로 바꿔 <script> 안에서 항상 문자열로만 해석되게 한다 (반사형 XSS 차단).
+        safe = (json.dumps(res_json)
+                .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+                .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+        html = RESULT_HTML.replace("__RESULT__", safe)
         out = html.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")

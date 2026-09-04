@@ -501,15 +501,22 @@ $('instr').addEventListener('input', () => { paintInstMeta(); markDirty(); });
 ['model', 'maxTok', 'sumEn', 'ragEn', 'topK', 'minScore'].forEach((id) =>
   $(id).addEventListener('change', () => markDirty()));
 
-$('btnLoadFull').addEventListener('click', async () => {
-  try {
-    const r = await fetch('chatbot_inst.md', { cache: 'no-store' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const t = await r.text();
-    if (!confirm(`chatbot_inst.md 전문(${t.length.toLocaleString()}자)을 지침에 넣을까요?\n현재 내용은 대체됩니다.`)) return;
-    $('instr').value = t; paintInstMeta(); markDirty();
-    toast('전문을 불러왔어요 — 저장하면 적용됩니다');
-  } catch (e) { toast('chatbot_inst.md 를 불러오지 못했어요'); }
+/* 지침 전문은 더 이상 웹 루트에 두지 않는다 (누구나 GET 할 수 있었음).
+ * 관리자 PC 의 chatbot_inst.md 를 파일 선택으로 읽어 넣는다. */
+$('btnLoadFull').addEventListener('click', () => {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.md,.txt,text/markdown,text/plain';
+  inp.addEventListener('change', async () => {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    try {
+      const t = await f.text();
+      if (!confirm(`${f.name} 전문(${t.length.toLocaleString()}자)을 지침에 넣을까요?\n현재 내용은 대체됩니다.`)) return;
+      $('instr').value = t; paintInstMeta(); markDirty();
+      toast('전문을 불러왔어요 — 저장하면 적용됩니다');
+    } catch (e) { toast('파일을 읽지 못했어요'); }
+  });
+  inp.click();
 });
 $('btnResetInst').addEventListener('click', async () => {
   if (!confirm('기본 지침(요약본)으로 되돌릴까요? 저장 전에는 반영되지 않습니다.')) return;
