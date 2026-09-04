@@ -52,23 +52,55 @@ RESULT_HTML = """<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><title>검사 결과 수신</title>
 <style>body{font-family:'Malgun Gothic',sans-serif;background:#0f172a;color:#e2e8f0;
 display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}</style>
-</head><body><div><h2>✅ 검사 결과가 전달되었습니다.</h2><p>이 창은 닫아도 됩니다.</p></div>
+</head><body><div><h2>✅ 측정이 완료되었습니다.</h2><p>결과 화면으로 이동 중입니다…</p></div>
 <script>
   var raw = __RESULT__;
+  // 1) 같은 도메인 localStorage 에 저장 → 메인 페이지(index.html)가 storage 이벤트/폴링으로 감지 (주 전달 경로)
   try {
     localStorage.setItem('nlEngineResult', JSON.stringify({ seq: Date.now(), data: raw }));
   } catch (e) { console.error(e); }
+  // 2) 측정 창(test.html)의 iframe 안이면 부모에게, 팝업 최상위면 메인 창(opener)에게 직접 전달
+  //    — 같은 오리진에만 전달한다 (임의 사이트가 이 페이지를 임베드해도 결과가 새지 않게)
+  var framed = false, relayed = false;
   try {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'nlEngineResult', data: raw }, location.origin);
+      framed = true;
     }
   } catch (e) { console.error(e); }
   try {
-    if (window.opener && !window.opener.closed) {
+    if (!framed && window.opener && !window.opener.closed) {
       window.opener.postMessage({ type: 'nlEngineResult', data: raw }, location.origin);
+      relayed = true;
     }
   } catch (e) { console.error(e); }
-  setTimeout(function(){ try { window.close(); } catch (e) {} }, 1500);
+  // 3) 메인 창이 결과 처리에 실패하면 알려 준다 → 이 창에 오류 안내
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'nlTestError') return;
+    document.body.innerHTML = '<div><h2>⚠️ 결과를 처리하지 못했습니다</h2><p>' + String(e.data.msg || '').replace(/[<>&]/g, '') + '</p>'
+      + '<p><button onclick="window.close()" style="font-size:14px;padding:10px 22px;border-radius:10px;border:0;background:#1E5AF0;color:#fff;cursor:pointer">창 닫기</button></p></div>';
+  });
+  // 4) 팝업 최상위인 경우: 메인 창이 저장(계정 연동)을 마치고 이 창을 리포트로 보낸다.
+  //    메인 창이 없거나 늦으면 이 창이 직접 리포트로 이동한다. (iframe 안이면 test.html 이 처리)
+  if (!framed) {
+    setTimeout(function () {
+      try {
+        var j = JSON.parse(localStorage.getItem('nlLastResult') || 'null');
+        if (j && j.ts && Date.now() - j.ts < 120000) {
+          location.replace(j.savedId ? 'report.html?id=' + encodeURIComponent(j.savedId) : 'report.html');
+          return;
+        }
+      } catch (e) {}
+      var result = null;
+      try { result = JSON.parse(raw); } catch (e) {}
+      if (result && (result.BIG5 || result.MBTI || result['직무적합도'] || result['직업흥미유형'])) {
+        try { localStorage.setItem('nlLastResult', JSON.stringify({ ts: Date.now(), savedId: null, result: result })); } catch (e) {}
+        location.replace('report.html');
+      } else if (!relayed) {
+        try { window.close(); } catch (e) {}
+      }
+    }, relayed ? 12000 : 400);
+  }
 </script></body></html>"""
 
 
