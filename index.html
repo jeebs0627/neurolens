@@ -1432,6 +1432,8 @@ const ENGINE_ORIGINS = ['https://mindgaze.ai', 'https://www.mindgaze.ai'];
 const startBtn = document.getElementById('startBtn');
 const statusEl = document.getElementById('status');
 
+startBtn.addEventListener('click', startTest);
+
 /* D7 재측정 진입 (report.html → index.html#test):
  * 측정은 사용자 클릭이 있어야 시작되므로, 시작 버튼으로 시선을 모아 안내한다 */
 if (location.hash === '#test') {
