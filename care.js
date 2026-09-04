@@ -724,7 +724,7 @@ function Care(container, result, opts) {
   if (!document.getElementById('nlcStyle')) {
     /* 스타일은 care.css 별도 파일 — 브라우저가 캐시하고, JS 파싱 비용에서 제외된다 */
     var st = document.createElement('link');
-    st.id = 'nlcStyle'; st.rel = 'stylesheet'; st.href = 'care.css?v=1';
+    st.id = 'nlcStyle'; st.rel = 'stylesheet'; st.href = 'care.css?v=2';
     document.head.appendChild(st);
   }
   this.bind();

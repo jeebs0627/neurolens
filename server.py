@@ -72,6 +72,26 @@ display:flex;align-items:center;justify-content:center;height:100vh;text-align:c
 </script></body></html>"""
 
 
+# 측정 엔진 화면의 「검사 종료」(crtrn) → 측정 창(test.html)에 취소를 알린다 (api/rcvrslt.py 와 동일)
+CANCEL_HTML = """<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>측정 종료</title>
+<style>body{font-family:'Malgun Gothic',sans-serif;background:#0f172a;color:#e2e8f0;
+display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}</style>
+</head><body><div><h2>측정을 종료했습니다.</h2><p>이 창은 곧 닫힙니다…</p></div>
+<script>
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'nlEngineCancel' }, location.origin);
+    }
+  } catch (e) {}
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'nlTestCancel' }, location.origin);
+    }
+  } catch (e) {}
+  setTimeout(function(){ try { window.close(); } catch (e) {} }, 800);
+</script></body></html>"""
+
 # 마지막으로 수신한 검사 결과 (메인 화면이 폴링으로 가져감)
 LAST_RESULT = {"data": None, "seq": 0}
 
@@ -81,7 +101,9 @@ class Handler(SimpleHTTPRequestHandler):
     # ---------- 결과 수신 (rtrn) ----------
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/rcvrslt":
+        if parsed.path == "/rcvrslt" and urllib.parse.parse_qs(parsed.query).get("cancel", [""])[0] == "1":
+            self._send(200, "text/html; charset=utf-8", CANCEL_HTML.encode("utf-8"))
+        elif parsed.path == "/rcvrslt":
             length = int(self.headers.get("Content-Length", 0) or 0)
             body = self.rfile.read(length).decode("utf-8", "replace")
             params = urllib.parse.parse_qs(body)
@@ -147,7 +169,12 @@ class Handler(SimpleHTTPRequestHandler):
     # ---------- MindGaze API 프록시 (브라우저 CORS 회피) ----------
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/last-result":
+        if parsed.path == "/rcvrslt":
+            if urllib.parse.parse_qs(parsed.query).get("cancel", [""])[0] == "1":
+                self._send(200, "text/html; charset=utf-8", CANCEL_HTML.encode("utf-8"))
+            else:
+                self.send_response(302); self.send_header("Location", "/"); self.end_headers()
+        elif parsed.path == "/last-result":
             # 메인 화면 폴링용: 마지막 수신 결과 반환
             body = json.dumps(
                 {"seq": LAST_RESULT["seq"], "data": LAST_RESULT["data"]},

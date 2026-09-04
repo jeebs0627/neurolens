@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>시선행동 측정 — NeuroLens</title>
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+ * NeuroLens 측정 창 (index.html 「무료 검사 시작」 → window.open)
+ *
+ * 측정 엔진(mindgaze.ai) 화면을 NeuroLens 브랜드 바 아래 iframe 으로 담는다.
+ * 엔진 페이지 맨 위에는 엔진 자체 로고 행(약 44px: 로고 30px + 여백)이 있는데,
+ * iframe 을 그 높이만큼 위로 끌어올려(--engine-head) 브랜드 바 뒤로 숨긴다.
+ * 엔진 콘텐츠는 로고 행 아래 30px 여백 뒤에 시작하므로 잘리는 내용은 없다.
+ * (엔진 로고 행: <table> 첫 행 = spacing 2 + padding 1 + [5 + img 30 + 5] + padding 1 ≈ 44px)
+ *
+ * 측정이 끝나면 엔진이 같은 도메인의 /rcvrslt 로 결과를 POST → 그 페이지가
+ * 부모(이 창)로 postMessage → 이 창은 결과를 메인 창(opener)에 전달하고,
+ * 메인 창이 저장을 마친 뒤 이 창을 결과 리포트(report.html)로 전환한다.
+ * ========================================================================= */
+:root{
+  --ink:#0B1B3F; --blue:#1E5AF0; --violet:#6C4CE0; --gray:#5B6478; --line:#E4E9F4;
+  --grad:linear-gradient(135deg,#1E5AF0 0%,#6C4CE0 100%);
+  --font-kr:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
+  --font-num:'Sora','Noto Sans KR',sans-serif;
+  --bar-h:58px;
+  --engine-head:48px;   /* 엔진 로고 행을 숨길 높이 */
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:#0B1B3F;color:var(--ink);font-family:var(--font-kr);-webkit-font-smoothing:antialiased}
+
+/* ---- 브랜드 바 ---- */
+.bar{position:absolute;top:0;left:0;right:0;height:var(--bar-h);display:flex;align-items:center;gap:16px;padding:0 20px;background:#0B1B3F;color:#fff;z-index:20}
+.bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--grad)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;flex:none}
+.logo .mark{width:32px;height:32px;border-radius:10px;background:var(--grad);display:grid;place-items:center;box-shadow:0 6px 14px rgba(30,90,240,.45);position:relative;overflow:hidden;flex:none}
+.logo .mark::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.28),rgba(255,255,255,0) 55%)}
+.logo .mark svg{width:23px;height:23px;position:relative;display:block}
+.logo .word{font-family:var(--font-num);font-weight:800;font-size:19px;letter-spacing:-.025em;line-height:1;white-space:nowrap}
+.logo .word em{font-style:normal;color:#9DB7FF}
+.logo small{font-family:var(--font-num);font-weight:700;font-size:9.5px;letter-spacing:.14em;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.28);border-radius:6px;padding:3px 6px;margin-left:2px;white-space:nowrap}
+.msg{flex:1;min-width:0;text-align:center;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg b{color:#fff;font-weight:700}
+.msg .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3EC49E;margin-right:8px;vertical-align:1px;box-shadow:0 0 0 4px rgba(62,196,158,.18);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(62,196,158,.2)}50%{box-shadow:0 0 0 7px rgba(62,196,158,.05)}}
+.quit{flex:none;font-family:var(--font-kr);font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.32);border-radius:10px;padding:8px 14px;cursor:pointer;transition:background .15s,border-color .15s}
+.quit:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.55)}
+.quit:disabled{opacity:.45;cursor:default}
+@media(max-width:720px){
+  .bar{padding:0 12px;gap:10px}
+  .logo small,.msg{display:none}
+}
+
+/* ---- 엔진 스테이지 ---- */
+.stage{position:absolute;top:var(--bar-h);left:0;right:0;bottom:0;background:#fff;overflow:hidden}
+.stage iframe{position:absolute;left:0;top:calc(-1 * var(--engine-head));width:100%;height:calc(100% + var(--engine-head));border:0;display:block;background:#fff}
+
+/* ---- 덮개: 준비 중 / 결과 준비 중 / 오류 ---- */
+.veil{position:absolute;inset:0;z-index:10;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;transition:opacity .35s}
+.veil.hide{opacity:0;pointer-events:none}
+.veil .spin{width:38px;height:38px;border-radius:50%;border:3px solid #DCE5F7;border-top-color:var(--blue);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.veil h2{margin:0;font-size:19px;font-weight:900;letter-spacing:-.01em}
+.veil p{margin:0;font-size:13.5px;line-height:1.7;color:var(--gray);max-width:420px}
+.veil .ok{font-size:46px;line-height:1}
+.veil .btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-kr);font-size:14px;font-weight:800;color:#fff;background:var(--grad);border:none;border-radius:13px;padding:13px 26px;cursor:pointer;box-shadow:0 10px 24px rgba(60,80,230,.28);text-decoration:none;margin-top:6px}
+.veil .btn.line{color:var(--blue);background:#fff;border:1.5px solid #C9D8FF;box-shadow:none}
+.veil .tip{font-size:12px;color:#8A93A8;margin-top:10px}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <a class="logo" href="index.html" target="_blank" rel="noopener" aria-label="NeuroLens">
+    <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14.5" cy="17.5" r="7.5" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="14.5" cy="17.5" r="2.9" fill="#fff"/><path d="M20.5 8.2A11.2 11.2 0 0 1 25.8 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/><circle cx="26.2" cy="7.6" r="1.9" fill="#fff"/></svg></span>
+    <span class="word">Neuro<em>Lens</em></span>
+    <small>GAZE AI</small>
+  </a>
+  <div class="msg" id="msg"><span class="dot"></span><b>웹캠 시선행동 측정 진행 중</b> · 측정을 마치면 이 창에 결과 리포트가 열립니다</div>
+  <button class="quit" id="quitBtn" type="button">✕ 측정 종료</button>
+</header>
+
+<div class="stage">
+  <iframe id="engine" name="nlEngineFrame" title="시선행동 측정" allow="camera https://mindgaze.ai https://www.mindgaze.ai"></iframe>
+  <div class="veil" id="veil">
+    <div class="spin" id="veilSpin"></div>
+    <h2 id="veilTitle">측정 화면을 준비하고 있습니다…</h2>
+    <p id="veilText">웹캠 사용 권한을 묻는 창이 뜨면 「허용」을 눌러 주세요.</p>
+    <div id="veilActions"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 엔진 접속 정보 ---------- */
+  const ENGINE_URL = 'https://mindgaze.ai/srvy/srvystart.do';
+  const ENGINE = {
+    appKey: 'yTfrL7k23GbroXkjGs8UfA',   // API연동용 appKey
+    bizId:  'xshoner',                  // API연동용 사업자아이디
+  };
+  const DEFAULT_PROD_UID = '1710480232349';
+
+  const q = new URLSearchParams(location.search);
+  const prodUid = q.get('pu') || DEFAULT_PROD_UID;
+  const mbrId   = q.get('mi') || '';
+  let   mbrUid  = q.get('mu') || '';
+
+  const $ = (id) => document.getElementById(id);
+  const engine = $('engine');
+  const veil = $('veil');
+  let finished = false;     // 결과 수신 완료 (이후 종료 버튼·취소 무시)
+  let veilTimer = null;
+
+  function opener() {
+    try { return (window.opener && !window.opener.closed) ? window.opener : null; } catch (_) { return null; }
+  }
+  function tellOpener(msg) {
+    const o = opener();
+    if (!o) return false;
+    try { o.postMessage(msg, location.origin); return true; } catch (_) { return false; }
+  }
+
+  /* ---------- 덮개 ---------- */
+  function showVeil(title, text, opts) {
+    opts = opts || {};
+    $('veilSpin').style.display = opts.spinner === false ? 'none' : '';
+    $('veilTitle').innerHTML = (opts.icon ? '<div class="ok">' + opts.icon + '</div>' : '') + title;
+    $('veilText').textContent = text || '';
+    $('veilActions').innerHTML = opts.actions || '';
+    veil.classList.remove('hide');
+  }
+  function hideVeil() {
+    if (finished) return;
+    veil.classList.add('hide');
+    if (veilTimer) { clearTimeout(veilTimer); veilTimer = null; }
+  }
+
+  /* ---------- 측정 시작: 엔진에 form POST (iframe 대상) ---------- */
+  async function boot() {
+    if (mbrId) {
+      /* 회원ID가 있을 때만 회원식별키 조회 (실패하면 전달받은 값 그대로 진행) */
+      try {
+        const res = await fetch('/engine/chkmbr?' + new URLSearchParams({ mbrId }));
+        const j = await res.json();
+        if (j.resCd === '0000' && j.mbrId === 'Y' && j.mbrUid && j.mbrUid !== 'NONE') mbrUid = j.mbrUid;
+      } catch (_) {}
+    }
+    const fields = {
+      appKey:  ENGINE.appKey,
+      bizId:   ENGINE.bizId,
+      mbrId:   mbrId,
+      mbrUid:  mbrUid,
+      prodUid: prodUid,
+      rtrn:    location.origin + '/rcvrslt',            // 결과 응답 리턴 URL (필수)
+      crtrn:   location.origin + '/rcvrslt?cancel=1',   // 엔진 화면의 「검사 종료」→ 우리 취소 페이지
+    };
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = ENGINE_URL + '?pu=' + encodeURIComponent(prodUid);
+    form.target = 'nlEngineFrame';
+    form.style.display = 'none';
+    for (const k in fields) {
+      const input = document.createElement('input');
+      input.type = 'hidden'; input.name = k; input.value = fields[k];
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+
+    /* 엔진 첫 화면이 로드되면 덮개를 걷는다 (응답이 늦어도 8초 뒤엔 걷음) */
+    engine.addEventListener('load', hideVeil);
+    veilTimer = setTimeout(hideVeil, 8000);
+  }
+
+  /* ---------- 결과 수신 ---------- */
+  function onResult(raw) {
+    if (finished) return;
+    finished = true;
+    $('quitBtn').disabled = true;
+    $('msg').innerHTML = '<b>측정 완료</b> · 결과 리포트로 이동합니다';
+    showVeil('측정이 완료되었습니다', '결과 리포트를 준비하고 있습니다. 잠시만 기다려 주세요…');
+
+    /* 메인 창이 결과를 저장(계정 연동)한 뒤 이 창을 리포트로 보낸다.
+     * 메인 창이 없거나(직접 열린 창) 늦으면 이 창이 직접 리포트로 이동한다. */
+    const relayed = tellOpener({ type: 'nlEngineResult', data: raw });
+    setTimeout(() => fallbackToReport(raw), relayed ? 12000 : 400);
+  }
+
+  function fallbackToReport(raw) {
+    if (!/test\.html$/i.test(location.pathname) && location.pathname !== '/test') return;  // 이미 이동했음
+    if (document.body.dataset.error) return;                                                 // 오류 안내 중
+    try {
+      const j = JSON.parse(localStorage.getItem('nlLastResult') || 'null');
+      if (j && j.ts && Date.now() - j.ts < 120000) {   // 메인 창이 방금 저장한 결과가 있으면 그것으로
+        location.replace(j.savedId ? 'report.html?id=' + encodeURIComponent(j.savedId) : 'report.html');
+        return;
+      }
+    } catch (_) {}
+    let result = null;
+    try { result = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (_) {}
+    const hasData = result && (result.BIG5 || result.MBTI || result['직무적합도'] || result['직업흥미유형']);
+    if (!hasData) {
+      const msg = result && result.resMsg ? String(result.resMsg).replace(/<br\s*\/?>/gi, ' ') : '알 수 없는 오류';
+      showFailure('검사 서버 오류: ' + msg);
+      return;
+    }
+    try { localStorage.setItem('nlLastResult', JSON.stringify({ ts: Date.now(), savedId: null, result })); } catch (_) {}
+    location.replace('report.html');
+  }
+
+  function showFailure(text) {
+    document.body.dataset.error = '1';
+    showVeil('결과를 받지 못했습니다', text + ' — 잠시 후 다시 시도해 주세요.', {
+      spinner: false, icon: '⚠️',
+      actions: '<button class="btn" type="button" id="retryBtn">다시 측정하기</button> '
+             + '<button class="btn line" type="button" id="closeBtn">창 닫기</button>',
+    });
+    $('retryBtn').addEventListener('click', () => location.reload());
+    $('closeBtn').addEventListener('click', () => closeSelf());
+  }
+
+  /* ---------- 종료 ---------- */
+  function closeSelf() {
+    window.close();
+    /* 스크립트로 닫히지 않는 창(주소창에 직접 열린 경우)은 메인으로 돌려보낸다 */
+    setTimeout(() => { if (!window.closed) location.replace('index.html'); }, 300);
+  }
+  function cancel() {
+    if (finished) return;
+    finished = true;
+    tellOpener({ type: 'nlTestCancel' });
+    closeSelf();
+  }
+  $('quitBtn').addEventListener('click', () => {
+    if (finished) return;
+    if (!confirm('측정을 종료할까요? 진행 중인 검사 내용은 저장되지 않습니다.')) return;
+    cancel();
+  });
+
+  /* ---------- 메시지 수신 ----------
+   * - iframe(/rcvrslt · 같은 오리진) → 결과 / 취소
+   * - 메인 창(opener · 같은 오리진) → 결과 처리 실패 안내
+   * 다른 오리진의 메시지는 무시한다 (가짜 결과 주입 차단). */
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin || !e.data) return;
+    const d = e.data;
+    if (d.type === 'nlEngineResult') {
+      if (e.source && e.source !== engine.contentWindow) return;   // iframe 에서 온 것만
+      onResult(d.data);
+    } else if (d.type === 'nlEngineCancel') {
+      if (e.source && e.source !== engine.contentWindow) return;
+      cancel();
+    } else if (d.type === 'nlTestError') {
+      const o = opener();
+      if (o && e.source !== o) return;
+      showFailure(String(d.msg || '결과 처리 중 오류가 발생했습니다'));
+    }
+  });
+
+  /* 메인 창이 결과를 받아 이 창을 리포트로 보내기 전에 준비가 끝났음을 알린다 */
+  tellOpener({ type: 'nlTestReady' });
+  boot();
+})();
+</script>
+</body>
+</html>

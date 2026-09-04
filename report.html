@@ -7,6 +7,8 @@
 <title>검사 결과 리포트 — NeuroLens | AX오픈랩</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<!-- 케어 존 스타일을 미리 로드한다 — care.js 가 렌더 시점에 주입하면 칸이 나중에 채워지는 듯 보인다 -->
+<link rel="stylesheet" id="nlcStyle" href="care.css?v=2">
 <style>
 :root{
   --ink:#0B1B3F; --ink2:#2A3651;
@@ -29,10 +31,13 @@ body{font-family:var(--font-kr);color:var(--ink);background:#F4F7FD;line-height:
 /* nav */
 nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 nav .in{max-width:1080px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:14px}
-nav .logo{font-family:var(--font-num);font-weight:800;font-size:16px;display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink)}
-nav .logo .mark{width:28px;height:28px;border-radius:9px;background:var(--grad-hero);display:grid;place-items:center;box-shadow:0 4px 10px rgba(60,80,230,.35)}
-nav .logo .mark svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
-nav .logo em{font-style:normal;color:var(--blue)}
+/* 로고: 렌즈(시선) 마크 + NeuroLens 워드마크 (index.html 과 동일 디자인) */
+nav .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+nav .logo .mark{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1E5AF0 0%,#6C4CE0 100%);display:grid;place-items:center;box-shadow:0 5px 12px rgba(60,80,230,.32);position:relative;overflow:hidden;flex:none}
+nav .logo .mark::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.28),rgba(255,255,255,0) 55%)}
+nav .logo .mark svg{width:21px;height:21px;position:relative;display:block}
+nav .logo .word{font-family:var(--font-num);font-weight:800;font-size:17.5px;letter-spacing:-.025em;line-height:1;white-space:nowrap}
+nav .logo .word em{font-style:normal;background:linear-gradient(135deg,#1E5AF0 0%,#6C4CE0 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 nav .back{margin-left:auto;font-size:13px;font-weight:700;color:var(--blue);text-decoration:none;background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:20px;padding:8px 18px}
 nav .back:hover{background:#E2EBFF}
 
@@ -94,7 +99,7 @@ section.zone:first-of-type .zone-head{margin-top:28px}
 .rcard h3::before{content:"";width:16px;height:2px;background:var(--grad-blue);border-radius:2px}
 
 /* AI 총평 */
-.summary-card{background:linear-gradient(#fff,#fff) padding-box,var(--grad-hero) border-box;border:1.5px solid transparent;position:relative;overflow:hidden}
+.summary-card{background:linear-gradient(#fff,#fff) padding-box,var(--grad-hero) border-box;border:1.5px solid transparent;position:relative;overflow:hidden;min-height:176px}
 .summary-card::before{content:"";position:absolute;right:-50px;top:-60px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(108,76,224,.08),transparent 70%)}
 .ai-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-num);font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#fff;background:var(--grad-hero);border-radius:12px;padding:4px 13px;margin-left:8px;vertical-align:2px;box-shadow:0 5px 12px rgba(76,60,224,.3)}
 #rSummary p{font-size:14.5px;line-height:1.9;color:var(--ink2);margin-bottom:13px;position:relative}
@@ -201,15 +206,21 @@ section.zone.folded > *:not(.zone-head){display:none}
 footer{border-top:1px solid var(--line);background:#fff;padding:30px 0;text-align:center}
 footer p{font-size:12px;color:var(--gray)}
 .disclaimer{font-size:11.5px;color:var(--gray2);margin-top:6px}
+
+/* 리포트는 모든 칸을 채운 뒤 한 번에 나타난다 — 숨긴 상태로 렌더하고 폰트·데이터가 준비되면 공개.
+ * (막대·게이지가 0에서 차오르거나 카드가 뒤늦게 생기는 단계적 표시는 오류처럼 보이기 때문) */
+#result:not(.ready){display:none}
+#result.ready{animation:nlReveal .4s ease both}
+@keyframes nlReveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
 
 <nav>
   <div class="in">
-    <a class="logo" href="index.html">
-      <span class="mark"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></span>
-      AX<em>오픈랩</em>
+    <a class="logo" href="index.html" aria-label="NeuroLens 홈">
+      <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14.5" cy="17.5" r="7.5" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="14.5" cy="17.5" r="2.9" fill="#fff"/><path d="M20.5 8.2A11.2 11.2 0 0 1 25.8 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/><circle cx="26.2" cy="7.6" r="1.9" fill="#fff"/></svg></span>
+      <span class="word">Neuro<em>Lens</em></span>
     </a>
     <a class="back" href="index.html">← 메인으로 돌아가기</a>
   </div>
@@ -221,7 +232,7 @@ footer p{font-size:12px;color:var(--gray)}
   <p>검사 결과 데이터를 확인하고 있습니다.</p>
 </div>
 
-<div id="result" style="display:none">
+<div id="result">
   <div class="rhead">
     <h1>NeuroLens 검사 결과 리포트</h1>
     <div class="rsub">웹캠 시선행동 측정 + 설문 응답 기반 분석 · 비진단적 참고 정보</div>
@@ -377,8 +388,6 @@ let careReportPayload=null;
 
 /* ---------- 리포트 렌더링 ---------- */
 function renderReport(r, meta){
-  document.getElementById('loadCard').style.display='none';
-  document.getElementById('result').style.display='block';
 
   /* 프로필 대시보드 */
   const p=r['시험자정보']||{};
@@ -492,7 +501,27 @@ function renderReport(r, meta){
   });});
 
   requestSummary(r,mbti,info,values,jobs,h,meta);
-  loadDelta(r,meta);
+  return loadDelta(r,meta);   /* 회차 비교 카드 — present() 가 공개 전에 기다린다 */
+}
+
+/* ---------- 공개: 칸을 모두 채운 뒤 한 번에 표시 ----------
+ * 렌더 → 회차 비교 카드 → 비로그인 배너 → 웹폰트까지 준비된 다음 리포트를 드러낸다.
+ * 스켈레톤이 채워지는 듯한 단계적 표시(오류처럼 보임)를 없애기 위한 것. 각 대기에는 상한을 둔다. */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const capped=(p,ms)=>Promise.race([Promise.resolve(p).catch(()=>{}),sleep(ms)]);
+async function present(r,meta,opts){
+  opts=opts||{};
+  const waits=[capped(renderReport(r,meta),2500)];
+  if(opts.guest) waits.push(capped(showGuestBanner(),1500));
+  if(document.fonts&&document.fonts.ready) waits.push(capped(document.fonts.ready,1500));
+  await Promise.all(waits);
+  /* 막대 폭·게이지 값이 rAF 뒤에 반영되므로 몇 프레임 더 기다린 뒤 공개 */
+  await new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(res))));
+  reveal();
+}
+function reveal(){
+  const lc=document.getElementById('loadCard'); if(lc) lc.style.display='none';
+  document.getElementById('result').classList.add('ready');
 }
 
 /* ---------- 지난 검사 대비 변화 (회차 간 델타) ----------
@@ -634,8 +663,8 @@ function showError(title,msg){
 }
 /* 비로그인 검사 결과 상단 안내 — 가입은 메인 페이지 모달에서 (index.html#signup) */
 function showGuestBanner(){
-  if(!(window.NLAuth&&NLAuth.enabled))return;
-  NLAuth.getUser().then(u=>{
+  if(!(window.NLAuth&&NLAuth.enabled))return Promise.resolve();
+  return NLAuth.getUser().then(u=>{
     if(u||document.getElementById('guestBanner'))return;
     const b=document.createElement('div');
     b.id='guestBanner';
@@ -657,7 +686,7 @@ function showGuestBanner(){
       if(!u){ showError('로그인이 필요합니다','저장된 리포트는 본인 계정으로 로그인한 뒤 열람할 수 있습니다. 메인 페이지 우측 상단에서 로그인해 주세요.'); return; }
       const row=await NLAuth.getResult(id);
       if(!row){ showError('리포트를 찾을 수 없습니다','존재하지 않거나 열람 권한이 없는 리포트입니다.'); return; }
-      renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id,summary:row.summary||''});
+      await present(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id,summary:row.summary||''});
       return;
     }
     /* 직전 검사 결과 (localStorage) — 계정에 저장된 결과라면 본인 로그인 시에만 표시한다.
@@ -670,12 +699,11 @@ function showGuestBanner(){
         if(!u){ showError('로그인이 필요합니다','저장된 리포트는 본인 계정으로 로그인한 뒤 열람할 수 있습니다. 메인 페이지 우측 상단에서 로그인해 주세요.'); return; }
         const row=await NLAuth.getResult(j.savedId);
         if(!row){ showError('리포트를 찾을 수 없습니다','존재하지 않거나 열람 권한이 없는 리포트입니다.'); return; }
-        renderReport(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id,summary:row.summary||'',ts:j.ts||0});
+        await present(row.result,{id:row.id,date:row.created_at,mine:row.user_id===u.id,summary:row.summary||'',ts:j.ts||0});
         return;
       }
       /* 비로그인 검사(계정 미저장) 결과는 검사 직후 흐름 그대로 표시 + 저장 안내 */
-      renderReport(j.result,{id:null,date:new Date(j.ts||Date.now()).toISOString(),mine:true,ts:j.ts||0,summary:j.summary||''});
-      showGuestBanner();
+      await present(j.result,{id:null,date:new Date(j.ts||Date.now()).toISOString(),mine:true,ts:j.ts||0,summary:j.summary||''},{guest:true});
       return;
     }
     showError('표시할 검사 결과가 없습니다','아직 이 브라우저에서 완료된 검사가 없습니다. 메인 페이지에서 검사를 진행해 주세요.');

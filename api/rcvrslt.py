@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Vercel Serverless Function: POST /rcvrslt — MindGaze 검사 결과 수신.
 
-검사 팝업이 이 주소로 결과(resSrvyJson)를 POST하면,
-부모 창(index.html)으로 postMessage 하는 HTML을 돌려줍니다.
+측정 창(test.html) 안의 엔진 iframe 이 이 주소로 결과(resSrvyJson)를 POST하면,
+localStorage 에 저장하고 부모(test.html)·opener 로 postMessage 하는 HTML을 돌려줍니다.
+?cancel=1 (엔진의 crtrn) 로 오면 취소 신호만 보내는 HTML을 돌려줍니다.
 서버리스 환경은 무상태이므로 postMessage가 유일한 전달 경로입니다.
 (로컬 server.py의 /last-result 폴링은 postMessage 유실 대비용 보조 채널)
 """
@@ -38,9 +39,55 @@ display:flex;align-items:center;justify-content:center;height:100vh;text-align:c
 </script></body></html>"""
 
 
+# 측정 엔진 화면의 「검사 종료」(crtrn) → 측정 창(test.html)에 취소를 알린다.
+CANCEL_HTML = """<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>측정 종료</title>
+<style>body{font-family:'Malgun Gothic',sans-serif;background:#0f172a;color:#e2e8f0;
+display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}</style>
+</head><body><div><h2>측정을 종료했습니다.</h2><p>이 창은 곧 닫힙니다…</p></div>
+<script>
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'nlEngineCancel' }, location.origin);
+    }
+  } catch (e) {}
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'nlTestCancel' }, location.origin);
+    }
+  } catch (e) {}
+  setTimeout(function(){ try { window.close(); } catch (e) {} }, 800);
+</script></body></html>"""
+
+
 class handler(BaseHTTPRequestHandler):
 
+    def _is_cancel(self):
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        return qs.get("cancel", [""])[0] == "1"
+
+    def _html(self, html):
+        out = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
+    def do_GET(self):
+        if self._is_cancel():
+            self._html(CANCEL_HTML)
+            return
+        # 결과는 POST 로만 들어온다 — 주소를 직접 열면 메인으로 보낸다
+        self.send_response(302)
+        self.send_header("Location", "/")
+        self.end_headers()
+
     def do_POST(self):
+        if self._is_cancel():
+            self._html(CANCEL_HTML)
+            return
         length = int(self.headers.get("Content-Length", 0) or 0)
         body = self.rfile.read(length).decode("utf-8", "replace")
         params = urllib.parse.parse_qs(body)
@@ -52,10 +99,4 @@ class handler(BaseHTTPRequestHandler):
         safe = (json.dumps(res_json)
                 .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
                 .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
-        html = RESULT_HTML.replace("__RESULT__", safe)
-        out = html.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(out)))
-        self.end_headers()
-        self.wfile.write(out)
+        self._html(RESULT_HTML.replace("__RESULT__", safe))

@@ -47,7 +47,7 @@ git push -u origin main
 
 ## 3. 배포 후 확인 사항
 
-- 검사하기 버튼 → 팝업 → 검사 완료 → 결과 리포트 표시 (postMessage 경로)
+- 검사하기 버튼 → 새 창(test.html · NeuroLens 바 아래 엔진 iframe) → 측정 완료 → 그 창이 결과 리포트(report.html)로 전환 (localStorage + postMessage 경로)
 - AI 총평 생성 여부 (`/gemini` 함수 + 환경변수 확인)
 - MindGaze 측 설정에 리턴 URL 도메인 제한이 있다면, 발급된
   `https://<프로젝트명>.vercel.app` 도메인을 허용 목록에 추가해야 할 수 있음

@@ -26,10 +26,13 @@ body{font-family:var(--font-kr);color:var(--ink);background:#F4F7FD;line-height:
 
 nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 nav .in{max-width:1120px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:12px}
-nav .logo{font-family:var(--font-num);font-weight:800;font-size:16px;display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink)}
-nav .logo .mark{width:28px;height:28px;border-radius:9px;background:var(--grad-hero);display:grid;place-items:center}
-nav .logo .mark svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
-nav .logo em{font-style:normal;color:var(--blue)}
+/* 로고: 렌즈(시선) 마크 + NeuroLens 워드마크 (index.html 과 동일 디자인) */
+nav .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+nav .logo .mark{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1E5AF0 0%,#6C4CE0 100%);display:grid;place-items:center;box-shadow:0 5px 12px rgba(60,80,230,.32);position:relative;overflow:hidden;flex:none}
+nav .logo .mark::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.28),rgba(255,255,255,0) 55%)}
+nav .logo .mark svg{width:21px;height:21px;position:relative;display:block}
+nav .logo .word{font-family:var(--font-num);font-weight:800;font-size:17.5px;letter-spacing:-.025em;line-height:1;white-space:nowrap}
+nav .logo .word em{font-style:normal;background:linear-gradient(135deg,#1E5AF0 0%,#6C4CE0 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 nav .admin-flag{font-family:var(--font-num);font-size:10px;font-weight:800;letter-spacing:.1em;color:#fff;background:linear-gradient(135deg,#E8890C,#F2A93B);border-radius:10px;padding:4px 11px}
 nav .right{margin-left:auto;display:flex;gap:8px;align-items:center}
 nav .who{font-size:12px;color:var(--gray)}
@@ -109,9 +112,9 @@ footer{border-top:1px solid var(--line);background:#fff;padding:24px 0;text-alig
 
 <nav>
   <div class="in">
-    <a class="logo" href="index.html">
-      <span class="mark"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></span>
-      AX<em>오픈랩</em>
+    <a class="logo" href="index.html" aria-label="NeuroLens 홈">
+      <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14.5" cy="17.5" r="7.5" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="14.5" cy="17.5" r="2.9" fill="#fff"/><path d="M20.5 8.2A11.2 11.2 0 0 1 25.8 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/><circle cx="26.2" cy="7.6" r="1.9" fill="#fff"/></svg></span>
+      <span class="word">Neuro<em>Lens</em></span>
     </a>
     <span class="admin-flag">ADMIN</span>
     <div class="right">
