@@ -1516,9 +1516,23 @@ function openTestOverlay() {
   testFrame.name = 'nlTestFrame';
   testFrame.allow = 'camera ' + ENGINE_ORIGINS.join(' ') + '; fullscreen';
   testFrame.setAttribute('allowfullscreen', '');
-  testFrame.style.cssText = 'border:0;flex:1 1 auto;width:100%;background:#fff';
+  testFrame.style.cssText = 'border:0;width:100%;height:100%;background:#fff;display:block';
+  /* iframe 래퍼: 측정 화면 좌측 상단의 엔진 로고 자리를 우리 워드마크 패치로 덮는다.
+   * 엔진 헤더는 중앙정렬 1400px 컨테이너 좌측에 30px 로고(비클릭 img)를 그리므로
+   * 같은 좌표(뷰포트 폭 따라 left 보정)에 흰 배경 패치를 얹는다.
+   * pointer-events:none — 화면 단계가 달라져도 아래 UI 조작을 막지 않는다. */
+  const frameWrap = document.createElement('div');
+  frameWrap.style.cssText = 'position:relative;flex:1 1 auto;min-height:0';
+  const brandPatch = document.createElement('div');
+  brandPatch.style.cssText =
+    'position:absolute;top:0;left:max(0px, calc((100% - 1400px)/2));width:260px;height:52px;'
+    + 'background:#fff;display:flex;align-items:center;padding-left:16px;box-sizing:border-box;'
+    + 'pointer-events:none;z-index:5;font-weight:800;font-size:17px;letter-spacing:.01em;color:#0B1B3F';
+  brandPatch.textContent = 'NeuroLens';
+  frameWrap.appendChild(testFrame);
+  frameWrap.appendChild(brandPatch);
   overlayEl.appendChild(bar);
-  overlayEl.appendChild(testFrame);
+  overlayEl.appendChild(frameWrap);
   document.body.appendChild(overlayEl);
   document.documentElement.style.overflow = 'hidden';
 }
