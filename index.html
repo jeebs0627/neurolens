@@ -1414,7 +1414,7 @@ const NLCareLite = (function () {
 </script>
 <script>
 /* =========================================================================
- * 연동 설정 (MindGaze 웹링크 연동)
+ * 측정 엔진 연동 설정
  * ========================================================================= */
 const CONFIG = {
   appKey:  'yTfrL7k23GbroXkjGs8UfA',  // API연동용 appKey
@@ -1424,14 +1424,16 @@ const CONFIG = {
   prodUid: '1710480232349',           // 검사상품식별키
 };
 
+/* 측정 엔진 엔드포인트. 검사는 같은 페이지의 전체화면 iframe 안에서 진행되어
+ * 주소창·카메라 권한 프롬프트가 모두 우리 도메인 기준으로 유지된다. */
+const ENGINE_URL = 'https://mindgaze.ai/srvy/srvystart.do';
+const ENGINE_ORIGINS = ['https://mindgaze.ai', 'https://www.mindgaze.ai'];
+
 const startBtn = document.getElementById('startBtn');
 const statusEl = document.getElementById('status');
-let popup = null;
-
-startBtn.addEventListener('click', startTest);
 
 /* D7 재측정 진입 (report.html → index.html#test):
- * 검사 팝업은 사용자 클릭이 있어야 열리므로, 시작 버튼으로 시선을 모아 안내한다 */
+ * 측정은 사용자 클릭이 있어야 시작되므로, 시작 버튼으로 시선을 모아 안내한다 */
 if (location.hash === '#test') {
   try { document.getElementById('top').scrollIntoView(); } catch (_) {}
   startBtn.focus();
@@ -1455,7 +1457,7 @@ async function startTest() {
   startBtn.disabled = true;
   document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
   testStartedAt = Date.now();
-  try { localStorage.removeItem('mindgazeResult'); } catch (_) {}
+  try { localStorage.removeItem('nlEngineResult'); } catch (_) {}
 
   let mbrUid = CONFIG.mbrUid || '';
 
@@ -1463,7 +1465,7 @@ async function startTest() {
   if (CONFIG.mbrId) {
     setStatus('회원 확인 중...');
     try {
-      const res = await fetch('/mg/chkmbr?' + new URLSearchParams({ mbrId: CONFIG.mbrId }));
+      const res = await fetch('/engine/chkmbr?' + new URLSearchParams({ mbrId: CONFIG.mbrId }));
       const j = await res.json();
       if (j.resCd === '0000' && j.mbrId === 'Y' && j.mbrUid && j.mbrUid !== 'NONE') {
         mbrUid = j.mbrUid;
@@ -1471,19 +1473,64 @@ async function startTest() {
     } catch (_) { /* 실패 시 CONFIG.mbrUid 값 그대로 사용 */ }
   }
 
-  setStatus('검사 창을 여는 중... (팝업 차단 시 허용해 주세요)');
+  setStatus('측정 화면을 준비하는 중...');
   openSrvy(CONFIG.prodUid, mbrUid, CONFIG.mbrId || '');
 }
 
-/* ---------- 웹링크 연동: 검사 팝업 (form POST) ---------- */
-function openSrvy(prodUid, mbrUid, mbrId) {
-  const goUrl = 'https://mindgaze.ai/srvy/srvystart.do?pu=' + prodUid;
+/* ---------- 측정 오버레이: 전체화면 iframe ----------
+ * 팝업 대신 페이지 위에 전체화면 iframe을 덮는다.
+ * - 주소창에 외부 도메인이 노출되지 않는다 (별도 창 자체가 없음)
+ * - 카메라 권한 프롬프트가 최상위 문서(우리 도메인) 이름으로 뜬다 (권한 위임)
+ * - 헤더 바는 NeuroLens 브랜드로 유지된다
+ * 권한 위임에는 vercel.json 의 Permissions-Policy camera 허용 목록 + iframe allow 속성이 모두 필요하다. */
+let overlayEl = null;
+let testFrame = null;
 
-  const wndOptStr =
-    'width=' + screen.width + ',height=' + screen.height +
-    ',top=0,left=0,scrollbars=yes,fullscreen=yes';
-  popup = window.open('', 'wndPopup', wndOptStr);
-  if (!popup) { setStatus('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 시도하세요.', true); startBtn.disabled = false; return; }
+function openTestOverlay() {
+  closeTestOverlay();
+  overlayEl = document.createElement('div');
+  overlayEl.id = 'nlTestOverlay';
+  overlayEl.style.cssText =
+    'position:fixed;inset:0;z-index:2147483000;background:#0B1B3F;display:flex;flex-direction:column';
+  const bar = document.createElement('div');
+  bar.style.cssText =
+    'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;'
+    + 'background:#0B1B3F;color:#fff;flex:0 0 auto';
+  bar.innerHTML =
+    '<div style="font-weight:800;font-size:15px;letter-spacing:.02em">NeuroLens'
+    + '<span style="font-weight:600;font-size:12.5px;opacity:.75;margin-left:10px">시선행동 측정 진행 중 · 측정을 마치면 자동으로 결과가 열립니다</span></div>';
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.textContent = '✕ 측정 종료';
+  closeBtn.style.cssText =
+    'border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:10px;'
+    + 'padding:7px 14px;font-size:13px;cursor:pointer;flex:0 0 auto';
+  closeBtn.addEventListener('click', () => {
+    if (!confirm('측정을 종료할까요? 진행 중인 검사 내용은 저장되지 않습니다.')) return;
+    resetTestUI('측정을 종료했습니다. 「무료 검사 시작」으로 다시 시작할 수 있어요.');
+  });
+  bar.appendChild(closeBtn);
+  testFrame = document.createElement('iframe');
+  testFrame.name = 'nlTestFrame';
+  testFrame.allow = 'camera ' + ENGINE_ORIGINS.join(' ') + '; fullscreen';
+  testFrame.setAttribute('allowfullscreen', '');
+  testFrame.style.cssText = 'border:0;flex:1 1 auto;width:100%;background:#fff';
+  overlayEl.appendChild(bar);
+  overlayEl.appendChild(testFrame);
+  document.body.appendChild(overlayEl);
+  document.documentElement.style.overflow = 'hidden';
+}
+
+function closeTestOverlay() {
+  if (overlayEl) { try { overlayEl.remove(); } catch (_) {} }
+  overlayEl = null;
+  testFrame = null;
+  document.documentElement.style.overflow = '';
+}
+
+/* ---------- 검사 실행: 오버레이 iframe 에 form POST ---------- */
+function openSrvy(prodUid, mbrUid, mbrId) {
+  openTestOverlay();
 
   const fields = {
     appKey:  CONFIG.appKey,
@@ -1496,8 +1543,8 @@ function openSrvy(prodUid, mbrUid, mbrId) {
 
   const form = document.createElement('form');
   form.method = 'POST';
-  form.action = goUrl;
-  form.target = 'wndPopup';
+  form.action = ENGINE_URL + '?pu=' + prodUid;
+  form.target = 'nlTestFrame';
   for (const [k, v] of Object.entries(fields)) {
     const input = document.createElement('input');
     input.type = 'hidden'; input.name = k; input.value = v;
@@ -1507,7 +1554,7 @@ function openSrvy(prodUid, mbrUid, mbrId) {
   form.submit();
   form.remove();
 
-  setStatus('검사 진행 중... 검사 창에서 검사를 완료하면 결과가 여기에 표시됩니다.');
+  setStatus('검사 진행 중... 측정을 완료하면 결과가 여기에 표시됩니다.');
   startPolling();
 }
 
@@ -1519,16 +1566,16 @@ let testStartedAt = 0;
 
 function checkLocalResult() {
   try {
-    const raw = localStorage.getItem('mindgazeResult');
+    const raw = localStorage.getItem('nlEngineResult');
     if (!raw) return false;
     const j = JSON.parse(raw);
     if (j && j.data && j.seq > testStartedAt) {
-      localStorage.removeItem('mindgazeResult');
+      localStorage.removeItem('nlEngineResult');
       stopPolling();
+      closeTestOverlay();
       let result;
       try { result = JSON.parse(j.data); } catch (_) { result = { raw: j.data }; }
       renderResult(result);
-      try { if (popup && !popup.closed) popup.close(); } catch (_) {}
       return true;
     }
   } catch (_) {}
@@ -1536,19 +1583,17 @@ function checkLocalResult() {
 }
 
 window.addEventListener('storage', (e) => {
-  if (e.key === 'mindgazeResult') checkLocalResult();
+  if (e.key === 'nlEngineResult') checkLocalResult();
 });
 
-/* ---------- 결과 대기 (localStorage 감시 + 검사 창 상태 감시) ----------
- * 서버 폴링(/last-result)은 서버리스에서 항상 빈 값이라 제거했다. 결과는 같은 도메인의
- * /rcvrslt 페이지가 localStorage 에 쓰고(storage 이벤트), 보조로 2초마다 직접 확인한다.
- * 검사 창이 닫히면 20초 유예 뒤 대기를 멈추고 버튼을 바로 되살린다 — 창을 닫고 이탈했을 때
- * 버튼이 15분 동안 잠겨 있던 문제 해결. 상한은 15분. */
+/* ---------- 결과 대기 (localStorage 감시) ----------
+ * 결과는 같은 도메인의 /rcvrslt 페이지(오버레이 iframe 이 마지막에 이동하는 페이지)가
+ * localStorage 에 쓰고(storage 이벤트), 보조로 2초마다 직접 확인한다. 상한은 15분.
+ * 오버레이 종료는 사용자의 「측정 종료」 버튼(resetTestUI)으로만 일어나므로
+ * 팝업 시절의 '창 닫힘 감시'는 필요 없다. */
 let pollTimer = null;
 let pollStartedAt = 0;
-let popupClosedAt = 0;
 const POLL_MAX_MS = 15 * 60 * 1000;
-const CLOSE_GRACE_MS = 20 * 1000;
 
 function isMobileDevice() {
   const ua = navigator.userAgent || '';
@@ -1558,6 +1603,7 @@ function isMobileDevice() {
 
 function resetTestUI(msg, isError) {
   stopPolling();
+  closeTestOverlay();
   startBtn.disabled = false;
   if (msg) setStatus(msg, !!isError);
 }
@@ -1565,23 +1611,10 @@ function resetTestUI(msg, isError) {
 function startPolling() {
   stopPolling();
   pollStartedAt = Date.now();
-  popupClosedAt = 0;
   pollTimer = setInterval(() => {
     if (checkLocalResult()) return;
-    const now = Date.now();
-    if (now - pollStartedAt > POLL_MAX_MS) {
+    if (Date.now() - pollStartedAt > POLL_MAX_MS) {
       resetTestUI('결과 수신 대기를 중단했습니다. 검사를 마쳤다면 「무료 검사 시작」을 다시 눌러 진행해 주세요.', true);
-      return;
-    }
-    let closed = false;
-    try { closed = !popup || popup.closed; } catch (_) { closed = false; }
-    if (closed) {
-      if (!popupClosedAt) { popupClosedAt = now; setStatus('검사 창이 닫혔어요. 결과가 도착했는지 잠시 확인 중…'); }
-      else if (now - popupClosedAt > CLOSE_GRACE_MS) {
-        resetTestUI('검사 창이 닫혔습니다. 검사를 끝까지 마치지 않았다면 「무료 검사 시작」으로 다시 시작할 수 있어요.');
-      }
-    } else if (popupClosedAt) {
-      popupClosedAt = 0;
     }
   }, 2000);
 }
@@ -1590,25 +1623,25 @@ function stopPolling() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
-/* ---------- 결과 수신 (팝업 postMessage) ----------
+/* ---------- 결과 수신 (iframe → 부모 postMessage) ----------
  * 결과 메시지는 같은 오리진(/rcvrslt 페이지)에서 온 것만 받는다 — 임의 사이트가 postMessage 로
- * 가짜 결과를 심는 경로 차단. 'mindgazeclose' 는 검사 제공사(mindgaze.ai) 창에서 온다. */
-const MINDGAZE_ORIGINS = ['https://mindgaze.ai', 'https://www.mindgaze.ai'];
+ * 가짜 결과를 심는 경로 차단. 'mindgazeclose' 는 측정 엔진이 보내는 종료 신호(문자열 고정)다. */
 window.addEventListener('message', (e) => {
   if (e.data === 'mindgazeclose') {
-    if (e.origin !== location.origin && MINDGAZE_ORIGINS.indexOf(e.origin) < 0) return;
-    try { if (popup && !popup.closed) popup.close(); } catch (_) {}
-    setStatus('검사 창이 닫혔습니다.');
+    if (e.origin !== location.origin && ENGINE_ORIGINS.indexOf(e.origin) < 0) return;
+    closeTestOverlay();
+    setStatus('측정 화면이 닫혔습니다.');
     startBtn.disabled = false;
     /* 마지막 결과 저장이 늦게 도착할 수 있어 20초만 더 기다렸다 대기를 멈춘다 */
     checkLocalResult();
     setTimeout(stopPolling, 20000);
     return;
   }
-  if (!e.data || e.data.type !== 'mindgazeResult') return;
+  if (!e.data || e.data.type !== 'nlEngineResult') return;
   if (e.origin !== location.origin) return;
-  if (popup && e.source && e.source !== popup) return;
+  if (testFrame && e.source && e.source !== testFrame.contentWindow) return;
   stopPolling();
+  closeTestOverlay();
   let result;
   try { result = typeof e.data.data === 'string' ? JSON.parse(e.data.data) : e.data.data; }
   catch (_) { result = { raw: e.data.data }; }

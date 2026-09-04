@@ -56,14 +56,19 @@ display:flex;align-items:center;justify-content:center;height:100vh;text-align:c
 <script>
   var raw = __RESULT__;
   try {
-    localStorage.setItem('mindgazeResult', JSON.stringify({ seq: Date.now(), data: raw }));
+    localStorage.setItem('nlEngineResult', JSON.stringify({ seq: Date.now(), data: raw }));
+  } catch (e) { console.error(e); }
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'nlEngineResult', data: raw }, location.origin);
+    }
   } catch (e) { console.error(e); }
   try {
     if (window.opener && !window.opener.closed) {
-      window.opener.postMessage({ type: 'mindgazeResult', data: raw }, '*');
+      window.opener.postMessage({ type: 'nlEngineResult', data: raw }, location.origin);
     }
   } catch (e) { console.error(e); }
-  setTimeout(function(){ window.close(); }, 1500);
+  setTimeout(function(){ try { window.close(); } catch (e) {} }, 1500);
 </script></body></html>"""
 
 
@@ -149,8 +154,10 @@ class Handler(SimpleHTTPRequestHandler):
                 ensure_ascii=False,
             ).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", body)
-        elif parsed.path.startswith("/mg/"):
-            endpoint = parsed.path[len("/mg/"):]          # 예: chkmbr, getsrvyrslt
+        elif parsed.path.startswith("/engine/") or parsed.path.startswith("/mg/"):
+            # /engine/ 이 표준 경로, /mg/ 는 구버전 호환 별칭 (vercel.json 과 동일)
+            prefix = "/engine/" if parsed.path.startswith("/engine/") else "/mg/"
+            endpoint = parsed.path[len(prefix):]          # 예: chkmbr, getsrvyrslt
             form = dict(urllib.parse.parse_qsl(parsed.query))
             self._proxy(endpoint, form)
         else:

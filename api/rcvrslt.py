@@ -14,21 +14,27 @@ RESULT_HTML = """<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><title>검사 결과 수신</title>
 <style>body{font-family:'Malgun Gothic',sans-serif;background:#0f172a;color:#e2e8f0;
 display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}</style>
-</head><body><div><h2>✅ 검사 결과가 전달되었습니다.</h2><p>이 창은 닫아도 됩니다.</p></div>
+</head><body><div><h2>✅ 측정이 완료되었습니다.</h2><p>결과 화면으로 이동 중입니다…</p></div>
 <script>
   var raw = __RESULT__;
   // 1) 같은 도메인 localStorage 에 저장 → 메인 페이지가 감지 (서버리스 환경의 주 전달 경로)
   try {
-    localStorage.setItem('mindgazeResult', JSON.stringify({ seq: Date.now(), data: raw }));
+    localStorage.setItem('nlEngineResult', JSON.stringify({ seq: Date.now(), data: raw }));
   } catch (e) { console.error(e); }
-  // 2) 부모 창으로 직접 전달 (보조 경로)
+  // 2) 오버레이 iframe 안에서 실행되는 경우: 부모 문서(메인 페이지)로 직접 전달 (주 보조 경로)
   try {
-    if (window.opener && !window.opener.closed) {
-      // 같은 오리진(메인 페이지)에만 전달 — 임의 사이트가 opener 인 경우 결과가 새지 않게
-      window.opener.postMessage({ type: 'mindgazeResult', data: raw }, location.origin);
+    if (window.parent && window.parent !== window) {
+      // 같은 오리진에만 전달 — 임의 사이트가 이 페이지를 임베드해도 결과가 새지 않게
+      window.parent.postMessage({ type: 'nlEngineResult', data: raw }, location.origin);
     }
   } catch (e) { console.error(e); }
-  setTimeout(function(){ window.close(); }, 1500);
+  // 3) 구버전 팝업 플로우 호환: opener 가 있으면 그쪽에도 전달
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'nlEngineResult', data: raw }, location.origin);
+    }
+  } catch (e) { console.error(e); }
+  setTimeout(function(){ try { window.close(); } catch (e) {} }, 1500);
 </script></body></html>"""
 
 

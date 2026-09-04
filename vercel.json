@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/gemini", "destination": "/api/gemini" },
     { "source": "/rcvrslt", "destination": "/api/rcvrslt" },
+    { "source": "/engine/:endpoint", "destination": "/api/mg?endpoint=:endpoint" },
     { "source": "/mg/:endpoint", "destination": "/api/mg?endpoint=:endpoint" }
   ],
   "headers": [
@@ -11,7 +12,7 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=()" }
+        { "key": "Permissions-Policy", "value": "camera=(self \"https://mindgaze.ai\" \"https://www.mindgaze.ai\"), microphone=(), geolocation=()" }
       ]
     },
     {
