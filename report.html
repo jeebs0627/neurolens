@@ -186,9 +186,6 @@ section.zone:first-of-type .zone-head{margin-top:28px}
 .ri-cell.off{opacity:.5}
 .riasec-note{font-size:11.5px;color:var(--gray2);text-align:center;margin-top:18px;word-break:keep-all}
 
-details summary{cursor:pointer;color:var(--gray);font-size:13px}
-pre{margin-top:12px;padding:16px;background:#0B1B3F;color:#9DFFB0;border-radius:12px;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto}
-
 /* CTA + footer */
 .cta-band{text-align:center;margin-top:34px}
 .cta-band .row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
@@ -355,8 +352,6 @@ footer p{font-size:12px;color:var(--gray)}
     <div id="premiumRoot"></div>
   </section>
 
-  <div class="rcard"><details><summary>원본 응답 JSON 보기</summary><pre id="rRaw"></pre></details></div>
-
   <div class="cta-band">
     <div class="row">
       <button class="btn-agent-cta" id="ctaChat">🗨 Agent 상담 매니저 대화하기</button>
@@ -433,8 +428,6 @@ function renderReport(r, meta){
 
   /* 총평 요약 태그 */
   renderSumTags(mbti,values,jobs,h);
-
-  document.getElementById('rRaw').textContent=JSON.stringify(r,null,2);
 
   /* 케어 존 — 본인 결과일 때만 (다른 회원 리포트 열람 시 내 여정 오염 방지) */
   if(meta.mine){

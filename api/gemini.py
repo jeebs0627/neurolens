@@ -24,7 +24,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
 MAX_BODY = 8 * 1024  # 구조화 필드만 받으므로 8KB 면 충분
 
 _CLEAN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -127,7 +127,7 @@ class handler(BaseHTTPRequestHandler):
         try:
             payload = json.dumps({
                 "contents": [{"parts": [{"text": prompt}]}],
-                # thinkingBudget 0: 2.5-flash의 내부 사고 토큰이 maxOutputTokens를
+                # thinkingBudget 0: Flash 모델의 내부 사고 토큰이 maxOutputTokens를
                 # 소모해 총평이 중간에 잘리는 문제 방지
                 "generationConfig": {
                     "temperature": 0.7,

@@ -143,9 +143,6 @@ nav .back:hover{background:#E2EBFF}
 .ri-cell.off{opacity:.5}
 .riasec-note{font-size:11.5px;color:var(--gray2);text-align:center;margin-top:18px;word-break:keep-all}
 
-details summary{cursor:pointer;color:var(--gray);font-size:13px}
-pre{margin-top:12px;padding:16px;background:#0B1B3F;color:#9DFFB0;border-radius:12px;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto}
-
 /* 케어 미리보기 */
 .mock-badge{display:inline-block;font-family:var(--font-num);font-size:9.5px;font-weight:800;letter-spacing:.12em;color:var(--amber);background:#FDF3E3;border:1px solid #F3DCB5;border-radius:10px;padding:2px 10px;margin-left:8px;vertical-align:2px}
 .care-items{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
@@ -303,8 +300,6 @@ footer p{font-size:12px;color:var(--gray)}
   <!-- Premium · 잠금 리포트 (유료 구독 또는 적립 포인트로 해금 · care.js) -->
   <div id="premiumRoot"></div>
 
-  <div class="rcard"><details><summary>원본 응답 JSON 보기 (샘플)</summary><pre id="rRaw"></pre></details></div>
-
   <div class="cta-band">
     <div class="row">
       <button class="btn-p mock">✦ Agent 케어 구독하기</button>
@@ -380,8 +375,6 @@ const SAMPLE = {
 
   /* 총평 상단 요약 태그: MBTI · Big5 TOP1 · 직무적합 TOP1 · 흥미유형 */
   renderSumTags(SAMPLE.MBTI,values,jobs,h);
-
-  document.getElementById('rRaw').textContent=JSON.stringify(SAMPLE,null,2);
 
   requestAnimationFrame(()=>{requestAnimationFrame(()=>{
     document.querySelectorAll('#result [data-w]').forEach(el=>el.style.width=el.dataset.w);

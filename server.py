@@ -37,7 +37,7 @@ def _load_gemini_key():
         return ""
 
 GEMINI_API_KEY = _load_gemini_key()
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 
 # 순서대로 시도 (앞이 실패하면 다음 주소로 폴백)
 MINDGAZE_API_BASES = [
@@ -160,7 +160,7 @@ class Handler(SimpleHTTPRequestHandler):
             prompt = body.get("prompt", "")
             payload = json.dumps({
                 "contents": [{"parts": [{"text": prompt}]}],
-                # thinkingBudget 0: 2.5-flash의 내부 사고 토큰이 maxOutputTokens를
+                # thinkingBudget 0: Flash 모델의 내부 사고 토큰이 maxOutputTokens를
                 # 소모해 총평이 중간에 잘리는 문제 방지
                 "generationConfig": {
                     "temperature": 0.7,
