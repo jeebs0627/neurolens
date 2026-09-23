@@ -20,6 +20,20 @@ TITLES = {
     13: "전환기 마음 정리", 14: "관계 속 내 몫도 챙기기", 15: "과업 기준을 부드럽게 조정",
     16: "새 도전의 긍정 자원", 17: "가벼운 변화로 활력 찾기", 18: "복합 감정의 속도 조절",
 }
+# report-insights.js 의 CARE_RULES id 와 같아야 한다. 클라이언트가 보낸 id 는 이 표로만 제목에 매핑된다.
+TRAIT_PATTERNS = {
+    "worryDelay": "걱정 → 미루기 고리 (신경성 높음·성실성 낮음)",
+    "quietStress": "혼자 삭이는 스트레스 (신경성 높음·외향성 낮음)",
+    "perfectTension": "완벽주의 긴장 (신경성 높음·성실성 높음)",
+    "overCare": "관계 속 과잉 배려 (신경성 높음·친화성 높음)",
+    "ideaFinish": "아이디어 과잉·마무리 부족 (개방성 높음·성실성 낮음)",
+    "energyScatter": "흩어지는 에너지 (외향성 높음·성실성 낮음)",
+    "changeLoad": "변화 부담 (성실성 높음·개방성 낮음)",
+    "innerRecharge": "혼자 몰입하며 회복 (외향성 낮음·개방성 높음)",
+    "leadListen": "주도형·경청 보완 (외향성 높음·친화성 낮음)",
+    "stableBase": "안정 자원 (신경성 낮음)",
+    "balanced": "균형 잡힌 프로파일",
+}
 
 
 def _score(value):
@@ -51,6 +65,8 @@ def build_prompt(body):
     gaze_clean = {key: gaze.get(key) for key in ("quality", "focus", "exploration") if gaze.get(key) in ("low", "mid", "high")}
     matched = body.get("matchedIds") if isinstance(body.get("matchedIds"), list) else []
     matched = list(dict.fromkeys(value for value in matched if type(value) is int and value in TITLES))[:18]
+    patterns = body.get("traitPatterns") if isinstance(body.get("traitPatterns"), list) else []
+    patterns = list(dict.fromkeys(value for value in patterns if isinstance(value, str) and value in TRAIT_PATTERNS))[:3]
     # The model receives only whitelisted facts and titles, never arbitrary client-authored prose.
     facts = {
         "사전 체크인": {"기분": [MOODS[mood] for mood in moods], "고민": ISSUES[issue], "컨디션_1_5": energy,
@@ -62,12 +78,14 @@ def build_prompt(body):
             "정서_선별_명시구간": screening or "제공되지 않음",
         },
         "규칙상_일치한_조합": [{"번호": value, "제목": TITLES[value]} for value in matched],
+        "평소_성향_조합_패턴": [TRAIT_PATTERNS[value] for value in patterns],
     }
     system = """너는 따뜻하고 정확한 감정 웰니스 컨설턴트다. 사전 체크인의 주관적 감정과 실제 제공된 검사 결과를 구분해서 읽고, 둘이 만나는 지점에서 실천 가능한 다음 한 걸음을 제안한다. 병원의 의사처럼 진단하거나 치료하지 않는다.
 반드시 지킬 규칙:
 - 현재 감정은 체크인 응답으로만 설명한다. MBTI·BIG5·RIASEC 점수만으로 현재 감정, 우울, 번아웃, 질환, 원인, 능력을 확정하지 않는다.
 - 시선 집중·탐색·추적품질이 제공되지 않았다면 절대 언급하지 않는다. 추적품질 저하는 피로의 증거가 아니라 측정 환경 확인의 이유다.
 - 선별 구간이 없거나 수치만 있다면 위험도를 추론하지 않는다. AUC는 개인의 점수나 경계값이 아니다.
+- '평소_성향_조합_패턴'은 Big5 두 요인의 조합에서 읽히는 평소 경향이다. 있으면 summary 마지막 문단에서 한 번만, 오늘의 감정을 돌볼 때 참고할 배경으로 부드럽게 연결한다. 오늘 감정의 원인으로 말하지 않고, 목록이 비어 있으면 언급하지 않는다.
 - 조합 번호는 검토용 휴리스틱이다. 맞지 않은 조합이나 제공되지 않은 정보는 만들지 않는다. 인과관계를 주장하지 않는다.
 - 선별 구간이 경계·높음이면 상담·전문기관 평가의 선택지를 셀프케어보다 먼저 제안한다. 그 구간도 진단은 아니다.
 - 부드럽고 존중하는 문체로 쓴다. 끝에는 “~해볼까요?”, “오늘부터 천천히 실천해 보아요”처럼 부담 없는 제안을 둔다. 위로만 하거나 상투적인 칭찬을 반복하지 않는다.
