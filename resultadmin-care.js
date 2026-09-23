@@ -119,6 +119,7 @@
   let aiRequested=false;
   async function generateInterpretation() {
     if(aiRequested)return;aiRequested=true;
+    $('careAiRetry').hidden=true;
     showInterpretation(fallbackInterpretation(),'사전 체크인과 확인된 검사 항목을 조합했습니다. 맞춤 해석을 생성하고 있어요…');
     try{
       const response=await fetch('/api/care-preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({checkin:care,signals,matchedIds:analysis.matched.map(item=>item.id)})});
@@ -126,13 +127,15 @@
       const data=await response.json();
       if(typeof data.summary!=='string'||typeof data.direction!=='string'||typeof data.firstStep!=='string')throw Error('invalid response');
       showInterpretation(data,'Neurolens Generated · gemini-3.6-flash');
-    }catch(error){console.warn('CARE 해석 생성 실패:',error);text('careAiStatus','기본 해설 표시 중 · 실시간 생성 연결을 확인해 주세요.');}
+      $('careAiBadge').textContent='✦ Neurolens Generated';
+    }catch(error){console.warn('CARE 해석 생성 실패:',error);text('careAiStatus','기본 해설 표시 중 · AI 서비스 연결을 확인해 주세요.');$('careAiRetry').hidden=false;aiRequested=false;}
   }
 
   renderReport(result);renderFacts();renderMatches();showInterpretation(fallbackInterpretation(),'사전 체크인과 확인된 검사 항목을 조합했습니다.');
   const tabs=[...document.querySelectorAll('.module-tab')];
   function showModule(module){document.body.classList.toggle('care-active',module==='care');tabs.forEach(tab=>{const active=tab.dataset.target===module;tab.classList.toggle('active',active);if(active)tab.setAttribute('aria-current','page');else tab.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'instant'});if(module==='care')generateInterpretation();}
   tabs.forEach(tab=>tab.addEventListener('click',()=>showModule(tab.dataset.target)));
+  $('careAiRetry').addEventListener('click',generateInterpretation);
   document.querySelector('[data-scroll-care]').addEventListener('click',()=>showModule('care'));
   if(param.get('tab')==='care')showModule('care');
   document.querySelectorAll('[data-desktop-open]').forEach(el=>{el.open=!matchMedia('(max-width:680px)').matches;});
