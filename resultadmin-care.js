@@ -38,7 +38,7 @@
       document.querySelector('main p').textContent=error.message;return;
     }
   }
-  const sampleCheckin = {moods:['excited','anxious'],issue:'career',energy:4,expectation:'yes',worry:'yes'};
+  const sampleCheckin = {moods:['excited','anxious'],issue:'career',energy:4,valence1to9:7,expectation:'yes',worry:'yes'};
   const result = run ? run.result : SAMPLE;
   const checkin = run ? run.checkin : sampleCheckin;
   const isSample = !run || !!run.sample;
@@ -68,6 +68,24 @@
   const text = (id,value) => {$(id).textContent=value;};
   const care = analysis ? analysis.checkin : null;
   const signals = analysis ? analysis.signals : NLCarePreview.normalizeResult(result);
+  function renderEmotionScore() {
+    if (!care) return;
+    const current = Date.now();
+    const metric = NLEmotionScore.calculateEmotionScore({
+      checkin:care,
+      signals,
+      checkinAt:run ? (run.createdAt || result.__nlCheckinAt) : current - 60_000,
+      resultAt:run ? run.resultAt : current,
+      now:current,
+    });
+    const ready = metric.status === 'ok';
+    text('emotionScoreValue',ready ? String(metric.score) : '—');
+    text('emotionScoreNote',ready ? '지금 기분의 쾌·불쾌 자기평가' :
+      metric.status === 'expired_checkin' ? '지난 체크인 결과입니다. 오늘 다시 체크인해 주세요.' :
+      metric.status === 'needs_valence' ? '이전 체크인에는 현재 기분 점수가 없습니다.' :
+      '점수 산출에 필요한 체크인 정보를 확인해 주세요.');
+    $('emotionIndex').classList.toggle('unavailable',!ready);
+  }
   if(!run){
     document.querySelector('.quality').textContent='정보 없음';
     document.querySelector('.hero-copy').textContent='가상 체크인과 샘플 결과로 오늘의 감정 상태 및 성향 리포트 구성을 미리 살펴보세요.';
@@ -109,6 +127,7 @@
     care.moods.forEach(value=>addFact(mount,'기분',NLCarePreview.MOODS[value]));
     addFact(mount,'고민',NLCarePreview.ISSUES[care.issue]);
     addFact(mount,'컨디션',care.energy+'/5');
+    if(care.valence1to9!=null)addFact(mount,'지금 기분',care.valence1to9+'/9');
     addFact(mount,'기대',NLCarePreview.ANSWERS[care.expectation]);
     addFact(mount,'걱정',NLCarePreview.ANSWERS[care.worry]);
     const support=$('careSupport');
@@ -191,6 +210,7 @@
 
   renderReport(result);
   if(hasCheckin){
+    renderEmotionScore();
     renderFacts();showInterpretation(fallbackInterpretation(),'사전 체크인과 확인된 검사 항목을 조합했습니다.');
     $('careAiRetry').addEventListener('click',generateInterpretation);
     generateInterpretation();
@@ -199,7 +219,7 @@
   document.querySelectorAll('[data-desktop-open]').forEach(el=>{el.open=!matchMedia('(max-width:680px)').matches;});
   requestAnimationFrame(()=>document.getElementById('result').classList.add('ready'));
   if(run?.live && runId){
-    if(care)result.__nlCheckin=care;
+    if(care){result.__nlCheckin=care;result.__nlCheckinAt=run.createdAt;}
     const stamp={ts:run.resultAt||Date.now(),savedId:run.savedId||null,result};
     localStorage.setItem('nlLastResult',JSON.stringify(stamp));
     try{

@@ -44,11 +44,13 @@
     if (!raw || !Array.isArray(raw.moods)) return null;
     const moods = [...new Set(raw.moods)].filter(value => Object.hasOwn(MOODS, value));
     const energy = Number(raw.energy);
+    const hasValence = raw.valence1to9 != null && raw.valence1to9 !== '';
+    const valence = hasValence ? Number(raw.valence1to9) : null;
     const issue = String(raw.issue || '');
     const expectation = String(raw.expectation || '');
     const worry = String(raw.worry || '');
-    if (!moods.length || !Object.hasOwn(ISSUES, issue) || !Number.isInteger(energy) || energy < 1 || energy > 5 || !Object.hasOwn(ANSWERS, expectation) || !Object.hasOwn(ANSWERS, worry)) return null;
-    return { moods, issue, energy, expectation, worry };
+    if (!moods.length || !Object.hasOwn(ISSUES, issue) || !Number.isInteger(energy) || energy < 1 || energy > 5 || !Object.hasOwn(ANSWERS, expectation) || !Object.hasOwn(ANSWERS, worry) || (hasValence && (!Number.isInteger(valence) || valence < 1 || valence > 9))) return null;
+    return { moods, issue, energy, expectation, worry, ...(hasValence ? { valence1to9:valence } : {}) };
   }
   function normalizeResult(raw) {
     const r = raw && typeof raw === 'object' ? raw : {};

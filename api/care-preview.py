@@ -56,8 +56,11 @@ def build_prompt(body):
     expectation = checkin.get("expectation")
     worry = checkin.get("worry")
     energy = checkin.get("energy")
+    valence = checkin.get("valence1to9")
     if issue not in ISSUES or expectation not in ANSWERS or worry not in ANSWERS or type(energy) is not int or not 1 <= energy <= 5:
         raise ValueError("체크인 응답을 확인해 주세요.")
+    if valence is not None and (type(valence) is not int or not 1 <= valence <= 9):
+        raise ValueError("현재 기분 점수를 확인해 주세요.")
     big5 = signals.get("big5") if isinstance(signals.get("big5"), dict) else {}
     riasec = signals.get("riasec") if isinstance(signals.get("riasec"), dict) else {}
     gaze = signals.get("gaze") if isinstance(signals.get("gaze"), dict) else {}
@@ -68,9 +71,12 @@ def build_prompt(body):
     patterns = body.get("traitPatterns") if isinstance(body.get("traitPatterns"), list) else []
     patterns = list(dict.fromkeys(value for value in patterns if isinstance(value, str) and value in TRAIT_PATTERNS))[:3]
     # The model receives only whitelisted facts and titles, never arbitrary client-authored prose.
+    checkin_facts = {"기분": [MOODS[mood] for mood in moods], "고민": ISSUES[issue], "컨디션_1_5": energy,
+                     "기대": ANSWERS[expectation], "걱정": ANSWERS[worry]}
+    if valence is not None:
+        checkin_facts["현재_쾌불쾌_1_9"] = valence
     facts = {
-        "사전 체크인": {"기분": [MOODS[mood] for mood in moods], "고민": ISSUES[issue], "컨디션_1_5": energy,
-                   "기대": ANSWERS[expectation], "걱정": ANSWERS[worry]},
+        "사전 체크인": checkin_facts,
         "검사 결과": {
             "BIG5_백분위": {key: value for key in ("O", "C", "E", "A", "N") if (value := _score(big5.get(key))) is not None},
             "RIASEC_점수": {key: value for key in "RIASEC" if (value := _score(riasec.get(key))) is not None},

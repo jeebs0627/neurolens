@@ -47,6 +47,20 @@ class AdminApiTests(unittest.TestCase):
         self.assertEqual(facts["검사 결과"]["정서_선별_명시구간"], "제공되지 않음")
         self.assertEqual([item["번호"] for item in facts["규칙상_일치한_조합"]], [3, 13])
         self.assertIn("진단하거나 치료하지 않는다", system)
+        self.assertNotIn("현재_쾌불쾌_1_9", facts["사전 체크인"])
+
+    def test_prompt_uses_validated_valence_when_present(self):
+        payload = {
+            "checkin": {"moods": ["calm"], "issue": "none", "energy": 3,
+                        "valence1to9": 7, "expectation": "no", "worry": "no"},
+            "signals": {"big5": {}, "riasec": {}, "gaze": {}, "screening": None},
+        }
+        _, prompt = care_preview.build_prompt(payload)
+        facts = json.loads(prompt.split("\n", 1)[1])
+        self.assertEqual(facts["사전 체크인"]["현재_쾌불쾌_1_9"], 7)
+        payload["checkin"]["valence1to9"] = 10
+        with self.assertRaises(ValueError):
+            care_preview.build_prompt(payload)
 
     def test_profile_prompt_includes_validated_cross_insight(self):
         prompt = profile_api.build_prompt({
