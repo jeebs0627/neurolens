@@ -113,6 +113,7 @@ class handler(BaseHTTPRequestHandler):
             return self._send(200, {k: item[k].strip()[:2500] for k in ("summary", "direction", "firstStep")})
         except urllib.error.HTTPError as error:
             print("care preview upstream HTTP", error.code)
+            return self._send(502, {"error": "generation unavailable", "upstreamStatus": error.code})
         except Exception as error:  # noqa: BLE001
             print("care preview upstream error", type(error).__name__)
         return self._send(502, {"error": "generation unavailable"})
