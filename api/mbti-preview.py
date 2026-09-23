@@ -62,9 +62,10 @@ class handler(BaseHTTPRequestHandler):
             return self._send(200, {"text": text})
         except urllib.error.HTTPError as error:
             print("MBTI preview upstream HTTP", error.code)
+            return self._send(502, {"error": "generation unavailable", "upstreamStatus": error.code})
         except Exception as error:  # noqa: BLE001
             print("MBTI preview upstream error", type(error).__name__)
-        return self._send(502, {"error": "generation unavailable"})
+            return self._send(502, {"error": "generation unavailable", "errorType": type(error).__name__})
 
     def _send(self, status, data):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
