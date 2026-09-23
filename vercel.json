@@ -16,7 +16,7 @@
       ]
     },
     {
-      "source": "/(admin|chat_admin|chat|report|result|test)\\.html",
+      "source": "/(admin|chat_admin|chat|report|result|resultadmin|test)\\.html",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
         { "key": "Cache-Control", "value": "no-store" }
