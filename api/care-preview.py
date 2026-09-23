@@ -97,7 +97,7 @@ class handler(BaseHTTPRequestHandler):
         payload = json.dumps({
             "systemInstruction": {"parts": [{"text": system}]},
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.55, "maxOutputTokens": 1600, "responseMimeType": "application/json"},
+            "generationConfig": {"temperature": 0.55, "maxOutputTokens": 1600, "responseMimeType": "application/json", "thinkingConfig": {"thinkingBudget": 0}},
         }).encode("utf-8")
         request = urllib.request.Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent",
@@ -116,7 +116,7 @@ class handler(BaseHTTPRequestHandler):
             return self._send(502, {"error": "generation unavailable", "upstreamStatus": error.code})
         except Exception as error:  # noqa: BLE001
             print("care preview upstream error", type(error).__name__)
-        return self._send(502, {"error": "generation unavailable"})
+            return self._send(502, {"error": "generation unavailable", "errorType": type(error).__name__})
 
     def _send(self, status, data):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")

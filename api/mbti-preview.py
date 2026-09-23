@@ -44,7 +44,7 @@ class handler(BaseHTTPRequestHandler):
         )
         payload = json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.55, "maxOutputTokens": 900},
+            "generationConfig": {"temperature": 0.55, "maxOutputTokens": 900, "thinkingConfig": {"thinkingBudget": 0}},
         }).encode("utf-8")
         request = urllib.request.Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent",
