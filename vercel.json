@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/gemini", "destination": "/api/gemini" },
     { "source": "/rcvrslt", "destination": "/api/rcvrslt" },
+    { "source": "/rcvrslt-admin", "destination": "/api/rcvrslt_admin" },
     { "source": "/engine/:endpoint", "destination": "/api/mg?endpoint=:endpoint" },
     { "source": "/mg/:endpoint", "destination": "/api/mg?endpoint=:endpoint" }
   ],
@@ -16,7 +17,7 @@
       ]
     },
     {
-      "source": "/(admin|chat_admin|chat|report|result|resultadmin|test)\\.html",
+      "source": "/(admin|chat_admin|chat|indexadmin|report|result|resultadmin|test)\\.html",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
         { "key": "Cache-Control", "value": "no-store" }

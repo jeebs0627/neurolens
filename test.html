@@ -118,6 +118,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0B1B3F;color:var(--in
   const prodUid = q.get('pu') || DEFAULT_PROD_UID;
   const mbrId   = q.get('mi') || '';
   let   mbrUid  = q.get('mu') || '';
+  const adminRun = q.get('admin') === '1' && /^[0-9a-f-]{36}$/i.test(q.get('run') || '') ? q.get('run') : '';
 
   const $ = (id) => document.getElementById(id);
   const engine = $('engine');
@@ -165,8 +166,8 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0B1B3F;color:var(--in
       mbrId:   mbrId,
       mbrUid:  mbrUid,
       prodUid: prodUid,
-      rtrn:    location.origin + '/rcvrslt',            // 결과 응답 리턴 URL (필수)
-      crtrn:   location.origin + '/rcvrslt?cancel=1',   // 엔진 화면의 「검사 종료」→ 우리 취소 페이지
+      rtrn:    adminRun ? location.origin + '/rcvrslt-admin?run=' + encodeURIComponent(adminRun) : location.origin + '/rcvrslt',
+      crtrn:   adminRun ? location.origin + '/rcvrslt-admin?run=' + encodeURIComponent(adminRun) + '&cancel=1' : location.origin + '/rcvrslt?cancel=1',
     };
     const form = document.createElement('form');
     form.method = 'POST';
@@ -195,6 +196,12 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0B1B3F;color:var(--in
     $('msg').innerHTML = '<b>측정 완료</b> · 결과 리포트로 이동합니다';
     showVeil('측정이 완료되었습니다', '결과 리포트를 준비하고 있습니다. 잠시만 기다려 주세요…');
 
+    if (adminRun) {
+      tellOpener({ type: 'nlAdminResultReady', run: adminRun });
+      setTimeout(() => fallbackToReport(raw), 400);
+      return;
+    }
+
     /* 메인 창이 결과를 저장(계정 연동)한 뒤 이 창을 리포트로 보낸다.
      * 메인 창이 없거나(직접 열린 창) 늦으면 이 창이 직접 리포트로 이동한다. */
     const relayed = tellOpener({ type: 'nlEngineResult', data: raw });
@@ -204,6 +211,14 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0B1B3F;color:var(--in
   function fallbackToReport(raw) {
     if (!/test\.html$/i.test(location.pathname) && location.pathname !== '/test') return;  // 이미 이동했음
     if (document.body.dataset.error) return;                                                 // 오류 안내 중
+    if (adminRun) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('nlAdminRun:' + adminRun) || 'null');
+        if (!saved || !saved.checkin || !saved.result) throw Error('사전 체크인 또는 검사 결과가 없습니다.');
+        location.replace('resultadmin.html?run=' + encodeURIComponent(adminRun));
+      } catch (error) { showFailure(error.message); }
+      return;
+    }
     try {
       const j = JSON.parse(localStorage.getItem('nlLastResult') || 'null');
       if (j && j.ts && Date.now() - j.ts < 120000) {   // 메인 창이 방금 저장한 결과가 있으면 그것으로
@@ -238,7 +253,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0B1B3F;color:var(--in
   function closeSelf() {
     window.close();
     /* 스크립트로 닫히지 않는 창(주소창에 직접 열린 경우)은 메인으로 돌려보낸다 */
-    setTimeout(() => { if (!window.closed) location.replace('index.html'); }, 300);
+    setTimeout(() => { if (!window.closed) location.replace(adminRun ? 'indexadmin.html' : 'index.html'); }, 300);
   }
   function cancel() {
     if (finished) return;
@@ -259,7 +274,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0B1B3F;color:var(--in
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data) return;
     const d = e.data;
-    if (d.type === 'nlEngineResult') {
+    if (d.type === 'nlEngineResult' || (adminRun && d.type === 'nlAdminEngineResult' && d.run === adminRun)) {
       if (e.source && e.source !== engine.contentWindow) return;   // iframe 에서 온 것만
       onResult(d.data);
     } else if (d.type === 'nlEngineCancel') {
