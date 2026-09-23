@@ -8,7 +8,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.6-flash"
 VALID_MBTI = re.compile(r"^[EI][NS][TF][JP]$")
 
 
