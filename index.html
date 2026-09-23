@@ -244,12 +244,6 @@ header.hero{position:relative;overflow:hidden;background:
 .alert-band h3 em{font-style:normal;color:#8FB2FF}
 .alert-band p{font-size:13px;color:#B9C4DE}
 
-/* 진행 중인 케어 안내 (소개 페이지 · 링크만) */
-.care-entry{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:space-between;background:linear-gradient(135deg,#F6FBF4,#EEF6EA);border:1.5px solid #D6E8CD;border-radius:18px;padding:20px 26px}
-.care-entry .ce-tx{flex:1;min-width:240px}
-.care-entry .ce-tx b{display:block;font-size:15.5px;font-weight:900;color:#3F6F3A;margin-bottom:4px}
-.care-entry .ce-tx span{font-size:13px;color:#5E7A55;line-height:1.7}
-
 /* ============================================================
    TESTS (검사 3종 + 추가 리포트 7종)
 ============================================================ */
@@ -272,7 +266,6 @@ header.hero{position:relative;overflow:hidden;background:
 .mr-head .tl{display:flex;align-items:center;gap:14px}
 .mr-head h3{font-size:19px;font-weight:900}
 .mr-head h3 small{display:block;font-size:12.5px;font-weight:500;color:var(--gray);margin-top:2px}
-.pro-badge{font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#fff;background:var(--grad-hero);border-radius:14px;padding:6px 15px;box-shadow:0 6px 14px rgba(76,60,224,.3)}
 .mr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative}
 @media(max-width:900px){.mr-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.mr-grid{grid-template-columns:1fr}}
@@ -610,6 +603,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14.5" cy="17.5" r="7.5" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="14.5" cy="17.5" r="2.9" fill="#fff"/><path d="M20.5 8.2A11.2 11.2 0 0 1 25.8 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/><circle cx="26.2" cy="7.6" r="1.9" fill="#fff"/></svg></span>
       <span class="word">Neuro<em>Lens</em></span>
       <small>GAZE AI</small>
+      <small>Digital BioMarker AI</small>
     </a>
     <div class="links" id="navLinks">
       <a href="#problem">문제</a>
@@ -688,23 +682,6 @@ footer p{font-size:12.5px;color:var(--gray)}
     <p class="done-hint" id="doneHint"></p>
   </div>
 </div>
-
-<!-- ================= 진행 중인 케어 안내 (링크만 · 내용은 리포트 페이지에서) =================
-     체크인 · 컨디션 · 케어 · Agent 상담 · Premium 리포트는 모두 report.html 의 콘텐츠다.
-     소개 페이지에는 렌더하지 않고, 리포트로 가는 입구만 둔다. -->
-<section id="careEntry" style="display:none;padding:38px 0;background:#FAFBFE;border-top:1px solid var(--line)">
-  <div class="wrap" style="max-width:880px">
-    <div class="care-entry">
-      <div class="ce-tx">
-        <b>🌿 진행 중인 케어 코스가 있어요</b>
-        <span id="ceSub">오늘의 체크인과 케어 여정은 결과 리포트에서 이어갈 수 있어요.</span>
-      </div>
-      <button class="btn-main" id="ceBtn" style="font-size:15px;padding:13px 30px;white-space:nowrap">
-        📄 결과 리포트에서 이어가기
-      </button>
-    </div>
-  </div>
-</section>
 
 <!-- ================= PROBLEM ================= -->
 <section id="problem" style="background:#FAFBFE;border-top:1px solid var(--line)">
@@ -825,7 +802,6 @@ footer p{font-size:12.5px;color:var(--gray)}
           <div class="ic nv ic-sm" style="width:44px;height:44px;border-radius:13px"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M12 2.5 14.4 9l6.6.3-5.2 4.2 1.9 6.5L12 16.2 6.3 20l1.9-6.5L3 9.3 9.6 9z"/></svg></div>
           <h3>추가 심리 리포트 6종<small>기본 4종과 함께 총 10종의 리포트로 '진짜 나'를 완성합니다. 리포트는 계속 추가됩니다.</small></h3>
         </div>
-        <span class="pro-badge">유료 구독 시 제공(마음 포인트로 해금 가능)</span>
       </div>
       <div class="mr-grid">
         <div class="mr-cat" style="--mc:#E0446A">
@@ -1385,12 +1361,9 @@ footer p{font-size:12.5px;color:var(--gray)}
 <script src="auth.js"></script>
 <script>
 /* =========================================================================
- * NLCareLite — 랜딩 전용 초경량 케어 상태 리더
- * care.js(157KB)는 리포트/샘플 페이지에서만 로드한다. 랜딩에 필요한 것은
- *   ① 알림톡 링크의 ?care= 토큰 채택  ② 여정 존재 여부  ③ 코스 차수/일차
- * 뿐이며, 셋 다 localStorage 읽기로 충분하다 (초기 로딩 최적화).
+ * 알림톡 링크의 ?care= 토큰 채택 (랜딩 전용 · care.js 는 리포트/샘플 페이지에서만 로드)
  * ========================================================================= */
-const NLCareLite = (function () {
+(function () {
   try {
     const q = new URLSearchParams(location.search), t = q.get('care');
     if (t && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(t)) {
@@ -1401,21 +1374,6 @@ const NLCareLite = (function () {
       history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
     }
   } catch (_) {}
-  function state() {
-    try { return JSON.parse(localStorage.getItem('nlCareJourney')) || {}; } catch (_) { return {}; }
-  }
-  return {
-    hasJourney() { const s = state(); return !!(s.startedAt || (s.rx && s.rx.length)); },
-    course() {
-      const s = state();
-      let day = 0;
-      if (s.startedAt) {
-        const d0 = new Date(s.startedAt + 'T00:00:00');
-        day = Math.floor((Date.now() - d0.getTime()) / 86400000) + (s.demoOffset || 0);
-      }
-      return { cycle: s.cycle || 1, day: Math.max(0, day) };
-    },
-  };
 })();
 </script>
 <script>
@@ -1971,36 +1929,10 @@ document.getElementById('mpLogout').addEventListener('click', async () => {
   closeModalA11y(myModal);
 });
 
-/* ---------- 재방문 사용자: 리포트로 가는 입구만 노출 ----------
- * 체크인·컨디션·케어·Agent 상담·Premium 은 모두 report.html 의 콘텐츠다.
- * 소개 페이지에서는 렌더하지 않고, 알림톡 링크(?checkin=1)로 들어오면 리포트로 보낸다.
- * 케어 입구는 이 기기 케어 데이터의 주인 계정으로 로그인한 경우에만 노출한다
- * — 비로그인·다른 계정 상태에서 이전 사용자의 여정이 보이면 안 된다. */
+/* ---------- 알림톡 링크(?checkin=1)로 들어오면 리포트로 보낸다 ----------
+ * care.js 가 ?care= 토큰을 이미 채택했으므로 그대로 report.html 로 넘긴다 */
 try {
-  var q = new URLSearchParams(location.search);
-  var wantCheckin = !!q.get('checkin');
-  /* care.js 가 ?care= 토큰을 이미 채택했으므로 그대로 report.html 로 넘긴다 */
-  if (wantCheckin) {
-    location.replace('report.html');
-  } else if (NLCareLite.hasJourney()) {
-    var entry = document.getElementById('careEntry');
-    try {
-      var c = NLCareLite.course();
-      if (c && c.day >= 0) {
-        document.getElementById('ceSub').textContent =
-          c.cycle + '차 코스 D' + Math.min(c.day, 7) + ' 진행 중 — 오늘의 체크인과 케어 여정은 결과 리포트에서 이어갈 수 있어요.';
-      }
-    } catch (_) {}
-    document.getElementById('ceBtn').addEventListener('click', function () {
-      window.open('report.html', '_blank');
-    });
-    /* 로그인/로그아웃 변화에 즉시 반응해 노출·숨김을 갱신한다 */
-    NLAuth.onAuth(function (u) {
-      var owner = null;
-      try { owner = localStorage.getItem('nlCareTokenOwner'); } catch (_) {}
-      entry.style.display = (u && (!owner || owner === u.id)) ? 'block' : 'none';
-    });
-  }
+  if (new URLSearchParams(location.search).get('checkin')) location.replace('report.html');
 } catch (_) {}
 
 /* ---------- 스크롤 등장 애니메이션 ---------- */
