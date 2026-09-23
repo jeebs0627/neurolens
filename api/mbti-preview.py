@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler
@@ -53,22 +54,26 @@ class handler(BaseHTTPRequestHandler):
             headers={"Content-Type": "application/json", "x-goog-api-key": key},
             method="POST",
         )
-        try:
-            with urllib.request.urlopen(request, timeout=45) as response:
-                data = json.load(response)
-            parts = data["candidates"][0]["content"]["parts"]
-            text = "".join(part.get("text", "") for part in parts).strip()
-            if not text:
-                raise ValueError("empty model response")
-            if probe:
-                return self._send(200, {"ok": text.upper().rstrip(".") == "OK"})
-            return self._send(200, {"text": text})
-        except urllib.error.HTTPError as error:
-            print("MBTI preview upstream HTTP", error.code)
-            return self._send(502, {"error": "generation unavailable", "upstreamStatus": error.code})
-        except Exception as error:  # noqa: BLE001
-            print("MBTI preview upstream error", type(error).__name__)
-            return self._send(502, {"error": "generation unavailable", "errorType": type(error).__name__})
+        for attempt in range(2):
+            try:
+                with urllib.request.urlopen(request, timeout=45) as response:
+                    data = json.load(response)
+                parts = data["candidates"][0]["content"]["parts"]
+                text = "".join(part.get("text", "") for part in parts).strip()
+                if not text:
+                    raise ValueError("empty model response")
+                if probe:
+                    return self._send(200, {"ok": text.upper().rstrip(".") == "OK"})
+                return self._send(200, {"text": text})
+            except urllib.error.HTTPError as error:
+                print("MBTI preview upstream HTTP", error.code)
+                if error.code == 503 and attempt == 0:
+                    time.sleep(0.8)
+                    continue
+                return self._send(502, {"error": "generation unavailable", "upstreamStatus": error.code})
+            except Exception as error:  # noqa: BLE001
+                print("MBTI preview upstream error", type(error).__name__)
+                return self._send(502, {"error": "generation unavailable", "errorType": type(error).__name__})
 
     def _send(self, status, data):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
