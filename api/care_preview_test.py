@@ -23,9 +23,17 @@ def load(name, filename):
 
 care_preview = load("care_preview", "care-preview.py")
 callback = load("rcvrslt_admin", "rcvrslt_admin.py")
+profile_api = load("gemini_profile", "gemini.py")
 
 
 class AdminApiTests(unittest.TestCase):
+    def test_profile_prompt_uses_only_available_measurements(self):
+        prompt = profile_api.build_prompt({"mbti": "ENFP", "big5": [82, None, 74], "jobs": []})
+        self.assertIn("개방성 82백분위", prompt)
+        self.assertIn("외향성 74백분위", prompt)
+        self.assertNotIn("성실성 0백분위", prompt)
+        self.assertIn("오늘 내 감정 상태", prompt)
+
     def test_prompt_does_not_invent_unavailable_fields(self):
         system, prompt = care_preview.build_prompt({
             "checkin": {"moods": ["anxious"], "issue": "career", "energy": 3,

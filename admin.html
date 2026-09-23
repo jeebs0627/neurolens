@@ -67,6 +67,7 @@ h1.pgtitle{font-size:24px;font-weight:900;letter-spacing:-.02em;margin-bottom:4p
 .stat small{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--gray2);margin-bottom:6px}
 .stat b{font-family:var(--font-num);font-size:28px;font-weight:800;line-height:1.1}
 .stat .sub{font-size:11px;color:var(--gray2);margin-top:4px}
+.ai-health{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.ai-health h3{margin:0 auto 0 0}.ai-health-list{display:flex;gap:9px;flex-wrap:wrap;width:100%;margin-top:3px}.health-item{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:11px;background:#f8faff;padding:9px 12px;font-size:12px;font-weight:700}.health-dot{width:9px;height:9px;border-radius:50%;background:#a8b2c5;flex:none}.health-item.ok .health-dot{background:#0ba76e;box-shadow:0 0 0 4px #d8f5e9;animation:healthPulse 1.5s ease-in-out infinite}.health-item.fail .health-dot{background:#db4c62;box-shadow:0 0 0 4px #fde7ec}@keyframes healthPulse{50%{box-shadow:0 0 0 7px #e8faf1;opacity:.6}}.health-item .state{color:var(--gray2);font-size:11px}.health-item.ok .state{color:#087d54}.health-item.fail .state{color:#b52d48}
 
 /* 카드 & 테이블 */
 .panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px 26px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
@@ -142,6 +143,15 @@ footer{border-top:1px solid var(--line);background:#fff;padding:24px 0;text-alig
       <div class="stat" style="--sc:linear-gradient(135deg,#6C4CE0,#8E75EE)"><small>총 검사</small><b id="stTests">0</b><div class="sub">저장된 검사 결과</div></div>
       <div class="stat" style="--sc:linear-gradient(135deg,#0FA47A,#3EC49E)"><small>오늘 가입</small><b id="stTodayUsers">0</b><div class="sub">오늘 0시 이후 가입</div></div>
       <div class="stat" style="--sc:linear-gradient(135deg,#E8890C,#F2A93B)"><small>오늘 검사</small><b id="stTodayTests">0</b><div class="sub">오늘 0시 기준</div></div>
+    </div>
+
+    <div class="panel ai-health" aria-label="AI API 연결 상태">
+      <h3>AI API · 실시간 연결 상태</h3><button class="btn" id="healthRefresh" type="button">⟳ 연결 재확인</button>
+      <div class="ai-health-list">
+        <div class="health-item" id="healthCare"><span class="health-dot"></span><span>감정 총평 · carebot</span><span class="state">대기</span></div>
+        <div class="health-item" id="healthProfile"><span class="health-dot"></span><span>특징 총평 · GEMINI_API_KEY</span><span class="state">대기</span></div>
+        <div class="health-item" id="healthMbti"><span class="health-dot"></span><span>MBTI 해설 · chatbot</span><span class="state">대기</span></div>
+      </div>
     </div>
 
     <div class="panel">
@@ -262,7 +272,24 @@ function renderDash(){
   document.getElementById('loadedAt').textContent='· 기준 '+fmtDT(new Date().toISOString());
   renderMembers();
   if(selectedId) renderDetail(selectedId);
+  checkApis();
 }
+
+/* 고정된 한 단어 응답만 요청해 세 키·모델의 실호출 성공을 확인한다. */
+async function checkApis(){
+  const targets=[['healthCare','/api/care-preview'],['healthProfile','/gemini'],['healthMbti','/api/mbti-preview']];
+  await Promise.all(targets.map(async ([id,url])=>{
+    const item=document.getElementById(id),state=item.querySelector('.state');
+    item.classList.remove('ok','fail');state.textContent='확인 중…';
+    try{
+      const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({probe:true})});
+      const data=await response.json();
+      if(!response.ok||data.ok!==true)throw Error(data.upstreamStatus?`Google ${data.upstreamStatus}`:data.error||`HTTP ${response.status}`);
+      item.classList.add('ok');state.textContent='정상';
+    }catch(error){item.classList.add('fail');state.textContent='연결 실패 · '+error.message;}
+  }));
+}
+document.getElementById('healthRefresh').addEventListener('click',checkApis);
 
 function renderMembers(){
   const q=(document.getElementById('searchBox').value||'').trim().toLowerCase();

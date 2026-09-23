@@ -91,14 +91,21 @@ class handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length).decode("utf-8"))
             if not isinstance(body, dict):
                 raise ValueError("invalid body")
-            system, prompt = build_prompt(body)
+            probe = body.get("probe") is True
+            if probe:
+                system, prompt = "", "Reply with only OK."
+            else:
+                system, prompt = build_prompt(body)
         except (ValueError, UnicodeError) as error:
             return self._send(400, {"error": str(error)[:120]})
-        payload = json.dumps({
-            "systemInstruction": {"parts": [{"text": system}]},
+        request_body = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.55, "maxOutputTokens": 1600, "responseMimeType": "application/json", "thinkingConfig": {"thinkingBudget": 0}},
-        }).encode("utf-8")
+            "generationConfig": {"temperature": 0.55, "maxOutputTokens": 8 if probe else 1600, "thinkingConfig": {"thinkingBudget": 0}},
+        }
+        if not probe:
+            request_body["systemInstruction"] = {"parts": [{"text": system}]}
+            request_body["generationConfig"]["responseMimeType"] = "application/json"
+        payload = json.dumps(request_body).encode("utf-8")
         request = urllib.request.Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent",
             data=payload, headers={"Content-Type": "application/json", "x-goog-api-key": key}, method="POST",
@@ -107,6 +114,8 @@ class handler(BaseHTTPRequestHandler):
             with urllib.request.urlopen(request, timeout=50) as response:
                 data = json.load(response)
             output = "".join(part.get("text", "") for part in data["candidates"][0]["content"]["parts"])
+            if probe:
+                return self._send(200, {"ok": output.strip().upper().rstrip(".") == "OK"})
             item = json.loads(output)
             if not isinstance(item, dict) or any(not isinstance(item.get(k), str) or not item[k].strip() for k in ("summary", "direction", "firstStep")):
                 raise ValueError("invalid model response")

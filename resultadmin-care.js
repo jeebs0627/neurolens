@@ -51,7 +51,7 @@
   catch (error) { $('careAiStatus').textContent='사전 체크인 형식을 확인해 주세요.';console.error(error);return; }
 
   const formatDate = date => {const d=new Date(date);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
-  const addFact = (mount, value) => {const span=document.createElement('span');span.textContent=value;mount.appendChild(span);};
+  const addFact = (mount, label, value) => {const chip=document.createElement('span');chip.className='fact';const left=document.createElement('span');left.className='label';left.textContent=label;const right=document.createElement('span');right.className='value';right.textContent=value;chip.append(left,right);mount.appendChild(chip);};
   const text = (id,value) => {$(id).textContent=value;};
   const care = analysis.checkin, signals = analysis.signals;
   if(!run){
@@ -92,11 +92,11 @@
 
   function renderFacts() {
     const mount=$('careCheckinFacts');mount.replaceChildren();
-    care.moods.forEach(value=>addFact(mount,'기분 · '+NLCarePreview.MOODS[value]));
-    addFact(mount,'고민 · '+NLCarePreview.ISSUES[care.issue]);
-    addFact(mount,'컨디션 · '+care.energy+'/5');
-    addFact(mount,'기대 · '+NLCarePreview.ANSWERS[care.expectation]);
-    addFact(mount,'걱정 · '+NLCarePreview.ANSWERS[care.worry]);
+    care.moods.forEach(value=>addFact(mount,'기분',NLCarePreview.MOODS[value]));
+    addFact(mount,'고민',NLCarePreview.ISSUES[care.issue]);
+    addFact(mount,'컨디션',care.energy+'/5');
+    addFact(mount,'기대',NLCarePreview.ANSWERS[care.expectation]);
+    addFact(mount,'걱정',NLCarePreview.ANSWERS[care.worry]);
     const support=$('careSupport');
     if(signals.screening==='borderline'||signals.screening==='high'){
       support.hidden=false;support.replaceChildren();
@@ -129,14 +129,50 @@
       if(!response.ok)throw Error(`HTTP ${response.status}`);
       const data=await response.json();
       if(typeof data.summary!=='string'||typeof data.direction!=='string'||typeof data.firstStep!=='string')throw Error('invalid response');
-      showInterpretation(data,'Neurolens Generated · gemini-2.5-flash');
+      showInterpretation(data,'Neurolens Generated');
       $('careAiBadge').textContent='✦ Neurolens Generated';
     }catch(error){console.warn('CARE 해석 생성 실패:',error);text('careAiStatus','기본 해설 표시 중 · AI 서비스 연결을 확인해 주세요.');$('careAiRetry').hidden=false;aiRequested=false;}
+  }
+
+  async function generateProfileSummary(r){
+    const cacheKey='nlProfileSummary:v2:'+(run?.savedId||run?.id||'sample');
+    const summary=document.querySelector('.deep-copy');
+    const paint=value=>{
+      const paragraphs=String(value).split(/\n\s*\n/).map(part=>part.trim()).filter(Boolean);
+      summary.querySelector('.copy-preview').textContent=paragraphs.join(' ');
+      const body=summary.querySelector('.copy-body');body.replaceChildren();
+      paragraphs.forEach(part=>{const p=document.createElement('p');p.textContent=part;body.appendChild(p);});
+      $('profileAiBadge').textContent='✦ Neurolens Generated';
+      text('profileAiStatus','검사 결과 기반 AI 특징 총평');
+    };
+    try{
+      const cached=sessionStorage.getItem(cacheKey);
+      if(cached){paint(cached);return;}
+    }catch(_){}
+    const big=r.BIG5||{};
+    const payload={
+      name:r['시험자정보']?.['시험자명']||'',gender:r['시험자정보']?.['성별']||'',age:r['시험자정보']?.['연령대']||'',
+      mbti:r.MBTI||'',mbtiName:MBTI_DESC[String(r.MBTI||'').toUpperCase()]?.n||'',
+      big5:TRAITS.map(trait=>{const raw=big[trait.key+'_백분위'];const n=raw==null||raw===''?null:Number(raw);return Number.isFinite(n)?n:null;}),
+      holland:r['직업흥미유형']?.['유형']||'',hollandName:r['직업흥미유형']?.['유형명']||'',
+      jobs:(Array.isArray(r['직무적합도'])?r['직무적합도']:[]).slice(0,5).map(job=>({name:job['직업'],score:Number(job['점수'])})).filter(job=>job.name&&Number.isFinite(job.score)),
+    };
+    text('profileAiStatus','검사 결과 기반 특징 총평을 생성하고 있습니다…');
+    try{
+      const response=await fetch('/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!response.ok)throw Error(`HTTP ${response.status}`);
+      const data=await response.json();
+      if(typeof data.text!=='string'||!data.text.trim())throw Error('빈 응답');
+      paint(data.text.trim());
+      try{sessionStorage.setItem(cacheKey,data.text.trim());}catch(_){}
+      if(runId){run.profileSummary=data.text.trim();localStorage.setItem('nlAdminRun:'+runId,JSON.stringify(run));}
+    }catch(error){console.warn('특징 총평 생성 실패:',error);text('profileAiStatus','기본 특징 해설 표시 중 · AI 서비스 연결을 확인해 주세요.');}
   }
 
   renderReport(result);renderFacts();showInterpretation(fallbackInterpretation(),'사전 체크인과 확인된 검사 항목을 조합했습니다.');
   $('careAiRetry').addEventListener('click',generateInterpretation);
   generateInterpretation();
+  generateProfileSummary(result);
   document.querySelectorAll('[data-desktop-open]').forEach(el=>{el.open=!matchMedia('(max-width:680px)').matches;});
   requestAnimationFrame(()=>document.getElementById('result').classList.add('ready'));
   if(run?.live && runId){

@@ -28,13 +28,14 @@ class handler(BaseHTTPRequestHandler):
             if not 0 < length <= 256:
                 return self._send(413, {"error": "invalid request length"})
             body = json.loads(self.rfile.read(length).decode("utf-8"))
+            probe = isinstance(body, dict) and body.get("probe") is True
             mbti = body.get("mbti", "") if isinstance(body, dict) else ""
-            if not isinstance(mbti, str) or not VALID_MBTI.fullmatch(mbti):
+            if not probe and (not isinstance(mbti, str) or not VALID_MBTI.fullmatch(mbti)):
                 return self._send(400, {"error": "invalid MBTI type"})
         except (ValueError, UnicodeError):
             return self._send(400, {"error": "invalid request"})
 
-        prompt = (
+        prompt = "Reply with only OK." if probe else (
             f"16 Personalities 유형 {mbti}에 대한 한국어 상세 해설을 작성하세요. "
             "일반적인 유형 경향을 3개 문단, 총 350~500자로 설명하세요. "
             "첫 문단은 에너지와 정보 인식, 둘째 문단은 의사결정과 관계, "
@@ -44,7 +45,7 @@ class handler(BaseHTTPRequestHandler):
         )
         payload = json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.55, "maxOutputTokens": 900, "thinkingConfig": {"thinkingBudget": 0}},
+            "generationConfig": {"temperature": 0.55, "maxOutputTokens": 8 if probe else 900, "thinkingConfig": {"thinkingBudget": 0}},
         }).encode("utf-8")
         request = urllib.request.Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent",
@@ -59,6 +60,8 @@ class handler(BaseHTTPRequestHandler):
             text = "".join(part.get("text", "") for part in parts).strip()
             if not text:
                 raise ValueError("empty model response")
+            if probe:
+                return self._send(200, {"ok": text.upper().rstrip(".") == "OK"})
             return self._send(200, {"text": text})
         except urllib.error.HTTPError as error:
             print("MBTI preview upstream HTTP", error.code)
