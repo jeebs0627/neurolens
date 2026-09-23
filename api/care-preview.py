@@ -7,9 +7,9 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
-MODEL = "gemini-3.6-flash"
+MODEL = "gemini-2.5-flash"
 MAX_BODY = 8 * 1024
-MOODS = {"calm": "평온", "anxious": "불안", "low": "가라앉음", "flat": "무기력", "irritable": "짜증", "excited": "설렘", "tense": "긴장"}
+MOODS = {"calm": "평온", "happy": "행복", "joyful": "기쁨", "excited": "설렘", "thrilled": "신남", "anxious": "불안", "tense": "긴장", "irritable": "짜증", "sad": "슬픔", "lonely": "외로움", "empty": "공허함", "depressed": "우울", "overwhelmed": "막막함", "low": "가라앉음", "flat": "무기력"}
 ISSUES = {"relationship": "관계", "career": "진로·학업", "task": "학업·과업", "growth": "자기계발", "health": "건강", "finance": "재정", "change": "변화 적응", "none": "아직 모르겠음"}
 ANSWERS = {"yes": "있음", "no": "없음", "unsure": "모름"}
 TITLES = {
@@ -36,7 +36,7 @@ def build_prompt(body):
     if not isinstance(checkin, dict) or not isinstance(signals, dict):
         raise ValueError("체크인과 검사 결과가 필요합니다.")
     moods = checkin.get("moods")
-    if not isinstance(moods, list) or not 1 <= len(moods) <= 7 or any(mood not in MOODS for mood in moods):
+    if not isinstance(moods, list) or not 1 <= len(moods) <= len(MOODS) or any(mood not in MOODS for mood in moods):
         raise ValueError("기분 응답을 확인해 주세요.")
     issue = checkin.get("issue")
     expectation = checkin.get("expectation")

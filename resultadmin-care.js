@@ -1,9 +1,10 @@
-/* Admin-only live result and care preview. Production result.html is unchanged. */
-(() => {
+/* Check-in and measurement interpretation shared by the preview and live result. */
+(async () => {
   'use strict';
   const $ = id => document.getElementById(id);
   const param = new URLSearchParams(location.search);
   const runId = param.get('run');
+  const savedId = param.get('id');
   let run = null;
   if (runId) {
     try { run = JSON.parse(localStorage.getItem('nlAdminRun:' + runId) || 'null'); } catch (_) {}
@@ -12,11 +13,39 @@
       return;
     }
   }
+  if (!run && param.get('source')==='live') {
+    let record=null;
+    try {
+      if(savedId){
+        if(!window.NLAuth?.enabled || !await NLAuth.getUser())throw Error('로그인이 필요합니다.');
+        const row=await NLAuth.getResult(savedId);
+        if(!row)throw Error('저장된 결과를 찾을 수 없습니다.');
+        record={result:row.result,resultAt:row.created_at,id:row.id,savedId:row.id};
+      } else {
+        const last=JSON.parse(localStorage.getItem('nlLastResult')||'null');
+        if(last?.savedId && window.NLAuth?.enabled){
+          if(!await NLAuth.getUser())throw Error('로그인이 필요합니다.');
+          const row=await NLAuth.getResult(last.savedId);
+          if(!row)throw Error('저장된 결과를 찾을 수 없습니다.');
+          record={result:row.result,resultAt:row.created_at,id:row.id,savedId:row.id};
+        } else if(last?.result)record={result:last.result,resultAt:last.ts,id:'LOCAL',savedId:null};
+      }
+      if(!record?.result)throw Error('표시할 검사 결과가 없습니다.');
+      if(!record.result.__nlCheckin){location.replace('report.html?legacy=1'+(savedId?'&id='+encodeURIComponent(savedId):''));return;}
+      run={...record,checkin:record.result.__nlCheckin,live:true};
+    } catch(error){
+      document.body.innerHTML='<main style="max-width:600px;margin:15vh auto;padding:28px;font:16px/1.7 sans-serif"><h1>결과를 불러오지 못했습니다</h1><p></p><a href="index.html">메인으로 돌아가기</a></main>';
+      document.querySelector('main p').textContent=error.message;return;
+    }
+  }
   const sampleCheckin = {moods:['excited','anxious'],issue:'career',energy:4,expectation:'yes',worry:'yes'};
   const result = run ? run.result : SAMPLE;
   const checkin = run ? run.checkin : sampleCheckin;
   const isSample = !run || !!run.sample;
-  $('careDataType').textContent = isSample ? ' · SAMPLE DATA' : ' · MEASURED DATA';
+  if(run?.live || param.get('sample')==='1'){
+    document.querySelector('.preview-chip').style.display='none';
+    document.querySelector('footer p').textContent=run?.live?'AX오픈랩 · NeuroLens — 검사 결과 리포트':'AX오픈랩 · NeuroLens — 샘플 결과 리포트';
+  }
   let analysis;
   try { analysis = NLCarePreview.analyze(checkin,result); }
   catch (error) { $('careAiStatus').textContent='사전 체크인 형식을 확인해 주세요.';console.error(error);return; }
@@ -25,6 +54,11 @@
   const addFact = (mount, value) => {const span=document.createElement('span');span.textContent=value;mount.appendChild(span);};
   const text = (id,value) => {$(id).textContent=value;};
   const care = analysis.checkin, signals = analysis.signals;
+  if(!run){
+    document.querySelector('.quality').textContent='정보 없음';
+    document.querySelector('.hero-copy').textContent='가상 체크인과 샘플 결과로 오늘의 감정 상태 및 성향 리포트 구성을 미리 살펴보세요.';
+    text('sampleDay','샘플 결과');
+  }
 
   function renderReport(r) {
     if (!run) return; // The standalone resultadmin sample is already rendered by its original preview.
@@ -39,68 +73,36 @@
     renderAdminFit(jobs);renderAdminHolland(holland);renderAdminSumTags(r.MBTI,hasCompleteBig5?values:[],jobs,holland);renderAdminMbti(r.MBTI);
     requestAnimationFrame(()=>requestAnimationFrame(()=>{$('result').querySelectorAll('[data-w]').forEach(el=>el.style.width=el.dataset.w);$('result').querySelectorAll('.gauge[data-gv]').forEach(el=>el.style.setProperty('--gv',el.dataset.gv));}));
     const p=r['시험자정보']||{}, name=String(p['시험자명']||'검사자');
-    document.querySelector('.hero-badge.sample').textContent=isSample?'SAMPLE · 가상 데이터':'실측 데이터 · 관리자 테스트';
+    document.querySelector('.hero-badge.sample').textContent=isSample?'SAMPLE · 가상 데이터':'실측 데이터';
     text('sampleDay','사전 체크인 연결');
     text('sampleDate',formatDate(run.resultAt||Date.now()));
-    document.querySelector('.hero-meta .meta-row:nth-of-type(3) b').textContent='ADMIN-'+run.id.slice(0,8).toUpperCase();
+    document.querySelector('.hero-meta .meta-row:nth-of-type(3) b').textContent=run.live?'NL-'+String(run.savedId||run.id).slice(0,8).toUpperCase():'ADMIN-'+run.id.slice(0,8).toUpperCase();
     document.querySelector('.hero-meta .meta-row:nth-of-type(4) b').textContent=[name,p['연령대']].filter(Boolean).join(' · ');
     document.querySelector('.quality').textContent=signals.gaze.quality ? ({high:'GOOD',mid:'MID',low:'LOW'})[signals.gaze.quality] : '정보 없음';
-    document.querySelector('.hero-copy').textContent='검사 전 체크인과 시선행동·설문 결과를 연결했습니다. REPORT에서 성향을 확인하고 CARE에서 오늘의 감정 상태를 살펴보세요.';
-    const validTraits=TRAITS.map((trait,index)=>({name:trait.key,value:Number(big[trait.key+'_백분위'])})).filter(item=>Number.isFinite(item.value)).sort((a,b)=>b.value-a.value);
+    document.querySelector('.hero-copy').textContent='검사 전 체크인과 시선행동·설문 결과를 연결했습니다. 오늘의 감정 상태와 성향을 한 리포트에서 살펴보세요.';
+    const validTraits=TRAITS.map(trait=>({name:trait.key,value:big[trait.key+'_백분위']==null?NaN:Number(big[trait.key+'_백분위'])})).filter(item=>Number.isFinite(item.value)).sort((a,b)=>b.value-a.value);
     const keywords=document.querySelectorAll('.keyword');
     keywords.forEach((el,index)=>{const item=validTraits[index];el.querySelector('small').textContent=item?'BIG FIVE '+(index+1):'REPORT';el.querySelector('b').textContent=item?`${item.name} ${item.value.toFixed(0)} 백분위`:index===0?'측정된 성향을 살펴보세요':index===1?`유형 ${r.MBTI||'정보 없음'}`:jobs[0]?`직무 후보 ${jobs[0].name}`:'제공된 항목을 확인해 주세요';});
     const intro=`${name} 님의 검사 결과에서 ${r.MBTI?`${r.MBTI} 유형`: '성격 유형 정보'}${validTraits.length?`, ${validTraits[0].name} ${validTraits[0].value.toFixed(0)} 백분위`:''}가 확인되었습니다. 이는 자기이해를 위한 참고 정보입니다.`;
     const second=jobs[0]?`직무적합도 상위 항목은 ${jobs[0].name}(${jobs[0].score.toFixed(1)}점)입니다. 흥미유형과 함께 관심이 향하는 분야를 살펴보세요.`:'직무적합도 정보가 제공되지 않았습니다.';
-    const third='CARE 영역에서는 검사 전 사전 체크인과 결과를 교차해 오늘의 감정 상태와 웰니스 방향을 따로 설명합니다. 성격·흥미 결과로 현재 감정을 단정하지 않습니다.';
+    const third='오늘의 감정 상태는 검사 전 체크인과 확인된 결과를 교차해 따로 설명합니다. 성격·흥미 결과만으로 현재 감정을 단정하지 않습니다.';
     document.querySelector('.deep-copy .copy-preview').textContent=intro;
     const body=document.querySelector('.deep-copy .copy-body');body.replaceChildren();[intro,second,third].forEach(value=>{const p=document.createElement('p');p.textContent=value;body.appendChild(p);});
   }
 
   function renderFacts() {
-    const pre=$('careCheckinFacts'), meas=$('careMeasureFacts');pre.replaceChildren();meas.replaceChildren();
-    addFact(pre,'기분 · '+care.moods.map(value=>NLCarePreview.MOODS[value]).join(' · '));
-    addFact(pre,'고민 · '+NLCarePreview.ISSUES[care.issue]);
-    addFact(pre,'컨디션 · '+care.energy+'/5');
-    addFact(pre,'기대 · '+NLCarePreview.ANSWERS[care.expectation]);
-    addFact(pre,'걱정 · '+NLCarePreview.ANSWERS[care.worry]);
-    Object.entries({O:'개방성',C:'성실성',E:'외향성',A:'친화성',N:'신경성'}).forEach(([key,label])=>{if(signals.big5[key]!=null)addFact(meas,label+' '+signals.big5[key]);});
-    if(signals.hollandCode)addFact(meas,'RIASEC · '+signals.hollandCode);
-    for(const key of ['I','S'])if(signals.riasec[key]!=null)addFact(meas,`RIASEC ${key} · ${signals.riasec[key]}`);
-    if(signals.gaze.quality)addFact(meas,'추적품질 · '+signals.gaze.quality);
-    if(signals.gaze.focus)addFact(meas,'집중 신호 · '+signals.gaze.focus);
-    if(signals.gaze.exploration)addFact(meas,'탐색 응시 · '+signals.gaze.exploration);
-    if(signals.screening)addFact(meas,'선별 구간 · '+({low:'낮음',borderline:'경계',high:'높음'})[signals.screening]);
-    if(signals.screeningUnclassified)addFact(meas,'선별 수치 · 구간 기준 미제공');
-    if(!meas.children.length)addFact(meas,'해석 가능한 검사 지표가 없습니다.');
-  }
-
-  function renderMatches() {
-    const mount=$('careMatched');mount.replaceChildren();
-    if (!analysis.matched.length) {
-      const item=document.createElement('article');item.className='care-match primary';item.innerHTML='<span class="case-no">교차 조합 없음</span><h3>오늘은 체크인 응답을 중심으로 살펴봅니다</h3><p>제공된 검사 항목으로 확정할 수 있는 교차 신호가 없습니다. 추가 수치를 추정하지 않습니다.</p>';mount.appendChild(item);
-    }
-    analysis.matched.forEach((item,index)=>{
-      const card=document.createElement('article');card.className='care-match'+(index===0?' primary':'');
-      const num=document.createElement('span');num.className='case-no';num.textContent=`조합 ${String(item.id).padStart(2,'0')}${index===0?' · 우선 인사이트':''}`;
-      const title=document.createElement('h3');title.textContent=item.title;
-      const why=document.createElement('p');why.textContent=item.why;
-      const direction=document.createElement('strong');direction.textContent='케어 방향 · '+item.direction;
-      card.append(num,title,why,direction);mount.appendChild(card);
-    });
-    const rules=$('careRuleList');rules.replaceChildren();
-    const missingLabels={O:'개방성',C:'성실성',E:'외향성',A:'친화성',N:'신경성',I:'RIASEC 탐구형 점수',S:'RIASEC 사회형 점수',gazeFocusOrQuality:'집중·추적 신호',exploration:'탐색 응시',screening:'명시된 선별 구간'};
-    analysis.all.forEach(item=>{
-      const row=document.createElement('div');row.className='care-rule'+(item.matched?' matched':item.missing.length?' missing':'');
-      const no=document.createElement('span');no.className='number';no.textContent=String(item.id).padStart(2,'0');
-      const main=document.createElement('div');const title=document.createElement('b');title.textContent=item.title;const why=document.createElement('p');why.textContent=item.why;main.append(title,why);
-      const state=document.createElement('span');state.className='state';state.textContent=item.matched?'이번 결과와 일치':item.missing.length?'자료 없음 · '+item.missing.map(key=>missingLabels[key]||key).join(', '):'이번 결과와 불일치';
-      row.append(no,main,state);rules.appendChild(row);
-    });
-    const missing=analysis.all.filter(item=>item.missing.length).length;
-    text('careMissingNote',`${analysis.matched.length}개 조합 일치 · ${missing}개 조합은 필요한 측정값 없음`);
+    const mount=$('careCheckinFacts');mount.replaceChildren();
+    care.moods.forEach(value=>addFact(mount,'기분 · '+NLCarePreview.MOODS[value]));
+    addFact(mount,'고민 · '+NLCarePreview.ISSUES[care.issue]);
+    addFact(mount,'컨디션 · '+care.energy+'/5');
+    addFact(mount,'기대 · '+NLCarePreview.ANSWERS[care.expectation]);
+    addFact(mount,'걱정 · '+NLCarePreview.ANSWERS[care.worry]);
     const support=$('careSupport');
     if(signals.screening==='borderline'||signals.screening==='high'){
-      support.hidden=false;support.replaceChildren();const b=document.createElement('b');b.textContent='전문가와 상의할 수 있는 선택지를 먼저 확인해 주세요.';const p=document.createElement('span');p.textContent='명시된 선별 구간은 진단이 아닙니다. 불편감이 이어지거나 일상에 영향을 준다면 전문기관의 평가와 도움을 받는 것이 좋습니다.';support.append(b,p);
+      support.hidden=false;support.replaceChildren();
+      const b=document.createElement('b');b.textContent='전문가와 상의할 수 있는 선택지를 먼저 확인해 주세요.';
+      const p=document.createElement('span');p.textContent='명시된 선별 구간은 진단이 아닙니다. 불편감이 이어지거나 일상에 영향을 준다면 전문기관의 평가와 도움을 받는 것이 좋습니다.';
+      support.append(b,p);
     }
   }
 
@@ -114,6 +116,7 @@
   }
   function showInterpretation(data,status) {
     const body=$('careAiSummary');body.replaceChildren();String(data.summary||'').split(/\n\s*\n/).filter(Boolean).forEach(value=>{const p=document.createElement('p');p.textContent=value.trim();body.appendChild(p);});
+    text('careAiPreview',String(data.summary||'').replace(/\s+/g,' ').trim());
     text('careAiDirection',data.direction||'');text('careAiStep',data.firstStep||'');text('careAiStatus',status);
   }
   let aiRequested=false;
@@ -126,17 +129,31 @@
       if(!response.ok)throw Error(`HTTP ${response.status}`);
       const data=await response.json();
       if(typeof data.summary!=='string'||typeof data.direction!=='string'||typeof data.firstStep!=='string')throw Error('invalid response');
-      showInterpretation(data,'Neurolens Generated · gemini-3.6-flash');
+      showInterpretation(data,'Neurolens Generated · gemini-2.5-flash');
       $('careAiBadge').textContent='✦ Neurolens Generated';
     }catch(error){console.warn('CARE 해석 생성 실패:',error);text('careAiStatus','기본 해설 표시 중 · AI 서비스 연결을 확인해 주세요.');$('careAiRetry').hidden=false;aiRequested=false;}
   }
 
-  renderReport(result);renderFacts();renderMatches();showInterpretation(fallbackInterpretation(),'사전 체크인과 확인된 검사 항목을 조합했습니다.');
-  const tabs=[...document.querySelectorAll('.module-tab')];
-  function showModule(module){document.body.classList.toggle('care-active',module==='care');tabs.forEach(tab=>{const active=tab.dataset.target===module;tab.classList.toggle('active',active);if(active)tab.setAttribute('aria-current','page');else tab.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'instant'});if(module==='care')generateInterpretation();}
-  tabs.forEach(tab=>tab.addEventListener('click',()=>showModule(tab.dataset.target)));
+  renderReport(result);renderFacts();showInterpretation(fallbackInterpretation(),'사전 체크인과 확인된 검사 항목을 조합했습니다.');
   $('careAiRetry').addEventListener('click',generateInterpretation);
-  document.querySelector('[data-scroll-care]').addEventListener('click',()=>showModule('care'));
-  if(param.get('tab')==='care')showModule('care');
+  generateInterpretation();
   document.querySelectorAll('[data-desktop-open]').forEach(el=>{el.open=!matchMedia('(max-width:680px)').matches;});
+  requestAnimationFrame(()=>document.getElementById('result').classList.add('ready'));
+  if(run?.live && runId){
+    result.__nlCheckin=care;
+    const stamp={ts:run.resultAt||Date.now(),savedId:run.savedId||null,result};
+    localStorage.setItem('nlLastResult',JSON.stringify(stamp));
+    try{
+      const user=window.NLAuth?.enabled ? await NLAuth.getUser() : null;
+      if(user && !run.savedId){
+        const id=await NLAuth.saveResult(result);
+        if(id){run.savedId=id;stamp.savedId=id;localStorage.setItem('nlAdminRun:'+runId,JSON.stringify(run));localStorage.setItem('nlLastResult',JSON.stringify(stamp));}
+      }
+      if(!user && window.NLAuth?.enabled){
+        const notice=document.createElement('p');notice.className='guest-notice';
+        notice.innerHTML='이 결과는 현재 브라우저에만 보관됩니다. <a href="index.html#signup">가입하고 계정에 저장하기 →</a>';
+        document.querySelector('.hero-badges').after(notice);
+      }
+    }catch(error){console.warn('검사 결과 계정 저장 실패:',error);}
+  }
 })();

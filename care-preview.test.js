@@ -44,4 +44,8 @@ noScreen.EARP = 85; // A number without a documented band is not a clinical thre
 const unknown=analyze({...baseCheckin,moods:['low'],energy:1,expectation:'no',worry:'no'},noScreen);
 assert.ok(!unknown.matched.some(item=>[8,12,17].includes(item.id)));
 assert.ok(unknown.all.filter(item=>[8,12,17].includes(item.id)).every(item=>item.missing.includes('screening')));
+for(const mood of ['happy','joyful','sad','thrilled','lonely','empty','depressed','overwhelmed']){
+  assert.ok(analyze({...baseCheckin,moods:[mood]},baseResult).checkin.moods.includes(mood));
+}
+assert.ok(analyze({...baseCheckin,moods:['sad'],issue:'task'}, {...baseResult,BIG5:{...baseResult.BIG5,'성실성_백분위':25}}).matched.some(item=>item.id===2));
 console.log('18 care combinations and missing-screening guard passed');

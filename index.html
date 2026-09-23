@@ -1463,6 +1463,9 @@ let testWin = null;
 let testStartedAt = 0;
 
 function startTest() {
+  /* 사전 체크인 뒤 Mindgaze 검사와 통합 결과 리포트로 이어진다. */
+  location.href = '/checkin';
+  return;
   /* 로그인 없이 바로 검사한다. 결과 화면에서 "저장하고 7일 케어 받기"로 가입을 안내하고,
    * 가입·로그인 직후 방금 결과를 계정에 저장한다 (savePendingResult). */
   if (isMobileDevice()) {

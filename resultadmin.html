@@ -129,6 +129,9 @@ footer{padding:34px 24px;background:#fff;border-top:1px solid var(--line);text-a
   .personality-card .mbti-hero{grid-template-columns:1fr}.personality-card .mbti-chip{width:100%;font-size:34px}
   .care-source-grid,.care-ai-actions,.care-matched{grid-template-columns:1fr}.care-match.primary{grid-column:auto}.care-ai-card{padding:25px 20px}.care-ai-head{flex-direction:column}.care-rule{grid-template-columns:28px 1fr;gap:8px}.care-rule .state{grid-column:2;justify-self:start}.care-footer-actions{align-items:flex-start;flex-direction:column}.care-footer-actions span{text-align:left}
 }
+.report-grid{grid-template-columns:minmax(0,1fr)}.report-grid>.report-disclosure{grid-column:1/-1}.emotion-card{padding:32px 38px;margin-bottom:18px;border-color:#c9e5d9;background:linear-gradient(125deg,#f0faf4,#fff 62%,#f6f2ff)}.emotion-card .summary-head h3{font-size:24px}.emotion-card .care-card-label{margin-bottom:5px}.emotion-card .care-fact-list{margin:17px 0 8px}.emotion-card .care-fact-list span{background:#fff;border:1px solid #cde6dc;color:#235b46;font-size:13px;padding:8px 12px}.emotion-detail{border-top:1px solid #d7e9df;padding-top:14px}.emotion-detail>summary{list-style:none;cursor:pointer}.emotion-detail>summary::-webkit-details-marker{display:none}.emotion-preview{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden;line-height:1.8;color:var(--ink-2);font-size:15px}.emotion-detail[open] .emotion-preview{display:none}.emotion-toggle{display:inline-block;margin-top:8px;color:var(--care);font-weight:900;font-size:13px}.emotion-detail[open] .emotion-toggle::after{content:' · 접기'}.emotion-detail .care-ai-copy{padding:14px 0 2px}.emotion-card .care-ai-actions{margin-top:17px}.emotion-card .care-support{margin:15px 0 0}.emotion-card .care-boundary{margin-top:15px}.global-nav .nav-inner{justify-content:space-between}
+.guest-notice{margin:15px 0 0;padding:11px 14px;background:#eef3ff;border:1px solid #cad8fb;border-radius:11px;font-size:13px;color:#244881}.guest-notice a{font-weight:900;color:#244dbd}
+@media(max-width:680px){.emotion-card{padding:24px 20px}.emotion-card .summary-head{gap:10px;flex-wrap:wrap}.emotion-card .care-fact-list span{font-size:12px}.emotion-card .care-ai-actions{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -140,10 +143,6 @@ footer{padding:34px 24px;background:#fff;border-top:1px solid var(--line);text-a
       <span class="logo-word">Neuro<em>Lens</em></span>
     </a>
     <span class="preview-chip">ADMIN PREVIEW</span>
-    <div class="module-tabs" role="navigation" aria-label="리포트와 케어 바로가기">
-      <button class="module-tab active" type="button" data-target="report" aria-current="page">REPORT</button>
-      <button class="module-tab" type="button" data-target="care">CARE</button>
-    </div>
     <a class="back-link" href="index.html">메인으로</a>
   </div>
 </nav>
@@ -181,6 +180,15 @@ footer{padding:34px 24px;background:#fff;border-top:1px solid var(--line);text-a
       </div>
 
       <div class="section-label"><span class="num">01</span>Primary insight</div>
+      <article class="emotion-card card" id="emotionCard">
+        <div class="summary-head"><div><div class="care-card-label">CHECK-IN × MEASUREMENT</div><h3>오늘 내 감정 상태</h3></div><span class="ai-badge" id="careAiBadge">✦ Neurolens Care</span></div>
+        <div id="careCheckinFacts" class="care-fact-list" aria-label="사전 체크인 답변"></div>
+        <p class="care-ai-status" role="status" aria-live="polite"><span id="careAiStatus"></span><button id="careAiRetry" type="button" hidden>AI 해석 다시 시도</button></p>
+        <details class="emotion-detail"><summary><span id="careAiPreview" class="emotion-preview"></span><span class="emotion-toggle">감정 총평 전문 보기</span></summary><div id="careAiSummary" class="care-ai-copy"></div></details>
+        <div class="care-ai-actions"><div><small>추천하는 케어 방향</small><p id="careAiDirection"></p></div><div><small>오늘의 작은 시작</small><p id="careAiStep"></p></div></div>
+        <div id="careSupport" class="care-support" hidden></div>
+        <p class="care-boundary">사전 체크인과 제공된 검사 항목을 함께 읽는 비진단적 웰니스 안내입니다. 제공되지 않은 시선·선별 지표는 추정하지 않습니다.</p>
+      </article>
       <article class="summary-card card">
         <div class="summary-head"><h3>나의 특징 요약</h3><span class="ai-badge">✦ Neurolens Generated</span></div>
         <div class="sum-tags" id="rSumTags"></div>
@@ -223,39 +231,6 @@ footer{padding:34px 24px;background:#fff;border-top:1px solid var(--line);text-a
     </div>
   </section>
 
-  <section class="transition-wrap" aria-labelledby="transitionTitle">
-    <div class="transition-card">
-      <div class="transition-grid">
-        <div><div class="transition-kicker">Your next step</div><h2 id="transitionTitle">측정은 끝났습니다.<br>이제 결과를 변화로 연결해볼까요?</h2><p>현재의 나를 이해했다면, 부담 없는 한 가지 행동부터 시작합니다. 작은 기록이 쌓이면 다음 측정에서 나의 변화를 확인할 수 있어요.</p></div>
-        <div><div class="flow" aria-label="측정에서 변화까지"><div class="flow-step"><b>01</b><span>MEASURE</span></div><div class="flow-arrow">→</div><div class="flow-step"><b>02</b><span>UNDERSTAND</span></div><div class="flow-arrow">→</div><div class="flow-step"><b>03</b><span>ACT</span></div><div class="flow-arrow">→</div><div class="flow-step"><b>04</b><span>CHANGE</span></div></div><button class="care-start" type="button" data-scroll-care>나의 Care Plan 보기 →</button></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="module care-module" id="care" data-module="care">
-    <div class="module-inner">
-      <div class="module-hero care-intro">
-        <div><div class="module-kicker">NeuroLens care · preview <span id="careDataType"></span></div><h2 class="module-title">오늘의 마음을 읽고<br>다음 한 걸음을 찾습니다<small>Check-in × Measurement × Care</small></h2></div>
-        <p class="module-desc">검사 전 내가 답한 기분과 고민을 측정 결과와 함께 살펴봅니다. 감정 상태를 확정하거나 의료적 진단을 내리지 않고, 지금 시도할 만한 웰니스 방향을 제안합니다.</p>
-      </div>
-      <div class="care-source-grid">
-        <article class="card care-source"><div class="care-card-label">01 · 사전 체크인</div><h3>내가 느끼는 지금</h3><div id="careCheckinFacts" class="care-fact-list"></div></article>
-        <article class="card care-source"><div class="care-card-label">02 · 검사에서 확인된 정보</div><h3>결과가 보여주는 단서</h3><div id="careMeasureFacts" class="care-fact-list"></div></article>
-      </div>
-      <article class="card care-ai-card" aria-labelledby="careAiTitle">
-        <div class="care-ai-head"><div><div class="care-card-label">03 · EMOTIONAL WELLNESS INTERPRETATION</div><h3 id="careAiTitle">오늘의 감정 상태 총평</h3></div><span class="ai-badge" id="careAiBadge">✦ Neurolens Care</span></div>
-        <p class="care-ai-status" role="status" aria-live="polite"><span id="careAiStatus"></span><button id="careAiRetry" type="button" hidden>AI 해석 다시 시도</button></p>
-        <div id="careAiSummary" class="care-ai-copy"></div>
-        <div class="care-ai-actions"><div><small>추천하는 케어 방향</small><p id="careAiDirection"></p></div><div><small>오늘의 작은 시작</small><p id="careAiStep"></p></div></div>
-        <p class="care-boundary">이 해석은 사전 체크인과 제공된 검사 항목에 근거한 비진단적 웰니스 안내입니다. Big Five·RIASEC의 높음/낮음은 관리자 미리보기용 65/40 백분위 기준이며 임상 기준이 아닙니다. 증상이 지속되거나 일상에 큰 어려움이 있다면 전문가와 상의해 주세요.</p>
-      </article>
-      <div class="care-matches-head"><div class="section-label" style="color:var(--care)"><span class="num" style="background:var(--care)">04</span>교차 인사이트</div><p>해당하는 조합만 케어 방향에 반영합니다.</p></div>
-      <div id="careMatched" class="care-matched"></div>
-      <div id="careSupport" class="care-support" hidden></div>
-      <details class="care-rules card"><summary>18개 비진단 조합과 판정 근거 모두 보기</summary><div id="careRuleList" class="care-rule-list"></div></details>
-      <div class="care-footer-actions"><a href="indexadmin.html">사전 체크인 다시 하기 →</a><span id="careMissingNote"></span></div>
-    </div>
-  </section>
 </main>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -267,6 +242,9 @@ window.NL_SUPABASE={url:'https://qonoakggniupuxwvzmmw.supabase.co',key:'sb_publi
 <script src="report-render.js"></script>
 <script src="resultadmin-render.js"></script>
 <script src="care-preview.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
 <script>
 const SAMPLE={
   '시험자정보':{'시험자명':'김하늘','성별':'여','연령대':'20대'},MBTI:'ENFP',
@@ -280,7 +258,8 @@ const SAMPLE={
 };
 
 (function renderMeasurement(){
-  if(new URLSearchParams(location.search).has('run'))return;
+  const query=new URLSearchParams(location.search);
+  if(query.has('run')||query.get('source')==='live')return;
   const values=TRAITS.map(t=>Math.min(100,Math.max(0,parseFloat(SAMPLE.BIG5[t.key+'_백분위'])||0)));
   const jobs=SAMPLE['직무적합도'].map(j=>({name:j['직업'],score:parseFloat(j['점수'])})).sort((a,b)=>b.score-a.score);
   const holland=SAMPLE['직업흥미유형']||{};
@@ -291,7 +270,6 @@ const SAMPLE={
   }));
 })();
 
-(function reveal(){const el=document.getElementById('result');const show=()=>el.classList.add('ready');Promise.race([(document.fonts&&document.fonts.ready)||Promise.resolve(),new Promise(r=>setTimeout(r,1500))]).then(()=>requestAnimationFrame(()=>requestAnimationFrame(show)));setTimeout(show,2500);})();
 </script>
 <script src="resultadmin-care.js"></script>
 </body>

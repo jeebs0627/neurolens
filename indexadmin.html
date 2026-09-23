@@ -8,24 +8,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#101e3b;--muted:#61718d;--blue:#2458e6;--green:#24745e;--line:#dce5f2;--bg:#f4f7fd;--font:'Noto Sans KR',sans-serif}
+:root{--ink:#101e3b;--muted:#53617e;--blue:#3959dc;--green:#24745e;--line:#dce5f2;--bg:#f4f7fd;--font:'Noto Sans KR',sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 var(--font)}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #9bb8ff;outline-offset:3px}.shell{max-width:1060px;margin:auto;padding:0 22px}.nav{background:#fff;border-bottom:1px solid var(--line)}.nav .shell{min-height:66px;display:flex;align-items:center;gap:14px}.brand{font:800 19px Sora,sans-serif;letter-spacing:-.04em;text-decoration:none;color:var(--ink)}.brand b{color:var(--blue)}.chip{border:1px solid #efdcb0;background:#fff8e9;color:#855a14;border-radius:99px;padding:5px 11px;font-size:11px;font-weight:800}.nav a:last-child{margin-left:auto;color:var(--blue);text-decoration:none;font-weight:700;font-size:13px}
-.hero{background:radial-gradient(circle at 90% 0%,#eae5ff,transparent 36%),linear-gradient(#fff,#f7f9ff);border-bottom:1px solid var(--line);padding:68px 0 56px}.eyebrow{font:800 12px Sora,sans-serif;color:var(--blue);letter-spacing:.14em;text-transform:uppercase}.hero h1{font-size:clamp(34px,5vw,56px);line-height:1.22;letter-spacing:-.05em;margin:14px 0}.hero p{max-width:720px;color:var(--muted);margin:0;font-size:16px}.steps{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}.steps span{background:#eff3ff;border:1px solid #d8e3ff;color:#3057b7;padding:7px 13px;border-radius:99px;font-weight:800;font-size:12px}.steps span:first-child{background:var(--blue);color:#fff}
-main.shell{padding-top:44px;padding-bottom:80px}.intro{display:grid;grid-template-columns:1fr 280px;gap:18px;align-items:stretch;margin-bottom:22px}.intro>div,.note{background:#fff;border:1px solid var(--line);border-radius:22px;padding:24px 28px}.intro h2{margin:0 0 8px;font-size:24px}.intro p{margin:0;color:var(--muted)}.note{background:#eef7f2;border-color:#cfe4d6;color:#255844;font-size:13px}.note b{display:block;margin-bottom:8px}.form{display:grid;gap:18px}.question{background:#fff;border:1px solid var(--line);border-radius:22px;padding:26px 30px;box-shadow:0 8px 25px rgba(20,40,80,.04)}.question legend{font-weight:900;font-size:18px;padding:0}.question p{margin:5px 0 18px;color:var(--muted);font-size:13px}.options{display:flex;flex-wrap:wrap;gap:10px}.option{position:relative}.option input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}.option span{display:block;border:1px solid var(--line);border-radius:12px;padding:10px 16px;background:#f9fbff;font-weight:700;white-space:nowrap}.option input:checked+span{border-color:var(--blue);background:#edf2ff;color:var(--blue);box-shadow:0 0 0 1px var(--blue)}.option input:focus-visible+span{outline:3px solid #9bb8ff;outline-offset:2px}.energy{display:flex;align-items:center;gap:18px;max-width:580px}.energy input{width:100%;accent-color:var(--blue)}.energy strong{white-space:nowrap;color:var(--blue);font:800 22px Sora,sans-serif}.energy-ends{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;max-width:580px}.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}.primary,.secondary{border-radius:14px;padding:14px 22px;font-weight:900}.primary{border:0;background:var(--blue);color:#fff;box-shadow:0 10px 20px #2458e62e}.secondary{border:1px solid var(--line);background:#fff;color:var(--ink)}.status{min-height:28px;color:var(--muted);font-size:13px}.status.error{color:#ba3450}.status a{color:var(--blue);font-weight:800}.flow-note{margin:8px 0 0;color:var(--muted);font-size:12px}footer{text-align:center;padding:28px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);background:#fff}
-@media(max-width:700px){.intro{grid-template-columns:1fr}.hero{padding:44px 0}.question{padding:22px 18px}.nav .chip{display:none}.hero h1{font-size:36px}}
+.hero{background:radial-gradient(circle at 90% 0%,#dbf2e9,transparent 33%),radial-gradient(circle at 6% 15%,#e7e8ff,transparent 39%),linear-gradient(#fff,#f7f9ff);border-bottom:1px solid var(--line);padding:34px 0 28px}.eyebrow{font:800 11px Sora,sans-serif;color:var(--blue);letter-spacing:.14em;text-transform:uppercase}.hero h1{font-size:clamp(29px,4vw,43px);line-height:1.25;letter-spacing:-.05em;margin:7px 0}.hero p{max-width:720px;color:var(--muted);margin:0;font-size:14px}.steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.steps span{background:#eff3ff;border:1px solid #d8e3ff;color:#3057b7;padding:5px 11px;border-radius:99px;font-weight:800;font-size:11px}.steps span:first-child{background:var(--blue);color:#fff}
+main.shell{padding-top:20px;padding-bottom:34px}.intro{margin-bottom:15px}.intro h2{margin:0 0 2px;font-size:21px;letter-spacing:-.04em}.intro p{margin:0;color:var(--muted);font-size:13px}.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.question{min-width:0;background:#fff;border:1px solid var(--line);border-radius:17px;padding:17px 20px;box-shadow:0 6px 20px rgba(20,40,80,.035)}.question.mood,.question.issue{grid-column:1/-1}.question h3{font-size:15px;font-weight:900;letter-spacing:-.025em;margin:0;line-height:1.4}.question p{margin:2px 0 11px;color:var(--muted);font-size:12px}.options{display:flex;flex-wrap:wrap;gap:7px}.option{position:relative}.option input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}.option span{display:flex;align-items:center;gap:6px;min-height:37px;border:1px solid var(--line);border-radius:10px;padding:6px 11px;background:#f8faff;font-weight:700;font-size:13px;white-space:nowrap;line-height:1.35}.option .icon{font-size:17px;line-height:1}.mood .option span{background:#f7f3ff;border-color:#e8dcfb}.issue .option span{background:#f2f9fc;border-color:#d9edf5}.option input:checked+span{border-color:var(--blue);background:#e9efff;color:#213da9;box-shadow:0 0 0 1px var(--blue)}.option input:focus-visible+span{outline:3px solid #9bb8ff;outline-offset:2px}.energy{display:flex;align-items:center;gap:12px}.energy input{width:100%;accent-color:var(--blue)}.energy strong{white-space:nowrap;color:var(--blue);font:800 18px Sora,sans-serif}.energy-ends{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}.actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:2px}.primary,.secondary{border-radius:12px;padding:12px 19px;font-weight:900}.primary{border:0;background:linear-gradient(115deg,#365be4,#7750d6);color:#fff;box-shadow:0 9px 20px #415bdd30}.secondary{border:1px solid var(--line);background:#fff;color:var(--ink)}.status{grid-column:1/-1;min-height:0;color:var(--muted);font-size:12px}.status.error{color:#ba3450}.status a{color:var(--blue);font-weight:800}.flow-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:11px}footer{text-align:center;padding:17px;color:var(--muted);font-size:11px;border-top:1px solid var(--line);background:#fff}
+@media(max-width:700px){.form{grid-template-columns:1fr}.question,.question.mood,.question.issue{grid-column:1}.hero{padding:26px 0}.question{padding:15px}.nav .chip{display:none}.hero h1{font-size:29px}.option span{min-height:36px;padding:6px 9px;font-size:12px}}
+.option>span .icon,.mood .option>span .icon,.issue .option>span .icon{display:inline;border:0;border-radius:0;min-height:0;padding:0;background:none;box-shadow:none;font-size:17px}
+.form>.question:nth-child(3){grid-column:1/-1}.energy,.energy-ends{max-width:650px}
 </style>
 </head>
 <body>
 <nav class="nav"><div class="shell"><a class="brand" href="indexadmin.html">Neuro<b>Lens</b></a><span class="chip">ADMIN TEST</span><a href="index.html">현재 메인으로</a></div></nav>
 <header class="hero"><div class="shell"><div class="eyebrow">Pre-check-in · Measurement · Care</div><h1>검사 전, 지금의 나를<br>먼저 알려주세요.</h1><p>짧은 사전 체크인과 Mindgaze 검사 결과를 함께 보며 오늘의 감정 상태와 어울리는 케어 방향을 살펴봅니다.</p><div class="steps"><span>01 사전 체크인</span><span>02 시선행동 검사</span><span>03 결과·케어 검토</span></div></div></header>
 <main class="shell">
-  <div class="intro"><div><h2>약 1분 체크인</h2><p>기분은 여러 개를 고를 수 있어요. 답변은 이 브라우저의 관리자 테스트 흐름에만 연결됩니다.</p></div><aside class="note"><b>검토용 흐름</b>실검사는 웹캠이 있는 PC에서 진행해 주세요. 장치가 없으면 샘플 결과 버튼으로 18개 조합의 표시 방식을 먼저 살펴볼 수 있습니다.</aside></div>
+  <div class="intro"><h2>약 1분 체크인</h2><p>기분은 여러 개를 고를 수 있어요. 편한 마음으로 지금에 가장 가까운 답을 골라주세요.</p></div>
   <form id="checkinForm" class="form">
-    <fieldset class="question"><legend>1. 지금 내 기분은 어떤가요?</legend><p>해당하는 기분을 모두 선택해 주세요.</p><div class="options" id="moodOptions"></div></fieldset>
-    <fieldset class="question"><legend>2. 지금 가장 마음에 걸리는 일은 무엇인가요?</legend><p>오늘 가장 가까운 주제 하나를 골라 주세요.</p><div class="options" id="issueOptions"></div></fieldset>
-    <fieldset class="question"><legend>3. 지금 컨디션은 어느 정도인가요?</legend><p>케어 제안의 강도를 조절하는 데 사용합니다.</p><div class="energy"><input id="energy" name="energy" type="range" min="1" max="5" value="3"><strong id="energyValue">3 / 5</strong></div><div class="energy-ends"><span>휴식이 필요해요</span><span>활력이 있어요</span></div></fieldset>
-    <fieldset class="question"><legend>4. 설레거나 기대하는 일이 있나요?</legend><div class="options" id="expectationOptions"></div></fieldset>
-    <fieldset class="question"><legend>5. 걱정되는 일이 있나요?</legend><div class="options" id="worryOptions"></div></fieldset>
+    <section class="question mood" role="group" aria-labelledby="moodTitle"><h3 id="moodTitle">1. 지금 내 기분은 어떤가요?</h3><p>해당하는 기분을 모두 선택해 주세요.</p><div class="options" id="moodOptions"></div></section>
+    <section class="question issue" role="group" aria-labelledby="issueTitle"><h3 id="issueTitle">2. 지금 가장 마음에 걸리는 일은 무엇인가요?</h3><p>오늘 가장 가까운 주제 하나를 골라 주세요.</p><div class="options" id="issueOptions"></div></section>
+    <section class="question" role="group" aria-labelledby="energyTitle"><h3 id="energyTitle">3. 지금 컨디션은 어느 정도인가요?</h3><p>케어 제안의 강도를 조절하는 데 사용합니다.</p><div class="energy"><input id="energy" name="energy" type="range" min="1" max="5" value="3" aria-label="현재 컨디션 1점에서 5점"><strong id="energyValue">3 / 5</strong></div><div class="energy-ends"><span>휴식이 필요해요</span><span>활력이 있어요</span></div></section>
+    <section class="question" role="group" aria-labelledby="expectationTitle"><h3 id="expectationTitle">4. 설레거나 기대하는 일이 있나요?</h3><p>지금 떠오르는 일에 답해 주세요.</p><div class="options" id="expectationOptions"></div></section>
+    <section class="question" role="group" aria-labelledby="worryTitle"><h3 id="worryTitle">5. 걱정되는 일이 있나요?</h3><p>지금 떠오르는 일에 답해 주세요.</p><div class="options" id="worryOptions"></div></section>
     <div class="actions"><button class="primary" type="submit">체크인 저장하고 검사 시작 →</button><button class="secondary" id="sampleButton" type="button">샘플 결과로 흐름 검토</button></div>
     <div class="status" id="status" role="status" aria-live="polite"></div>
     <p class="flow-note">검사 결과는 의료적 진단이 아닌 자기이해 참고 정보입니다. 선별 구간이 없는 측정 항목은 추정하지 않습니다.</p>
@@ -36,9 +38,21 @@ main.shell{padding-top:44px;padding-bottom:80px}.intro{display:grid;grid-templat
 <script>
 (() => {
   const $ = id => document.getElementById(id);
+  const live = location.pathname.replace(/\/$/,'') === '/checkin';
+  if(live){
+    document.title='검사 전 체크인 · NeuroLens';
+    document.querySelector('.nav .chip').hidden=true;
+    document.querySelector('.brand').href='index.html';
+    $('sampleButton').hidden=true;
+    document.querySelector('footer').textContent='NeuroLens · 나를 이해하는 첫 단계';
+    document.querySelector('.flow-note').textContent='체크인 응답은 이번 검사 결과와 함께 해석됩니다. 이 결과는 의료적 진단이 아닌 자기이해 참고 정보입니다.';
+  }
   const {MOODS,ISSUES,ANSWERS,normalizeCheckin} = NLCarePreview;
+  const moodIcons={calm:'😌',happy:'😊',joyful:'😄',excited:'🥰',thrilled:'🤩',anxious:'😟',tense:'😬',irritable:'😠',sad:'😢',lonely:'🥺',empty:'🫥',depressed:'😞',overwhelmed:'😣',low:'😔',flat:'😶'};
+  const issueIcons={relationship:'💬',career:'🧭',task:'📚',growth:'🌱',health:'💚',finance:'💰',change:'🔄',none:'❔'};
   function options(target,name,labels,multiple) {
-    $(target).innerHTML = Object.entries(labels).map(([value,label]) => `<label class="option"><input type="${multiple?'checkbox':'radio'}" name="${name}" value="${value}"><span>${label}</span></label>`).join('');
+    const icons=name==='moods'?moodIcons:name==='issue'?issueIcons:{};
+    $(target).innerHTML = Object.entries(labels).map(([value,label]) => `<label class="option"><input type="${multiple?'checkbox':'radio'}" name="${name}" value="${value}"><span>${icons[value]?`<span class="icon" aria-hidden="true">${icons[value]}</span>`:''}${label}</span></label>`).join('');
   }
   options('moodOptions','moods',MOODS,true);
   options('issueOptions','issue',ISSUES,false);
@@ -53,7 +67,7 @@ main.shell{padding-top:44px;padding-bottom:80px}.intro{display:grid;grid-templat
   }
   function createRun(checkinValue) {
     const id=crypto.randomUUID();
-    const run={id,checkin:checkinValue,createdAt:Date.now(),result:null};
+    const run={id,checkin:checkinValue,createdAt:Date.now(),result:null,live};
     localStorage.setItem('nlAdminRun:'+id,JSON.stringify(run));
     localStorage.setItem('nlAdminActiveRun',id);
     return run;

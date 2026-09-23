@@ -93,7 +93,7 @@ async function renderAdminMbti(mbti) {
     data.text.split(/\n\s*\n/).filter(Boolean).forEach(paragraph => {
       const p = document.createElement('p'); p.textContent = paragraph.trim(); target.appendChild(p);
     });
-    const source = document.createElement('p'); source.className = 'source'; source.textContent = 'Neurolens Generated · gemini-3.6-flash'; target.appendChild(source);
+    const source = document.createElement('p'); source.className = 'source'; source.textContent = 'Neurolens Generated · gemini-2.5-flash'; target.appendChild(source);
   } catch (error) {
     console.warn('MBTI 상세 해설 생성 실패:', error);
     target.querySelector('.source').textContent = '유형별 기본 해설 · 실시간 생성 연결을 확인해 주세요';

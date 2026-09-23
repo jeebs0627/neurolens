@@ -6,14 +6,14 @@
 })(typeof window !== 'undefined' ? window : null, function () {
   'use strict';
 
-  const MOODS = { calm:'평온', anxious:'불안', low:'가라앉음', flat:'무기력', irritable:'짜증', excited:'설렘', tense:'긴장' };
+  const MOODS = { calm:'평온', happy:'행복', joyful:'기쁨', excited:'설렘', thrilled:'신남', anxious:'불안', tense:'긴장', irritable:'짜증', sad:'슬픔', lonely:'외로움', empty:'공허함', depressed:'우울', overwhelmed:'막막함', low:'가라앉음', flat:'무기력' };
   const ISSUES = { relationship:'관계', career:'진로·학업', task:'학업·과업', growth:'자기계발', health:'건강', finance:'재정', change:'변화 적응', none:'아직 모르겠음' };
   const ANSWERS = { yes:'있어요', no:'없어요', unsure:'잘 모르겠어요' };
   const SCORE_KEYS = { O:'개방성', C:'성실성', E:'외향성', A:'친화성', N:'신경성' };
   const RIASEC = 'RIASEC';
   const high = n => n != null && n >= 65;
   const low = n => n != null && n <= 40;
-  const lowMood = c => c.moods.includes('low') || c.moods.includes('flat');
+  const lowMood = c => ['low','flat','sad','lonely','empty','depressed','overwhelmed'].some(value=>c.moods.includes(value));
   const mood = (c, ...names) => names.some(name => c.moods.includes(name));
   const lowEnergy = c => c.energy <= 2;
   const elevated = s => s.screening === 'borderline' || s.screening === 'high';

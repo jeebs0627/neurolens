@@ -24,7 +24,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 MAX_BODY = 8 * 1024  # 구조화 필드만 받으므로 8KB 면 충분
 
 _CLEAN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")

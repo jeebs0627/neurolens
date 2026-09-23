@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/checkin", "destination": "/indexadmin.html" },
     { "source": "/gemini", "destination": "/api/gemini" },
     { "source": "/rcvrslt", "destination": "/api/rcvrslt" },
     { "source": "/rcvrslt-admin", "destination": "/api/rcvrslt_admin" },

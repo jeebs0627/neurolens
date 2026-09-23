@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<script>
+  /* New check-in results use the unified report; legacy results retain their original view. */
+  const reportQuery=new URLSearchParams(location.search);
+  if(!reportQuery.has('legacy'))location.replace('resultadmin.html?source=live'+(reportQuery.get('id')?'&id='+encodeURIComponent(reportQuery.get('id')):''));
+</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
