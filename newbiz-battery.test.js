@@ -165,4 +165,27 @@ for (const [p, e] of Object.entries(expect)) {
   assert.ok(html.includes('건너뜀'));
 }
 
+/* 10) PHQ: PHQ-2 선별 → PHQ-8, 상담 안내, 측정 영역 대조 */
+{
+  assert.equal(B.phqScore({}), null);
+  const low = B.phqScore({ phq: [1, 1] });
+  assert.equal(low.phq2, 2); assert.equal(low.screen, false); assert.equal(low.phq8, null); assert.equal(low.consult, false);
+  const high = B.phqScore({ phq: [2, 2, 2, 3, 0, 1, 2, 0] });
+  assert.equal(high.screen, true); assert.equal(high.phq8, 12); assert.equal(high.band, '중간'); assert.equal(high.consult, true);
+  assert.equal(B.phqScore({ phq: [2, 1, 1, 1] }).phq8, null);          // 추가 문항 미완료면 PHQ-8 없음
+  assert.equal(B.PHQ.items.length, 8);                                   // 9번(자해) 문항은 넣지 않는다
+  const dom = { emotion: { status: 'ok' }, alert: { status: 'concern' }, control: { status: 'na' } };
+  const L = B.phqLinks(high, dom);
+  assert.equal(L.find(x => x.domain === 'alert').kind, 'both');
+  assert.equal(L.find(x => x.domain === 'emotion').kind, 'self');
+  assert.equal(L.find(x => x.label === '집중 곤란').kind, 'na');
+  const r = B.run(B.simulate('fatigue'));
+  assert.equal(r.battery.care[0].domain, 'safety');
+  const html = checkReport(r, 'phq');
+  assert.ok(html.includes('PHQ-8') && html.includes('상담 권장'));
+  assert.ok(!/우울증/.test(html.split('<div class="card refs">')[0]));      // 본문에 진단명 없음 (참고문헌 제목은 예외)
+  const none = B.simulate('balanced'); none.checkin.phq = null;
+  assert.ok(checkReport(B.run(none), 'phq-skip').includes('응답하지 않았어요'));
+}
+
 console.log('newbiz-battery tests passed');

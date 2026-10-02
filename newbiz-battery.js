@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'newbiz-battery-0.3';
+  const VERSION = 'newbiz-battery-0.4';
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -41,6 +41,11 @@
     wierwille: 'Wierwille WW, Ellsworth LA, Wreggit SS, Fairbanks RJ, Kirn CL. Research on vehicle-based driver status/performance monitoring: development, validation, and refinement of algorithms for detection of driver drowsiness. NHTSA Final Report DOT HS 808 247; 1994.',
     dingesGrace: 'Dinges DF, Grace R. PERCLOS: A valid psychophysiological measure of alertness as assessed by psychomotor vigilance. FHWA Tech Brief FHWA-MCRT-98-006; 1998.',
     caffier: 'Caffier PP, Erdmann U, Ullsperger P. Experimental evaluation of eye-blink parameters as a drowsiness measure. Eur J Appl Physiol. 2003;89(3–4):319–325.',
+    phq9: 'Kroenke K, Spitzer RL, Williams JBW. The PHQ-9: validity of a brief depression severity measure. J Gen Intern Med. 2001;16(9):606–613.',
+    phq2: 'Kroenke K, Spitzer RL, Williams JBW. The Patient Health Questionnaire-2: validity of a two-item depression screener. Med Care. 2003;41(11):1284–1292.',
+    phq8: 'Kroenke K, Strine TW, Spitzer RL, Williams JBW, Berry JT, Mokdad AH. The PHQ-8 as a measure of current depression in the general population. J Affect Disord. 2009;114(1–3):163–173.',
+    phqKr: '박승진, 최혜라, 최지혜, 김건우, 홍진표. 한글판 우울증 선별도구(Patient Health Questionnaire-9, PHQ-9)의 신뢰도와 타당도. Anxiety and Mood. 2010;6(2):119–124.',
+    levis: 'Levis B, Sun Y, He C, et al. Accuracy of the PHQ-2 alone and in combination with the PHQ-9 for screening to detect major depression: systematic review and individual participant data meta-analysis. JAMA. 2020;323(22):2290–2300.',
     kss: 'Åkerstedt T, Gillberg M. Subjective and objective sleepiness in the active individual. Int J Neurosci. 1990;52(1–2):29–37.',
     vanDongen: 'Van Dongen HPA, Maislin G, Mullington JM, Dinges DF. The cumulative cost of additional wakefulness: dose-response effects on neurobehavioral functions and sleep physiology from chronic sleep restriction and total sleep deprivation. Sleep. 2003;26(2):117–126.',
     hallett: 'Hallett PE. Primary and secondary saccades to goals defined by instructions. Vision Res. 1978;18(10):1279–1296.',
@@ -462,6 +467,72 @@
     return out;
   }
 
+  /* ---------- 최근 2주 자기보고: PHQ-2 → (3점 이상) PHQ-8 ----------
+   * 문구: 환자 건강 질문지-9 한국어판 (© 2005 Pfizer; 허가 없이 사용 가능). 9번(자해 사고) 문항은 위기 대응 체계 없이
+   * 비대면으로 묻지 않도록 제외한 PHQ-8 을 쓴다 (Kroenke et al., 2009). 2단계 실시: Levis et al., 2020.
+   * 점수는 영역 점수에 섞지 않고, 측정 영역과의 대조와 케어 우선순위(상담 안내)에만 쓴다. */
+  const PHQ = {
+    stem: '지난 2 주일 동안 당신은 다음의 문제들로 인해서 얼마나 자주 방해를 받았습니까?',
+    options: ['전혀 방해 받지 않았다', '며칠 동안 방해 받았다', '7 일 이상 방해 받았다', '거의 매일 방해 받았다'],
+    items: [
+      '일 또는 여가 활동을 하는 데 흥미나 즐거움을 느끼지 못함',
+      '기분이 가라앉거나, 우울하거나, 희망이 없음',
+      '잠이 들거나 계속 잠을 자는 것이 어려움, 또는 잠을 너무 많이 잠',
+      '피곤하다고 느끼거나 기운이 거의 없음',
+      '입맛이 없거나 과식을 함',
+      '자신을 부정적으로 봄 - 혹은 자신이 실패자라고 느끼거나 자신 또는 가족을 실망시킴',
+      '신문을 읽거나 텔레비전 보는 것과 같은 일에 집중하는 것이 어려움',
+      '다른 사람들이 주목할 정도로 너무 느리게 움직이거나 말을 함. 또는 반대로 평상시보다 많이 움직여서, 너무 안절부절 못하거나 들떠 있음',
+    ],
+    screenCut: 3,                        // PHQ-2 ≥ 3 → 나머지 6문항 (Kroenke et al., 2003)
+    bands: [[4, '낮음'], [9, '가벼움'], [14, '중간'], [19, '높음'], [24, '매우 높음']],   // PHQ-8 0–24 구간 (Kroenke et al., 2009)
+    consultCut: 10,                      // PHQ-8 ≥ 10 → 전문가 상담 안내 (Kroenke et al., 2009; 한국판 절단점 10, 박승진 외, 2010)
+    copyright: '환자 건강 질문지 한국어판 © 2005 Pfizer Inc. · 허가 없이 사용 가능 (phqscreeners.com) · 9번 문항 제외(PHQ-8)',
+  };
+  /* 문항 ↔ 측정 영역 연결 (자기보고와 객관 측정의 대조) */
+  const PHQ_LINKS = [
+    { items: [0, 1], domain: 'emotion', label: '흥미 저하 · 우울감', measure: '정서 주의 (부정·슬픔 자극 체류)' },
+    { items: [2, 3], domain: 'alert', label: '수면 문제 · 피로', measure: '각성 (PVT · PERCLOS)' },
+    { items: [6], domain: 'control', label: '집중 곤란', measure: '주의 통제 (SART · 안티사카드)' },
+    { items: [7], domain: 'control', label: '느려짐 · 안절부절', measure: '주의 통제 (반응 속도 · 머리 움직임)' },
+  ];
+  function phqScore(checkin) {
+    const a = checkin && Array.isArray(checkin.phq) ? checkin.phq : null;
+    if (!a || !finite(a[0]) || !finite(a[1])) return null;
+    const phq2 = a[0] + a[1];
+    const full = a.length >= 8 && a.slice(0, 8).every(finite);
+    const phq8 = full ? a.slice(0, 8).reduce((x, y) => x + y, 0) : null;
+    const band = phq8 === null ? null : PHQ.bands.find(([hi]) => phq8 <= hi)[1];
+    return { items: a.slice(0, 8), phq2, screen: phq2 >= PHQ.screenCut, phq8, band, consult: phq8 !== null && phq8 >= PHQ.consultCut };
+  }
+  const LINK_TEXT = {
+    both: '스스로 느끼는 어려움과 측정 결과가 함께 나타났어요.',
+    self: '스스로는 어려움을 느끼지만 측정에서는 드러나지 않았어요. 부담감이 실제 수행보다 앞서 있을 수 있어요.',
+    measure: '스스로 느끼는 어려움은 크지 않았지만 측정에서는 저하가 보였어요. 자각보다 먼저 나타나는 신호일 수 있어요.',
+    none: '자기보고와 측정 모두 두드러지지 않았어요.',
+    na: '연결된 측정 영역이 측정되지 않았어요.',
+  };
+  function phqLinks(phq, domains) {
+    if (!phq) return [];
+    return PHQ_LINKS.map(L => {
+      const vals = L.items.map(i => phq.items[i]);
+      if (!vals.every(finite)) return null;
+      const self = Math.max(...vals) >= 2;                 // '7 일 이상 방해 받았다' 이상
+      const d = domains[L.domain], measured = !!d && d.status !== 'na', low = measured && SEV[d.status] >= 1;
+      const kind = !measured ? 'na' : self && low ? 'both' : self ? 'self' : low ? 'measure' : 'none';
+      return { ...L, score: vals.reduce((x, y) => x + y, 0), max: vals.length * 3, self, kind, text: LINK_TEXT[kind], status: measured ? d.status : 'na' };
+    }).filter(Boolean);
+  }
+  const SAFETY_TRACK = {
+    domain: 'safety', title: '전문가 상담 연결', goal: '최근 2주 기분 부담이 높게 보고됐어요. 측정 기반 루틴보다 먼저 전문가와 이야기해 보기를 권합니다.',
+    items: [
+      { text: '가까운 정신건강복지센터나 정신건강의학과에서 상담 받아 보기 — 이 결과지를 함께 보여 주면 도움이 돼요', refs: ['phq8'] },
+      { text: '힘든 마음이 급하게 커지면 언제든 정신건강 위기상담 109 (24시간)', refs: [] },
+      { text: '상담과 함께 아래 루틴을 무리하지 않는 선에서 병행하기', refs: [] },
+    ],
+    kpi: '2~4주 후 같은 문항으로 다시 확인', remeasure: '자기보고 + 정서 주의 모듈 · 2주 후',
+  };
+
   /* ---------- 전체 분석 ----------
    * rec = core 기록(frames, phases, trials, calibration, checkin, screenW, demo) + {pursuit, saccade, pvt, sart, steps, stressScore, sim}
    * phases 에는 실제로 끝까지 수행한 구간만 담는다 (건너뛴 구간은 지운 상태로 전달). */
@@ -504,6 +575,8 @@
     const integrated = integrate(domains, indicators, base, rec.checkin);
     const care = [integrated.primary, integrated.secondary].filter(Boolean).map((k, i) => ({ domain: k, rank: i + 1, ...CARE_PLAN[k] }));
     if (!care.length) care.push({ domain: 'balanced', rank: 1, ...CARE_PLAN.balanced });
+    const phq = phqScore(rec.checkin), links = phqLinks(phq, domains);
+    if (phq && phq.consult) care.unshift({ ...SAFETY_TRACK, rank: 0 });
 
     const pv = (x, k, s = 1, dd = 0) => x && finite(x[k]) ? round(x[k] * s, dd) : null;
     const info = {
@@ -538,26 +611,26 @@
 
     return {
       ...base, phaseTimes: ph, stressScore: rec.stressScore || null, stimMode: rec.stimMode || 'schematic', stimForm: rec.stimForm || null, mode: rec.mode || null, resized: !!rec.resized,
-      battery: { version: VERSION, pvt, eye, eyeBase, saccade, pursuit, sart, sartMotion, indicators, info, domains, integrated, care, steps: rec.steps || {}, sim: rec.sim || null },
+      battery: { version: VERSION, pvt, eye, eyeBase, saccade, pursuit, sart, sartMotion, indicators, info, domains, integrated, care, phq, phqLinks: links, steps: rec.steps || {}, sim: rec.sim || null },
     };
   }
 
   /* ---------- 시뮬레이션 피험자 (카메라 없는 검증용) ----------
    * 페르소나별로 생리 신호(합성 영상 프레임)와 과제 반응을 만들어 리포트 전 과정을 검증한다. 결과에는 반드시 ‘시뮬레이션’ 표시. */
   const PERSONAS = {
-    balanced: { label: '균형 조절 (대조)', checkin: { valence: 6, tension: 2, energy: 4, kss: 3 },
+    balanced: { label: '균형 조절 (대조)', checkin: { valence: 6, tension: 2, energy: 4, kss: 3, phq: [0, 1] },
       hr: { base: 68, task: 1, neg: 1, stress: 5, rec: 0.9, coup: 9 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.6, sart: 0.8 },
       pvt: { mu: 282, sd: 28, lapse: 0.01, early: 0.01 }, anti: { err: 0.14, corr: 0.85, lat: 285, pro: 195 },
       pursuit: { gain: 0.93, lag: 80, noise: 0.025 }, sart: { com: 0.28, om: 0.01, rt: 360, cv: 0.18 }, bias: 0.52, first: 0.5, pos: 0.56, math: 0.85 },
-    fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4 },
+    fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4, phq: [1, 2, 3, 3, 1, 1, 2, 1] },
       hr: { base: 65, task: 1, neg: 1.5, stress: 5, rec: 0.75, coup: 7 }, eye: { blinkMs: 260, drowsy: 0.12 }, motion: { base: 0.7, sart: 1.0 },
       pvt: { mu: 318, sd: 55, lapse: 0.12, early: 0.05 }, anti: { err: 0.27, corr: 0.7, lat: 320, pro: 220 },
       pursuit: { gain: 0.72, lag: 150, noise: 0.05 }, sart: { com: 0.5, om: 0.1, rt: 430, cv: 0.34 }, bias: 0.54, first: 0.52, pos: 0.5, math: 0.7 },
-    control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3 },
+    control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3, phq: [1, 1] },
       hr: { base: 72, task: 2, neg: 1, stress: 7, rec: 0.42, coup: 3.2 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.8, sart: 3.4 },
       pvt: { mu: 288, sd: 40, lapse: 0.03, early: 0.06 }, anti: { err: 0.5, corr: 0.6, lat: 300, pro: 190 },
       pursuit: { gain: 0.86, lag: 90, noise: 0.04 }, sart: { com: 0.66, om: 0.04, rt: 330, cv: 0.37 }, bias: 0.53, first: 0.52, pos: 0.54, math: 0.75 },
-    overload: { label: '정서·신체 과부하', checkin: { valence: 4, tension: 2, energy: 3, kss: 5 },
+    overload: { label: '정서·신체 과부하', checkin: { valence: 4, tension: 2, energy: 3, kss: 5, phq: [2, 2, 1, 2, 1, 2, 1, 1] },
       hr: { base: 76, task: 2, neg: 4.5, stress: 13, rec: 0.12, coup: 1.2 }, eye: { blinkMs: 170, drowsy: 0.01 }, motion: { base: 0.7, sart: 1.2 },
       pvt: { mu: 300, sd: 40, lapse: 0.04, early: 0.02 }, anti: { err: 0.36, corr: 0.7, lat: 310, pro: 200 },
       pursuit: { gain: 0.88, lag: 90, noise: 0.03 }, sart: { com: 0.45, om: 0.03, rt: 370, cv: 0.26 }, bias: 0.72, first: 0.7, pos: 0.47, math: 0.65 },
@@ -691,13 +764,13 @@
     };
     return {
       frames, phases: ph, trials, pursuit, saccade: inc.oculo ? saccade : null, saccadeCal: inc.oculo ? sacCal : null, pvt, sart, stressScore, steps,
-      screenW: W, calibration: { grade: 'good', errPct: 7.5, sim: true }, checkin: { ...P.checkin },
+      screenW: W, calibration: { grade: 'good', errPct: 7.5, sim: true }, checkin: { ...P.checkin, phq: [...P.checkin.phq] },
       demo: true, sim: { persona: personaKey, label: P.label }, mode: opt.mode === 'quick' ? 'quick' : 'full', measuredAt: opt.measuredAt || new Date().toISOString(),
     };
   }
 
   return {
-    VERSION, REFS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
-    scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
+    VERSION, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
+    phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
   };
 });

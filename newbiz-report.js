@@ -221,6 +221,22 @@
       ${indicatorTable(list, b.info[k], C)}${body}</section>`;
   }
 
+  /* 최근 2주 자기보고(PHQ) — 진단명 없이 부담 수준과 측정 영역 대조만 보여 준다 */
+  function phqSection(b, C) {
+    const p = b.phq;
+    if (!p) return '<div class="group-t">최근 2주 자기보고</div><p class="muted small">응답하지 않았어요.</p>';
+    const K = { both: ['st-watch', '함께 나타남'], self: ['st-na', '자기보고만'], measure: ['st-watch', '측정에서만'], none: ['st-ok', '두드러지지 않음'], na: ['st-na', '측정 안 됨'] };
+    const head = p.phq8 !== null
+      ? `최근 2주 기분 부담 <b>${esc(p.band)}</b> · PHQ-8 <b>${p.phq8}</b>/24 (선별 PHQ-2 ${p.phq2}/6)`
+      : `최근 2주 기분 부담 · 선별 PHQ-2 <b>${p.phq2}</b>/6 · ${p.screen ? '추가 문항 미응답' : '추가 문항 대상 아님 (3점 미만)'}`;
+    const rows = b.phqLinks.map(L => `<tr><td><b>${esc(L.label)}</b></td><td class="num">${L.score}<small>/${L.max}</small></td><td>${esc(L.measure)} ${stBadge(L.status)}</td><td><span class="st ${K[L.kind][0]}">${K[L.kind][1]}</span><div class="td-d">${esc(L.text)}</div></td></tr>`).join('');
+    return `<div class="group-t">최근 2주 자기보고 ↔ 측정 영역</div>
+      <div class="feel">${head}${C.cite(p.phq8 !== null ? ['phq8', 'phqKr', 'levis'] : ['phq2', 'phqKr'])}</div>
+      ${p.consult ? '<div class="mismatch" style="background:#FCEEF1;border-color:#F2C9D3;color:#7A2238"><b>상담 권장</b> 최근 2주 기분 부담이 높게 보고됐어요. 아래 케어 플랜 첫 항목의 상담 안내를 확인해 주세요. 이 결과는 진단이 아닙니다.</div>' : ''}
+      ${rows ? `<div class="tbl-wrap"><table class="itbl" style="min-width:560px"><thead><tr><th>자기보고 증상</th><th>응답</th><th>연결된 측정</th><th>대조</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : '<p class="muted small">PHQ-2만 응답해 증상별 대조는 하지 않았어요 (PHQ-2가 3점 이상일 때 추가 문항을 묻습니다).</p>'}`;
+  }
+
   function render(r, ctx = {}) {
     const b = r.battery, I = b.integrated, C = citer(), c = r.checkin || {};
     const when = r.measuredAt ? new Date(r.measuredAt) : null;
@@ -267,6 +283,7 @@
       <div class="group-t">자기보고 ↔ 측정 대조</div>
       <div class="feel">기분 <b>${c.valence ?? '—'}</b>/9 · 긴장 <b>${c.tension ?? '—'}</b>/5 · 에너지 <b>${c.energy ?? '—'}</b>/5 · 졸림(KSS) <b>${c.kss ?? '—'}</b>/9${C.cite(['sam', 'kss'])}</div>
       ${I.mismatches.length ? I.mismatches.map(m => `<div class="mismatch${m.aligned ? ' al' : ''}"><b>${esc(m.title)}</b> ${esc(m.text)}${C.cite(m.refs)}</div>`).join('') : '<p class="muted small">비교할 자기보고 또는 측정이 부족했어요.</p>'}
+      ${phqSection(b, C)}
     </div>`;
 
     h += B.DOMAIN_KEYS.map((k, i) => domainSection(k, i + 1, r, C)).join('');
@@ -276,7 +293,7 @@
       <div class="kicker">Care Plan · 측정에 정렬된 케어</div>
       <h2>우선순위 케어 플랜</h2>
       <p class="muted small" style="margin-top:0">가장 저하된 영역부터 근거 기반 루틴을 배정하고, 같은 검사로 재측정해 효과를 확인하는 폐루프로 설계했어요.</p>
-      ${b.care.map(t => `<div class="track"><div class="track-h"><span class="rank">${t.domain === 'balanced' ? '유지' : `${t.rank}순위 · ${esc(B.DOMAINS[t.domain].name)}`}</span><b>${esc(t.title)}</b></div>
+      ${b.care.map(t => `<div class="track"${t.domain === 'safety' ? ' style="background:#FCEEF1;border-color:#F2C9D3"' : ''}><div class="track-h"><span class="rank"${t.domain === 'safety' ? ' style="background:#B23A57"' : ''}>${t.domain === 'balanced' ? '유지' : t.domain === 'safety' ? '먼저 확인' : `${t.rank}순위 · ${esc(B.DOMAINS[t.domain].name)}`}</span><b>${esc(t.title)}</b></div>
         <p class="muted small" style="margin:2px 0 8px">${esc(t.goal)}</p>
         <ol>${t.items.map(it => `<li>${esc(it.text)}${C.cite(it.refs)}</li>`).join('')}</ol>
         <div class="kpi"><span><b>목표 지표</b> ${esc(t.kpi)}</span><span><b>재측정</b> ${esc(t.remeasure)}</span></div></div>`).join('')}
