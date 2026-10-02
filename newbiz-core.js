@@ -11,7 +11,7 @@
 })(typeof window !== 'undefined' ? window : null, function () {
   'use strict';
 
-  const VERSION = 'newbiz-mvp-0.1';
+  const VERSION = 'newbiz-mvp-0.2';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -471,7 +471,7 @@
     const expr = { neu: expression(face, ...span('neu')), neg: expression(face, ...span('neg')), pos: expression(face, ...span('pos')) };
     const exprNeg = expr.neu && expr.neg ? round((expr.neg.frown - expr.neu.frown) * 100, 1) : null;
 
-    const gazeOk = rec.calibration && rec.calibration.grade !== 'poor' && rec.calibration.grade !== 'none' && blocks.neg.valid >= Math.ceil(blocks.neg.n / 2);
+    const gazeOk = !!rec.calibration && rec.calibration.grade !== 'poor' && rec.calibration.grade !== 'none' && blocks.neg.n > 0 && blocks.neg.valid >= Math.ceil(blocks.neg.n / 2);
     const bodyOk = stressDelta !== null;
     const biasHigh = gazeOk && attentionBias >= THRESH.biasHigh;
     const bodyHigh = bodyOk && (stressDelta >= THRESH.stressHigh || (negDelta !== null && negDelta >= THRESH.negHrHigh));
@@ -513,21 +513,26 @@
   /* ---------- 시뮬레이션 (카메라 없는 데모·테스트용) ----------
    * hrAt(t) 로 정한 심박을 따라 피부색에 맥동을 섞은 프레임을 만든다. 데모 결과는 반드시 '시뮬레이션'으로 표시한다. */
   function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; }; }
+  /* opt.eyeAt(t) → {blinkMs, drowsy(긴 눈감김 발생률 /초)}, opt.motionAt(t) → 머리 흔들림 배율 */
   function synthFrames(t0, t1, hrAt, opt = {}) {
     const fps = opt.fps || 30, rand = rng(opt.seed || 7), noise = opt.noise ?? 0.25, out = [];
     const gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += rand(); return u - 3; };
-    let phase = 0, t = t0, nextBlink = t0 + 2500;
+    let phase = 0, t = t0, nextBlink = t0 + 2500, closeUntil = -Infinity;
     while (t <= t1) {
       const dt = 1000 / fps * (1 + (rand() - 0.5) * 0.3);             // 웹캠처럼 프레임 간격 흔들림
       phase += 2 * Math.PI * hrAt(t) / 60 * dt / 1000;
       const p = Math.sin(phase) + 0.35 * Math.sin(2 * phase - 0.8);
       const drift = 2 * Math.sin(t / 9000);
-      let blink = 0;
-      if (t >= nextBlink) { blink = 0.9; if (t >= nextBlink + 150) nextBlink = t + 2500 + rand() * 3000; }
+      const eye = opt.eyeAt ? opt.eyeAt(t) : { blinkMs: 150, drowsy: 0 };
+      if (t >= nextBlink && t >= closeUntil) { closeUntil = t + eye.blinkMs; nextBlink = t + 2500 + rand() * 3000; }
+      if (eye.drowsy && t >= closeUntil && rand() < eye.drowsy * dt / 1000) closeUntil = t + 400 + rand() * 900;
+      const closed = t < closeUntil;
+      const mv = 0.002 * (opt.motionAt ? opt.motionAt(t) : 1);
       out.push({
         t, ok: true,
         r: 175 + drift + 0.25 * p + noise * gauss(), g: 118 + drift * 0.8 + 0.6 * p + noise * gauss(), b: 98 + drift * 0.7 + 0.15 * p + noise * gauss(),
-        blink, cx: 0.5 + 0.002 * gauss(), cy: 0.5 + 0.002 * gauss(), fw: 0.3,
+        blink: closed ? 0.9 : 0.02, open: closed ? 0.04 : 0.29 + 0.008 * gauss(),
+        cx: 0.5 + mv * gauss(), cy: 0.5 + mv * gauss(), fw: 0.3,
         frown: (opt.frownAt ? opt.frownAt(t) : 0.05) + 0.01 * rand(), smile: 0.1 + 0.01 * rand(),
       });
       t += dt;

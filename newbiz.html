@@ -4,14 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex,nofollow,noarchive" />
-<title>NeuroLens Lab — 시선×심박 융합 측정 MVP</title>
+<title>NeuroLens Lab — 통합 자기조절 평가 배터리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <!--
   NewBiz MVP — 운영 서비스(체크인·MindGaze 검사·리포트·케어)와 완전히 분리된 독립 실험 페이지.
   운영 페이지의 스크립트·저장소 키·API 를 쓰지 않고, 운영 페이지에서도 이 페이지로 연결하지 않는다.
   웹캠 영상은 브라우저 안에서만 처리하고(MediaPipe Face Landmarker), 서버로 보내거나 저장하지 않는다.
-  신호처리·지표 계산: newbiz-core.js (테스트: node newbiz-core.test.js)
+  신호처리: newbiz-core.js · 검사 채점·통합 해석·시뮬레이션: newbiz-battery.js · 리포트: newbiz-report.js
+  테스트: node newbiz-core.test.js && node newbiz-battery.test.js
 -->
 <style>
 :root{
@@ -149,6 +150,103 @@ h3{font-size:16px;margin:0 0 6px}
 .bio .hrbig b{font-family:var(--font-num);font-size:56px;color:#2C3650;display:block;line-height:1.1}
 .bio .hrbig span{font-size:13.5px;color:var(--muted)}
 .bio svg.spark{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(520px,86vw);height:70px}
+/* ---- 배터리 구성 (소개) ---- */
+.btbl{width:100%;border-collapse:collapse;font-size:14px;margin:4px 0 6px}
+.btbl th{font-size:12px;color:var(--muted);font-weight:700;text-align:left;padding:8px 8px;border-bottom:1.5px solid var(--line)}
+.btbl td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top;word-break:keep-all}
+.btbl td.num{font-family:var(--font-num);white-space:nowrap}
+.btbl input{width:18px;height:18px;margin-top:3px}
+.btbl .dom{display:inline-block;font-size:12px;font-weight:700;border-radius:8px;padding:2px 8px;background:var(--blue-soft);color:#244881;white-space:nowrap}
+.principle{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 4px}
+.principle div{padding:12px 13px;border:1px solid var(--line);border-radius:14px;background:#FAFBFE;font-size:13px;word-break:keep-all}
+.principle b{display:block;font-size:13.5px;color:var(--ink);margin-bottom:2px}
+.principle span{color:var(--muted);font-size:12px}
+.est{font-size:13.5px;color:var(--ink-2);margin-top:10px}
+.qa{margin-top:18px;border:1px dashed #C9D7FF;border-radius:14px;padding:12px 16px;background:#F8FAFF}
+.qa summary{cursor:pointer;font-weight:800;color:var(--blue);font-size:14px}
+.qa p{font-size:13.5px;color:var(--ink-2);margin:10px 0}
+.qa select{font:inherit;padding:9px 12px;border-radius:11px;border:1.5px solid var(--line);background:#fff}
+.qa .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* ---- 측정 무대: 새 과제 ---- */
+.skip{position:absolute;top:12px;right:118px;border:1px solid #D9DFEA;background:#F4F6FA;border-radius:10px;padding:6px 12px;font-size:13px;color:var(--ink-2);font-weight:700}
+.skip[hidden]{display:none}
+.hud-n{font-family:var(--font-num);font-weight:700;color:var(--blue)}
+.sac-fix{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#59647D}
+.sac-tgt{position:absolute;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 7px rgba(217,75,106,.15)}
+.sac-demo{display:block;margin:14px auto 0;width:min(380px,80vw);height:auto}
+.pvt{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center}
+.pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#C2414F;background:#F1F3F7}
+.pvt-msg{height:26px;margin-top:14px;font-size:15px;color:#59647D}
+.sart{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font-family:var(--font-num);font-weight:700;color:#2C3650;line-height:1;min-width:200px;text-align:center}
+/* ---- 리포트 ---- */
+.cite{font-size:10.5px;font-weight:700;color:var(--blue);margin-left:1px;white-space:nowrap}
+.rpt-head .rh-top{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.rh-t{font-size:28px;margin:6px 0 6px}
+.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 12px}
+.meta div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#FAFBFE}
+.meta dt{font-size:11.5px;color:var(--muted);font-weight:700}
+.meta dd{margin:2px 0 0;font-size:14px;font-weight:700;word-break:keep-all}
+.mchips,.steps{display:flex;flex-wrap:wrap;gap:6px}
+.mchip{font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px;background:#EEF0F5;color:#5A6580}
+.mchip.m-done{background:#E6F6EE;color:#1F7A4D}.mchip.m-input{background:var(--blue-soft);color:#244881}.mchip.m-sim{background:var(--amber-soft);color:#8A5508}
+.mchip.m-skipped,.mchip.m-nogaze{background:var(--rose-soft);color:#8C2440}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;margin-top:4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12.5px;font-weight:800;border-radius:9px;padding:4px 10px}
+.chip.pri{background:#F1EEFF;color:#4B33B5}.chip.sec{background:#EEF3FF;color:#244881}
+.st{font-size:11.5px;border-radius:999px;padding:2px 9px;font-weight:800;white-space:nowrap}
+.st-ok{background:#E6F6EE;color:#1F7A4D}.st-watch{background:var(--amber-soft);color:#8A5508}.st-concern{background:var(--rose-soft);color:#A2304A}.st-na{background:#EEF0F5;color:#7A8296}
+.dbars{display:grid;gap:12px}
+.dbar-h{display:flex;align-items:center;gap:8px;font-size:14px}
+.dbar-h .en{font-size:11.5px;color:var(--muted);font-family:var(--font-num)}
+.dbar-h .sc{margin-left:auto;font-family:var(--font-num);font-size:18px}
+.dbar-t{position:relative;height:10px;border-radius:9px;margin-top:5px;background:linear-gradient(90deg,#F9DDE4 0 40%,#FCEBC9 40% 70%,#D7F0E2 70% 100%)}
+.dbar-t i{position:absolute;top:-4px;width:6px;height:18px;margin-left:-3px;border-radius:4px;background:var(--ink);box-shadow:0 0 0 2px #fff}
+.dbar-n{font-size:11.5px;color:var(--muted);margin-top:3px}
+.dbar-scale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-family:var(--font-num)}
+.path{border-left:3px solid var(--violet);background:#F7F5FF;border-radius:0 12px 12px 0;padding:10px 14px;margin:8px 0}
+.path b{font-size:14px;color:#3E2E8F}
+.path p{margin:3px 0 0;font-size:13.5px;word-break:keep-all;color:var(--ink-2)}
+.feel{font-size:14px;margin-bottom:6px}
+.mismatch.al{background:#F4F7FC;border-color:var(--line);color:var(--ink-2)}
+.dom-h{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
+.dom-h h2{margin:2px 0 4px}
+.dom-h .net{font-size:13px;color:var(--muted);font-weight:600;margin-left:6px}
+.dom-score{min-width:92px;text-align:center;border-radius:16px;padding:10px 12px}
+.dom-score b{display:block;font-family:var(--font-num);font-size:30px;line-height:1.1}
+.dom-score span{font-size:12px;font-weight:800}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.itbl{width:100%;border-collapse:collapse;font-size:13.5px;min-width:620px}
+.itbl th{font-size:11.5px;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1.5px solid var(--line);white-space:nowrap}
+.itbl td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top;word-break:keep-all}
+.itbl td.num{font-family:var(--font-num);font-weight:700;font-size:15px;white-space:nowrap}
+.itbl td.num small{font-size:11px;color:var(--muted);font-weight:600}
+.itbl td.rng{font-size:12px;color:var(--ink-2);min-width:150px}
+.itbl td.refc{white-space:nowrap}
+.itbl tr.info td{color:var(--ink-2);background:#FBFCFE}
+.itbl tr.info td.num{font-size:13.5px}
+.td-d{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5}
+.core-tag{font-size:10.5px;font-weight:800;color:var(--violet);background:#F1EEFF;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.method{margin-top:12px;border:1px solid var(--line);border-radius:13px;padding:10px 14px;background:#FAFBFE}
+.method summary{cursor:pointer;font-weight:800;font-size:13.5px;color:var(--ink-2)}
+.method .mstat{font-weight:700;font-size:12px;color:var(--muted);margin-left:6px}
+.method p{font-size:13px;margin:8px 0 0;word-break:keep-all;color:var(--ink-2)}
+.warn-line{font-size:13px;color:#8C2440;background:var(--rose-soft);border-radius:10px;padding:8px 12px;margin:8px 0}
+.two{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center}
+.prof-mini b{font-size:20px}
+.prof-mini p{font-size:13.5px;color:var(--ink-2);word-break:keep-all}
+.track{border:1px solid var(--care-line);background:var(--care-soft);border-radius:16px;padding:16px 18px;margin:12px 0}
+.track-h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.track-h b{font-size:16px}
+.rank{font-size:12px;font-weight:800;color:#fff;background:var(--care);border-radius:8px;padding:3px 9px}
+.track ol{margin:4px 0 8px;padding-left:20px}
+.track li{margin:4px 0;font-size:14px;word-break:keep-all}
+.kpi{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:#235b46;border-top:1px dashed var(--care-line);padding-top:8px}
+.qlist{margin:0;padding-left:18px;font-size:13.5px}
+.qlist li{margin:3px 0}
+.refs ol{padding-left:22px;margin:6px 0 0}
+.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word-break:break-word}
+.fw{max-width:560px;margin:auto}
 @media (max-width:760px){
   .card{padding:24px 20px}
   .flow{grid-template-columns:1fr 1fr}
@@ -157,7 +255,13 @@ h3{font-size:16px;margin:0 0 6px}
   .three{grid-template-columns:1fr}
   h1{font-size:26px}
 }
-@media print{.nav,.btns,.no-print{display:none!important}body{background:#fff}.card{box-shadow:none}}
+@media (max-width:760px){
+  .principle,.meta{grid-template-columns:1fr 1fr}
+  .sum-grid,.two{grid-template-columns:1fr}
+  .skip{right:auto;left:12px;top:56px}
+  .btbl th:nth-child(4),.btbl td:nth-child(4){display:none}
+}
+@media print{.nav,.btns,.no-print,.qa{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid-page}.method{break-inside:avoid}details.method>*{display:block}}
 </style>
 </head>
 <body>
@@ -170,39 +274,51 @@ h3{font-size:16px;margin:0 0 6px}
 <!-- 1. 소개 -->
 <section id="sIntro">
   <div class="card">
-    <div class="kicker">Gaze × rPPG Fusion · MVP</div>
-    <h1>웹캠 하나로, 마음이 어디에 붙잡히고<br>몸이 어떻게 반응하는지 함께 봅니다</h1>
-    <p class="lead">시선추적과 원격 심박 측정(rPPG)을 같은 시간축에 묶어, 감정 자극·압박·회복 상황에서의 <b>주의</b>와 <b>신체 반응</b>을 한 번에 측정하는 실험용 MVP입니다. 별도 장비 없이 노트북 웹캠만 사용합니다.</p>
-    <div class="flow">
-      <div><b>01 · 보정</b>점 9개를 바라보며 시선 보정</div>
-      <div><b>02 · 기준선</b>편안히 응시하며 안정 시 심박</div>
-      <div><b>03 · 자유 보기</b>감정 자극 쌍을 자유롭게 보기</div>
-      <div><b>04 · 압박 과제</b>제한 시간 암산</div>
-      <div><b>05 · 회복</b>분당 6회 호흡 안내</div>
+    <div class="kicker">Integrated Self-Regulation Battery · MVP</div>
+    <h1>웹캠 하나로 각성 · 주의 통제 · 정서 주의 · 자율신경 조절을<br>하나의 모델로 평가합니다</h1>
+    <p class="lead">개별 검사는 따로 점수를 내는 데서 끝나지 않고, <b>주의 네트워크 모델</b>(경계·실행 통제)과 <b>신경내장 통합 모델</b>(전전두 억제 ↔ 미주신경성 심장 조절)이라는 하나의 틀 안에 정렬됩니다. 네 영역의 결과와 영역 사이의 연결을 함께 읽어 우선순위 케어와 재측정 지표까지 제시합니다. 별도 장비 없이 노트북 웹캠만 사용합니다.</p>
+    <div class="principle">
+      <div><b>각성</b>경계 네트워크<br><span>PVT-B · PERCLOS</span></div>
+      <div><b>주의 통제</b>실행 통제 네트워크<br><span>안티사카드 · 원활 추적 · SART</span></div>
+      <div><b>정서 주의</b>정서 자극 정향<br><span>정서 자유 보기</span></div>
+      <div><b>자율신경 조절</b>신경내장 조절<br><span>압박 · 공명 호흡 rPPG</span></div>
     </div>
-    <h3>측정 원리</h3>
-    <div class="pipe"><span>웹캠</span><i>→</i><span>얼굴 랜드마크 478점</span><i>→</i><span>홍채·머리 자세 → 시선</span><span>이마·볼 피부색 → 심박(POS)</span><span>눈꺼풀 → 깜빡임</span><span>표정값 → 표정 반응</span><i>→</i><span>동기화 지표 · 프로파일</span></div>
+    <h3 style="margin-top:22px">검사 구성 <span class="small muted" style="font-weight:500">— 포함할 모듈을 고르세요 (기준선·시선 보정은 항상 포함)</span></h3>
+    <table class="btbl">
+      <thead><tr><th></th><th>모듈 · 검사</th><th>평가 영역</th><th>학술 근거</th><th>시간</th></tr></thead>
+      <tbody id="modTable"></tbody>
+    </table>
     <div class="modes" role="radiogroup" aria-label="측정 길이">
-      <label><input type="radio" name="mode" value="full" checked> 표준 측정 (약 5분)</label>
-      <label><input type="radio" name="mode" value="quick"> 빠른 측정 (약 3분 · 시연용)</label>
+      <label><input type="radio" name="mode" value="full" checked> 표준 측정</label>
+      <label><input type="radio" name="mode" value="quick"> 빠른 측정 (시연용 · 시행 수 축소)</label>
     </div>
+    <div class="est" id="estTime"></div>
     <label class="consent"><input type="checkbox" id="agree">
-      <span>카메라 영상은 <b>이 브라우저 안에서만</b> 처리되며 서버로 전송·저장되지 않습니다. 결과 지표는 이 기기에만 남습니다. 이 측정은 의학적 진단이 아닌 <b>웰니스 참고 지표</b>이며, 판정 기준은 파일럿 검증 전 잠정값입니다. 위 내용을 확인했습니다.</span>
+      <span>카메라 영상은 <b>이 브라우저 안에서만</b> 처리되며 서버로 전송·저장되지 않습니다. 결과 지표는 이 기기에만 남습니다. 이 측정은 의학적 진단이 아닌 <b>웰니스 참고 지표</b>이며, 판정 기준은 문헌 보고 범위를 웹캠 환경에 맞춘 잠정값입니다. 위 내용을 확인했습니다.</span>
     </label>
     <div class="btns">
       <button class="btn" id="goCheckin" disabled>시작하기</button>
-      <button class="btn ghost" id="goDemo" disabled>카메라 없이 데모 보기</button>
+      <button class="btn ghost" id="goDemo" disabled>카메라 없이 데모 진행</button>
     </div>
-    <p class="disc">데모 모드는 마우스 위치를 시선으로, 합성 신호를 심박으로 사용합니다. 결과에는 ‘시뮬레이션’ 표시가 붙습니다. 실제 측정은 PC 크롬·엣지 브라우저, 밝고 균일한 조명, 정면 자세를 권장합니다.</p>
+    <details class="qa" id="qaBox">
+      <summary>검증 도구 — 피험자가 되지 않고 단계·리포트 확인하기</summary>
+      <p><b>단계 건너뛰기</b> 측정 화면 오른쪽 위의 <b>‘이 단계 건너뛰기’</b>로 어느 단계든 바로 다음으로 넘어갈 수 있어요. 데모 모드에서 건너뛴 단계는 아래 시뮬레이션 피험자의 데이터로 채워지고, 실측 모드에서 건너뛴 단계는 ‘건너뜀’으로 표시되어 판정에서 빠집니다.</p>
+      <p><b>시뮬레이션 리포트</b> 카메라·과제 없이, 선택한 피험자 유형의 합성 생리 신호와 과제 반응으로 전체 분석 파이프라인을 돌려 종합 리포트를 바로 엽니다. 주소 끝에 <code>?sim=fatigue</code>처럼 붙여도 됩니다.</p>
+      <div class="row">
+        <select id="simPersona" aria-label="시뮬레이션 피험자 유형"></select>
+        <button class="btn ghost" id="simReport" type="button">시뮬레이션 리포트 바로 보기</button>
+      </div>
+    </details>
+    <p class="disc">데모 모드는 마우스 위치를 시선으로, 합성 신호를 심박·눈꺼풀로 사용하고 키보드 반응(PVT·SART·암산)은 실제 입력을 씁니다. 결과에는 ‘데모·시뮬레이션’ 표시가 붙습니다. 실제 측정은 PC 크롬·엣지 브라우저, 밝고 균일한 조명, 정면 자세를 권장합니다.</p>
   </div>
 </section>
 
 <!-- 2. 체크인 -->
 <section id="sCheckin" hidden>
   <div class="card">
-    <div class="kicker">Step 1 · 체크인</div>
+    <div class="kicker">Step 1 · 체크인 (자기보고)</div>
     <h2>지금 스스로 느끼는 상태를 알려 주세요</h2>
-    <p class="lead">측정 결과와 비교해 ‘느끼는 나’와 ‘몸과 시선이 보여 주는 나’의 차이를 찾아 드려요.</p>
+    <p class="lead">측정 결과와 비교해 ‘느끼는 나’와 ‘몸과 시선·수행이 보여 주는 나’의 차이를 찾아 드려요.</p>
     <div class="q"><div class="lbl">지금 기분은 어떤가요?</div>
       <div class="scale" id="qValence" style="grid-template-columns:repeat(9,1fr)"></div>
       <div class="ends"><span>매우 나쁨</span><span>매우 좋음</span></div></div>
@@ -212,6 +328,9 @@ h3{font-size:16px;margin:0 0 6px}
     <div class="q"><div class="lbl">에너지는 어느 정도인가요?</div>
       <div class="scale" id="qEnergy" style="grid-template-columns:repeat(5,1fr);max-width:360px"></div>
       <div class="ends" style="max-width:360px"><span>방전</span><span>충만</span></div></div>
+    <div class="q"><div class="lbl">지금 얼마나 졸린가요? <span class="small muted" style="font-weight:500">(카롤린스카 졸림 척도)</span></div>
+      <div class="scale" id="qKss" style="grid-template-columns:repeat(9,1fr)"></div>
+      <div class="ends"><span>매우 또렷함</span><span>중간</span><span>매우 졸림 · 버티기 힘듦</span></div></div>
     <div class="btns">
       <button class="btn" id="goSetup" disabled>다음 · 카메라 준비</button>
       <button class="btn ghost" data-back="sIntro">이전</button>
@@ -253,8 +372,8 @@ h3{font-size:16px;margin:0 0 6px}
 <section id="sAnalyze" hidden>
   <div class="card" style="text-align:center;padding:60px 30px">
     <div class="kicker">Analyzing</div>
-    <h2>시선과 심박 신호를 동기화해 분석하고 있어요</h2>
-    <p class="muted">POS 원격 심박 추출 → 구간별 심박·회복·호흡 동조 → 자극별 시선 체류 → 프로파일</p>
+    <h2>검사별 지표를 계산하고 하나의 모델로 통합하고 있어요</h2>
+    <p class="muted">원격 심박(POS) · 눈꺼풀(PERCLOS) · 사카드·추적 · 반응시간 → 영역 점수 → 영역 간 연결 해석 → 케어 정렬</p>
   </div>
 </section>
 
@@ -265,6 +384,7 @@ h3{font-size:16px;margin:0 0 6px}
 <!-- 측정 무대 -->
 <div class="stage" id="stage" aria-live="polite">
   <div class="hud"><span id="hudPhase">준비</span><span class="bar"><i id="hudBar"></i></span><span><i class="dot" id="hudFace"></i><b id="hudFaceT">얼굴</b></span></div>
+  <button class="skip" id="skip" hidden>이 단계 건너뛰기 ⏭</button>
   <button class="quit" id="quit">그만하기</button>
   <div class="facewarn" id="faceWarn">얼굴이 보이지 않아요. 화면 정면을 봐 주세요.</div>
   <div id="stageBody"></div>
@@ -280,34 +400,82 @@ h3{font-size:16px;margin:0 0 6px}
 <video id="camProc" class="selfcam" playsinline muted></video>
 
 <script src="newbiz-core.js"></script>
+<script src="newbiz-battery.js"></script>
+<script src="newbiz-report.js"></script>
 <script type="module">
-const N = window.NLNewbiz;
+const N = window.NLNewbiz, B = window.NLBattery, R = window.NLReport;
 const MP_VER = '0.10.14';
 const MP_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`;
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
-const STORE_KEY = 'nlNewbiz:v1';
+const STORE_KEY = 'nlNewbiz:v2';
 const $ = id => document.getElementById(id);
 const now = () => performance.now();
+const esc = R.esc;
 
 const S = {
-  demo: false, mode: 'full', checkin: {}, stream: null, landmarker: null,
-  buf: [], frames: [], recording: false, bioFrames: [], bioRecording: false,
-  phases: {}, trials: [], curTrial: null, model: null, gaze: null, feat: null, lastLm: null, rois: null,
-  lastFace: 0, lastTs: 0, fpsTimes: [], onFeature: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
+  demo: false, mode: 'full', persona: 'balanced', mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {},
+  stream: null, landmarker: null, buf: [], frames: [], recording: false, bioFrames: [], bioRecording: false,
+  phases: {}, steps: {}, stepPhases: [], cur: null, stepIdx: 0, stepTotal: 0, cleanup: [],
+  trials: [], pursuit: null, saccade: [], pvt: null, sart: null, stressScore: null, curTrial: null,
+  model: null, gaze: null, feat: null, lastLm: null, rois: null, lastFace: 0, lastTs: 0, fpsTimes: [],
+  onFeature: null, onResp: null, onKey: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
 };
-const DUR = {
-  full:  { baseline: 60, trials: 7, stress: 45, recovery: 60 },
-  quick: { baseline: 30, trials: 4, stress: 30, recovery: 40 },
-};
+const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
+const GAZE_STEPS = ['pursuit', 'saccade', 'freeview'];
 const TRIAL_MS = 3500, FIX_MS = 700;
 
 /* ---------- 화면 전환 ---------- */
 function show(id) { ['sIntro', 'sCheckin', 'sSetup', 'sAnalyze', 'sReport'].forEach(s => { $(s).hidden = s !== id; }); window.scrollTo(0, 0); }
 document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => show(b.dataset.back)));
-$('agree').addEventListener('change', e => { $('goCheckin').disabled = $('goDemo').disabled = !e.target.checked; });
 const modeVal = () => document.querySelector('input[name=mode]:checked').value;
+
+/* ---------- 소개: 배터리 구성표 · 모듈 선택 · 예상 시간 ---------- */
+const refShort = keys => keys.map(k => {
+  const t = B.REFS[k] || '', authors = t.split('.')[0], year = (t.match(/\b(19|20)\d{2}\b/) || [''])[0];
+  const first = authors.split(/[ ,]/)[0];
+  return `${first}${/,/.test(authors) ? ' 외' : ''} ${year}`;
+}).join(' · ');
+const DOM_LABEL = { alert: '각성', control: '주의 통제', 'emotion · autonomic': '정서 주의 · 자율신경' };
+$('modTable').innerHTML = MOD_ORDER.map(k => {
+  const m = B.MODULES[k];
+  return `<tr><td><input type="checkbox" data-mod="${k}" checked aria-label="${esc(m.title)} 포함"></td>
+    <td><b>${esc(m.title)}</b><div class="small muted">${esc(m.tests)}</div></td>
+    <td><span class="dom">${esc(DOM_LABEL[m.domain] || m.domain)}</span></td>
+    <td class="small muted">${esc(refShort(m.refs.slice(0, 3)))}</td><td class="num" data-min="${k}"></td></tr>`;
+}).join('');
+function stepEstimateSec(key, d) {
+  return { calibration: 25, baseline: d.baseline + 3, pursuit: d.pursuit + 5, saccade: (d.pro + d.anti + d.practice) * 2.9 + 12,
+    freeview: 3 * d.trials * (TRIAL_MS + FIX_MS) / 1000 + 4, pvt: d.pvt + 5, sart: d.sart * 1.15 + 6, stress: d.stress + 4, recovery: d.recovery + 3 }[key] || 0;
+}
+function refreshIntro() {
+  const mode = modeVal(), d = B.DUR[mode];
+  document.querySelectorAll('[data-mod]').forEach(cb => { S.mods[cb.dataset.mod] = cb.checked; });
+  const steps = { alert: ['pvt'], oculo: ['pursuit', 'saccade'], sustain: ['sart'], core: ['freeview', 'stress', 'recovery'] };
+  let total = stepEstimateSec('calibration', d) + stepEstimateSec('baseline', d);
+  MOD_ORDER.forEach(k => {
+    const sec = steps[k].reduce((s, st) => s + stepEstimateSec(st, d), 0);
+    document.querySelector(`[data-min="${k}"]`).textContent = `${Math.round(sec / 6) / 10}분`;
+    if (S.mods[k]) total += sec;
+  });
+  const any = MOD_ORDER.some(k => S.mods[k]);
+  $('estTime').innerHTML = any ? `예상 소요 약 <b>${Math.round(total / 60)}분</b> (보정·기준선 포함) · 각 단계는 건너뛸 수 있어요` : '<span style="color:var(--rose)">모듈을 하나 이상 선택해 주세요</span>';
+  const ok = $('agree').checked && any;
+  $('goCheckin').disabled = $('goDemo').disabled = !ok;
+  $('simReport').disabled = !any;
+}
+document.querySelectorAll('[data-mod], input[name=mode]').forEach(el => el.addEventListener('change', refreshIntro));
+$('agree').addEventListener('change', refreshIntro);
+$('simPersona').innerHTML = Object.keys(B.PERSONAS).map(k => `<option value="${k}">${esc(B.PERSONAS[k].label)}</option>`).join('');
+$('simPersona').addEventListener('change', e => { S.persona = e.target.value; });
+refreshIntro();
 $('goCheckin').addEventListener('click', () => { S.demo = false; S.mode = modeVal(); show('sCheckin'); });
-$('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); show('sCheckin'); });
+$('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
+$('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
+function openSimReport(persona, mode) {
+  S.demo = true; S.mode = mode; S.persona = persona;
+  show('sAnalyze');
+  setTimeout(() => finishWith(B.simulate(persona, { mode, include: { ...S.mods }, seed: Date.now() % 100000 })), 60);
+}
 
 /* ---------- 체크인 ---------- */
 function scale(el, n, key) {
@@ -317,12 +485,12 @@ function scale(el, n, key) {
     b.addEventListener('click', () => {
       el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
       S.checkin[key] = i;
-      $('goSetup').disabled = !(S.checkin.valence && S.checkin.tension && S.checkin.energy);
+      $('goSetup').disabled = !(S.checkin.valence && S.checkin.tension && S.checkin.energy && S.checkin.kss);
     });
     el.appendChild(b);
   }
 }
-scale($('qValence'), 9, 'valence'); scale($('qTension'), 5, 'tension'); scale($('qEnergy'), 5, 'energy');
+scale($('qValence'), 9, 'valence'); scale($('qTension'), 5, 'tension'); scale($('qEnergy'), 5, 'energy'); scale($('qKss'), 9, 'kss');
 $('goSetup').addEventListener('click', () => {
   if (S.demo) { runSession(); return; }
   show('sSetup');
@@ -414,7 +582,7 @@ function processFrame() {
       S.rois = roi.rois;
       const bs = blendMap(res);
       Object.assign(fr, {
-        ok: roi.n >= 30, r: roi.r, g: roi.g, b: roi.b, lum: roi.lum, cx: f.cx, cy: f.cy, fw: f.fw,
+        ok: roi.n >= 30, r: roi.r, g: roi.g, b: roi.b, lum: roi.lum, cx: f.cx, cy: f.cy, fw: f.fw, open: f.open,
         blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,
         frown: ((bs.mouthFrownLeft || 0) + (bs.mouthFrownRight || 0) + (bs.browDownLeft || 0) + (bs.browDownRight || 0)) / 4,
         smile: ((bs.mouthSmileLeft || 0) + (bs.mouthSmileRight || 0)) / 2,
@@ -424,11 +592,12 @@ function processFrame() {
       if (S.model) {
         const g = N.predictGaze(S.model, f);
         S.gaze = S.gaze ? { x: S.gaze.x + 0.4 * (g.x - S.gaze.x), y: S.gaze.y + 0.4 * (g.y - S.gaze.y) } : g;
+        /* 화면 표시용은 평활값(x), 사카드·추적 분석용은 원시값(rx) */
+        if (S.curTrial && roi.n >= 30) S.curTrial.samples.push({ t, x: S.gaze.x, y: S.gaze.y, rx: g.x, ry: g.y });
       }
     }
   }
   pushFrame(fr);
-  if (S.curTrial && S.gaze && fr.ok) S.curTrial.samples.push({ t, x: S.gaze.x, y: S.gaze.y });
 }
 function pushFrame(fr) {
   S.buf.push(fr);
@@ -495,13 +664,49 @@ function setupTicker() {
 }
 $('goRun').addEventListener('click', () => runSession());
 
-/* ---------- 측정 무대 ---------- */
+/* ---------- 측정 무대: 중단·건너뛰기 가능한 대기 ----------
+ * 모든 대기(wait·respond·choice)를 waiters 에 등록해 두고, 건너뛰기/그만하기 때 한꺼번에 끊는다. */
 const stage = $('stage'), body = $('stageBody');
-const Abort = new Error('abort');
-function wait(ms) { return new Promise((res, rej) => setTimeout(() => (S.abort ? rej(Abort) : res()), ms)); }
-function mark(name, edge) { (S.phases[name] = S.phases[name] || {})[edge] = now(); }
+const Abort = new Error('abort'), Skip = new Error('skip');
+const waiters = new Set();
+function wait(ms) {
+  return new Promise((res, rej) => {
+    if (S.abort) { rej(Abort); return; }
+    const w = { rej };
+    w.to = setTimeout(() => { waiters.delete(w); res(); }, ms);
+    waiters.add(w);
+  });
+}
+/* 스페이스바·화면 터치 1회 응답 (없으면 null) — 시각은 이벤트 timeStamp (performance.now 와 같은 시계) */
+function respond(ms) {
+  return new Promise((res, rej) => {
+    if (S.abort) { rej(Abort); return; }
+    const w = { rej, cleanup: () => { S.onResp = null; } };
+    w.to = setTimeout(() => { waiters.delete(w); S.onResp = null; res(null); }, ms);
+    S.onResp = e => { clearTimeout(w.to); waiters.delete(w); S.onResp = null; res({ t: e.timeStamp }); };
+    waiters.add(w);
+  });
+}
+function interrupt(err) {
+  const ws = [...waiters];
+  waiters.clear();
+  ws.forEach(w => { clearTimeout(w.to); if (w.cleanup) w.cleanup(); w.rej(err); });
+}
+function every(ms, fn) { const id = setInterval(fn, ms); const stop = () => clearInterval(id); S.cleanup.push(stop); return stop; }
+const nextFrame = () => new Promise(r => requestAnimationFrame(r));
+function mark(name, edge) { (S.phases[name] = S.phases[name] || {})[edge] = now(); if (edge === 'start') S.stepPhases.push(name); }
+
+window.addEventListener('keydown', e => {
+  if (!stage.classList.contains('on')) return;
+  if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); if (!e.repeat && S.onResp) S.onResp(e); return; }
+  if (S.onKey) S.onKey(e);
+});
+stage.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; if (S.onResp) S.onResp(e); });
+$('skip').addEventListener('click', e => { e.currentTarget.blur(); if (S.cur && !S.abort) interrupt(Skip); });
+$('quit').addEventListener('click', () => { S.abort = true; interrupt(Abort); });
+
 let hudTimer = null, plannedMs = 1, runStart = 0;
-function hud(label) { $('hudPhase').innerHTML = label; }
+function hud(label) { $('hudPhase').innerHTML = `<span class="hud-n">${S.stepIdx}/${S.stepTotal}</span> ${label}`; }
 function startHud() {
   runStart = now();
   hudTimer = setInterval(() => {
@@ -511,10 +716,10 @@ function startHud() {
     $('faceWarn').classList.toggle('on', !faceOk && S.recording);
   }, 300);
 }
-$('quit').addEventListener('click', () => { S.abort = true; endStage(); show(S.demo ? 'sCheckin' : 'sSetup'); });
 function endStage() {
   stage.classList.remove('on'); clearInterval(hudTimer);
-  S.recording = false; S.curTrial = null; S.onFeature = null;
+  S.recording = false; S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null;
+  $('skip').hidden = true;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 }
 window.addEventListener('mousemove', e => { S.mouse = { x: e.clientX, y: e.clientY }; });
@@ -522,36 +727,75 @@ window.addEventListener('resize', () => { if (S.recording && S.model) S.resized 
 
 function centerMsg(html) { body.innerHTML = `<div class="center">${html}</div>`; }
 function choice(html, buttons) {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     centerMsg(html + `<div class="btns" style="justify-content:center">${buttons.map((b, i) => `<button class="btn ${i ? 'ghost' : ''}" data-i="${i}">${b}</button>`).join('')}</div>`);
-    body.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => res(+b.dataset.i)));
+    const w = { rej, to: null };
+    waiters.add(w);
+    body.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => { waiters.delete(w); res(+b.dataset.i); }));
   });
+}
+const demoHint = text => S.demo ? `<div class="stage-msg">데모 모드 · ${text}</div>` : '';
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* 건너뛴 단계의 데이터는 버린다 (부분 데이터로 판정하지 않음) */
+const DISCARD = {
+  calibration: () => { S.model = null; S.gaze = null; S.calib = { grade: 'none', errPct: null, skipped: true }; },
+  freeview: () => { S.trials = []; }, pursuit: () => { S.pursuit = null; }, saccade: () => { S.saccade = []; },
+  pvt: () => { S.pvt = null; }, sart: () => { S.sart = null; }, stress: () => { S.stressScore = null; },
+};
+async function runStep(key, fn) {
+  const st = S.steps[key] = { status: 'running' };
+  S.cur = key; S.stepPhases = [];
+  $('skip').hidden = false;
+  try { await fn(); st.status = S.demo ? 'input' : 'done'; }
+  catch (e) {
+    if (e !== Skip) throw e;
+    st.status = 'skipped';
+    S.stepPhases.forEach(p => { delete S.phases[p]; });
+    if (DISCARD[key]) DISCARD[key]();
+  } finally {
+    S.cleanup.forEach(f => f()); S.cleanup = [];
+    S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.cur = null;
+    $('skip').hidden = true;
+  }
+  if (st.status === 'skipped') { centerMsg('<h2>건너뛰었어요</h2><p>다음 단계로 넘어갑니다.</p>'); await wait(700); }
 }
 
 async function runSession() {
-  S.abort = false; S.frames = []; S.trials = []; S.phases = {}; S.resized = false; S.gaze = null;
-  const d = DUR[S.mode];
-  plannedMs = (25 + d.baseline + 3 * d.trials * (TRIAL_MS + FIX_MS) / 1000 + d.stress + d.recovery + 12) * 1000;
+  Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [] });
+  if (S.demo) S.calib = { grade: 'good', errPct: null, mouse: true };
+  const d = B.DUR[S.mode], m = S.mods, plan = [];
+  if (!S.demo) plan.push(['calibration', () => calibrate()]);
+  plan.push(['baseline', () => phaseBaseline(d.baseline)]);
+  if (m.oculo) plan.push(['pursuit', () => phasePursuit(d.pursuit)], ['saccade', () => phaseSaccade(d)]);
+  if (m.core) plan.push(['freeview', () => phaseFreeview(d.trials)]);
+  if (m.alert) plan.push(['pvt', () => phasePvt(d.pvt)]);
+  if (m.sustain) plan.push(['sart', () => phaseSart(d.sart)]);
+  if (m.core) plan.push(['stress', () => phaseStress(d.stress)], ['recovery', () => phaseRecovery(d.recovery)]);
+  ['pursuit', 'saccade', 'freeview', 'pvt', 'sart', 'stress', 'recovery'].forEach(k => { if (!plan.some(p => p[0] === k)) S.steps[k] = { status: 'off' }; });
+  plannedMs = plan.reduce((s, [k]) => s + stepEstimateSec(k, d), 0) * 1000;
   stage.classList.add('on');
   try { await document.documentElement.requestFullscreen(); } catch (_) {}
   startHud();
   try {
     await wait(600);
     S.screenW = stage.clientWidth;
-    if (S.demo) S.calib = { grade: 'good', errPct: null, mouse: true };
-    else await calibrate();
-    S.recording = true;
-    await phaseBaseline(d.baseline);
-    await phaseFreeview(d.trials);
-    await phaseStress(d.stress);
-    await phaseRecovery(d.recovery);
+    for (let i = 0; i < plan.length; i++) {
+      const [key, fn] = plan[i];
+      S.stepIdx = i + 1; S.stepTotal = plan.length;
+      if (GAZE_STEPS.includes(key) && !S.demo && !S.model) { S.steps[key] = { status: 'nogaze' }; continue; }
+      if (key === 'baseline') S.recording = true;
+      await runStep(key, fn);
+    }
     S.recording = false;
     centerMsg('<h2>측정이 끝났어요</h2><p>수고하셨어요. 결과를 분석하고 있어요.</p>');
     await wait(900);
     endStage();
     finish();
   } catch (e) {
-    if (e !== Abort) { console.error(e); endStage(); alert('측정 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
+    endStage();
+    if (e === Abort) { show(S.demo ? 'sCheckin' : 'sSetup'); return; }
+    console.error(e); alert('측정 중 오류가 발생했어요: ' + e.message); show('sIntro');
   }
 }
 
@@ -584,9 +828,9 @@ async function calibrate() {
         dot.style.left = p.x + 'px'; dot.style.top = p.y + 'px';
         await wait(500);
         const gs = [];
-        const iv = setInterval(() => { if (S.gaze && now() - S.lastFace < 200) gs.push({ ...S.gaze }); }, 33);
+        const stop = every(33, () => { if (S.gaze && now() - S.lastFace < 200) gs.push({ ...S.gaze }); });
         await wait(800);
-        clearInterval(iv);
+        stop();
         p.gx = N.median(gs.map(g => g.x)); p.gy = N.median(gs.map(g => g.y));
       }
       acc = N.gazeAccuracy(vp, W, H);
@@ -604,10 +848,77 @@ async function calibrate() {
 
 async function phaseBaseline(sec) {
   hud('<b>기준선</b> · 편안히 응시');
-  centerMsg('<h2>편안히 가운데 + 를 바라봐 주세요</h2><p>' + sec + '초 동안 안정 시 심박을 측정해요. 말하거나 움직이지 않는 것이 좋아요.</p>');
+  centerMsg('<h2>편안히 가운데 + 를 바라봐 주세요</h2><p>' + sec + '초 동안 안정 시 심박과 눈꺼풀 기준값을 측정해요. 말하거나 움직이지 않는 것이 좋아요.</p>');
   await wait(3000);
   body.innerHTML = '<div class="fix">+</div><div class="stage-msg">편안히 호흡하며 + 를 바라봐 주세요</div>';
   mark('baseline', 'start'); await wait(sec * 1000); mark('baseline', 'end');
+}
+
+/* 원활 추적: 수평 정현파 표적 (Lencer & Trillenberg, 2008) */
+async function phasePursuit(sec) {
+  const P = B.PROTOCOL.pursuit;
+  hud('<b>원활 추적</b>');
+  centerMsg(`<h2>움직이는 점을 눈으로 따라가세요</h2><p>파란 점이 좌우로 천천히 움직여요. <b>머리는 고정하고 눈으로만</b> 점의 가운데를 계속 따라가 주세요. ${sec}초 동안 이어져요.</p>${S.demo ? '<p class="small muted">데모: 마우스로 점을 따라가세요</p>' : ''}`);
+  await wait(3500);
+  const W = stage.clientWidth, H = stage.clientHeight, amp = P.amp * W, cx = W / 2;
+  body.innerHTML = `<div class="cal-dot val" id="pDot" style="transition:none;left:${cx}px;top:${H / 2}px"></div>${demoHint('마우스로 점을 따라가세요')}`;
+  const dot = $('pDot');
+  await wait(900);
+  const tr = { samples: [] }, dur = sec * 1000;
+  const t0 = await nextFrame();
+  S.pursuit = { t0, cx, amp, freq: P.freq, dur, samples: tr.samples };
+  mark('pursuit', 'start');
+  S.curTrial = tr;
+  if (S.demo) every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y }));
+  let raf = 0;
+  const anim = ts => { dot.style.left = (cx + amp * Math.sin(2 * Math.PI * P.freq * (ts - t0) / 1000)) + 'px'; raf = requestAnimationFrame(anim); };
+  raf = requestAnimationFrame(anim);
+  S.cleanup.push(() => cancelAnimationFrame(raf));
+  await wait(dur);
+  S.curTrial = null;
+  mark('pursuit', 'end');
+}
+
+/* 프로·안티사카드: 단계 패러다임 (Hallett, 1978; Antoniades et al., 2013) */
+function sacSvg(type) {
+  const arrow = type === 'anti'
+    ? '<path d="M180 60 L62 60" stroke="#2458E6" stroke-width="4" marker-end="url(#ah)"/><text x="62" y="96" text-anchor="middle" font-size="14" fill="#2458E6" font-weight="700">여기를 보기</text>'
+    : '<path d="M180 60 L298 60" stroke="#2458E6" stroke-width="4" marker-end="url(#ah)"/><text x="318" y="96" text-anchor="middle" font-size="14" fill="#2458E6" font-weight="700">점을 보기</text>';
+  return `<svg class="sac-demo" viewBox="0 0 380 110" aria-hidden="true"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2458E6"/></marker></defs>
+    <circle cx="190" cy="60" r="8" fill="#59647D"/><circle cx="318" cy="60" r="13" fill="#D94B6A"/>${type === 'anti' ? '<circle cx="62" cy="60" r="13" fill="none" stroke="#2458E6" stroke-width="2.5" stroke-dasharray="4 4"/>' : ''}${arrow}</svg>`;
+}
+async function sacBlock(type, n, practice) {
+  const P = B.PROTOCOL.saccade;
+  const sides = shuffle(Array.from({ length: n }, (_, i) => (i % 2 ? 'L' : 'R')));
+  for (let i = 0; i < n; i++) {
+    body.innerHTML = `<div class="sac-fix"></div>${practice ? '<div class="stage-msg">연습 시행이에요 — 점의 반대쪽을 보세요</div>' : demoHint('마우스를 가운데에 두었다가 움직이세요')}`;
+    const tr = { type, side: sides[i], practice, onset: null, end: null, samples: [] };
+    S.curTrial = tr;
+    const stop = S.demo ? every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y })) : null;
+    await wait(P.fixMin + Math.random() * (P.fixMax - P.fixMin));
+    body.innerHTML = `<div class="sac-tgt" style="left:${50 + (sides[i] === 'R' ? 1 : -1) * P.ecc * 100}%"></div>`;
+    tr.onset = await nextFrame();
+    await wait(P.targetMs);
+    tr.end = now(); S.curTrial = null; if (stop) stop();
+    S.saccade.push(tr);
+    body.innerHTML = '';
+    await wait(P.gapMs);
+  }
+}
+async function phaseSaccade(d) {
+  S.saccade = [];
+  hud('<b>프로사카드</b>');
+  centerMsg(`<h2>점이 나타나면 그 점을 보세요</h2><p>가운데 회색 점을 보고 있다가, 빨간 점이 왼쪽이나 오른쪽에 나타나면 <b>최대한 빨리 그 점을</b> 바라보세요. 머리는 움직이지 마세요.</p>${sacSvg('pro')}`);
+  await wait(4500);
+  mark('saccade', 'start');
+  await sacBlock('pro', d.pro, false);
+  hud('<b>안티사카드</b>');
+  centerMsg(`<h2>이번에는 반대쪽을 보세요</h2><p>빨간 점이 나타나면 <b>점을 보지 말고, 반대쪽 같은 거리</b>를 최대한 빨리 바라보세요. 점에 눈이 먼저 가도 괜찮아요 — 바로 반대쪽으로 옮기면 돼요.</p>${sacSvg('anti')}`);
+  await wait(5500);
+  if (d.practice) { hud('<b>안티사카드</b> · 연습'); await sacBlock('anti', d.practice, true); }
+  hud('<b>안티사카드</b>');
+  await sacBlock('anti', d.anti, false);
+  mark('saccade', 'end');
 }
 
 /* 자유 보기: 중립-중립 / 부정-중립 / 긍정-중립 블록. 밝기를 맞추기 위해 같은 색·크기의 도식 얼굴과 단어만 쓴다 */
@@ -622,7 +933,6 @@ function faceSvg(kind) {
   const brows = kind === 'neg' ? 'M32 40 L50 32 M88 40 L70 32' : kind === 'pos' ? 'M33 36 Q41 30 50 34 M70 34 Q79 30 87 36' : 'M33 35 L50 35 M70 35 L87 35';
   return `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="#F1F3F7" stroke="${stroke}" stroke-width="4"/><circle cx="44" cy="52" r="5" fill="${stroke}"/><circle cx="76" cy="52" r="5" fill="${stroke}"/><path d="${brows}" stroke="${stroke}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="${mouth}" stroke="${stroke}" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
 }
-const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 async function phaseFreeview(n) {
   centerMsg('<h2>자유롭게 바라보세요</h2><p>양쪽에 얼굴과 단어가 함께 나타나요. 정답은 없어요. <b>보고 싶은 쪽을 편하게</b> 보면 됩니다. 사이사이 가운데 + 가 나오면 + 를 봐 주세요.</p>');
   hud('<b>자유 보기</b>');
@@ -641,17 +951,77 @@ async function phaseFreeview(n) {
       const emoSide = sides[i];
       const emo = `<div class="stim" style="left:${emoSide === 'L' ? 25 : 75}%">${faceSvg(kind)}<span>${emoWords[i % emoWords.length]}</span></div>`;
       const neu = `<div class="stim" style="left:${emoSide === 'L' ? 75 : 25}%">${faceSvg('neu')}<span>${neuWords[wi++ % neuWords.length]}</span></div>`;
-      body.innerHTML = emo + neu;
+      body.innerHTML = emo + neu + demoHint('마우스가 시선 역할을 해요');
       const tr = { kind, emoSide, onset: now(), end: null, samples: [] };
       S.curTrial = tr;
-      let iv = null;
-      if (S.demo) iv = setInterval(() => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y }), 33);
+      const stop = S.demo ? every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y })) : null;
       await wait(TRIAL_MS);
-      if (iv) clearInterval(iv);
+      if (stop) stop();
       tr.end = now(); S.curTrial = null; S.trials.push(tr);
     }
     mark(kind, 'end');
   }
+}
+
+/* PVT-B: 1~4초 무작위 간격의 카운터에 반응 (Basner et al., 2011). 같은 구간의 눈꺼풀로 PERCLOS 를 잰다 */
+async function phasePvt(sec) {
+  const P = B.PROTOCOL.pvt;
+  hud('<b>각성</b> · PVT');
+  centerMsg(`<h2>숫자가 올라가기 시작하면 바로 누르세요</h2><p>가운데 상자에 숫자가 나타나 올라가기 시작하면 <b>스페이스바</b>(또는 화면 터치)를 최대한 빨리 눌러 주세요. 숫자가 나오기 전에는 누르지 마세요.</p><p class="small muted">${sec}초 동안 이어져요 · 상자를 계속 바라봐 주세요</p>`);
+  await wait(4500);
+  if (document.activeElement) document.activeElement.blur();
+  body.innerHTML = '<div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
+  const box = $('pvtBox'), msg = $('pvtMsg');
+  const data = { trials: [], falseStarts: 0, durationMs: 0 };
+  S.pvt = data;
+  mark('pvt', 'start');
+  const tStart = now(), end = tStart + sec * 1000;
+  let raf = 0;
+  S.cleanup.push(() => cancelAnimationFrame(raf));
+  while (now() < end - 1500) {
+    box.textContent = ''; msg.textContent = '';
+    const early = await respond(P.isiMin + Math.random() * (P.isiMax - P.isiMin));
+    if (early) { data.falseStarts++; msg.textContent = '너무 빨라요 — 숫자가 나온 뒤 눌러 주세요'; await wait(1000); continue; }
+    box.textContent = '0';
+    const onset = await nextFrame();
+    const tick = ts => { box.textContent = String(Math.max(0, Math.round(ts - onset))); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    const r = await respond(P.timeoutMs);
+    cancelAnimationFrame(raf);
+    const rt = r ? r.t - onset : null;
+    data.trials.push({ onset, rt });
+    box.textContent = rt === null ? '—' : String(Math.max(0, Math.round(rt)));
+    msg.textContent = rt === null ? '시간 초과' : rt < P.falseMs ? '너무 빨라요' : '';
+    await wait(700);
+  }
+  data.durationMs = now() - tStart;
+  mark('pvt', 'end');
+}
+
+/* SART: 3을 제외한 숫자에 반응 (Robertson et al., 1997). 같은 구간의 머리 움직임을 함께 잰다 */
+async function phaseSart(n) {
+  const P = B.PROTOCOL.sart;
+  hud('<b>지속 주의</b> · SART');
+  centerMsg(`<h2>숫자마다 누르되, <span style="color:#D94B6A">3</span>에서는 멈추세요</h2><p>숫자가 빠르게 하나씩 지나가요. <b>3을 뺀 모든 숫자</b>에 스페이스바(또는 화면 터치)를 누르세요. <b>3이 나오면 누르지 않아요.</b> 빠르기와 정확성이 똑같이 중요해요.</p><p class="small muted">약 ${Math.round(n * 1.15)}초</p>`);
+  await wait(5500);
+  if (document.activeElement) document.activeElement.blur();
+  body.innerHTML = '<div class="sart"><span id="sartD"></span></div>';
+  const el = $('sartD'), data = { trials: [] };
+  S.sart = data;
+  mark('sart', 'start');
+  for (const digit of B.sartSequence(n)) {
+    const tr = { digit, onset: null, rt: null };
+    el.style.fontSize = P.sizes[Math.floor(Math.random() * P.sizes.length)] + 'px';
+    el.textContent = digit;
+    tr.onset = await nextFrame();
+    S.onResp = e => { if (tr.rt === null) tr.rt = e.timeStamp - tr.onset; };
+    await wait(P.digitMs);
+    el.textContent = '⊗'; el.style.fontSize = '84px';
+    await wait(P.maskMs);
+    S.onResp = null;
+    data.trials.push(tr);
+  }
+  mark('sart', 'end');
 }
 
 /* 압박 과제: 제한 시간 암산 (피드백은 화면 밝기를 바꾸지 않도록 글자로만) */
@@ -678,14 +1048,14 @@ async function phaseStress(sec) {
       <div class="fb" id="fb"></div><div class="score">정답 ${correct} / ${total}</div></div>`;
     const t0 = now(), tb = $('tb');
     requestAnimationFrame(() => { tb.style.transition = `width ${limit}ms linear`; tb.style.width = '0%'; });
-    const v = await new Promise(res => {
-      const done = x => { clearTimeout(to); window.removeEventListener('keydown', key); res(x); };
-      const to = setTimeout(() => done(null), limit);
-      const key = e => { const i = '123'.indexOf(e.key); if (i >= 0) done(q.opts[i]); };
-      window.addEventListener('keydown', key);
+    const v = await new Promise((res, rej) => {
+      const w = { rej, cleanup: () => { S.onKey = null; } };
+      const done = x => { clearTimeout(w.to); waiters.delete(w); S.onKey = null; res(x); };
+      w.to = setTimeout(() => done(null), limit);
+      waiters.add(w);
+      S.onKey = e => { const i = '123'.indexOf(e.key); if (i >= 0) done(q.opts[i]); };
       body.querySelectorAll('button[data-v]').forEach(b => b.addEventListener('click', () => done(+b.dataset.v)));
     });
-    if (S.abort) throw Abort;
     total++;
     const ok = v === q.ans; if (ok) correct++;
     $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : '오답';
@@ -713,185 +1083,67 @@ async function phaseRecovery(sec) {
   mark('recovery', 'end');
 }
 
-/* ---------- 데모용 합성 심박 시나리오 ---------- */
-function demoHr(ph) {
-  const s = ph.stress, r = ph.recovery;
-  return t => {
-    let hr = 70;
-    if (t >= ph.neg.start && t < ph.pos.start) hr = 73;
-    if (t >= ph.pos.start && t < s.start) hr = 71;
-    if (t >= s.start && t < s.end) hr = 70 + Math.min(10, (t - s.start) / 1500);
-    if (t >= r.start) hr = 80 - Math.min(9, (t - r.start) / 3500) + 3.5 * Math.sin(2 * Math.PI * 0.1 * (t - r.start) / 1000 - Math.PI / 2);
-    return hr;
+/* ---------- 분석 · 리포트 ---------- */
+function liveRecord() {
+  return {
+    frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, pvt: S.pvt, sart: S.sart,
+    stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: S.calib, checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
+    measuredAt: new Date().toISOString(),
   };
 }
-
-/* ---------- 분석 · 리포트 ---------- */
+/* 데모: 생리 신호는 시뮬레이션 피험자로, 직접 수행한 과제(마우스 시선·키보드 반응)는 실제 입력으로 채운다 */
+function demoRecord() {
+  const rec = B.simulate(S.persona, { mode: S.mode, include: { ...S.mods }, W: S.screenW || 1440, seed: Date.now() % 100000 });
+  const done = k => S.steps[k] && S.steps[k].status === 'input';
+  if (done('freeview')) rec.trials = S.trials;
+  if (done('pursuit')) rec.pursuit = S.pursuit;
+  if (done('saccade')) rec.saccade = S.saccade;
+  if (done('pvt')) rec.pvt = S.pvt;
+  if (done('sart')) rec.sart = S.sart;
+  if (done('stress')) rec.stressScore = S.stressScore;
+  const behavioral = ['freeview', 'pursuit', 'saccade', 'pvt', 'sart', 'stress'];
+  Object.keys(rec.steps).forEach(k => {
+    if (rec.steps[k].status !== 'off') rec.steps[k] = { status: behavioral.includes(k) && done(k) ? 'input' : 'sim' };
+  });
+  Object.assign(rec, { checkin: { ...S.checkin }, calibration: { grade: 'good', errPct: null, mouse: true }, resized: S.resized });
+  return rec;
+}
 function finish() {
   show('sAnalyze');
   setTimeout(() => {
-    let frames = S.frames;
-    if (S.demo) {
-      const ph = S.phases;
-      frames = N.synthFrames(ph.baseline.start, ph.recovery.end, demoHr(ph), { seed: Date.now() % 9973, noise: 0.35, frownAt: t => (t >= ph.neg.start && t < ph.neg.end ? 0.09 : 0.05) });
-    }
-    const res = N.analyze({ frames, phases: S.phases, trials: S.trials, screenW: S.screenW, calibration: S.calib, checkin: S.checkin, demo: S.demo, measuredAt: new Date().toISOString() });
-    res.stressScore = S.stressScore || null;
-    res.mode = S.mode;
-    res.resized = S.resized;
-    res.phaseTimes = S.phases;
-    S.result = res;
-    saveHistory(res);
-    renderReport(res);
-    show('sReport');
+    try { finishWith(S.demo ? demoRecord() : liveRecord()); }
+    catch (e) { console.error(e); alert('분석 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
   }, 60);
+}
+function finishWith(rec) {
+  const res = B.run(rec);
+  S.result = res;
+  const hist = loadHistory();
+  saveHistory(res);
+  $('sReport').innerHTML = R.render(res, { history: hist.slice(0, 5) });
+  bindReport(res);
+  show('sReport');
 }
 
 function loadHistory() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (_) { return []; } }
 function saveHistory(r) {
   try {
-    const list = loadHistory();
-    list.unshift({ at: r.measuredAt, demo: r.demo, code: r.profile.code, title: r.profile.title, hr: r.hr.baseline.bpm, stress: r.stressDelta, bias: r.gaze.attentionBias });
+    const list = loadHistory(), b = r.battery, scores = {};
+    B.DOMAIN_KEYS.forEach(k => { scores[k] = b.domains[k].score; });
+    list.unshift({ at: r.measuredAt, demo: r.demo, code: b.integrated.code, title: b.integrated.title, scores });
     localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0, 20)));
   } catch (_) {}
 }
-
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const qBadge = q => `<span class="q-${q || 'none'}">${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함', none: '측정 안 됨' }[q || 'none']}</span>`;
-const fmt = (v, d = 0, sign = false) => v === null || v === undefined || !Number.isFinite(v) ? '—' : (sign && v > 0 ? '+' : '') + v.toFixed(d);
-function metric(name, value, unit, desc, q) {
-  return `<div class="metric"><div class="nm"><span>${name}</span>${q ? qBadge(q) : ''}</div><div class="v">${value}${value !== '—' && unit ? `<small>${unit}</small>` : ''}</div><p>${desc}</p></div>`;
-}
-
-function quadrantSvg(r) {
-  const W = 360, H = 300, px = 46, py = 20, iw = W - px - 14, ih = H - py - 40;
-  const xs = v => px + (Math.max(-4, Math.min(16, v)) + 4) / 20 * iw;
-  const ys = v => py + (1 - (Math.max(-0.3, Math.min(0.3, v)) + 0.3) / 0.6) * ih;
-  const tx = xs(N.THRESH.stressHigh), ty = ys(N.THRESH.biasHigh);
-  const has = r.stressDelta !== null && r.gaze.attentionBias !== null;
-  const cell = (x, y, w, h, fill, label) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/><text x="${x + w / 2}" y="${y + h / 2}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#5A6580">${label}</text>`;
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="주의 편향과 신체 반응 4분면">
-    ${cell(px, py, tx - px, ty - py, '#F3F0FF', '생각 붙잡힘형')}${cell(tx, py, px + iw - tx, ty - py, '#FDEEF1', '복합 과부하형')}
-    ${cell(px, ty, tx - px, py + ih - ty, '#EDF7F1', '안정형')}${cell(tx, ty, px + iw - tx, py + ih - ty, '#FFF6E6', '몸 먼저 반응형')}
-    <line x1="${px}" y1="${py + ih}" x2="${px + iw}" y2="${py + ih}" stroke="#B9C1D3"/><line x1="${px}" y1="${py}" x2="${px}" y2="${py + ih}" stroke="#B9C1D3"/>
-    <text x="${px + iw / 2}" y="${H - 8}" text-anchor="middle" font-size="12" fill="#647089">신체 반응 (압박 시 심박 상승, bpm) →</text>
-    <text x="14" y="${py + ih / 2}" text-anchor="middle" font-size="12" fill="#647089" transform="rotate(-90 14 ${py + ih / 2})">주의 편향 (부정 자극 응시) →</text>
-    ${[-4, 0, 6, 12, 16].map(v => `<text x="${xs(v)}" y="${py + ih + 14}" text-anchor="middle" font-size="10.5" fill="#8A93A8">${v}</text>`).join('')}
-    ${has ? `<circle cx="${xs(r.stressDelta)}" cy="${ys(r.gaze.attentionBias)}" r="9" fill="#2458E6" stroke="#fff" stroke-width="3"/><text x="${xs(r.stressDelta)}" y="${ys(r.gaze.attentionBias) - 14}" text-anchor="middle" font-size="12" font-weight="800" fill="#2458E6">나</text>` : `<text x="${px + iw / 2}" y="${py + 16}" text-anchor="middle" font-size="12" fill="#D94B6A">한쪽 축의 신호가 부족해 위치를 표시하지 않았어요</text>`}
-  </svg>`;
-}
-
-function timelineSvg(r) {
-  const tl = r.timeline.filter(w => w.snr >= -2);
-  const ph = r.phaseTimes, t0 = ph.baseline.start, t1 = ph.recovery.end;
-  if (tl.length < 5) return '<p class="muted small">심박 신호가 충분하지 않아 그래프를 그리지 않았어요.</p>';
-  const W = 860, H = 210, px = 40, py = 14, iw = W - px - 10, ih = H - py - 34;
-  const lo = Math.floor(Math.min(...tl.map(w => w.bpm)) - 4), hi = Math.ceil(Math.max(...tl.map(w => w.bpm)) + 4);
-  const xs = t => px + (t - t0) / (t1 - t0) * iw, ys = v => py + (1 - (v - lo) / (hi - lo)) * ih;
-  const bands = [['baseline', '기준선', '#EEF3FF'], ['neu', '중립', '#F4F6FA'], ['neg', '부정', '#FDEEF1'], ['pos', '긍정', '#EDF7F1'], ['stress', '압박', '#FFF6E6'], ['recovery', '회복', '#F1EEFF']]
-    .filter(([k]) => ph[k] && ph[k].end)
-    .map(([k, l, c]) => `<rect x="${xs(ph[k].start)}" y="${py}" width="${xs(ph[k].end) - xs(ph[k].start)}" height="${ih}" fill="${c}"/><text x="${(xs(ph[k].start) + xs(ph[k].end)) / 2}" y="${H - 8}" text-anchor="middle" font-size="11.5" fill="#647089">${l}</text>`).join('');
-  let d = '', prev = null;
-  tl.forEach(w => { d += (prev && w.t - prev.t < 3500 ? 'L' : 'M') + xs(w.t).toFixed(1) + ' ' + ys(w.bpm).toFixed(1) + ' '; prev = w; });
-  const ticks = [lo, Math.round((lo + hi) / 2), hi].map(v => `<text x="${px - 6}" y="${ys(v) + 4}" text-anchor="end" font-size="10.5" fill="#8A93A8">${v}</text>`).join('');
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="측정 구간별 심박 변화">${bands}${ticks}<path d="${d}" fill="none" stroke="#D94B6A" stroke-width="2.4" stroke-linejoin="round"/></svg>`;
-}
-
-function calibText(c) {
-  if (!c) return '—';
-  if (c.mouse) return '데모(마우스)';
-  if (c.errPct === null || c.errPct === undefined) return '보정 실패 — 시선 지표 제외';
-  return `오차 ${c.errPct}% (${{ good: '양호', fair: '보통', poor: '불안정' }[c.grade]})`;
-}
-function renderReport(r) {
-  const p = r.profile, g = r.gaze, c = r.checkin || {};
-  const pct = v => v === null ? '—' : Math.round((v + 0.5) * 100);
-  const biasText = !r.quality.gazeOk ? '시선 신호가 부족했어요' : p.biasHigh ? `부정 자극 쪽을 ${pct(g.attentionBias)}% 바라봤어요 (붙잡힘 경향)` : `부정 자극 응시 ${pct(g.attentionBias)}% — 고르게 분배됐어요`;
-  const bodyText = !r.quality.bodyOk ? '심박 신호가 부족했어요' : `압박 과제에서 심박 ${fmt(r.stressDelta, 1, true)} bpm ${p.bodyHigh ? '— 뚜렷한 반응' : '— 반응이 크지 않음'}`;
-  const hist = loadHistory().slice(1, 6);
-  const mins = Math.round((r.phaseTimes.recovery.end - r.phaseTimes.baseline.start) / 6000) / 10;
-  $('sReport').innerHTML = `
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
-      <div class="kicker">마음 반응 프로파일 · Gaze × rPPG</div>
-      ${r.demo ? '<span class="badge demo">시뮬레이션 데이터 — 실제 측정이 아닙니다</span>' : `<span class="badge live">실측 · ${mins}분 · 얼굴 인식 ${r.quality.faceCoverage}%</span>`}
-    </div>
-    <div class="hero">
-      <div>
-        <div class="ptype">${esc(p.title)}</div>
-        <div class="ptag">${esc(p.tag)}</div>
-        <p class="lead" style="margin:0">${esc(p.desc)}</p>
-      </div>
-      <div>${quadrantSvg(r)}</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>느끼는 나 · 시선 · 몸 — 세 겹 비교</h2>
-    <div class="three">
-      <div><b>FEEL · 체크인</b><p>기분 ${c.valence ?? '—'}/9 · 긴장 ${c.tension ?? '—'}/5 · 에너지 ${c.energy ?? '—'}/5</p></div>
-      <div><b>GAZE · 시선</b><p>${biasText}</p></div>
-      <div><b>BODY · 심박</b><p>${bodyText}</p></div>
-    </div>
-    ${r.mismatch ? `<div class="mismatch">${esc(r.mismatch.text)}</div>` : ''}
-  </div>
-
-  <div class="card">
-    <h2>측정 지표</h2>
-    <div class="group-t">BODY · 원격 심박 (rPPG)</div>
-    <div class="grid">
-      ${metric('안정 시 심박', fmt(r.hr.baseline.bpm), 'bpm', '기준선 구간 중앙값', r.hr.baseline.quality)}
-      ${metric('압박 반응성', fmt(r.stressDelta, 1, true), 'bpm', '암산 과제 − 기준선. 클수록 몸이 먼저 긴장', r.hr.stress.quality)}
-      ${metric('회복력', fmt(r.recovery), '%', '압박으로 오른 심박이 호흡 구간 후반에 되돌아온 비율', r.hr.recoveryLate.quality)}
-      ${metric('호흡 동조', fmt(r.coupling && r.coupling.ampBpm, 1), 'bpm', '분당 6회 호흡에 따라 심박이 출렁인 폭. 이완 능력의 대리 지표', r.coupling ? r.hr.recovery.quality : 'none')}
-      ${metric('정서 각성', fmt(r.negDelta, 1, true), 'bpm', '부정 자극 블록 − 중립 블록 심박', r.hr.neg.quality)}
-      ${metric('심박 변동 (참고)', fmt(r.hrv), 'ms', 'RMSSD. 웹캠 30fps 한계로 참고용', r.hrv !== null ? 'fair' : 'none')}
-    </div>
-    <div class="group-t">GAZE · 시선</div>
-    <div class="grid">
-      ${metric('주의 편향', g.attentionBias === null ? '—' : pct(g.attentionBias), '%', '부정-중립 쌍에서 부정 쪽 응시 비율 (50%가 균형)', r.quality.gazeOk ? 'good' : 'poor')}
-      ${metric('부정 자극 체류', fmt(g.dwellNeg), 'ms', '부정 자극에 처음 머문 시간. 길수록 떼어내기 어려움', r.quality.gazeOk ? 'good' : 'poor')}
-      ${metric('첫 시선 부정', g.firstNeg === null ? '—' : Math.round(g.firstNeg * 100), '%', '시선이 먼저 부정 자극으로 간 비율', r.quality.gazeOk ? 'good' : 'poor')}
-      ${metric('긍정 주의', g.positivity === null ? '—' : pct(g.positivity), '%', '긍정-중립 쌍에서 긍정 쪽 응시 비율', r.quality.gazeOk ? 'good' : 'poor')}
-    </div>
-    <div class="group-t">FACE · 얼굴 신호</div>
-    <div class="grid">
-      ${metric('깜빡임', fmt(r.blink.all, 1), '회/분', '전체 측정 평균. 피로·인지 부하와 관련', r.blink.all !== null ? 'good' : 'none')}
-      ${metric('압박 시 깜빡임', fmt(r.blink.stress, 1), '회/분', '암산 과제 중 깜빡임', r.blink.stress !== null ? 'good' : 'none')}
-      ${metric('머리 움직임', fmt(r.motion.all, 1), '%/초', '얼굴 폭 대비 이동량. 측정 품질 지표', r.motion.all !== null ? 'good' : 'none')}
-      ${metric('표정 반응', fmt(r.exprNeg, 1, true), '', '부정 블록에서 찌푸림 증가 (×100)', r.exprNeg !== null ? 'fair' : 'none')}
-    </div>
-    <div class="group-t">TIMELINE · 구간별 심박</div>
-    ${timelineSvg(r)}
-    <p class="disc">시선 보정: ${calibText(r.quality.gaze)}${r.resized ? ' · 측정 중 화면 크기가 바뀌어 시선 정확도가 낮을 수 있어요' : ''} · 압박 과제 정답 ${r.stressScore ? `${r.stressScore.correct}/${r.stressScore.total}` : '—'}</p>
-  </div>
-
-  <div class="card">
-    <h2>추천 케어 · ${esc(r.care.track)}</h2>
-    <div class="care-box">
-      <b>${esc(p.title)}에게 맞춘 첫 주 루틴</b>
-      <ul>${r.care.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
-    </div>
-    <div class="btns no-print">
-      <button class="btn care" id="bioStart">지금 1분 호흡 바이오피드백</button>
-      <button class="btn ghost" id="again">다시 측정</button>
-      <button class="btn ghost" id="dl">결과 JSON 저장</button>
-    </div>
-    <div class="effect" id="effect"></div>
-    <p class="disc">케어를 하는 동안에도 같은 카메라로 심박을 측정해, 루틴이 실제로 몸을 이완시켰는지 바로 확인합니다. 이것이 ‘측정 → 개입 → 재측정’ 폐루프의 첫 단계예요.</p>
-  </div>
-
-  <div class="card">
-    <h3>이 기기의 이전 측정</h3>
-    ${hist.length ? `<ul class="hist">${hist.map(h => `<li>${esc(new Date(h.at).toLocaleString('ko-KR'))} · ${esc(h.title)}${h.demo ? ' (데모)' : ''} · 안정 심박 ${fmt(h.hr)} · 압박 반응 ${fmt(h.stress, 1, true)} · 주의 편향 ${h.bias === null ? '—' : Math.round((h.bias + 0.5) * 100) + '%'}</li>`).join('')}</ul>` : '<p class="muted small">이번이 첫 측정이에요. 반복 측정하면 집단 평균이 아니라 ‘평소의 나’와 비교할 수 있어요.</p>'}
-    <p class="disc">본 결과는 의학적 진단이 아닌 웰니스 참고 지표입니다. 판정 기준(주의 편향 +${Math.round(N.THRESH.biasHigh * 100)}%p, 압박 반응 +${N.THRESH.stressHigh} bpm 등)은 파일럿 검증 전 잠정값이며, 조명·움직임·카메라 성능에 따라 오차가 생길 수 있습니다. 카메라 영상은 저장·전송되지 않았고, 결과 요약만 이 브라우저에 남습니다. 힘든 마음이 계속되면 정신건강 위기상담 109(24시간)에 연락하세요. · ${esc(r.version)}</p>
-  </div>`;
+function bindReport(r) {
   $('bioStart').addEventListener('click', runBio);
-  $('again').addEventListener('click', () => { S.checkin = {}; document.querySelectorAll('.scale button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('goSetup').disabled = true; show('sCheckin'); });
+  $('printBtn').addEventListener('click', () => window.print());
+  $('again').addEventListener('click', () => {
+    S.checkin = {}; document.querySelectorAll('.scale button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('goSetup').disabled = true;
+    show('sIntro');
+  });
   $('dl').addEventListener('click', () => {
-    const { timeline, ...rest } = r;
-    const blob = new Blob([JSON.stringify({ ...rest, timeline, bio: S.bio || null }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `neurolens-newbiz-${Date.now()}.json`; a.click();
+    const blob = new Blob([JSON.stringify({ ...r, bio: S.bio || null }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `neurolens-battery-${Date.now()}.json`; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   });
 }
@@ -900,11 +1152,13 @@ function renderReport(r) {
 async function runBio() {
   const SEC = 60;
   const bio = $('bio'), circle = $('bioCircle'), lbl = $('bioLbl');
-  S.abort = false; S.bioFrames = []; bio.classList.add('on');
+  const fmt = (v, d = 0, sign = false) => v === null || v === undefined || !Number.isFinite(v) ? '—' : (sign && v > 0 ? '+' : '') + v.toFixed(d);
+  const synthetic = S.demo || !S.stream;
+  S.bioFrames = []; bio.classList.add('on');
   const hist = [];
   const t0 = now();
   const demoFn = t => 79 - Math.min(7, (t - t0) / 7000) + 3.5 * Math.sin(2 * Math.PI * 0.1 * (t - t0) / 1000 - Math.PI / 2);
-  if (!S.demo) S.bioRecording = true;
+  if (!synthetic) S.bioRecording = true;
   let inhale = true, nextSwitch = t0 + 1500, closed = false;
   $('bioQuit').onclick = () => { closed = true; };
   lbl.textContent = '준비';
@@ -914,10 +1168,10 @@ async function runBio() {
   }, 100);
   while (now() - t0 < SEC * 1000 && !closed) {
     await new Promise(r => setTimeout(r, 1000));
-    const frames = S.demo ? N.synthFrames(now() - 10000, now(), demoFn, { seed: Math.floor(now()) % 997, noise: 0.35 }) : S.bioFrames;
+    const frames = synthetic ? N.synthFrames(now() - 10000, now(), demoFn, { seed: Math.floor(now()) % 997, noise: 0.35 }) : S.bioFrames;
     const live = now() - t0 > 9000 ? N.liveHr(frames) : null;
     if (live && live.quality !== 'poor') { $('bioHr').textContent = live.bpm; hist.push(live.bpm); }
-    $('bioQ').textContent = live ? `실시간 심박 · ${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함' }[live.quality]}${S.demo ? ' · 시뮬레이션' : ''}` : '심박 측정 준비 중… (약 10초)';
+    $('bioQ').textContent = live ? `실시간 심박 · ${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함' }[live.quality]}${synthetic ? ' · 시뮬레이션' : ''}` : '심박 측정 준비 중… (약 10초)';
     if (hist.length > 1) {
       const lo = Math.min(...hist) - 3, hi = Math.max(...hist) + 3;
       const pts = hist.map((v, i) => `${(i / Math.max(1, SEC - 10)) * 520},${70 - (v - lo) / (hi - lo) * 66 - 2}`).join(' ');
@@ -929,20 +1183,26 @@ async function runBio() {
   bio.classList.remove('on'); circle.classList.remove('in');
   if (closed && now() - t0 < 30000) return;
   const t1 = now();
-  const frames = S.demo ? N.synthFrames(t0, t1, demoFn, { seed: 31, noise: 0.35 }) : S.bioFrames;
+  const frames = synthetic ? N.synthFrames(t0, t1, demoFn, { seed: 31, noise: 0.35 }) : S.bioFrames;
   const sig = N.buildBvp(frames), wins = N.hrWindows(sig);
   const pre = N.phaseHr(wins, t0, t0 + 20000), post = N.phaseHr(wins, t1 - 20000, t1);
   const all = N.phaseHr(wins, t0, t1);
   const coup = sig && all.bpm ? N.breathingCoupling(N.ibis(N.beats(sig, t0, t1, all.bpm))) : null;
-  S.bio = { pre, post, coupling: coup, demo: S.demo };
+  S.bio = { pre, post, coupling: coup, demo: synthetic };
   const el = $('effect');
   el.classList.add('on');
   if (pre.bpm !== null && post.bpm !== null && pre.quality !== 'poor' && post.quality !== 'poor') {
     const d = post.bpm - pre.bpm;
-    el.innerHTML = `<b>케어 효과 (같은 카메라로 재측정)${S.demo ? ' · 시뮬레이션' : ''}</b><br>호흡 시작 직후 심박 <b>${fmt(pre.bpm)}</b> → 마무리 <b>${fmt(post.bpm)}</b> bpm (${fmt(d, 1, true)})${coup ? ` · 호흡 동조 폭 ${fmt(coup.ampBpm, 1)} bpm` : ''}<br><span class="muted small">${d <= -2 ? '몸이 이완 방향으로 반응했어요. 하루 2~3회 반복하면 기준선 변화도 확인할 수 있어요.' : '이번에는 뚜렷한 변화가 없었어요. 조금 더 길게(3분) 해 보세요.'}</span>`;
+    el.innerHTML = `<b>케어 효과 (같은 카메라로 재측정)${synthetic ? ' · 시뮬레이션' : ''}</b><br>호흡 시작 직후 심박 <b>${fmt(pre.bpm)}</b> → 마무리 <b>${fmt(post.bpm)}</b> bpm (${fmt(d, 1, true)})${coup ? ` · 호흡 동조 폭 ${fmt(coup.ampBpm, 1)} bpm` : ''}<br><span class="muted small">${d <= -2 ? '몸이 이완 방향으로 반응했어요. 하루 2~3회 반복하면 기준선 변화도 확인할 수 있어요.' : '이번에는 뚜렷한 변화가 없었어요. 조금 더 길게(3분) 해 보세요.'}</span>`;
   } else {
     el.innerHTML = '<b>케어 효과</b><br><span class="muted small">심박 신호가 충분하지 않아 전후 비교를 하지 못했어요. 조명을 밝게 하고 다시 시도해 보세요.</span>';
   }
+}
+
+/* 주소로 바로 열기: ?sim=balanced|fatigue|control|overload [&mode=quick] */
+{
+  const qp = new URLSearchParams(location.search), sim = qp.get('sim');
+  if (sim && B.PERSONAS[sim]) { $('simPersona').value = sim; openSimReport(sim, qp.get('mode') === 'quick' ? 'quick' : 'full'); }
 }
 </script>
 </body>
