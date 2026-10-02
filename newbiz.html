@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow,noarchive" />
+<title>NeuroLens Lab — 시선×심박 융합 측정 MVP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<!--
+  NewBiz MVP — 운영 서비스(체크인·MindGaze 검사·리포트·케어)와 완전히 분리된 독립 실험 페이지.
+  운영 페이지의 스크립트·저장소 키·API 를 쓰지 않고, 운영 페이지에서도 이 페이지로 연결하지 않는다.
+  웹캠 영상은 브라우저 안에서만 처리하고(MediaPipe Face Landmarker), 서버로 보내거나 저장하지 않는다.
+  신호처리·지표 계산: newbiz-core.js (테스트: node newbiz-core.test.js)
+-->
+<style>
+:root{
+  --ink:#0B1733;--ink-2:#273451;--muted:#647089;--line:#DFE6F2;--bg:#F4F7FC;--card:#fff;
+  --blue:#2458E6;--blue-soft:#EEF3FF;--violet:#7357E7;--care:#34745E;--care-soft:#EDF7F1;--care-line:#CAE2D5;
+  --amber:#C97C0E;--amber-soft:#FFF6E6;--rose:#D94B6A;--rose-soft:#FDEEF1;
+  --stage:#E9ECF2;
+  --font-kr:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;--font-num:'Sora','Noto Sans KR',sans-serif;
+  --shadow:0 8px 28px rgba(19,36,72,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-kr);font-size:16px;line-height:1.65;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid rgba(36,88,230,.3);outline-offset:3px}
+.nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}
+.nav-in{max-width:960px;margin:auto;padding:0 20px;min-height:62px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:9px;color:var(--ink);font-family:var(--font-num);font-weight:800;font-size:18px}
+.logo .mk{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#1E5AF0,#6C4CE0);display:grid;place-items:center;color:#fff;font-size:15px}
+.logo em{font-style:normal;color:var(--blue)}
+.lab{font-family:var(--font-num);font-size:11.5px;font-weight:800;letter-spacing:.1em;color:var(--violet);background:#F1EEFF;border-radius:999px;padding:5px 11px}
+main{max-width:960px;margin:auto;padding:34px 20px 80px}
+section[hidden]{display:none!important}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:32px 34px;margin-bottom:18px}
+.kicker{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--blue);text-transform:uppercase}
+h1{font-size:32px;line-height:1.3;margin:8px 0 12px;letter-spacing:-.02em;word-break:keep-all}
+h2{font-size:22px;margin:4px 0 10px;word-break:keep-all}
+h3{font-size:16px;margin:0 0 6px}
+.lead{color:var(--ink-2);font-size:15.5px;margin:0 0 20px;word-break:keep-all}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 22px}
+.flow div{padding:13px;border:1px solid var(--line);border-radius:14px;background:#FAFBFE;font-size:13px;word-break:keep-all}
+.flow b{display:block;font-family:var(--font-num);font-size:11.5px;color:var(--blue);margin-bottom:3px}
+.pipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;margin:6px 0 0}
+.pipe span{background:var(--blue-soft);color:#244881;border-radius:9px;padding:5px 10px;font-weight:700}
+.pipe i{font-style:normal;color:var(--muted)}
+.consent{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border-radius:13px;background:var(--care-soft);border:1px solid var(--care-line);color:#235b46;font-size:13.5px;margin-top:18px}
+.consent input{margin-top:5px;width:18px;height:18px}
+.modes{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.modes label{display:flex;gap:8px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;cursor:pointer;background:#fff}
+.modes label:has(input:checked){border-color:var(--blue);background:var(--blue-soft)}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.btn{border:0;border-radius:13px;padding:13px 24px;font-weight:900;font-size:15px;background:linear-gradient(135deg,#2458E6,#7357E7);color:#fff;box-shadow:0 10px 24px rgba(36,88,230,.25)}
+.btn.ghost{background:#fff;color:var(--blue);border:1.5px solid #C9D7FF;box-shadow:none}
+.btn.care{background:linear-gradient(135deg,#34745E,#5A957B);box-shadow:0 10px 24px rgba(52,116,94,.25)}
+.btn:disabled{opacity:.45;cursor:default}
+.status{margin-top:12px;font-size:14px;color:var(--muted);min-height:22px}
+.status.err{color:var(--rose)}
+/* 체크인 */
+.q{margin:0 0 22px}
+.q .lbl{font-weight:700;margin-bottom:8px}
+.scale{display:grid;gap:6px}
+.scale button{aspect-ratio:1;max-height:56px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-family:var(--font-num);font-weight:800;font-size:16px;color:var(--ink-2)}
+.scale button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.ends{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:4px}
+/* 카메라 준비 */
+.setup{display:grid;grid-template-columns:1.2fr 1fr;gap:22px;align-items:start}
+.preview{position:relative;border-radius:16px;overflow:hidden;background:#0B1733;aspect-ratio:4/3}
+.preview video,.preview canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.checks{list-style:none;padding:0;margin:0 0 6px}
+.checks li{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.checks li b{font-family:var(--font-num)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#B9C1D3;margin-right:7px;vertical-align:1px}
+.dot.ok{background:#2FA36B}.dot.warn{background:var(--amber)}.dot.bad{background:var(--rose)}
+.livehr{margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--rose-soft);color:#8C2440;display:flex;align-items:center;gap:12px}
+.livehr b{font-family:var(--font-num);font-size:30px}
+.heart{width:22px;height:22px;color:var(--rose);animation:beat 1s infinite}
+@keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.25)}30%{transform:scale(1)}}
+/* 측정 무대: 밝기 일정 유지 (rPPG 잡음 방지) */
+.stage{position:fixed;inset:0;z-index:60;background:var(--stage);display:none;user-select:none}
+.stage.on{display:block}
+.hud{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:12px;align-items:center;font-size:13px;color:var(--muted);background:#F4F6FA;border:1px solid #D9DFEA;border-radius:999px;padding:7px 16px;white-space:nowrap}
+.hud b{color:var(--ink-2)}
+.hud .bar{width:120px;height:6px;border-radius:9px;background:#D9DFEA;overflow:hidden}
+.hud .bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .4s}
+.quit{position:absolute;top:12px;right:14px;border:1px solid #D9DFEA;background:#F4F6FA;border-radius:10px;padding:6px 12px;font-size:13px;color:var(--muted)}
+.selfcam{position:fixed;left:12px;bottom:12px;width:120px;height:90px;border-radius:10px;object-fit:cover;transform:scaleX(-1);opacity:.55;z-index:70;background:#000;display:none}
+.selfcam.on{display:block}
+.cal-dot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 8px rgba(217,75,106,.16);transition:left .35s,top .35s}
+.cal-dot::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff}
+.cal-dot.val{background:var(--blue);box-shadow:0 0 0 8px rgba(36,88,230,.16)}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;max-width:min(580px,88vw);font-size:17px;color:var(--ink-2);word-break:keep-all}
+.center h2{font-size:24px}
+.fix{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--font-num);font-size:44px;color:#59647D;font-weight:600}
+.stim{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
+.stim svg{width:min(150px,16vw);height:auto}
+.stim span{font-size:clamp(20px,2.4vw,30px);font-weight:700;color:#3A4560;letter-spacing:.02em}
+.math{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center}
+.math .prob{font-family:var(--font-num);font-size:clamp(40px,6vw,64px);font-weight:700;color:#2C3650}
+.math .tbar{width:min(420px,70vw);height:6px;border-radius:9px;background:#D3D9E5;margin:16px auto 22px;overflow:hidden}
+.math .tbar i{display:block;height:100%;background:#7D879E}
+.math .opts{display:flex;gap:14px;justify-content:center}
+.math .opts button{min-width:110px;padding:14px 0;border-radius:14px;border:1.5px solid #C9D0DD;background:#F4F6FA;font-family:var(--font-num);font-size:26px;font-weight:700;color:#2C3650}
+.math .fb{height:24px;margin-top:14px;font-size:15px;color:#59647D}
+.math .score{margin-top:4px;font-size:13px;color:var(--muted)}
+.breath{position:absolute;left:50%;top:48%;width:min(300px,50vmin);height:min(300px,50vmin);transform:translate(-50%,-50%) scale(.55);border-radius:50%;border:3px solid #8E9AB3;transition:transform 5s ease-in-out}
+.breath.in{transform:translate(-50%,-50%) scale(1)}
+.breath-lbl{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:22px;font-weight:700;color:#3A4560}
+.stage-msg{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);font-size:14.5px;color:var(--muted);text-align:center;width:90%}
+.facewarn{position:absolute;left:50%;top:64px;transform:translateX(-50%);background:var(--rose-soft);color:#8C2440;border-radius:10px;padding:7px 14px;font-size:13.5px;display:none}
+.facewarn.on{display:block}
+/* 리포트 */
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:700}
+.badge.demo{background:var(--amber-soft);color:#8A5508;border:1px solid #F3D9A8}
+.badge.live{background:var(--care-soft);color:#235b46;border:1px solid var(--care-line)}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:center}
+.ptype{font-size:34px;font-weight:900;letter-spacing:-.02em;margin:6px 0 4px}
+.ptag{font-size:16px;font-weight:700;color:var(--violet);margin-bottom:10px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+.three div{border:1px solid var(--line);border-radius:14px;padding:14px;background:#FAFBFE}
+.three b{display:block;font-size:12px;color:var(--blue);font-family:var(--font-num);letter-spacing:.06em;margin-bottom:4px}
+.three p{margin:0;font-size:14px;word-break:keep-all}
+.mismatch{margin-top:12px;padding:13px 16px;border-radius:13px;background:#F5F2FF;border:1px solid #DDD5FF;color:#3E2E8F;font-size:14px;word-break:keep-all}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.metric{border:1px solid var(--line);border-radius:15px;padding:14px 15px;background:#fff}
+.metric .nm{font-size:12.5px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between;gap:6px}
+.metric .v{font-family:var(--font-num);font-size:24px;font-weight:700;margin:3px 0 2px}
+.metric .v small{font-size:13px;color:var(--muted);font-weight:600;margin-left:3px}
+.metric p{margin:0;font-size:12.5px;color:var(--ink-2);word-break:keep-all;line-height:1.55}
+.q-good,.q-fair,.q-poor,.q-none{font-size:11px;border-radius:999px;padding:1px 7px;font-weight:700;white-space:nowrap}
+.q-good{background:#E6F6EE;color:#1F7A4D}.q-fair{background:var(--amber-soft);color:#8A5508}.q-poor,.q-none{background:#EEF0F5;color:#7A8296}
+.group-t{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.06em;margin:18px 0 8px}
+.chart{width:100%;height:auto;display:block}
+.care-box{border:1px solid var(--care-line);background:var(--care-soft);border-radius:16px;padding:18px 20px}
+.care-box ul{margin:8px 0 0;padding-left:20px}
+.care-box li{margin:4px 0;word-break:keep-all}
+.effect{margin-top:14px;padding:14px 16px;border-radius:14px;background:#fff;border:1px dashed var(--care-line);font-size:14.5px;display:none}
+.effect.on{display:block}
+.hist{font-size:13.5px;margin:0;padding-left:18px}
+.disc{font-size:12.5px;color:var(--muted);line-height:1.75;margin-top:10px;word-break:keep-all}
+/* 바이오피드백 */
+.bio{position:fixed;inset:0;z-index:65;background:var(--stage);display:none}
+.bio.on{display:block}
+.bio .hrbig{position:absolute;left:50%;top:15%;transform:translateX(-50%);text-align:center}
+.bio .hrbig b{font-family:var(--font-num);font-size:56px;color:#2C3650;display:block;line-height:1.1}
+.bio .hrbig span{font-size:13.5px;color:var(--muted)}
+.bio svg.spark{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(520px,86vw);height:70px}
+@media (max-width:760px){
+  .card{padding:24px 20px}
+  .flow{grid-template-columns:1fr 1fr}
+  .setup,.hero{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr 1fr}
+  .three{grid-template-columns:1fr}
+  h1{font-size:26px}
+}
+@media print{.nav,.btns,.no-print{display:none!important}body{background:#fff}.card{box-shadow:none}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <div class="logo"><span class="mk">N</span>Neuro<em>Lens</em></div>
+  <span class="lab">LAB · MVP</span>
+</div></nav>
+
+<main>
+<!-- 1. 소개 -->
+<section id="sIntro">
+  <div class="card">
+    <div class="kicker">Gaze × rPPG Fusion · MVP</div>
+    <h1>웹캠 하나로, 마음이 어디에 붙잡히고<br>몸이 어떻게 반응하는지 함께 봅니다</h1>
+    <p class="lead">시선추적과 원격 심박 측정(rPPG)을 같은 시간축에 묶어, 감정 자극·압박·회복 상황에서의 <b>주의</b>와 <b>신체 반응</b>을 한 번에 측정하는 실험용 MVP입니다. 별도 장비 없이 노트북 웹캠만 사용합니다.</p>
+    <div class="flow">
+      <div><b>01 · 보정</b>점 9개를 바라보며 시선 보정</div>
+      <div><b>02 · 기준선</b>편안히 응시하며 안정 시 심박</div>
+      <div><b>03 · 자유 보기</b>감정 자극 쌍을 자유롭게 보기</div>
+      <div><b>04 · 압박 과제</b>제한 시간 암산</div>
+      <div><b>05 · 회복</b>분당 6회 호흡 안내</div>
+    </div>
+    <h3>측정 원리</h3>
+    <div class="pipe"><span>웹캠</span><i>→</i><span>얼굴 랜드마크 478점</span><i>→</i><span>홍채·머리 자세 → 시선</span><span>이마·볼 피부색 → 심박(POS)</span><span>눈꺼풀 → 깜빡임</span><span>표정값 → 표정 반응</span><i>→</i><span>동기화 지표 · 프로파일</span></div>
+    <div class="modes" role="radiogroup" aria-label="측정 길이">
+      <label><input type="radio" name="mode" value="full" checked> 표준 측정 (약 5분)</label>
+      <label><input type="radio" name="mode" value="quick"> 빠른 측정 (약 3분 · 시연용)</label>
+    </div>
+    <label class="consent"><input type="checkbox" id="agree">
+      <span>카메라 영상은 <b>이 브라우저 안에서만</b> 처리되며 서버로 전송·저장되지 않습니다. 결과 지표는 이 기기에만 남습니다. 이 측정은 의학적 진단이 아닌 <b>웰니스 참고 지표</b>이며, 판정 기준은 파일럿 검증 전 잠정값입니다. 위 내용을 확인했습니다.</span>
+    </label>
+    <div class="btns">
+      <button class="btn" id="goCheckin" disabled>시작하기</button>
+      <button class="btn ghost" id="goDemo" disabled>카메라 없이 데모 보기</button>
+    </div>
+    <p class="disc">데모 모드는 마우스 위치를 시선으로, 합성 신호를 심박으로 사용합니다. 결과에는 ‘시뮬레이션’ 표시가 붙습니다. 실제 측정은 PC 크롬·엣지 브라우저, 밝고 균일한 조명, 정면 자세를 권장합니다.</p>
+  </div>
+</section>
+
+<!-- 2. 체크인 -->
+<section id="sCheckin" hidden>
+  <div class="card">
+    <div class="kicker">Step 1 · 체크인</div>
+    <h2>지금 스스로 느끼는 상태를 알려 주세요</h2>
+    <p class="lead">측정 결과와 비교해 ‘느끼는 나’와 ‘몸과 시선이 보여 주는 나’의 차이를 찾아 드려요.</p>
+    <div class="q"><div class="lbl">지금 기분은 어떤가요?</div>
+      <div class="scale" id="qValence" style="grid-template-columns:repeat(9,1fr)"></div>
+      <div class="ends"><span>매우 나쁨</span><span>매우 좋음</span></div></div>
+    <div class="q"><div class="lbl">지금 얼마나 긴장되거나 스트레스를 느끼나요?</div>
+      <div class="scale" id="qTension" style="grid-template-columns:repeat(5,1fr);max-width:360px"></div>
+      <div class="ends" style="max-width:360px"><span>전혀 없음</span><span>매우 큼</span></div></div>
+    <div class="q"><div class="lbl">에너지는 어느 정도인가요?</div>
+      <div class="scale" id="qEnergy" style="grid-template-columns:repeat(5,1fr);max-width:360px"></div>
+      <div class="ends" style="max-width:360px"><span>방전</span><span>충만</span></div></div>
+    <div class="btns">
+      <button class="btn" id="goSetup" disabled>다음 · 카메라 준비</button>
+      <button class="btn ghost" data-back="sIntro">이전</button>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 카메라 준비 -->
+<section id="sSetup" hidden>
+  <div class="card">
+    <div class="kicker">Step 2 · 카메라 준비</div>
+    <h2>얼굴이 화면 가운데에 오도록 앉아 주세요</h2>
+    <div class="setup">
+      <div>
+        <div class="preview"><video id="camPreview" playsinline muted></video><canvas id="overlay"></canvas></div>
+        <p class="small muted" style="margin:8px 2px 0">초록 점: 홍채 · 상자: 심박을 읽는 피부 영역(이마·양 볼)</p>
+      </div>
+      <div>
+        <ul class="checks">
+          <li><span><i class="dot" id="dFace"></i>얼굴 인식</span><b id="vFace">—</b></li>
+          <li><span><i class="dot" id="dLight"></i>조명 밝기</span><b id="vLight">—</b></li>
+          <li><span><i class="dot" id="dFps"></i>카메라 프레임</span><b id="vFps">—</b></li>
+          <li><span><i class="dot" id="dStill"></i>머리 안정</span><b id="vStill">—</b></li>
+        </ul>
+        <div class="livehr"><svg class="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.4 5c2 0 3.3 1 4 2.1h3.2C14.3 6 15.6 5 17.6 5 21 5 23.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>
+          <div><b id="vLiveHr">--</b> <span class="small">bpm</span><div class="small" id="vLiveQ">얼굴을 10초 정도 비추면 카메라만으로 심박이 잡혀요</div></div></div>
+        <div class="status" id="setupStatus"></div>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="btn" id="camStart">카메라 켜기</button>
+      <button class="btn" id="goRun" disabled>측정 시작 (전체 화면)</button>
+      <button class="btn ghost" data-back="sCheckin">이전</button>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 분석 중 -->
+<section id="sAnalyze" hidden>
+  <div class="card" style="text-align:center;padding:60px 30px">
+    <div class="kicker">Analyzing</div>
+    <h2>시선과 심박 신호를 동기화해 분석하고 있어요</h2>
+    <p class="muted">POS 원격 심박 추출 → 구간별 심박·회복·호흡 동조 → 자극별 시선 체류 → 프로파일</p>
+  </div>
+</section>
+
+<!-- 5. 리포트 -->
+<section id="sReport" hidden></section>
+</main>
+
+<!-- 측정 무대 -->
+<div class="stage" id="stage" aria-live="polite">
+  <div class="hud"><span id="hudPhase">준비</span><span class="bar"><i id="hudBar"></i></span><span><i class="dot" id="hudFace"></i><b id="hudFaceT">얼굴</b></span></div>
+  <button class="quit" id="quit">그만하기</button>
+  <div class="facewarn" id="faceWarn">얼굴이 보이지 않아요. 화면 정면을 봐 주세요.</div>
+  <div id="stageBody"></div>
+</div>
+<!-- 바이오피드백 -->
+<div class="bio" id="bio">
+  <button class="quit" id="bioQuit">닫기</button>
+  <div class="hrbig"><b id="bioHr">--</b><span id="bioQ">심박 측정 준비 중…</span></div>
+  <div class="breath" id="bioCircle"></div><div class="breath-lbl" id="bioLbl">준비</div>
+  <svg class="spark" id="bioSpark" viewBox="0 0 520 70" preserveAspectRatio="none"></svg>
+  <div class="stage-msg" id="bioMsg">원이 커질 때 5초 들이쉬고, 작아질 때 5초 내쉬어요 (분당 6회)</div>
+</div>
+<video id="camProc" class="selfcam" playsinline muted></video>
+
+<script src="newbiz-core.js"></script>
+<script type="module">
+const N = window.NLNewbiz;
+const MP_VER = '0.10.14';
+const MP_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`;
+const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+const STORE_KEY = 'nlNewbiz:v1';
+const $ = id => document.getElementById(id);
+const now = () => performance.now();
+
+const S = {
+  demo: false, mode: 'full', checkin: {}, stream: null, landmarker: null,
+  buf: [], frames: [], recording: false, bioFrames: [], bioRecording: false,
+  phases: {}, trials: [], curTrial: null, model: null, gaze: null, feat: null, lastLm: null, rois: null,
+  lastFace: 0, lastTs: 0, fpsTimes: [], onFeature: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
+};
+const DUR = {
+  full:  { baseline: 60, trials: 7, stress: 45, recovery: 60 },
+  quick: { baseline: 30, trials: 4, stress: 30, recovery: 40 },
+};
+const TRIAL_MS = 3500, FIX_MS = 700;
+
+/* ---------- 화면 전환 ---------- */
+function show(id) { ['sIntro', 'sCheckin', 'sSetup', 'sAnalyze', 'sReport'].forEach(s => { $(s).hidden = s !== id; }); window.scrollTo(0, 0); }
+document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => show(b.dataset.back)));
+$('agree').addEventListener('change', e => { $('goCheckin').disabled = $('goDemo').disabled = !e.target.checked; });
+const modeVal = () => document.querySelector('input[name=mode]:checked').value;
+$('goCheckin').addEventListener('click', () => { S.demo = false; S.mode = modeVal(); show('sCheckin'); });
+$('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); show('sCheckin'); });
+
+/* ---------- 체크인 ---------- */
+function scale(el, n, key) {
+  for (let i = 1; i <= n; i++) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => {
+      el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      S.checkin[key] = i;
+      $('goSetup').disabled = !(S.checkin.valence && S.checkin.tension && S.checkin.energy);
+    });
+    el.appendChild(b);
+  }
+}
+scale($('qValence'), 9, 'valence'); scale($('qTension'), 5, 'tension'); scale($('qEnergy'), 5, 'energy');
+$('goSetup').addEventListener('click', () => {
+  if (S.demo) { runSession(); return; }
+  show('sSetup');
+});
+
+/* ---------- 카메라 + MediaPipe ---------- */
+const procVideo = $('camProc'), prevVideo = $('camPreview');
+const roiCanvas = document.createElement('canvas');
+const roiCtx = roiCanvas.getContext('2d', { willReadFrequently: true });
+
+async function loadLandmarker() {
+  const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);
+  const vision = await FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
+  const opts = d => ({ baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true });
+  try { return await FaceLandmarker.createFromOptions(vision, opts('GPU')); }
+  catch (_) { return await FaceLandmarker.createFromOptions(vision, opts('CPU')); }
+}
+
+$('camStart').addEventListener('click', async () => {
+  const st = $('setupStatus');
+  st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';
+  $('camStart').disabled = true;
+  try {
+    S.stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false });
+    procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;
+    procVideo.classList.add('on');
+    await Promise.all([procVideo.play(), prevVideo.play()]);
+    S.landmarker = await loadLandmarker();
+    st.textContent = '준비됐어요. 체크 항목이 초록색이 되면 측정을 시작하세요.';
+    startLoop(); drawOverlay(); setupTicker();
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = e && e.name === 'NotAllowedError' ? '카메라 권한이 거부됐어요. 주소창의 카메라 아이콘에서 허용해 주세요.' : '카메라 또는 모델을 불러오지 못했어요: ' + (e && e.message || e);
+    $('camStart').disabled = false;
+  }
+});
+
+/* 피부 영역(이마·양 볼)의 평균 RGB — 피부 범위를 벗어난 픽셀(눈썹·머리카락·반사)은 제외 */
+function sampleRoi(lm) {
+  const vw = procVideo.videoWidth, vh = procVideo.videoHeight;
+  if (!vw) return null;
+  const cw = 320, ch = Math.round(320 * vh / vw);
+  if (roiCanvas.width !== cw) { roiCanvas.width = cw; roiCanvas.height = ch; }
+  roiCtx.drawImage(procVideo, 0, 0, cw, ch);
+  const P = i => ({ x: lm[i].x * cw, y: lm[i].y * ch });
+  const fw = Math.hypot(P(454).x - P(234).x, P(454).y - P(234).y);
+  const boxes = [
+    { c: P(151), w: fw * 0.30, h: fw * 0.11 },
+    { c: P(50), w: fw * 0.13, h: fw * 0.13 },
+    { c: P(280), w: fw * 0.13, h: fw * 0.13 },
+  ];
+  let r = 0, g = 0, b = 0, n = 0;
+  const rois = [];
+  for (const bx of boxes) {
+    const x = Math.max(0, Math.round(bx.c.x - bx.w / 2)), y = Math.max(0, Math.round(bx.c.y - bx.h / 2));
+    const w = Math.min(cw - x, Math.round(bx.w)), h = Math.min(ch - y, Math.round(bx.h));
+    if (w < 3 || h < 3) continue;
+    rois.push({ x: x / cw, y: y / ch, w: w / cw, h: h / ch });
+    const d = roiCtx.getImageData(x, y, w, h).data;
+    for (let i = 0; i < d.length; i += 4) {
+      const R = d[i], G = d[i + 1], B = d[i + 2];
+      if (R > 45 && R < 250 && R > G && R > B && G > 20) { r += R; g += G; b += B; n++; }
+    }
+  }
+  if (n < 30) return { n, rois };
+  r /= n; g /= n; b /= n;
+  return { r, g, b, n, lum: 0.299 * r + 0.587 * g + 0.114 * b, rois };
+}
+
+function blendMap(res) {
+  const cats = res.faceBlendshapes && res.faceBlendshapes[0] && res.faceBlendshapes[0].categories;
+  const m = {};
+  (cats || []).forEach(c => { m[c.categoryName] = c.score; });
+  return m;
+}
+
+function processFrame() {
+  let t = now();
+  if (t <= S.lastTs) t = S.lastTs + 0.01;
+  S.lastTs = t;
+  let res;
+  try { res = S.landmarker.detectForVideo(procVideo, t); } catch (_) { return; }
+  const lm = res.faceLandmarks && res.faceLandmarks[0];
+  const fr = { t, ok: false };
+  S.lastLm = lm || null;
+  if (lm) {
+    const f = N.faceFeatures(lm), roi = sampleRoi(lm);
+    if (f && roi) {
+      S.rois = roi.rois;
+      const bs = blendMap(res);
+      Object.assign(fr, {
+        ok: roi.n >= 30, r: roi.r, g: roi.g, b: roi.b, lum: roi.lum, cx: f.cx, cy: f.cy, fw: f.fw,
+        blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,
+        frown: ((bs.mouthFrownLeft || 0) + (bs.mouthFrownRight || 0) + (bs.browDownLeft || 0) + (bs.browDownRight || 0)) / 4,
+        smile: ((bs.mouthSmileLeft || 0) + (bs.mouthSmileRight || 0)) / 2,
+      });
+      S.feat = f; S.lastFace = t;
+      if (S.onFeature) S.onFeature(t, f);
+      if (S.model) {
+        const g = N.predictGaze(S.model, f);
+        S.gaze = S.gaze ? { x: S.gaze.x + 0.4 * (g.x - S.gaze.x), y: S.gaze.y + 0.4 * (g.y - S.gaze.y) } : g;
+      }
+    }
+  }
+  pushFrame(fr);
+  if (S.curTrial && S.gaze && fr.ok) S.curTrial.samples.push({ t, x: S.gaze.x, y: S.gaze.y });
+}
+function pushFrame(fr) {
+  S.buf.push(fr);
+  while (S.buf.length && S.buf[0].t < fr.t - 20000) S.buf.shift();
+  if (S.recording) S.frames.push(fr);
+  if (S.bioRecording) S.bioFrames.push(fr);
+  S.fpsTimes.push(fr.t);
+  while (S.fpsTimes.length && S.fpsTimes[0] < fr.t - 2000) S.fpsTimes.shift();
+}
+function startLoop() {
+  if (procVideo.requestVideoFrameCallback) {
+    const cb = () => { processFrame(); procVideo.requestVideoFrameCallback(cb); };
+    procVideo.requestVideoFrameCallback(cb);
+  } else {
+    let lastT = -1;
+    const loop = () => { if (procVideo.currentTime !== lastT) { lastT = procVideo.currentTime; processFrame(); } requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+}
+
+/* 준비 화면: 랜드마크·피부 영역 오버레이 */
+function drawOverlay() {
+  const cv = $('overlay'), ctx = cv.getContext('2d');
+  const draw = () => {
+    if ($('sSetup').hidden) { requestAnimationFrame(draw); return; }
+    const W = cv.clientWidth, H = cv.clientHeight;
+    if (cv.width !== W) { cv.width = W; cv.height = H; }
+    ctx.clearRect(0, 0, W, H);
+    const lm = S.lastLm;
+    if (lm) {
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      for (let i = 0; i < 468; i += 3) ctx.fillRect(lm[i].x * W - 1, lm[i].y * H - 1, 2, 2);
+      ctx.fillStyle = '#3BE38A';
+      [468, 473].forEach(i => { ctx.beginPath(); ctx.arc(lm[i].x * W, lm[i].y * H, 4, 0, 7); ctx.fill(); });
+      ctx.strokeStyle = '#FF7A99'; ctx.lineWidth = 2;
+      (S.rois || []).forEach(r => ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H));
+    }
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+}
+function setDot(id, state) { $(id).className = 'dot ' + (state || ''); }
+function setupTicker() {
+  setInterval(() => {
+    if ($('sSetup').hidden) return;
+    const t = now(), faceOk = t - S.lastFace < 500;
+    const recent = S.buf.filter(f => f.ok && f.t > t - 2000);
+    const lum = N.mean(recent.map(f => f.lum));
+    const fps = S.fpsTimes.length / 2;
+    const motion = N.motionIndex(S.buf.filter(f => f.ok), t - 5000, t);
+    setDot('dFace', faceOk ? 'ok' : 'bad'); $('vFace').textContent = faceOk ? '인식됨' : '찾는 중';
+    const lightOk = lum >= 70 && lum <= 215;
+    setDot('dLight', !Number.isFinite(lum) ? '' : lightOk ? 'ok' : 'warn');
+    $('vLight').textContent = !Number.isFinite(lum) ? '—' : lum < 70 ? '어두움' : lum > 215 ? '너무 밝음' : '적정';
+    setDot('dFps', fps >= 24 ? 'ok' : fps >= 15 ? 'warn' : 'bad'); $('vFps').textContent = Math.round(fps) + ' fps';
+    setDot('dStill', motion === null ? '' : motion < 3 ? 'ok' : 'warn'); $('vStill').textContent = motion === null ? '—' : motion < 3 ? '안정' : '움직임 많음';
+    const live = N.liveHr(S.buf);
+    if (live && S.buf.length && S.buf[S.buf.length - 1].t - S.buf[0].t > 9000) {
+      $('vLiveHr').textContent = live.quality === 'poor' ? '--' : live.bpm;
+      $('vLiveQ').textContent = live.quality === 'good' ? '카메라만으로 심박이 안정적으로 잡히고 있어요' : live.quality === 'fair' ? '심박 신호를 읽는 중이에요. 움직임을 줄여 주세요' : '신호가 약해요. 조명을 밝게 하고 정면을 봐 주세요';
+    }
+    $('goRun').disabled = !(faceOk && fps >= 12);
+  }, 1000);
+}
+$('goRun').addEventListener('click', () => runSession());
+
+/* ---------- 측정 무대 ---------- */
+const stage = $('stage'), body = $('stageBody');
+const Abort = new Error('abort');
+function wait(ms) { return new Promise((res, rej) => setTimeout(() => (S.abort ? rej(Abort) : res()), ms)); }
+function mark(name, edge) { (S.phases[name] = S.phases[name] || {})[edge] = now(); }
+let hudTimer = null, plannedMs = 1, runStart = 0;
+function hud(label) { $('hudPhase').innerHTML = label; }
+function startHud() {
+  runStart = now();
+  hudTimer = setInterval(() => {
+    $('hudBar').style.width = Math.min(100, (now() - runStart) / plannedMs * 100) + '%';
+    const faceOk = S.demo || now() - S.lastFace < 1500;
+    setDot('hudFace', faceOk ? 'ok' : 'bad'); $('hudFaceT').textContent = S.demo ? '데모' : faceOk ? '얼굴 인식' : '얼굴 없음';
+    $('faceWarn').classList.toggle('on', !faceOk && S.recording);
+  }, 300);
+}
+$('quit').addEventListener('click', () => { S.abort = true; endStage(); show(S.demo ? 'sCheckin' : 'sSetup'); });
+function endStage() {
+  stage.classList.remove('on'); clearInterval(hudTimer);
+  S.recording = false; S.curTrial = null; S.onFeature = null;
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+window.addEventListener('mousemove', e => { S.mouse = { x: e.clientX, y: e.clientY }; });
+window.addEventListener('resize', () => { if (S.recording && S.model) S.resized = true; });
+
+function centerMsg(html) { body.innerHTML = `<div class="center">${html}</div>`; }
+function choice(html, buttons) {
+  return new Promise(res => {
+    centerMsg(html + `<div class="btns" style="justify-content:center">${buttons.map((b, i) => `<button class="btn ${i ? 'ghost' : ''}" data-i="${i}">${b}</button>`).join('')}</div>`);
+    body.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => res(+b.dataset.i)));
+  });
+}
+
+async function runSession() {
+  S.abort = false; S.frames = []; S.trials = []; S.phases = {}; S.resized = false; S.gaze = null;
+  const d = DUR[S.mode];
+  plannedMs = (25 + d.baseline + 3 * d.trials * (TRIAL_MS + FIX_MS) / 1000 + d.stress + d.recovery + 12) * 1000;
+  stage.classList.add('on');
+  try { await document.documentElement.requestFullscreen(); } catch (_) {}
+  startHud();
+  try {
+    await wait(600);
+    S.screenW = stage.clientWidth;
+    if (S.demo) S.calib = { grade: 'good', errPct: null, mouse: true };
+    else await calibrate();
+    S.recording = true;
+    await phaseBaseline(d.baseline);
+    await phaseFreeview(d.trials);
+    await phaseStress(d.stress);
+    await phaseRecovery(d.recovery);
+    S.recording = false;
+    centerMsg('<h2>측정이 끝났어요</h2><p>수고하셨어요. 결과를 분석하고 있어요.</p>');
+    await wait(900);
+    endStage();
+    finish();
+  } catch (e) {
+    if (e !== Abort) { console.error(e); endStage(); alert('측정 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
+  }
+}
+
+/* 9점 보정 + 4점 검증 */
+async function calibrate() {
+  while (true) {
+    hud('<b>시선 보정</b>');
+    centerMsg('<h2>시선 보정</h2><p>빨간 점이 나타나면 <b>머리는 가만히 두고 눈으로</b> 점의 가운데를 바라봐 주세요.</p>');
+    await wait(2200);
+    const W = stage.clientWidth, H = stage.clientHeight;
+    S.screenW = W;
+    const pts = [];
+    for (const fy of [0.12, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) pts.push([fx * W, fy * H]);
+    body.innerHTML = '<div class="cal-dot" id="calDot"></div>';
+    const dot = $('calDot'), samples = [];
+    for (const [x, y] of pts) {
+      dot.style.left = x + 'px'; dot.style.top = y + 'px';
+      const t0 = now();
+      S.onFeature = (t, f) => { if (t - t0 > 650 && t - t0 < 1700) samples.push({ x, y, f }); };
+      await wait(1700);
+    }
+    S.onFeature = null;
+    S.model = N.fitGaze(samples);
+    S.gaze = null;
+    let acc = { grade: 'poor', errPct: null };
+    if (S.model) {
+      dot.classList.add('val');
+      const vp = [[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
+      for (const p of vp) {
+        dot.style.left = p.x + 'px'; dot.style.top = p.y + 'px';
+        await wait(500);
+        const gs = [];
+        const iv = setInterval(() => { if (S.gaze && now() - S.lastFace < 200) gs.push({ ...S.gaze }); }, 33);
+        await wait(800);
+        clearInterval(iv);
+        p.gx = N.median(gs.map(g => g.x)); p.gy = N.median(gs.map(g => g.y));
+      }
+      acc = N.gazeAccuracy(vp, W, H);
+    }
+    S.calib = { ...acc, samples: samples.length };
+    if (acc.grade !== 'poor') {
+      centerMsg(`<h2>보정 완료</h2><p>시선 오차 약 ${acc.errPct}% (화면 폭 대비) · ${acc.grade === 'good' ? '양호' : '보통'}</p>`);
+      await wait(1300);
+      return;
+    }
+    const c = await choice(`<h2>시선 보정이 불안정해요</h2><p>오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.</p>`, ['다시 보정', '이대로 진행 (시선 지표 제외)']);
+    if (c === 1) return;
+  }
+}
+
+async function phaseBaseline(sec) {
+  hud('<b>기준선</b> · 편안히 응시');
+  centerMsg('<h2>편안히 가운데 + 를 바라봐 주세요</h2><p>' + sec + '초 동안 안정 시 심박을 측정해요. 말하거나 움직이지 않는 것이 좋아요.</p>');
+  await wait(3000);
+  body.innerHTML = '<div class="fix">+</div><div class="stage-msg">편안히 호흡하며 + 를 바라봐 주세요</div>';
+  mark('baseline', 'start'); await wait(sec * 1000); mark('baseline', 'end');
+}
+
+/* 자유 보기: 중립-중립 / 부정-중립 / 긍정-중립 블록. 밝기를 맞추기 위해 같은 색·크기의 도식 얼굴과 단어만 쓴다 */
+const WORDS = {
+  neg: ['실패', '거절', '외로움', '비난', '불안', '상실', '후회', '무시'],
+  neu: ['의자', '연필', '계단', '창문', '우산', '서랍', '달력', '접시', '선반', '봉투', '책상', '가방', '시계', '컵', '종이', '문'],
+  pos: ['웃음', '칭찬', '희망', '감사', '여유', '환영', '사랑', '평온'],
+};
+function faceSvg(kind) {
+  const stroke = '#4A5672';
+  const mouth = kind === 'neg' ? 'M38 80 Q60 64 82 80' : kind === 'pos' ? 'M38 70 Q60 90 82 70' : 'M40 76 L80 76';
+  const brows = kind === 'neg' ? 'M32 40 L50 32 M88 40 L70 32' : kind === 'pos' ? 'M33 36 Q41 30 50 34 M70 34 Q79 30 87 36' : 'M33 35 L50 35 M70 35 L87 35';
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="#F1F3F7" stroke="${stroke}" stroke-width="4"/><circle cx="44" cy="52" r="5" fill="${stroke}"/><circle cx="76" cy="52" r="5" fill="${stroke}"/><path d="${brows}" stroke="${stroke}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="${mouth}" stroke="${stroke}" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+}
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+async function phaseFreeview(n) {
+  centerMsg('<h2>자유롭게 바라보세요</h2><p>양쪽에 얼굴과 단어가 함께 나타나요. 정답은 없어요. <b>보고 싶은 쪽을 편하게</b> 보면 됩니다. 사이사이 가운데 + 가 나오면 + 를 봐 주세요.</p>');
+  hud('<b>자유 보기</b>');
+  await wait(4000);
+  const neuWords = shuffle([...WORDS.neu]);
+  let wi = 0;
+  const blocks = [['neu', '자유 보기 1/3'], ['neg', '자유 보기 2/3'], ['pos', '자유 보기 3/3']];
+  for (const [kind, label] of blocks) {
+    hud('<b>' + label + '</b>');
+    const sides = shuffle(Array.from({ length: n }, (_, i) => (i % 2 ? 'L' : 'R')));
+    const emoWords = shuffle([...(kind === 'neu' ? WORDS.neu.slice(8) : WORDS[kind])]);
+    mark(kind, 'start');
+    for (let i = 0; i < n; i++) {
+      body.innerHTML = '<div class="fix">+</div>';
+      await wait(FIX_MS);
+      const emoSide = sides[i];
+      const emo = `<div class="stim" style="left:${emoSide === 'L' ? 25 : 75}%">${faceSvg(kind)}<span>${emoWords[i % emoWords.length]}</span></div>`;
+      const neu = `<div class="stim" style="left:${emoSide === 'L' ? 75 : 25}%">${faceSvg('neu')}<span>${neuWords[wi++ % neuWords.length]}</span></div>`;
+      body.innerHTML = emo + neu;
+      const tr = { kind, emoSide, onset: now(), end: null, samples: [] };
+      S.curTrial = tr;
+      let iv = null;
+      if (S.demo) iv = setInterval(() => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y }), 33);
+      await wait(TRIAL_MS);
+      if (iv) clearInterval(iv);
+      tr.end = now(); S.curTrial = null; S.trials.push(tr);
+    }
+    mark(kind, 'end');
+  }
+}
+
+/* 압박 과제: 제한 시간 암산 (피드백은 화면 밝기를 바꾸지 않도록 글자로만) */
+function makeQ() {
+  const plus = Math.random() < 0.5;
+  let a = 23 + Math.floor(Math.random() * 67), b = 6 + Math.floor(Math.random() * 34);
+  if (!plus && b > a) [a, b] = [b, a];
+  const ans = plus ? a + b : a - b;
+  const opts = new Set([ans]);
+  while (opts.size < 3) { const d = [1, 2, 10, 9, 11][Math.floor(Math.random() * 5)] * (Math.random() < 0.5 ? -1 : 1); opts.add(ans + d); }
+  return { text: `${a} ${plus ? '+' : '−'} ${b}`, ans, opts: shuffle([...opts]) };
+}
+async function phaseStress(sec) {
+  hud('<b>압박 과제</b>');
+  centerMsg('<h2>빠르게 계산해 주세요</h2><p>문제마다 <b>3초</b> 안에 정답을 고르세요. 키보드 1·2·3 이나 클릭으로 답할 수 있어요.</p>');
+  await wait(3500);
+  mark('stress', 'start');
+  const end = now() + sec * 1000;
+  let correct = 0, total = 0, limit = 3000;
+  while (now() < end) {
+    const q = makeQ();
+    body.innerHTML = `<div class="math"><div class="prob">${q.text}</div><div class="tbar"><i id="tb" style="width:100%"></i></div>
+      <div class="opts">${q.opts.map((o, i) => `<button data-v="${o}">${o}<div style="font-size:11px;color:#8A93A8">${i + 1}</div></button>`).join('')}</div>
+      <div class="fb" id="fb"></div><div class="score">정답 ${correct} / ${total}</div></div>`;
+    const t0 = now(), tb = $('tb');
+    requestAnimationFrame(() => { tb.style.transition = `width ${limit}ms linear`; tb.style.width = '0%'; });
+    const v = await new Promise(res => {
+      const done = x => { clearTimeout(to); window.removeEventListener('keydown', key); res(x); };
+      const to = setTimeout(() => done(null), limit);
+      const key = e => { const i = '123'.indexOf(e.key); if (i >= 0) done(q.opts[i]); };
+      window.addEventListener('keydown', key);
+      body.querySelectorAll('button[data-v]').forEach(b => b.addEventListener('click', () => done(+b.dataset.v)));
+    });
+    if (S.abort) throw Abort;
+    total++;
+    const ok = v === q.ans; if (ok) correct++;
+    $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : '오답';
+    limit = ok && now() - t0 < limit * 0.6 ? Math.max(2000, limit - 150) : Math.min(3200, limit + 100);
+    await wait(350);
+  }
+  mark('stress', 'end');
+  S.stressScore = { correct, total };
+}
+
+async function phaseRecovery(sec) {
+  hud('<b>회복</b> · 호흡');
+  centerMsg('<h2>이제 천천히 호흡하며 쉬어요</h2><p>원이 커질 때 5초 들이쉬고, 작아질 때 5초 내쉬어요.</p>');
+  await wait(3000);
+  body.innerHTML = '<div class="breath" id="br"></div><div class="breath-lbl" id="brl">들이쉬기</div>';
+  const br = $('br'), brl = $('brl');
+  mark('recovery', 'start');
+  const end = now() + sec * 1000;
+  let inhale = true;
+  while (now() < end) {
+    br.classList.toggle('in', inhale); brl.textContent = inhale ? '들이쉬기' : '내쉬기';
+    await wait(Math.min(5000, Math.max(0, end - now())));
+    inhale = !inhale;
+  }
+  mark('recovery', 'end');
+}
+
+/* ---------- 데모용 합성 심박 시나리오 ---------- */
+function demoHr(ph) {
+  const s = ph.stress, r = ph.recovery;
+  return t => {
+    let hr = 70;
+    if (t >= ph.neg.start && t < ph.pos.start) hr = 73;
+    if (t >= ph.pos.start && t < s.start) hr = 71;
+    if (t >= s.start && t < s.end) hr = 70 + Math.min(10, (t - s.start) / 1500);
+    if (t >= r.start) hr = 80 - Math.min(9, (t - r.start) / 3500) + 3.5 * Math.sin(2 * Math.PI * 0.1 * (t - r.start) / 1000 - Math.PI / 2);
+    return hr;
+  };
+}
+
+/* ---------- 분석 · 리포트 ---------- */
+function finish() {
+  show('sAnalyze');
+  setTimeout(() => {
+    let frames = S.frames;
+    if (S.demo) {
+      const ph = S.phases;
+      frames = N.synthFrames(ph.baseline.start, ph.recovery.end, demoHr(ph), { seed: Date.now() % 9973, noise: 0.35, frownAt: t => (t >= ph.neg.start && t < ph.neg.end ? 0.09 : 0.05) });
+    }
+    const res = N.analyze({ frames, phases: S.phases, trials: S.trials, screenW: S.screenW, calibration: S.calib, checkin: S.checkin, demo: S.demo, measuredAt: new Date().toISOString() });
+    res.stressScore = S.stressScore || null;
+    res.mode = S.mode;
+    res.resized = S.resized;
+    res.phaseTimes = S.phases;
+    S.result = res;
+    saveHistory(res);
+    renderReport(res);
+    show('sReport');
+  }, 60);
+}
+
+function loadHistory() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (_) { return []; } }
+function saveHistory(r) {
+  try {
+    const list = loadHistory();
+    list.unshift({ at: r.measuredAt, demo: r.demo, code: r.profile.code, title: r.profile.title, hr: r.hr.baseline.bpm, stress: r.stressDelta, bias: r.gaze.attentionBias });
+    localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0, 20)));
+  } catch (_) {}
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const qBadge = q => `<span class="q-${q || 'none'}">${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함', none: '측정 안 됨' }[q || 'none']}</span>`;
+const fmt = (v, d = 0, sign = false) => v === null || v === undefined || !Number.isFinite(v) ? '—' : (sign && v > 0 ? '+' : '') + v.toFixed(d);
+function metric(name, value, unit, desc, q) {
+  return `<div class="metric"><div class="nm"><span>${name}</span>${q ? qBadge(q) : ''}</div><div class="v">${value}${value !== '—' && unit ? `<small>${unit}</small>` : ''}</div><p>${desc}</p></div>`;
+}
+
+function quadrantSvg(r) {
+  const W = 360, H = 300, px = 46, py = 20, iw = W - px - 14, ih = H - py - 40;
+  const xs = v => px + (Math.max(-4, Math.min(16, v)) + 4) / 20 * iw;
+  const ys = v => py + (1 - (Math.max(-0.3, Math.min(0.3, v)) + 0.3) / 0.6) * ih;
+  const tx = xs(N.THRESH.stressHigh), ty = ys(N.THRESH.biasHigh);
+  const has = r.stressDelta !== null && r.gaze.attentionBias !== null;
+  const cell = (x, y, w, h, fill, label) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/><text x="${x + w / 2}" y="${y + h / 2}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#5A6580">${label}</text>`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="주의 편향과 신체 반응 4분면">
+    ${cell(px, py, tx - px, ty - py, '#F3F0FF', '생각 붙잡힘형')}${cell(tx, py, px + iw - tx, ty - py, '#FDEEF1', '복합 과부하형')}
+    ${cell(px, ty, tx - px, py + ih - ty, '#EDF7F1', '안정형')}${cell(tx, ty, px + iw - tx, py + ih - ty, '#FFF6E6', '몸 먼저 반응형')}
+    <line x1="${px}" y1="${py + ih}" x2="${px + iw}" y2="${py + ih}" stroke="#B9C1D3"/><line x1="${px}" y1="${py}" x2="${px}" y2="${py + ih}" stroke="#B9C1D3"/>
+    <text x="${px + iw / 2}" y="${H - 8}" text-anchor="middle" font-size="12" fill="#647089">신체 반응 (압박 시 심박 상승, bpm) →</text>
+    <text x="14" y="${py + ih / 2}" text-anchor="middle" font-size="12" fill="#647089" transform="rotate(-90 14 ${py + ih / 2})">주의 편향 (부정 자극 응시) →</text>
+    ${[-4, 0, 6, 12, 16].map(v => `<text x="${xs(v)}" y="${py + ih + 14}" text-anchor="middle" font-size="10.5" fill="#8A93A8">${v}</text>`).join('')}
+    ${has ? `<circle cx="${xs(r.stressDelta)}" cy="${ys(r.gaze.attentionBias)}" r="9" fill="#2458E6" stroke="#fff" stroke-width="3"/><text x="${xs(r.stressDelta)}" y="${ys(r.gaze.attentionBias) - 14}" text-anchor="middle" font-size="12" font-weight="800" fill="#2458E6">나</text>` : `<text x="${px + iw / 2}" y="${py + 16}" text-anchor="middle" font-size="12" fill="#D94B6A">한쪽 축의 신호가 부족해 위치를 표시하지 않았어요</text>`}
+  </svg>`;
+}
+
+function timelineSvg(r) {
+  const tl = r.timeline.filter(w => w.snr >= -2);
+  const ph = r.phaseTimes, t0 = ph.baseline.start, t1 = ph.recovery.end;
+  if (tl.length < 5) return '<p class="muted small">심박 신호가 충분하지 않아 그래프를 그리지 않았어요.</p>';
+  const W = 860, H = 210, px = 40, py = 14, iw = W - px - 10, ih = H - py - 34;
+  const lo = Math.floor(Math.min(...tl.map(w => w.bpm)) - 4), hi = Math.ceil(Math.max(...tl.map(w => w.bpm)) + 4);
+  const xs = t => px + (t - t0) / (t1 - t0) * iw, ys = v => py + (1 - (v - lo) / (hi - lo)) * ih;
+  const bands = [['baseline', '기준선', '#EEF3FF'], ['neu', '중립', '#F4F6FA'], ['neg', '부정', '#FDEEF1'], ['pos', '긍정', '#EDF7F1'], ['stress', '압박', '#FFF6E6'], ['recovery', '회복', '#F1EEFF']]
+    .filter(([k]) => ph[k] && ph[k].end)
+    .map(([k, l, c]) => `<rect x="${xs(ph[k].start)}" y="${py}" width="${xs(ph[k].end) - xs(ph[k].start)}" height="${ih}" fill="${c}"/><text x="${(xs(ph[k].start) + xs(ph[k].end)) / 2}" y="${H - 8}" text-anchor="middle" font-size="11.5" fill="#647089">${l}</text>`).join('');
+  let d = '', prev = null;
+  tl.forEach(w => { d += (prev && w.t - prev.t < 3500 ? 'L' : 'M') + xs(w.t).toFixed(1) + ' ' + ys(w.bpm).toFixed(1) + ' '; prev = w; });
+  const ticks = [lo, Math.round((lo + hi) / 2), hi].map(v => `<text x="${px - 6}" y="${ys(v) + 4}" text-anchor="end" font-size="10.5" fill="#8A93A8">${v}</text>`).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="측정 구간별 심박 변화">${bands}${ticks}<path d="${d}" fill="none" stroke="#D94B6A" stroke-width="2.4" stroke-linejoin="round"/></svg>`;
+}
+
+function calibText(c) {
+  if (!c) return '—';
+  if (c.mouse) return '데모(마우스)';
+  if (c.errPct === null || c.errPct === undefined) return '보정 실패 — 시선 지표 제외';
+  return `오차 ${c.errPct}% (${{ good: '양호', fair: '보통', poor: '불안정' }[c.grade]})`;
+}
+function renderReport(r) {
+  const p = r.profile, g = r.gaze, c = r.checkin || {};
+  const pct = v => v === null ? '—' : Math.round((v + 0.5) * 100);
+  const biasText = !r.quality.gazeOk ? '시선 신호가 부족했어요' : p.biasHigh ? `부정 자극 쪽을 ${pct(g.attentionBias)}% 바라봤어요 (붙잡힘 경향)` : `부정 자극 응시 ${pct(g.attentionBias)}% — 고르게 분배됐어요`;
+  const bodyText = !r.quality.bodyOk ? '심박 신호가 부족했어요' : `압박 과제에서 심박 ${fmt(r.stressDelta, 1, true)} bpm ${p.bodyHigh ? '— 뚜렷한 반응' : '— 반응이 크지 않음'}`;
+  const hist = loadHistory().slice(1, 6);
+  const mins = Math.round((r.phaseTimes.recovery.end - r.phaseTimes.baseline.start) / 6000) / 10;
+  $('sReport').innerHTML = `
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+      <div class="kicker">마음 반응 프로파일 · Gaze × rPPG</div>
+      ${r.demo ? '<span class="badge demo">시뮬레이션 데이터 — 실제 측정이 아닙니다</span>' : `<span class="badge live">실측 · ${mins}분 · 얼굴 인식 ${r.quality.faceCoverage}%</span>`}
+    </div>
+    <div class="hero">
+      <div>
+        <div class="ptype">${esc(p.title)}</div>
+        <div class="ptag">${esc(p.tag)}</div>
+        <p class="lead" style="margin:0">${esc(p.desc)}</p>
+      </div>
+      <div>${quadrantSvg(r)}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>느끼는 나 · 시선 · 몸 — 세 겹 비교</h2>
+    <div class="three">
+      <div><b>FEEL · 체크인</b><p>기분 ${c.valence ?? '—'}/9 · 긴장 ${c.tension ?? '—'}/5 · 에너지 ${c.energy ?? '—'}/5</p></div>
+      <div><b>GAZE · 시선</b><p>${biasText}</p></div>
+      <div><b>BODY · 심박</b><p>${bodyText}</p></div>
+    </div>
+    ${r.mismatch ? `<div class="mismatch">${esc(r.mismatch.text)}</div>` : ''}
+  </div>
+
+  <div class="card">
+    <h2>측정 지표</h2>
+    <div class="group-t">BODY · 원격 심박 (rPPG)</div>
+    <div class="grid">
+      ${metric('안정 시 심박', fmt(r.hr.baseline.bpm), 'bpm', '기준선 구간 중앙값', r.hr.baseline.quality)}
+      ${metric('압박 반응성', fmt(r.stressDelta, 1, true), 'bpm', '암산 과제 − 기준선. 클수록 몸이 먼저 긴장', r.hr.stress.quality)}
+      ${metric('회복력', fmt(r.recovery), '%', '압박으로 오른 심박이 호흡 구간 후반에 되돌아온 비율', r.hr.recoveryLate.quality)}
+      ${metric('호흡 동조', fmt(r.coupling && r.coupling.ampBpm, 1), 'bpm', '분당 6회 호흡에 따라 심박이 출렁인 폭. 이완 능력의 대리 지표', r.coupling ? r.hr.recovery.quality : 'none')}
+      ${metric('정서 각성', fmt(r.negDelta, 1, true), 'bpm', '부정 자극 블록 − 중립 블록 심박', r.hr.neg.quality)}
+      ${metric('심박 변동 (참고)', fmt(r.hrv), 'ms', 'RMSSD. 웹캠 30fps 한계로 참고용', r.hrv !== null ? 'fair' : 'none')}
+    </div>
+    <div class="group-t">GAZE · 시선</div>
+    <div class="grid">
+      ${metric('주의 편향', g.attentionBias === null ? '—' : pct(g.attentionBias), '%', '부정-중립 쌍에서 부정 쪽 응시 비율 (50%가 균형)', r.quality.gazeOk ? 'good' : 'poor')}
+      ${metric('부정 자극 체류', fmt(g.dwellNeg), 'ms', '부정 자극에 처음 머문 시간. 길수록 떼어내기 어려움', r.quality.gazeOk ? 'good' : 'poor')}
+      ${metric('첫 시선 부정', g.firstNeg === null ? '—' : Math.round(g.firstNeg * 100), '%', '시선이 먼저 부정 자극으로 간 비율', r.quality.gazeOk ? 'good' : 'poor')}
+      ${metric('긍정 주의', g.positivity === null ? '—' : pct(g.positivity), '%', '긍정-중립 쌍에서 긍정 쪽 응시 비율', r.quality.gazeOk ? 'good' : 'poor')}
+    </div>
+    <div class="group-t">FACE · 얼굴 신호</div>
+    <div class="grid">
+      ${metric('깜빡임', fmt(r.blink.all, 1), '회/분', '전체 측정 평균. 피로·인지 부하와 관련', r.blink.all !== null ? 'good' : 'none')}
+      ${metric('압박 시 깜빡임', fmt(r.blink.stress, 1), '회/분', '암산 과제 중 깜빡임', r.blink.stress !== null ? 'good' : 'none')}
+      ${metric('머리 움직임', fmt(r.motion.all, 1), '%/초', '얼굴 폭 대비 이동량. 측정 품질 지표', r.motion.all !== null ? 'good' : 'none')}
+      ${metric('표정 반응', fmt(r.exprNeg, 1, true), '', '부정 블록에서 찌푸림 증가 (×100)', r.exprNeg !== null ? 'fair' : 'none')}
+    </div>
+    <div class="group-t">TIMELINE · 구간별 심박</div>
+    ${timelineSvg(r)}
+    <p class="disc">시선 보정: ${calibText(r.quality.gaze)}${r.resized ? ' · 측정 중 화면 크기가 바뀌어 시선 정확도가 낮을 수 있어요' : ''} · 압박 과제 정답 ${r.stressScore ? `${r.stressScore.correct}/${r.stressScore.total}` : '—'}</p>
+  </div>
+
+  <div class="card">
+    <h2>추천 케어 · ${esc(r.care.track)}</h2>
+    <div class="care-box">
+      <b>${esc(p.title)}에게 맞춘 첫 주 루틴</b>
+      <ul>${r.care.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+    </div>
+    <div class="btns no-print">
+      <button class="btn care" id="bioStart">지금 1분 호흡 바이오피드백</button>
+      <button class="btn ghost" id="again">다시 측정</button>
+      <button class="btn ghost" id="dl">결과 JSON 저장</button>
+    </div>
+    <div class="effect" id="effect"></div>
+    <p class="disc">케어를 하는 동안에도 같은 카메라로 심박을 측정해, 루틴이 실제로 몸을 이완시켰는지 바로 확인합니다. 이것이 ‘측정 → 개입 → 재측정’ 폐루프의 첫 단계예요.</p>
+  </div>
+
+  <div class="card">
+    <h3>이 기기의 이전 측정</h3>
+    ${hist.length ? `<ul class="hist">${hist.map(h => `<li>${esc(new Date(h.at).toLocaleString('ko-KR'))} · ${esc(h.title)}${h.demo ? ' (데모)' : ''} · 안정 심박 ${fmt(h.hr)} · 압박 반응 ${fmt(h.stress, 1, true)} · 주의 편향 ${h.bias === null ? '—' : Math.round((h.bias + 0.5) * 100) + '%'}</li>`).join('')}</ul>` : '<p class="muted small">이번이 첫 측정이에요. 반복 측정하면 집단 평균이 아니라 ‘평소의 나’와 비교할 수 있어요.</p>'}
+    <p class="disc">본 결과는 의학적 진단이 아닌 웰니스 참고 지표입니다. 판정 기준(주의 편향 +${Math.round(N.THRESH.biasHigh * 100)}%p, 압박 반응 +${N.THRESH.stressHigh} bpm 등)은 파일럿 검증 전 잠정값이며, 조명·움직임·카메라 성능에 따라 오차가 생길 수 있습니다. 카메라 영상은 저장·전송되지 않았고, 결과 요약만 이 브라우저에 남습니다. 힘든 마음이 계속되면 정신건강 위기상담 109(24시간)에 연락하세요. · ${esc(r.version)}</p>
+  </div>`;
+  $('bioStart').addEventListener('click', runBio);
+  $('again').addEventListener('click', () => { S.checkin = {}; document.querySelectorAll('.scale button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('goSetup').disabled = true; show('sCheckin'); });
+  $('dl').addEventListener('click', () => {
+    const { timeline, ...rest } = r;
+    const blob = new Blob([JSON.stringify({ ...rest, timeline, bio: S.bio || null }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `neurolens-newbiz-${Date.now()}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+}
+
+/* ---------- 1분 호흡 바이오피드백 (케어 + 재측정) ---------- */
+async function runBio() {
+  const SEC = 60;
+  const bio = $('bio'), circle = $('bioCircle'), lbl = $('bioLbl');
+  S.abort = false; S.bioFrames = []; bio.classList.add('on');
+  const hist = [];
+  const t0 = now();
+  const demoFn = t => 79 - Math.min(7, (t - t0) / 7000) + 3.5 * Math.sin(2 * Math.PI * 0.1 * (t - t0) / 1000 - Math.PI / 2);
+  if (!S.demo) S.bioRecording = true;
+  let inhale = true, nextSwitch = t0 + 1500, closed = false;
+  $('bioQuit').onclick = () => { closed = true; };
+  lbl.textContent = '준비';
+  const tick = setInterval(() => {
+    const t = now();
+    if (t >= nextSwitch) { circle.classList.toggle('in', inhale); lbl.textContent = inhale ? '들이쉬기' : '내쉬기'; inhale = !inhale; nextSwitch += 5000; }
+  }, 100);
+  while (now() - t0 < SEC * 1000 && !closed) {
+    await new Promise(r => setTimeout(r, 1000));
+    const frames = S.demo ? N.synthFrames(now() - 10000, now(), demoFn, { seed: Math.floor(now()) % 997, noise: 0.35 }) : S.bioFrames;
+    const live = now() - t0 > 9000 ? N.liveHr(frames) : null;
+    if (live && live.quality !== 'poor') { $('bioHr').textContent = live.bpm; hist.push(live.bpm); }
+    $('bioQ').textContent = live ? `실시간 심박 · ${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함' }[live.quality]}${S.demo ? ' · 시뮬레이션' : ''}` : '심박 측정 준비 중… (약 10초)';
+    if (hist.length > 1) {
+      const lo = Math.min(...hist) - 3, hi = Math.max(...hist) + 3;
+      const pts = hist.map((v, i) => `${(i / Math.max(1, SEC - 10)) * 520},${70 - (v - lo) / (hi - lo) * 66 - 2}`).join(' ');
+      $('bioSpark').innerHTML = `<polyline points="${pts}" fill="none" stroke="#D94B6A" stroke-width="2.5"/>`;
+    }
+  }
+  clearInterval(tick);
+  S.bioRecording = false;
+  bio.classList.remove('on'); circle.classList.remove('in');
+  if (closed && now() - t0 < 30000) return;
+  const t1 = now();
+  const frames = S.demo ? N.synthFrames(t0, t1, demoFn, { seed: 31, noise: 0.35 }) : S.bioFrames;
+  const sig = N.buildBvp(frames), wins = N.hrWindows(sig);
+  const pre = N.phaseHr(wins, t0, t0 + 20000), post = N.phaseHr(wins, t1 - 20000, t1);
+  const all = N.phaseHr(wins, t0, t1);
+  const coup = sig && all.bpm ? N.breathingCoupling(N.ibis(N.beats(sig, t0, t1, all.bpm))) : null;
+  S.bio = { pre, post, coupling: coup, demo: S.demo };
+  const el = $('effect');
+  el.classList.add('on');
+  if (pre.bpm !== null && post.bpm !== null && pre.quality !== 'poor' && post.quality !== 'poor') {
+    const d = post.bpm - pre.bpm;
+    el.innerHTML = `<b>케어 효과 (같은 카메라로 재측정)${S.demo ? ' · 시뮬레이션' : ''}</b><br>호흡 시작 직후 심박 <b>${fmt(pre.bpm)}</b> → 마무리 <b>${fmt(post.bpm)}</b> bpm (${fmt(d, 1, true)})${coup ? ` · 호흡 동조 폭 ${fmt(coup.ampBpm, 1)} bpm` : ''}<br><span class="muted small">${d <= -2 ? '몸이 이완 방향으로 반응했어요. 하루 2~3회 반복하면 기준선 변화도 확인할 수 있어요.' : '이번에는 뚜렷한 변화가 없었어요. 조금 더 길게(3분) 해 보세요.'}</span>`;
+  } else {
+    el.innerHTML = '<b>케어 효과</b><br><span class="muted small">심박 신호가 충분하지 않아 전후 비교를 하지 못했어요. 조명을 밝게 하고 다시 시도해 보세요.</span>';
+  }
+}
+</script>
+</body>
+</html>
