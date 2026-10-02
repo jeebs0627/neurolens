@@ -69,6 +69,16 @@ const R = require('./newbiz-report.js');
   assert.equal(B.saccadeStats(trials, W, false).ok, false);
 }
 
+/* 4b) 개인 보정: 진폭이 작게(15%) 추정되고 중심이 치우친 시선도 보정하면 판정된다 */
+{
+  const W = 1000, A = 0.35 * 0.15 * W, cal = { xL: 560 - A, xC: 560, xR: 560 + A };
+  const tr = { type: 'anti', side: 'R', onset: 0, end: 1200, samples: [] };
+  for (let t = -500; t <= 1200; t += 33) tr.samples.push({ t, x: t >= 260 ? 560 - A : 560, bl: t === -170 });
+  assert.equal(B.saccadeTrial(tr, W, null).valid, false);
+  const r = B.saccadeTrial(tr, W, cal);
+  assert.equal(r.valid, true); assert.equal(r.error, false);
+}
+
 /* 5) 원활 추적: 이득·지연 복원 */
 {
   const W = 1200, t0 = 0, amp = 400, cx = 600, freq = 0.25, dur = 20000, samples = [];
@@ -111,13 +121,14 @@ const expect = {
   balanced: { code: 'balanced', paths: [] },
   fatigue: { code: 'alert', paths: ['fatigue'], mismatch: 'sleep-unaware' },
   control: { code: 'control', paths: ['nvi'] },
-  overload: { code: 'autonomic', paths: ['act', 'perseverative'], mismatch: 'tension-body-hidden' },
+  overload: { code: ['autonomic', 'emotion'], paths: ['perseverative'], mismatch: 'tension-body-hidden' },   // 두 영역 모두 '관리 필요' → 1·2순위를 나눠 가짐
 };
 for (const [p, e] of Object.entries(expect)) {
   for (const seed of [20261002, 7, 99]) {
     const r = B.run(B.simulate(p, { seed, measuredAt: '2026-10-02T10:00:00.000Z' }));
     const I = r.battery.integrated;
-    assert.equal(I.code, e.code, `${p}/${seed}: ${I.code}`);
+    if (Array.isArray(e.code)) { assert.ok(e.code.includes(I.code) && e.code.includes(I.secondary), `${p}/${seed}: ${I.code}/${I.secondary}`); }
+    else assert.equal(I.code, e.code, `${p}/${seed}: ${I.code}`);
     e.paths.forEach(k => assert.ok(I.pathways.some(x => x.key === k), `${p}/${seed}: 연결 ${k} 없음 (${I.pathways.map(x => x.key)})`));
     if (e.mismatch) assert.ok(I.mismatches.some(m => m.key === e.mismatch), `${p}/${seed}: 불일치 ${e.mismatch}`);
     B.DOMAIN_KEYS.forEach(k => assert.notEqual(r.battery.domains[k].status, 'na', `${p}: ${k} 미측정`));

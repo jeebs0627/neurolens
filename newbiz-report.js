@@ -205,7 +205,10 @@
       body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + 마스크 ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 11%)에서 반응 억제.${C.cite(['robertson'])}</p>`);
     } else if (k === 'emotion') {
       body += `<div class="two"><div><div class="group-t">정서 주의 × 신체 반응 · 2축 유형</div>${quadrantSvg(r)}</div><div class="prof-mini"><div class="group-t">2축 유형</div><b>${esc(r.profile.title)}</b><p>${esc(r.profile.desc)}</p></div></div>`;
-      body += methodBox('core', b, C);
+      const photo = r.stimMode === 'photo';
+      body += methodBox('core', b, C, `<p><b>자극</b> ${photo
+        ? `정서 사진 세트 ${esc(r.stimForm || 'A')} — 위협·슬픔·긍정 사진과 내용 유형(인물·동물·장면·사물)이 같은 중립 사진을 짝지어 4초 제시. 사진은 SAM 정서가·각성가 평정과 휘도 정합을 거쳐 선별${C.cite(['sam', 'kurdi', 'marchewka'])}.`
+        : '정서 사진 세트가 준비되지 않아 밝기를 맞춘 도식 얼굴과 단어 자극을 3.5초 제시했습니다. 사진 자극보다 정서 강도가 약해 편향이 작게 측정될 수 있습니다.'} 자유 보기 체류 지표는 dot-probe 반응시간보다 재검사 신뢰도가 높게 보고됩니다${C.cite(['waechter'])}.</p>`);
     } else if (k === 'autonomic') {
       body += `<div class="group-t">구간별 원격 심박 (rPPG · POS)</div>${timelineSvg(r)}`;
       body += `<p class="disc">압박 과제 정답 ${r.stressScore ? `${r.stressScore.correct}/${r.stressScore.total}` : '—'} · 안정 시 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함', none: '없음' }[r.hr.baseline.quality]}${C.cite(['pos'])}</p>`;

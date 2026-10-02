@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'newbiz-battery-0.2';
+  const VERSION = 'newbiz-battery-0.3';
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -60,6 +60,10 @@
     pos: 'Wang W, den Brinker AC, Stuijk S, de Haan G. Algorithmic principles of remote PPG. IEEE Trans Biomed Eng. 2017;64(7):1479–1491.',
     mediapipe: 'Kartynnik Y, Ablavatski A, Grishchenko I, Grundmann M. Real-time facial surface geometry from monocular video on mobile GPUs. CVPR Workshop on Computer Vision for AR/VR; 2019. arXiv:1907.06724.',
     webcamET: 'Semmelmann K, Weigelt S. Online webcam-based eye tracking in cognitive science: a first look. Behav Res Methods. 2018;50(2):451–465.',
+    kellough: 'Kellough JL, Beevers CG, Ellis AJ, Wells TT. Time course of selective attention in clinically depressed young adults: an eye tracking study. Behav Res Ther. 2008;46(11):1238–1243.',
+    waechter: 'Waechter S, Nelson AL, Wright C, Hyatt A, Oakman J. Measuring attentional bias to threat: reliability of dot probe and eye movement indices. Cognit Ther Res. 2014;38(3):313–333.',
+    kurdi: 'Kurdi B, Lozano S, Banaji MR. Introducing the Open Affective Standardized Image Set (OASIS). Behav Res Methods. 2017;49(2):457–470.',
+    marchewka: 'Marchewka A, Żurawski Ł, Jednoróg K, Grabowska A. The Nencki Affective Picture System (NAPS): introduction to a novel, standardized, wide-range, high-quality, realistic picture database. Behav Res Methods. 2014;46(2):596–610.',
     sam: 'Bradley MM, Lang PJ. Measuring emotion: the Self-Assessment Manikin and the semantic differential. J Behav Ther Exp Psychiatry. 1994;25(1):49–59.',
     garfinkel: 'Garfinkel SN, Seth AK, Barrett AB, Suzuki K, Critchley HD. Knowing your own heart: distinguishing interoceptive accuracy from interoceptive awareness. Biol Psychol. 2015;104:65–74.',
     trauer: 'Trauer JM, Qian MY, Doyle JS, Rajaratnam SMW, Cunnington D. Cognitive behavioral therapy for chronic insomnia: a systematic review and meta-analysis. Ann Intern Med. 2015;163(3):191–204.',
@@ -77,13 +81,14 @@
   const PROTOCOL = {
     pvt: { isiMin: 1000, isiMax: 4000, lapseMs: 355, falseMs: 100, timeoutMs: 3000 },          // PVT-B (Basner et al., 2011)
     sart: { digitMs: 250, maskMs: 900, nogo: 3, sizes: [48, 72, 94, 100, 120] },                // SART (Robertson et al., 1997)
-    saccade: { fixMin: 1000, fixMax: 2000, targetMs: 1000, gapMs: 300, ecc: 0.35 },             // 단계 패러다임 (Antoniades et al., 2013 참고)
+    saccade: { fixMin: 1000, fixMax: 2000, targetMs: 1200, gapMs: 400, ecc: 0.35, window: 1000 }, // 단계 패러다임 (Antoniades et al., 2013 참고)
     pursuit: { freq: 0.25, amp: 0.36, skipMs: 1500 },                                            // 수평 정현파 추적
     perclos: { closure: 0.8, blink: 0.5 },                                                       // P80 (Wierwille et al., 1994)
   };
   const DUR = {
-    full:  { baseline: 60, pursuit: 24, pro: 8, anti: 20, practice: 2, trials: 7, pvt: 180, sart: 135, stress: 45, recovery: 60 },
-    quick: { baseline: 30, pursuit: 14, pro: 5, anti: 12, practice: 1, trials: 4, pvt: 90, sart: 72, stress: 30, recovery: 40 },
+    /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
+    full:  { baseline: 60, pursuit: 24, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 9, stress: 45, recovery: 60 },
+    quick: { baseline: 30, pursuit: 14, pro: 6, anti: 12, practice: 1, trials: 4, fv: { neu: 4, neg: 12, pos: 6 }, pvt: 90, pvtPractice: 2, sart: 63, sartPractice: 9, stress: 30, recovery: 40 },
   };
 
   const MODULES = {
@@ -96,19 +101,19 @@
     oculo: {
       title: '안구운동 통제', tests: '원활 추적 + 프로·안티사카드', domain: 'control', min: { full: 2.5, quick: 1.5 },
       paradigm: '좌우로 움직이는 점을 눈으로 따라가는 원활 추적과, 주변에 나타난 점을 보거나(프로사카드) 반대쪽을 보는(안티사카드) 과제다. 안티사카드는 반사적 시선을 억제하는 전전두 실행 통제를 직접 반영한다.',
-      limits: '웹캠 시선은 정확도 약 1~2°, 30fps라 잠복기는 ±33ms 해상도의 참고값이다. 판정에는 시선 방향(오류율)처럼 웹캠으로도 안정적인 지표를 주로 쓴다.',
+      limits: '웹캠 시선은 정확도 약 1~2°, 30fps라 잠복기는 ±33ms 해상도의 참고값이다. 사카드 직전 좌·중·우 응시로 개인별 시선 진폭을 재고 그 40%를 반응 기준으로 삼아, 고정 기준보다 유효 시행을 크게 늘렸다. 판정에는 시선 방향(오류율)처럼 웹캠으로도 안정적인 지표를 주로 쓴다.',
       refs: ['hallett', 'munoz', 'antoniades', 'lencer', 'maruta', 'webcamET'],
     },
     sustain: {
       title: '지속 주의', tests: 'SART 반응 억제 과제 + 머리 움직임', domain: 'control', min: { full: 3, quick: 1.7 },
       paradigm: '숫자 1~9가 빠르게(250ms + 마스크 900ms) 나타날 때 3을 제외한 모든 숫자에 반응한다. 지속 주의와 반응 억제의 실패(일상적 주의 실수)를 측정하는 연속수행검사(CPT) 계열 과제이며, 수행 중 머리 움직임을 웹캠으로 함께 기록한다.',
-      limits: '원판(225시행)을 단축했다. 머리 움직임은 얼굴 랜드마크 이동량이며 적외선 동작 분석(QbTest류)보다 해상도가 낮다.',
+      limits: '원판(225시행)을 108시행(표준)·63시행(빠른 측정)으로 단축하고, 본 시행 전 9시행 연습에서 피드백을 준다. 머리 움직임은 얼굴 랜드마크 이동량이며 적외선 동작 분석(QbTest류)보다 해상도가 낮다.',
       refs: ['robertson', 'rosvold', 'kofler', 'teicher'],
     },
     core: {
       title: '정서 주의 · 스트레스 반응', tests: '정서 자유 보기 + 제한 시간 암산 + 분당 6회 공명 호흡', domain: 'emotion · autonomic', min: { full: 4, quick: 2.5 },
-      paradigm: '정서-중립 자극 쌍을 자유롭게 보는 동안의 시선 체류(주의 편향), 제한 시간 암산(MIST 계열 사회평가 압박) 중 심박 반응, 공명 주파수 호흡 중 심박 회복과 호흡-심박 동조를 rPPG(POS)로 측정한다.',
-      limits: 'rPPG는 조명·움직임에 민감하며 HRV(RMSSD)는 30fps 한계로 참고값이다. 자극은 밝기를 맞춘 도식 얼굴과 단어로, 표준화 사진 자극보다 강도가 약하다.',
+      paradigm: '정서-중립 사진 쌍(위협·슬픔·긍정 vs 내용이 맞춰진 중립 사진)을 자유롭게 보는 동안의 시선 체류(주의 편향), 제한 시간 암산(MIST 계열 사회평가 압박) 중 심박 반응, 공명 주파수 호흡 중 심박 회복과 호흡-심박 동조를 rPPG(POS)로 측정한다.',
+      limits: 'rPPG는 조명·움직임에 민감하며 HRV(RMSSD)는 30fps 한계로 참고값이다. 정서 사진 세트가 없으면 밝기를 맞춘 도식 얼굴·단어로 대체하며, 이 경우 표준화 사진 자극보다 강도가 약하다.',
       refs: ['armstrong', 'dedovic', 'lehrer', 'pos', 'mediapipe'],
     },
   };
@@ -242,16 +247,24 @@
     return { perclos: round(closedT / tot * 100, 1), blinkMs: blinks.length >= 3 ? round(mean(blinks)) : null, blinkRate: round(blinks.length / min, 1), longPerMin: round(longN / min, 1), minutes: round(min, 1) };
   }
 
-  /* 사카드 1시행: 응시점 기준선 대비 첫 이탈의 방향·잠복기 */
-  function saccadeTrial(tr, W) {
+  /* 사카드 1시행: 응시점 기준선 대비 첫 이탈의 방향·잠복기.
+   * cal = {xL, xC, xR}: 사카드 직전 좌·중·우 응시로 잰 개인별 시선 위치. 있으면 판정 기준을 그 사람의 시선 진폭에 맞춘다
+   * (웹캠 회귀는 실제 눈 움직임보다 진폭을 작게 추정하는 경우가 많아, 화면 폭 기준 고정 임계값은 반응을 놓친다). */
+  function saccadeThreshold(sd, W, cal) {
+    const amp = cal ? Math.abs(cal.xR - cal.xL) / 2 : null;
+    if (finite(amp) && amp >= W * 0.05) return clamp(Math.max(0.4 * amp, 2.5 * sd), W * 0.03, 0.7 * amp);
+    return clamp(3 * sd, W * 0.06, W * 0.18);
+  }
+  function saccadeTrial(tr, W, cal) {
     if (!finite(tr.onset)) return { valid: false, reason: 'nodata' };
-    const s = med3(tr.samples || []);
-    const pre = s.filter(p => p.t >= tr.onset - 400 && p.t <= tr.onset + 60).map(p => p.x);
-    if (pre.length < 4) return { valid: false, reason: 'nofix' };
+    const s = med3((tr.samples || []).filter(p => !p.bl));          // 깜빡임 프레임은 홍채 위치가 튀므로 제외
+    const pre = s.filter(p => p.t >= tr.onset - 400 && p.t <= tr.onset + 50).map(p => p.x);
+    if (pre.length < 3) return { valid: false, reason: 'nofix' };
     const x0 = median(pre), sd = std(pre) || 0;
-    if (Math.abs(x0 - W / 2) > W * 0.15) return { valid: false, reason: 'offcenter' };
-    const thr = clamp(3 * sd, W * 0.08, W * 0.18);
-    const post = s.filter(p => p.t > tr.onset + 60 && p.t <= Math.min(finite(tr.end) ? tr.end : Infinity, tr.onset + 1000));
+    const center = cal && finite(cal.xC) ? cal.xC : W / 2, amp = cal ? Math.abs(cal.xR - cal.xL) / 2 : W * 0.35;
+    if (Math.abs(x0 - center) > Math.max(W * 0.12, amp * 0.6)) return { valid: false, reason: 'offcenter' };
+    const thr = saccadeThreshold(sd, W, cal);
+    const post = s.filter(p => p.t > tr.onset + 50 && p.t <= Math.min(finite(tr.end) ? tr.end : Infinity, tr.onset + PROTOCOL.saccade.window));
     let hit = -1;
     for (let i = 0; i < post.length; i++) if (Math.abs(post[i].x - x0) >= thr) { hit = i; break; }
     if (hit < 0) return { valid: false, reason: 'noresp' };
@@ -260,16 +273,20 @@
     if (q) { const a = Math.abs(q.x - x0), b = Math.abs(p.x - x0); if (b > a) t = q.t + (thr - a) / (b - a) * (p.t - q.t); }
     const lat = t - tr.onset;
     if (lat < 80) return { valid: false, reason: 'anticip' };
-    if (lat > 800) return { valid: false, reason: 'late' };
     const dir = p.x > x0 ? 1 : -1, tdir = tr.side === 'R' ? 1 : -1, want = tr.type === 'anti' ? -tdir : tdir;
     const error = dir !== want;
     const corrected = error && post.slice(hit + 1).some(z => (z.x - x0) * want >= thr);
     return { valid: true, lat, error, corrected };
   }
-  function saccadeStats(trials, W, calOk = true) {
+  /* 측정 중 품질 확인용: 블록의 유효 시행 비율과 방향 정확도 */
+  function saccadeQuick(trials, W, cal) {
+    const r = (trials || []).map(t => ({ type: t.type, r: saccadeTrial(t, W, cal) })), v = r.filter(x => x.r.valid);
+    return { n: r.length, valid: v.length, validRate: r.length ? v.length / r.length : 0, accuracy: v.length ? v.filter(x => !x.r.error).length / v.length : null };
+  }
+  function saccadeStats(trials, W, calOk = true, cal = null) {
     const T = (trials || []).filter(t => !t.practice);
     if (!T.some(t => t.type === 'anti')) return null;
-    const res = T.map(t => ({ type: t.type, r: saccadeTrial(t, W) }));
+    const res = T.map(t => ({ type: t.type, r: saccadeTrial(t, W, cal) }));
     const grp = type => {
       const all = res.filter(x => x.type === type), v = all.filter(x => x.r.valid), err = v.filter(x => x.r.error);
       return { n: all.length, valid: v.length, errors: err.length, corrected: err.filter(x => x.r.corrected).length, latency: round(median(v.filter(x => !x.r.error).map(x => x.r.lat))) };
@@ -434,6 +451,17 @@
     return { code, ...HEAD[code], primary: code === 'insufficient' ? null : primary, secondary: code === 'insufficient' ? null : secondary, measured, flagged, pathways, mismatches };
   }
 
+  /* 정서 사진 모드: 부정 블록 안의 위협·슬픔 자극을 따로 집계 (불안은 위협, 우울은 슬픔 자극 편향과 관련; Armstrong & Olatunji, 2012) */
+  function emoSub(rec, W, gazeOk) {
+    if (!gazeOk) return [];
+    const out = [];
+    [['threat', '위협 자극 응시 비율'], ['dysphoric', '슬픔·상실 자극 응시 비율']].forEach(([sub, label]) => {
+      const st = (rec.trials || []).filter(t => t.kind === 'neg' && t.sub === sub).map(t => N.trialStats(t, W)).filter(x => x.valid);
+      if (st.length >= 3) out.push({ label, value: round(mean(st.map(x => x.emoShare)) * 100), unit: '%', refs: sub === 'dysphoric' ? ['armstrong', 'kellough'] : ['armstrong'] });
+    });
+    return out;
+  }
+
   /* ---------- 전체 분석 ----------
    * rec = core 기록(frames, phases, trials, calibration, checkin, screenW, demo) + {pursuit, saccade, pvt, sart, steps, stressScore, sim}
    * phases 에는 실제로 끝까지 수행한 구간만 담는다 (건너뛴 구간은 지운 상태로 전달). */
@@ -447,7 +475,7 @@
     const pvt = pvtStats(rec.pvt);
     const eye = span('pvt') ? eyeStats(frames, ...span('pvt')) : null;
     const eyeBase = span('baseline') ? eyeStats(frames, ...span('baseline')) : null;
-    const saccade = saccadeStats(rec.saccade, W, calOk);
+    const saccade = saccadeStats(rec.saccade, W, calOk, rec.saccadeCal || null);
     const pursuit = pursuitStats(rec.pursuit ? { W, ...rec.pursuit } : null, calOk);
     const sart = sartStats(rec.sart);
     const sartMotion = span('sart') ? N.motionIndex(face, ...span('sart')) : null;
@@ -496,6 +524,7 @@
         { label: '기준선 머리 움직임', value: base.motion.baseline, unit: '%/초', refs: ['teicher'] },
       ],
       emotion: [
+        ...emoSub(rec, W, base.quality.gazeOk),
         { label: '부정 자극 첫 체류', value: base.quality.gazeOk ? base.gaze.dwellNeg : null, unit: 'ms', refs: ['armstrong'] },
         { label: '긍정 자극 응시 비율', value: base.quality.gazeOk && finite(base.gaze.positivity) ? round((base.gaze.positivity + 0.5) * 100) : null, unit: '%', refs: ['armstrong'] },
         { label: '부정 블록 찌푸림 변화', value: base.exprNeg, unit: '×100', refs: [] },
@@ -508,7 +537,7 @@
     };
 
     return {
-      ...base, phaseTimes: ph, stressScore: rec.stressScore || null, mode: rec.mode || null, resized: !!rec.resized,
+      ...base, phaseTimes: ph, stressScore: rec.stressScore || null, stimMode: rec.stimMode || 'schematic', stimForm: rec.stimForm || null, mode: rec.mode || null, resized: !!rec.resized,
       battery: { version: VERSION, pvt, eye, eyeBase, saccade, pursuit, sart, sartMotion, indicators, info, domains, integrated, care, steps: rec.steps || {}, sim: rec.sim || null },
     };
   }
@@ -523,7 +552,7 @@
     fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4 },
       hr: { base: 65, task: 1, neg: 1.5, stress: 5, rec: 0.75, coup: 7 }, eye: { blinkMs: 260, drowsy: 0.12 }, motion: { base: 0.7, sart: 1.0 },
       pvt: { mu: 318, sd: 55, lapse: 0.12, early: 0.05 }, anti: { err: 0.27, corr: 0.7, lat: 320, pro: 220 },
-      pursuit: { gain: 0.72, lag: 150, noise: 0.05 }, sart: { com: 0.46, om: 0.08, rt: 420, cv: 0.31 }, bias: 0.54, first: 0.52, pos: 0.5, math: 0.7 },
+      pursuit: { gain: 0.72, lag: 150, noise: 0.05 }, sart: { com: 0.5, om: 0.1, rt: 430, cv: 0.34 }, bias: 0.54, first: 0.52, pos: 0.5, math: 0.7 },
     control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3 },
       hr: { base: 72, task: 2, neg: 1, stress: 7, rec: 0.42, coup: 3.2 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.8, sart: 3.4 },
       pvt: { mu: 288, sd: 40, lapse: 0.03, early: 0.06 }, anti: { err: 0.5, corr: 0.6, lat: 300, pro: 190 },
@@ -542,6 +571,7 @@
     const rand = rng(opt.seed || 20261002), gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += rand(); return (u - 3) * 1.414; };
     const W = opt.W || 1440, cx = W / 2;
     const ph = {}, trials = [], saccade = [];
+    const sacCal = { xL: cx - 0.3 * W, xC: cx + 0.02 * W, xR: cx + 0.3 * W };   // 웹캠 회귀처럼 진폭이 줄고 중심이 약간 치우친 상태
     let t = 1000;
     const seg = (k, ms) => { ph[k] = { start: t, end: t + ms }; t += ms + 3000; };
 
@@ -569,7 +599,7 @@
               const first = (err ? -want : want) * S.ecc * W * Math.min(1, (dtm - lat) / 50);
               pos = corrected && dtm >= lat + 230 ? want * S.ecc * W * Math.min(1, (dtm - lat - 230) / 50) : first;
             }
-            samples.push({ t: s, x: cx + pos + 0.018 * W * gauss() });
+            samples.push({ t: s, x: sacCal.xC + pos * 0.86 + 0.018 * W * gauss() });
           }
           saccade.push({ type, side, onset, end, samples });
           t = end + S.gapMs;
@@ -590,7 +620,7 @@
             const onEmo = firstEmo ? f < share : f >= 1 - share;
             samples.push({ t: s, x: (onEmo ? emoX : othX) + 0.02 * W * gauss() });
           }
-          trials.push({ kind, emoSide, onset, end, samples });
+          trials.push({ kind, emoSide, onset, end, samples, ...(kind === 'neg' ? { sub: i % 2 ? 'threat' : 'dysphoric' } : {}) });
           t = end;
         }
         ph[kind].end = t;
@@ -660,7 +690,7 @@
       pvt: inc.alert ? done : off, sart: inc.sustain ? done : off, stress: inc.core ? done : off, recovery: inc.core ? done : off,
     };
     return {
-      frames, phases: ph, trials, pursuit, saccade: inc.oculo ? saccade : null, pvt, sart, stressScore, steps,
+      frames, phases: ph, trials, pursuit, saccade: inc.oculo ? saccade : null, saccadeCal: inc.oculo ? sacCal : null, pvt, sart, stressScore, steps,
       screenW: W, calibration: { grade: 'good', errPct: 7.5, sim: true }, checkin: { ...P.checkin },
       demo: true, sim: { persona: personaKey, label: P.label }, mode: opt.mode === 'quick' ? 'quick' : 'full', measuredAt: opt.measuredAt || new Date().toISOString(),
     };
@@ -668,6 +698,6 @@
 
   return {
     VERSION, REFS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
-    scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeTrial, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
+    scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
   };
 });
