@@ -1,5 +1,745 @@
 {
-  "version": 1,
-  "form": "A",
-  "images": []
+ "version": 1,
+ "form": "A",
+ "status": "provisional",
+ "statusNote": "AI 생성 세트 A — 휘도(평균 129)·대비 정합, 정서-중립 쌍둥이 구성 완료. SAM 정서가·각성가 평정 전 잠정 세트 (2026-10-03 검토)",
+ "images": [
+  {
+   "id": "DYS-A-01",
+   "file": "A/dys_animal_01.jpg",
+   "category": "dysphoric",
+   "content": "animal",
+   "twin": "NEU-A-101",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-A-02",
+   "file": "A/dys_animal_02.jpg",
+   "category": "dysphoric",
+   "content": "animal",
+   "twin": "NEU-A-102",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-A-03",
+   "file": "A/dys_animal_03.jpg",
+   "category": "dysphoric",
+   "content": "animal",
+   "twin": "NEU-A-103",
+   "luminance": 129,
+   "exclude": true,
+   "note": "쌍둥이와 채도 차이 큼(−59) · 철창 유무로 구도 차이"
+  },
+  {
+   "id": "DYS-O-01",
+   "file": "A/dys_object_01.jpg",
+   "category": "dysphoric",
+   "content": "object",
+   "twin": "NEU-O-101",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-O-02",
+   "file": "A/dys_object_02.jpg",
+   "category": "dysphoric",
+   "content": "object",
+   "twin": "NEU-O-102",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-P-01",
+   "file": "A/dys_person_01.jpg",
+   "category": "dysphoric",
+   "content": "person",
+   "twin": "NEU-P-101",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-P-02",
+   "file": "A/dys_person_02.jpg",
+   "category": "dysphoric",
+   "content": "person",
+   "twin": "NEU-P-102",
+   "luminance": 130
+  },
+  {
+   "id": "DYS-P-03",
+   "file": "A/dys_person_03.jpg",
+   "category": "dysphoric",
+   "content": "person",
+   "twin": "NEU-P-103",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-P-04",
+   "file": "A/dys_person_04.jpg",
+   "category": "dysphoric",
+   "content": "person",
+   "twin": "NEU-P-104",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-P-05",
+   "file": "A/dys_person_05.jpg",
+   "category": "dysphoric",
+   "content": "person",
+   "twin": "NEU-P-105",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-P-06",
+   "file": "A/dys_person_06.jpg",
+   "category": "dysphoric",
+   "content": "person",
+   "twin": "NEU-P-106",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-S-01",
+   "file": "A/dys_scene_01.jpg",
+   "category": "dysphoric",
+   "content": "scene",
+   "twin": "NEU-S-101",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-S-02",
+   "file": "A/dys_scene_02.jpg",
+   "category": "dysphoric",
+   "content": "scene",
+   "twin": "NEU-S-102",
+   "luminance": 128,
+   "exclude": true,
+   "note": "쌍둥이(맑은 날)와 채도 차이 큼(−38)"
+  },
+  {
+   "id": "DYS-S-03",
+   "file": "A/dys_scene_03.jpg",
+   "category": "dysphoric",
+   "content": "scene",
+   "twin": "NEU-S-103",
+   "luminance": 129
+  },
+  {
+   "id": "DYS-S-04",
+   "file": "A/dys_scene_04.jpg",
+   "category": "dysphoric",
+   "content": "scene",
+   "twin": "NEU-S-104",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-A-001",
+   "file": "A/neu_animal_001.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-A-002",
+   "file": "A/neu_animal_002.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-A-003",
+   "file": "A/neu_animal_003.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-A-101",
+   "file": "A/neu_animal_101.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 130
+  },
+  {
+   "id": "NEU-A-102",
+   "file": "A/neu_animal_102.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-A-103",
+   "file": "A/neu_animal_103.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-A-201",
+   "file": "A/neu_animal_201.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 131
+  },
+  {
+   "id": "NEU-A-202",
+   "file": "A/neu_animal_202.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 128
+  },
+  {
+   "id": "NEU-A-203",
+   "file": "A/neu_animal_203.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 128
+  },
+  {
+   "id": "NEU-O-001",
+   "file": "A/neu_object_001.jpg",
+   "category": "neutral",
+   "content": "object",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-O-002",
+   "file": "A/neu_object_002.jpg",
+   "category": "neutral",
+   "content": "object",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-O-101",
+   "file": "A/neu_object_101.jpg",
+   "category": "neutral",
+   "content": "object",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-O-102",
+   "file": "A/neu_object_102.jpg",
+   "category": "neutral",
+   "content": "object",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-O-201",
+   "file": "A/neu_object_201.jpg",
+   "category": "neutral",
+   "content": "object",
+   "luminance": 131
+  },
+  {
+   "id": "NEU-O-202",
+   "file": "A/neu_object_202.jpg",
+   "category": "neutral",
+   "content": "object",
+   "luminance": 130
+  },
+  {
+   "id": "NEU-P-001",
+   "file": "A/neu_person_001.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-002",
+   "file": "A/neu_person_002.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-003",
+   "file": "A/neu_person_003.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-004",
+   "file": "A/neu_person_004.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-005",
+   "file": "A/neu_person_005.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-006",
+   "file": "A/neu_person_006.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-101",
+   "file": "A/neu_person_101.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-102",
+   "file": "A/neu_person_102.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 130
+  },
+  {
+   "id": "NEU-P-103",
+   "file": "A/neu_person_103.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-104",
+   "file": "A/neu_person_104.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-105",
+   "file": "A/neu_person_105.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-106",
+   "file": "A/neu_person_106.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-201",
+   "file": "A/neu_person_201.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-202",
+   "file": "A/neu_person_202.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-203",
+   "file": "A/neu_person_203.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-204",
+   "file": "A/neu_person_204.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-205",
+   "file": "A/neu_person_205.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-P-206",
+   "file": "A/neu_person_206.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-001",
+   "file": "A/neu_scene_001.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 128
+  },
+  {
+   "id": "NEU-S-002",
+   "file": "A/neu_scene_002.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-003",
+   "file": "A/neu_scene_003.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-004",
+   "file": "A/neu_scene_004.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-101",
+   "file": "A/neu_scene_101.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-102",
+   "file": "A/neu_scene_102.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-103",
+   "file": "A/neu_scene_103.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-104",
+   "file": "A/neu_scene_104.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 130
+  },
+  {
+   "id": "NEU-S-201",
+   "file": "A/neu_scene_201.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 130,
+   "exclude": true,
+   "note": "흐린 하늘·회색 바다로 중립보다 가라앉은 분위기"
+  },
+  {
+   "id": "NEU-S-202",
+   "file": "A/neu_scene_202.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-203",
+   "file": "A/neu_scene_203.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129
+  },
+  {
+   "id": "NEU-S-204",
+   "file": "A/neu_scene_204.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 127
+  },
+  {
+   "id": "POS-A-01",
+   "file": "A/pos_animal_01.jpg",
+   "category": "positive",
+   "content": "animal",
+   "twin": "NEU-A-201",
+   "luminance": 130
+  },
+  {
+   "id": "POS-A-02",
+   "file": "A/pos_animal_02.jpg",
+   "category": "positive",
+   "content": "animal",
+   "twin": "NEU-A-202",
+   "luminance": 129
+  },
+  {
+   "id": "POS-A-03",
+   "file": "A/pos_animal_03.jpg",
+   "category": "positive",
+   "content": "animal",
+   "twin": "NEU-A-203",
+   "luminance": 129
+  },
+  {
+   "id": "POS-O-01",
+   "file": "A/pos_object_01.jpg",
+   "category": "positive",
+   "content": "object",
+   "twin": "NEU-O-201",
+   "luminance": 131
+  },
+  {
+   "id": "POS-O-02",
+   "file": "A/pos_object_02.jpg",
+   "category": "positive",
+   "content": "object",
+   "twin": "NEU-O-202",
+   "luminance": 129
+  },
+  {
+   "id": "POS-P-01",
+   "file": "A/pos_person_01.jpg",
+   "category": "positive",
+   "content": "person",
+   "twin": "NEU-P-201",
+   "luminance": 129
+  },
+  {
+   "id": "POS-P-02",
+   "file": "A/pos_person_02.jpg",
+   "category": "positive",
+   "content": "person",
+   "twin": "NEU-P-202",
+   "luminance": 129
+  },
+  {
+   "id": "POS-P-03",
+   "file": "A/pos_person_03.jpg",
+   "category": "positive",
+   "content": "person",
+   "twin": "NEU-P-203",
+   "luminance": 129
+  },
+  {
+   "id": "POS-P-04",
+   "file": "A/pos_person_04.jpg",
+   "category": "positive",
+   "content": "person",
+   "twin": "NEU-P-204",
+   "luminance": 129
+  },
+  {
+   "id": "POS-P-05",
+   "file": "A/pos_person_05.jpg",
+   "category": "positive",
+   "content": "person",
+   "twin": "NEU-P-205",
+   "luminance": 129
+  },
+  {
+   "id": "POS-P-06",
+   "file": "A/pos_person_06.jpg",
+   "category": "positive",
+   "content": "person",
+   "twin": "NEU-P-206",
+   "luminance": 129
+  },
+  {
+   "id": "POS-S-01",
+   "file": "A/pos_scene_01.jpg",
+   "category": "positive",
+   "content": "scene",
+   "twin": "NEU-S-201",
+   "luminance": 134,
+   "exclude": true,
+   "note": "쌍둥이(흐린 바다)와 채도 차이 큼(+50)"
+  },
+  {
+   "id": "POS-S-02",
+   "file": "A/pos_scene_02.jpg",
+   "category": "positive",
+   "content": "scene",
+   "twin": "NEU-S-202",
+   "luminance": 129
+  },
+  {
+   "id": "POS-S-03",
+   "file": "A/pos_scene_03.jpg",
+   "category": "positive",
+   "content": "scene",
+   "twin": "NEU-S-203",
+   "luminance": 129
+  },
+  {
+   "id": "POS-S-04",
+   "file": "A/pos_scene_04.jpg",
+   "category": "positive",
+   "content": "scene",
+   "twin": "NEU-S-204",
+   "luminance": 126
+  },
+  {
+   "id": "THR-A-01",
+   "file": "A/thr_animal_01.jpg",
+   "category": "threat",
+   "content": "animal",
+   "twin": "NEU-A-001",
+   "luminance": 129
+  },
+  {
+   "id": "THR-A-02",
+   "file": "A/thr_animal_02.jpg",
+   "category": "threat",
+   "content": "animal",
+   "twin": "NEU-A-002",
+   "luminance": 129
+  },
+  {
+   "id": "THR-A-03",
+   "file": "A/thr_animal_03.jpg",
+   "category": "threat",
+   "content": "animal",
+   "twin": "NEU-A-003",
+   "luminance": 129
+  },
+  {
+   "id": "THR-O-01",
+   "file": "A/thr_object_01.jpg",
+   "category": "threat",
+   "content": "object",
+   "twin": "NEU-O-001",
+   "luminance": 129
+  },
+  {
+   "id": "THR-O-02",
+   "file": "A/thr_object_02.jpg",
+   "category": "threat",
+   "content": "object",
+   "twin": "NEU-O-002",
+   "luminance": 129,
+   "exclude": true,
+   "note": "쌍둥이와 채도 차이 큼(−37)"
+  },
+  {
+   "id": "THR-P-01",
+   "file": "A/thr_person_01.jpg",
+   "category": "threat",
+   "content": "person",
+   "twin": "NEU-P-001",
+   "luminance": 129
+  },
+  {
+   "id": "THR-P-02",
+   "file": "A/thr_person_02.jpg",
+   "category": "threat",
+   "content": "person",
+   "twin": "NEU-P-002",
+   "luminance": 129
+  },
+  {
+   "id": "THR-P-03",
+   "file": "A/thr_person_03.jpg",
+   "category": "threat",
+   "content": "person",
+   "twin": "NEU-P-003",
+   "luminance": 129
+  },
+  {
+   "id": "THR-P-04",
+   "file": "A/thr_person_04.jpg",
+   "category": "threat",
+   "content": "person",
+   "twin": "NEU-P-004",
+   "luminance": 129
+  },
+  {
+   "id": "THR-P-05",
+   "file": "A/thr_person_05.jpg",
+   "category": "threat",
+   "content": "person",
+   "twin": "NEU-P-005",
+   "luminance": 129
+  },
+  {
+   "id": "THR-P-06",
+   "file": "A/thr_person_06.jpg",
+   "category": "threat",
+   "content": "person",
+   "twin": "NEU-P-006",
+   "luminance": 129
+  },
+  {
+   "id": "THR-S-01",
+   "file": "A/thr_scene_01.jpg",
+   "category": "threat",
+   "content": "scene",
+   "twin": "NEU-S-001",
+   "luminance": 128,
+   "exclude": true,
+   "note": "위협 단서(골목 끝 인물)가 너무 작음"
+  },
+  {
+   "id": "THR-S-02",
+   "file": "A/thr_scene_02.jpg",
+   "category": "threat",
+   "content": "scene",
+   "twin": "NEU-S-002",
+   "luminance": 129
+  },
+  {
+   "id": "THR-S-03",
+   "file": "A/thr_scene_03.jpg",
+   "category": "threat",
+   "content": "scene",
+   "twin": "NEU-S-003",
+   "luminance": 129
+  },
+  {
+   "id": "THR-S-04",
+   "file": "A/thr_scene_04.jpg",
+   "category": "threat",
+   "content": "scene",
+   "twin": "NEU-S-004",
+   "luminance": 129,
+   "exclude": true,
+   "note": "위협 단서(물 튀기는 차)가 약함"
+  },
+  {
+   "id": "NEU-P-007",
+   "file": "B/neu_person_007.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129,
+   "note": "세트 B 중립 사진을 중립-중립 채움용으로 사용"
+  },
+  {
+   "id": "NEU-P-008",
+   "file": "B/neu_person_008.jpg",
+   "category": "neutral",
+   "content": "person",
+   "luminance": 129,
+   "note": "세트 B 중립 사진을 중립-중립 채움용으로 사용"
+  },
+  {
+   "id": "NEU-A-004",
+   "file": "B/neu_animal_004.jpg",
+   "category": "neutral",
+   "content": "animal",
+   "luminance": 130,
+   "note": "세트 B 중립 사진을 중립-중립 채움용으로 사용"
+  },
+  {
+   "id": "NEU-S-005",
+   "file": "B/neu_scene_005.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 128,
+   "note": "세트 B 중립 사진을 중립-중립 채움용으로 사용"
+  },
+  {
+   "id": "NEU-S-006",
+   "file": "B/neu_scene_006.jpg",
+   "category": "neutral",
+   "content": "scene",
+   "luminance": 129,
+   "note": "세트 B 중립 사진을 중립-중립 채움용으로 사용"
+  },
+  {
+   "id": "NEU-O-003",
+   "file": "B/neu_object_003.jpg",
+   "category": "neutral",
+   "content": "object",
+   "luminance": 130,
+   "note": "세트 B 중립 사진을 중립-중립 채움용으로 사용"
+  }
+ ]
 }

@@ -799,7 +799,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
     <div class="get"><div class="gi" style="background:var(--care-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#167A6B" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-4.4-9-9C1.5 8.3 3.6 5 7 5c2 0 3.6 1.2 5 3 1.4-1.8 3-3 5-3 3.4 0 5.5 3.3 4 7-2 4.6-9 9-9 9z"/></svg></div>
       <h3>우선순위 케어 플랜</h3><p>가장 먼저 다룰 1·2순위 영역에 근거 기반 루틴 3가지씩을 배정하고, 목표 지표(KPI)를 숫자로 정해요.</p><div class="eg">수면 규칙화 · 주의 훈련 · 주의 전환 · 공명 호흡</div></div>
     <div class="get"><div class="gi" style="background:var(--amber-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#B87508" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></div>
-      <h3>재측정으로 효과 확인</h3><p>같은 검사로 2주·4주 뒤 다시 재서 ‘평소의 나’ 대비 변화를 확인해요. 결과지 안에서 1분 호흡 케어의 즉시 효과도 잴 수 있어요.</p><div class="eg">개인 기준선 · 측정–케어–재측정 폐루프</div></div>
+      <h3>재측정으로 효과 확인</h3><p>매일 같은 시간대에 재서 ‘평소의 나’ 대비 변화를 확인해요. 결과지 안에서 1분 호흡 케어의 즉시 효과도 잴 수 있어요.</p><div class="eg">개인 기준선 · 측정–케어–재측정 폐루프</div></div>
     <div class="get"><div class="gi" style="background:#EEF1F6"><svg viewBox="0 0 24 24" fill="none" stroke="#2B3754" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
       <h3>믿을 수 있는 정도까지</h3><p>지표마다 신호 품질과 오차 범위를 함께 보여 줘요. 측정이 불안정하면 판정하지 않거나 ‘잠정’으로 표시하는 In_mind 자체 품질 관리 원칙(In_mind QC)을 적용해요.</p><div class="eg">신뢰도 가중 · 오차 띠 · 수렴 원칙 · 타당도 검사</div></div>
   </div>
@@ -811,7 +811,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
     <div><em>02 · 1분</em><b>카메라 확인</b>얼굴 위치·조명·심박 신호 점검</div>
     <div><em>03 · 약 8분</em><b>측정 9단계</b>단계마다 안내를 읽고 직접 시작</div>
     <div><em>04 · 즉시</em><b>통합 리포트</b>영역 점수 · 원인 경로 · 품질</div>
-    <div><em>05 · 2~4주</em><b>케어 · 재측정</b>루틴 실천 후 같은 검사로 비교</div>
+    <div><em>05 · 매일</em><b>케어 · 매일 측정</b>같은 시간대에 재며 변화를 비교</div>
   </div>
 
   <div class="card" id="setupCard" style="margin-top:22px">
@@ -1040,7 +1040,7 @@ async function loadStimuli() {
     if (!res.ok) return;
     const m = await res.json(), set = {};
     STIM_CATS.forEach(c => { set[c] = (m.images || []).filter(x => x && x.category === c && typeof x.file === 'string' && !x.exclude); });
-    S.stim = { set, form: m.form || 'A', base: STIM_URL.replace(/[^/]+$/, ''), baseline: Array.isArray(m.baseline) ? m.baseline.filter(x => typeof x === 'string') : [] };
+    S.stim = { set, form: m.form || 'A', base: STIM_URL.replace(/[^/]+$/, ''), baseline: Array.isArray(m.baseline) ? m.baseline.filter(x => typeof x === 'string') : [], status: m.status === 'provisional' ? 'provisional' : 'validated' };
   } catch (_) { S.stim = null; }
 }
 function stimReady(mode) {
@@ -1050,7 +1050,7 @@ function stimReady(mode) {
 }
 function stimInfoText() {
   const mode = modeVal();
-  if (stimReady(mode)) return `정서 자유 보기: 정서 사진 세트 ${S.stim.form} 사용 (위협 ${S.stim.set.threat.length} · 슬픔 ${S.stim.set.dysphoric.length} · 긍정 ${S.stim.set.positive.length} · 중립 ${S.stim.set.neutral.length}장)`;
+  if (stimReady(mode)) return `정서 자유 보기: 정서 사진 세트 ${S.stim.form}${S.stim.status === 'provisional' ? '(잠정 · 평정 전)' : ''} 사용 (위협 ${S.stim.set.threat.length} · 슬픔 ${S.stim.set.dysphoric.length} · 긍정 ${S.stim.set.positive.length} · 중립 ${S.stim.set.neutral.length}장)`;
   const need = stimNeed(mode), have = S.stim ? S.stim.set : null;
   return `정서 자유 보기: 사진 세트가 준비되지 않아 도식 자극(얼굴 그림·단어)을 씁니다. 필요 사진 수 — 위협 ${need.threat} · 슬픔 ${need.dysphoric} · 긍정 ${need.positive} · 중립 ${need.neutral}장${have ? ` (현재 ${STIM_CATS.map(c => have[c].length).join('/')})` : ''}`;
 }
@@ -2341,7 +2341,7 @@ function liveRecord() {
   return {
     frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
     stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: S.calib, checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
-    stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, measuredAt: new Date().toISOString(),
+    stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null, measuredAt: new Date().toISOString(),
     hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
   };
 }
@@ -2359,7 +2359,7 @@ function demoRecord() {
   Object.keys(rec.steps).forEach(k => {
     if (rec.steps[k].status !== 'off') rec.steps[k] = { status: behavioral.includes(k) && done(k) ? 'input' : 'sim' };
   });
-  Object.assign(rec, { checkin: { ...S.checkin }, calibration: { grade: 'good', errPct: null, mouse: true }, resized: S.resized, stimMode: done('freeview') ? S.stimMode : 'schematic' });
+  Object.assign(rec, { checkin: { ...S.checkin }, calibration: { grade: 'good', errPct: null, mouse: true }, resized: S.resized, stimMode: done('freeview') ? S.stimMode : 'schematic', stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null });
   return rec;
 }
 function finish() {

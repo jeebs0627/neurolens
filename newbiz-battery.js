@@ -874,7 +874,7 @@
     };
 
     return {
-      ...base, phaseTimes: ph, stressScore: rec.stressScore || null, stimMode: rec.stimMode || 'schematic', stimForm: rec.stimForm || null, mode: rec.mode || null, resized: !!rec.resized,
+      ...base, phaseTimes: ph, stressScore: rec.stressScore || null, stimMode: rec.stimMode || 'schematic', stimForm: rec.stimForm || null, stimStatus: rec.stimStatus || null, mode: rec.mode || null, resized: !!rec.resized,
       battery: { version: VERSION, qc, pvt, eye, eyeBase, saccade, pursuit, sart, sartMotion, indicators, info, domains, integrated, care, phq, phqLinks: links, steps: rec.steps || {}, sim: rec.sim || null },
     };
   }
