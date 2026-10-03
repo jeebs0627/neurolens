@@ -165,11 +165,12 @@ def build_prompt(b):
 [측정 신뢰도 등급] {grade or '—'}
 
 [작성 기준]
-- 한국어 존댓말, 4문단, 총 650~900자. 제목·목록·마크다운·이모지 없이 문단만 쓴다.
+- 한국어 존댓말, 4문단, 총 650~850자. 제목·목록·마크다운·이모지 없이 문단만 쓴다. '귀하' 같은 딱딱한 호칭 없이 대화하듯 쓴다.
 - 1문단(한눈에): 통합 유형과 전체 그림을 2~3문장으로. 양호한 영역(강점)을 먼저 짚어 준다.
 - 2문단(무엇이 보였나): 주의·관리 필요 영역을 쉬운 말로 풀어 설명한다. 지표 이름 대신 '반응이 늦어진 순간', '멈춰야 할 때 손이 먼저 나간 비율'처럼 일상 언어를 쓰고, 핵심 수치는 2~4개만 인용한다. 영역 간 연결이 있으면 왜 함께 나타날 수 있는지 한 문장으로 설명한다.
 - 3문단(느끼는 나와 측정된 나): 자기보고와 측정의 일치·차이를 해석한다. 잠정·경계 결과가 있으면 '한 번의 측정으로 단정하기 어렵다'고 정직하게 말한다.
 - 4문단(케어): 배정된 케어 트랙에서 오늘부터 할 수 있는 루틴 1~2가지를 구체적으로 권하고, 재측정 시점과 기대할 변화를 말한 뒤 따뜻한 격려로 마친다.
+- '완벽히', '반드시', '확실히 좋아진다'처럼 결과를 장담하지 않는다. 변화는 '기대할 수 있다', '확인해 볼 수 있다'로 말한다.
 - 질병명·진단명·약물·임상 용어(우울증, 불안장애, ADHD 등)를 쓰지 않는다. '진단'이 아니라 '웰니스 참고 지표'다. 없는 수치나 검사를 만들어 내지 않는다. 측정 안 된 영역은 추측하지 않는다."""
 
 
@@ -193,7 +194,8 @@ def _call(model, prompt, api_key, max_tokens, thinking=True):
     )
     with urllib.request.urlopen(req, timeout=55) as res:
         data = json.loads(res.read().decode("utf-8"))
-    parts = data["candidates"][0]["content"]["parts"]
+    cand = (data.get("candidates") or [{}])[0]
+    parts = (cand.get("content") or {}).get("parts") or []     # 사고 토큰이 한도를 다 쓰면 parts 가 비어 올 수 있다
     return "".join(p.get("text", "") for p in parts if not p.get("thought"))
 
 
@@ -243,9 +245,11 @@ class handler(BaseHTTPRequestHandler):
         except Exception:  # noqa: BLE001
             return self._send(400, {"error": "잘못된 요청 본문"})
         try:
-            text, model = generate(prompt, api_key, 16 if probe else 3072)
+            text, model = generate(prompt, api_key, 256 if probe else 3072)
             if probe:
                 return self._send(200, {"ok": text.strip().upper().rstrip(".") == "OK", "model": model})
+            if not text.strip():
+                return self._send(502, {"error": "empty_response"})
             self._send(200, {"text": text.strip(), "model": model})
         except urllib.error.HTTPError as e:
             self._send(502, {"error": f"HTTP {e.code}"})
