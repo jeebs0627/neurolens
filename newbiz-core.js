@@ -11,7 +11,7 @@
 })(typeof window !== 'undefined' ? window : null, function () {
   'use strict';
 
-  const VERSION = 'newbiz-mvp-0.2';
+  const VERSION = 'newbiz-mvp-0.3';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -176,21 +176,43 @@
 
   /* ---------- 프레임 기록 → BVP 파형 ---------- */
   /* frames: [{t(ms), r,g,b, ok}] — 얼굴이 잡힌(ok) 프레임만 써서 30Hz 로 맞춘다 */
+  /* 다중 피부 영역: 프레임에 영역별 평균색(rr = [[r,g,b] 이마, 왼뺨, 오른뺨])이 있으면 영역마다 POS 파형을 따로 만든다.
+   * 움직임·조명 그림자는 영역마다 다르게 들어오므로, 창마다 가장 깨끗한 영역을 고르면 신호 손실이 크게 준다 */
   function buildBvp(frames, fs = 30) {
     const ok = frames.filter(f => f.ok && finite(f.r) && finite(f.g) && finite(f.b));
     if (ok.length < fs * 5) return null;
-    const rs = resample(ok.map(f => f.t), [ok.map(f => f.r), ok.map(f => f.g), ok.map(f => f.b)], fs);
+    const ts = ok.map(f => f.t);
+    const rs = resample(ts, [ok.map(f => f.r), ok.map(f => f.g), ok.map(f => f.b)], fs);
     const raw = pos(rs.data[0], rs.data[1], rs.data[2], fs);
-    return { t0: rs.t0, fs, bvp: bandpass(raw, fs), coverage: ok.length / Math.max(1, frames.length) };
+    const chans = [];
+    const nR = ok.every(f => Array.isArray(f.rr)) ? Math.min(...ok.map(f => f.rr.length)) : 0;
+    for (let k = 0; k < nR; k++) {
+      if (!ok.every(f => f.rr[k] && finite(f.rr[k][0]) && f.rr[k][0] > 0)) continue;
+      const rk = resample(ts, [0, 1, 2].map(c => ok.map(f => f.rr[k][c])), fs);
+      chans.push(bandpass(pos(rk.data[0], rk.data[1], rk.data[2], fs), fs));
+    }
+    return { t0: rs.t0, fs, bvp: bandpass(raw, fs), chans, coverage: ok.length / Math.max(1, frames.length) };
   }
 
   /* 10초 창·1초 간격으로 심박 시계열 */
+  /* 창 단위 융합 (영역 일치 투표): 맥박은 모든 피부 영역에 같은 주파수로 나타나지만, 움직임·그림자 잡음은 영역마다 다르다.
+   * 그래서 SNR 이 가장 높은 채널이 아니라 ‘가장 많은 영역이 동의하는’ 주파수(±5bpm)를 고른다 — 순수한 사인파 같은
+   * 움직임 잡음은 SNR 이 높아 보여도 한 영역에만 있으면 진다. 전체 평균 채널은 0.5표, 영역 채널은 1표. 동점이면 SNR 합 */
   function hrWindows(sig, winSec = 10, stepSec = 1) {
     if (!sig) return [];
     const { bvp, fs, t0 } = sig, wl = Math.round(winSec * fs), st = Math.round(stepSec * fs), out = [];
+    const chans = [{ x: bvp, w: (sig.chans || []).length ? 0.5 : 1 }, ...(sig.chans || []).map(x => ({ x, w: 1 }))];
     for (let s = 0; s + wl <= bvp.length; s += st) {
-      const pk = spectralPeak(bvp.subarray(s, s + wl), fs);
-      if (pk) out.push({ t: t0 + (s + wl / 2) * 1000 / fs, bpm: pk.bpm, snr: pk.snrDb });
+      const pks = chans.map(c => { const p = spectralPeak(c.x.subarray(s, s + wl), fs); return p ? { ...p, w: c.w } : null; }).filter(Boolean);
+      if (!pks.length) continue;
+      let best = null;
+      pks.forEach(c => {
+        const cl = pks.filter(p => Math.abs(p.bpm - c.bpm) <= 5);
+        const score = cl.reduce((a, p) => a + p.w, 0) + 0.01 * cl.reduce((a, p) => a + clamp(p.snrDb + 10, 0, 30), 0);
+        if (!best || score > best.score) best = { score, cl };
+      });
+      const votes = best.cl.reduce((a, p) => a + p.w, 0), snr = Math.max(...best.cl.map(p => p.snrDb));
+      out.push({ t: t0 + (s + wl / 2) * 1000 / fs, bpm: median(best.cl.map(p => p.bpm)), snr: votes >= 1.5 || pks.length === 1 ? snr : snr - 1.5, n: best.cl.length });
     }
     return out;
   }
@@ -274,10 +296,13 @@
   function eyeUV(lm, a, b, top, bot, iris) {
     const ax = lm[a].x, ay = lm[a].y, bx = lm[b].x, by = lm[b].y;
     const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, L = Math.sqrt(L2);
-    const ix = lm[iris].x - ax, iy = lm[iris].y - ay;
+    let icx = 0, icy = 0;                                     // 홍채 중심: 중심점 + 테두리 4점 평균 (단일 점보다 떨림이 작다)
+    for (let k = 0; k < 5; k++) { icx += lm[iris + k].x; icy += lm[iris + k].y; }
+    icx /= 5; icy /= 5;
+    const ix = icx - ax, iy = icy - ay;
     const u = (ix * dx + iy * dy) / L2;                       // 눈꼬리→눈머리 축 위치 (0~1)
     const midY = (lm[top].y + lm[bot].y) / 2;
-    const v = (lm[iris].y - midY) / L;                        // 눈 높이 대비 홍채 상하 위치
+    const v = (icy - midY) / L;                        // 눈 높이 대비 홍채 상하 위치
     const open = Math.hypot(lm[bot].x - lm[top].x, lm[bot].y - lm[top].y) / L;
     return { u, v, open };
   }
@@ -315,31 +340,72 @@
     }
     return M.map((row, i) => row[n] / row[i]);
   }
-  /* samples: [{f, x, y}] (x,y = 화면 px) → 표준화 + 릿지 회귀 모델 */
-  function fitGaze(samples, lambda = 0.5) {
+  /* samples: [{f, x, y, w?}] (x,y = 화면 px, w = 표본 가중치) → 표준화 + 릿지 회귀 모델.
+   * 홍채 위치(u,v)의 제곱항을 더해 화면 가장자리에서 시선이 덜 따라가는 비선형을 보정한다 */
+  const gazeVec = (f, mu, sd, quad) => {
+    const z = GAZE_KEYS.map(k => (f[k] - mu[k]) / sd[k]);
+    return quad ? [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]] : [1, ...z];
+  };
+  function fitGaze(samples, lambda = 0.5, opt = {}) {
     const S = samples.filter(s => s.f && GAZE_KEYS.every(k => finite(s.f[k])));
     if (S.length < 20) return null;
+    const quad = opt.quad !== false && S.length >= 120;
     const mu = {}, sd = {};
     GAZE_KEYS.forEach(k => { mu[k] = mean(S.map(s => s.f[k])); sd[k] = std(S.map(s => s.f[k])) || 1; });
-    const vec = f => [1, ...GAZE_KEYS.map(k => (f[k] - mu[k]) / sd[k])];
-    const X = S.map(s => vec(s.f)), d = X[0].length;
+    const X = S.map(s => gazeVec(s.f, mu, sd, quad)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));
+    const wsum = W.reduce((a, b) => a + b, 0);
     const fit = key => {
       const XtX = Array.from({ length: d }, () => new Array(d).fill(0)), Xty = new Array(d).fill(0);
       X.forEach((row, i) => {
-        for (let a = 0; a < d; a++) { Xty[a] += row[a] * S[i][key]; for (let b = 0; b < d; b++) XtX[a][b] += row[a] * row[b]; }
+        const w = W[i];
+        for (let a = 0; a < d; a++) { Xty[a] += w * row[a] * S[i][key]; for (let b = 0; b < d; b++) XtX[a][b] += w * row[a] * row[b]; }
       });
-      for (let a = 1; a < d; a++) XtX[a][a] += lambda * S.length / 50;
+      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > GAZE_KEYS.length ? 4 : 1);   // 제곱항은 더 강하게 수축
       return solve(XtX, Xty);
     };
     const wx = fit('x'), wy = fit('y');
-    return wx && wy ? { mu, sd, wx, wy } : null;
+    return wx && wy ? { mu, sd, wx, wy, quad } : null;
   }
   function predictGaze(model, f) {
     if (!model || !f) return null;
-    const v = [1, ...GAZE_KEYS.map(k => (f[k] - model.mu[k]) / model.sd[k])];
+    const v = gazeVec(f, model.mu, model.sd, model.quad);
     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);
     return { x: dot(model.wx), y: dot(model.wy) };
   }
+  /* 영점 조정: 표적(x,y) ↔ 예측(gx,gy) 쌍으로 축별 1차 보정 x' = a·x + b 를 맞춘다.
+   * 표적이 한 축에서 퍼져 있지 않으면 이동(b)만 쓰고, 기울기는 0.75~1.35 로 제한해 과보정을 막는다 */
+  function fitAffine(pairs) {
+    const P = (pairs || []).filter(p => finite(p.x) && finite(p.y) && finite(p.gx) && finite(p.gy));
+    if (P.length < 3) return null;
+    const axis = (t, g) => {
+      const mt = mean(t), mg = mean(g);
+      let cov = 0, vg = 0, vt = 0;
+      for (let i = 0; i < t.length; i++) { cov += (g[i] - mg) * (t[i] - mt); vg += (g[i] - mg) ** 2; vt += (t[i] - mt) ** 2; }
+      const a = vt > 0 && vg > 0 ? clamp(cov / vg, 0.75, 1.35) : 1;
+      return { a, b: mt - a * mg };
+    };
+    return { x: axis(P.map(p => p.x), P.map(p => p.gx)), y: axis(P.map(p => p.y), P.map(p => p.gy)) };
+  }
+  const applyAffine = (A, g) => (A && g ? { x: A.x.a * g.x + A.x.b, y: A.y.a * g.y + A.y.b } : g);
+
+  /* One Euro 필터 (Casiez, Roussel & Vogel, 2012): 시선이 머물 때는 강하게, 빠르게 움직일 때는 약하게 평활해
+   * 떨림과 지연을 함께 줄인다. 화면 표시용 시선 커서에 쓴다 */
+  function oneEuro(opt = {}) {
+    const minCut = opt.minCutoff ?? 0.9, beta = opt.beta ?? 0.006, dCut = opt.dCutoff ?? 1;
+    let xPrev = null, dxPrev = 0, tPrev = null;
+    const alpha = (cut, dt) => { const r = 2 * Math.PI * cut * dt; return r / (r + 1); };
+    return (x, tMs) => {
+      if (xPrev === null || !finite(tPrev)) { xPrev = x; tPrev = tMs; return x; }
+      const dt = Math.max(0.001, (tMs - tPrev) / 1000);
+      tPrev = tMs;
+      const dx = (x - xPrev) / dt, ad = alpha(dCut, dt);
+      dxPrev = ad * dx + (1 - ad) * dxPrev;
+      const a = alpha(minCut + beta * Math.abs(dxPrev), dt);
+      xPrev = a * x + (1 - a) * xPrev;
+      return xPrev;
+    };
+  }
+
   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */
   function gazeAccuracy(points, W, H) {
     const errs = points.filter(p => finite(p.gx) && finite(p.gy)).map(p => Math.hypot(p.gx - p.x, (p.gy - p.y) * 0.6));
@@ -442,18 +508,28 @@
     const ph = rec.phases;
     const span = n => ph[n] ? [ph[n].start, ph[n].end] : [NaN, NaN];
     const hr = {};
-    ['baseline', 'neu', 'neg', 'pos', 'stress', 'recovery'].forEach(n => { hr[n] = phaseHr(wins, ...span(n)); });
+    ['baseline', 'neu', 'neg', 'pos', 'recovery'].forEach(n => { hr[n] = phaseHr(wins, ...span(n)); });
+    /* 압박: 심박은 과제 시작 후 수 초에 걸쳐 오르므로 첫 8초를 빼고 잰다 */
+    const [ss, se] = span('stress');
+    hr.stress = phaseHr(wins, se - ss > 20000 ? ss + 8000 : ss, se);
+    /* 과제 직전 안정 구간(안내 읽기·카운트다운, 시작 3~25초 전): 기준선이 약하거나 오래전이면 이쪽을 비교 기준으로 */
+    hr.pre = phaseHr(wins, ss - 25000, ss - 3000);
     /* 회복: 회복 구간 후반 절반 심박 */
     const [rs, re] = span('recovery');
     hr.recoveryLate = phaseHr(wins, (rs + re) / 2, re);
 
     const usableHr = q => q && q.bpm !== null && q.quality !== 'poor' && q.quality !== 'none';
-    const stressDelta = usableHr(hr.baseline) && usableHr(hr.stress) ? round(hr.stress.bpm - hr.baseline.bpm, 1) : null;
+    const QR = { good: 2, fair: 1, poor: 0, none: -1 };
+    const ref = usableHr(hr.baseline) && (!usableHr(hr.pre) || QR[hr.baseline.quality] >= QR[hr.pre.quality]) ? { ...hr.baseline, src: 'baseline' }
+      : usableHr(hr.pre) ? { ...hr.pre, src: 'pre' } : null;
+    const stressDelta = ref && usableHr(hr.stress) ? round(hr.stress.bpm - ref.bpm, 1) : null;
     const negDelta = usableHr(hr.neu) && usableHr(hr.neg) ? round(hr.neg.bpm - hr.neu.bpm, 1) : null;
-    let recovery = null;
-    if (stressDelta !== null && usableHr(hr.recoveryLate)) {
-      const drop = hr.stress.bpm - hr.recoveryLate.bpm;
-      recovery = stressDelta >= 2 ? round(clamp(drop / stressDelta, -1, 2) * 100, 0) : null;
+    /* 회복률은 압박 반응이 3bpm 이상일 때만 의미가 있다 (작은 분모는 비율을 크게 흔든다).
+     * 반응이 작을 때는 대신 ‘회복 후 잔여 심박’(회복 후반 − 기준)으로 회복을 판정한다 */
+    let recovery = null, recoveryResid = null;
+    if (ref && usableHr(hr.recoveryLate)) {
+      recoveryResid = round(hr.recoveryLate.bpm - ref.bpm, 1);
+      if (stressDelta !== null && stressDelta >= 3) recovery = round(clamp((hr.stress.bpm - hr.recoveryLate.bpm) / stressDelta, -1, 2) * 100, 0);
     }
     const recIbis = sig && usableHr(hr.recovery) ? ibis(beats(sig, rs, re, hr.recovery.bpm)) : [];
     const coupling = breathingCoupling(recIbis);
@@ -494,7 +570,7 @@
     return {
       version: VERSION, demo: !!rec.demo, measuredAt: rec.measuredAt || null, checkin: rec.checkin || null,
       quality: { faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },
-      hr, stressDelta, negDelta, recovery, coupling, hrv: round(hrv, 0),
+      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, coupling, hrv: round(hrv, 0),
       gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate },
       blink, motion, expr, exprNeg,
       profile: { code, ...PROFILES[code], biasHigh, bodyHigh },
@@ -532,8 +608,9 @@
       if (eye.drowsy && t >= closeUntil && rand() < eye.drowsy * dt / 1000) closeUntil = t + 400 + rand() * 900;
       const closed = t < closeUntil;
       const mv = 0.002 * (opt.motionAt ? opt.motionAt(t) : 1);
+      const ch = k => { const n2 = noise * 1.7 * (1 + 0.4 * k); return [175 + drift + 0.25 * p + n2 * gauss(), 118 + drift * 0.8 + 0.6 * p + n2 * gauss(), 98 + drift * 0.7 + 0.15 * p + n2 * gauss()]; };
       out.push({
-        t, ok: true,
+        t, ok: true, rr: opt.rois === false ? undefined : [ch(0), ch(1), ch(2)],
         r: 175 + drift + 0.25 * p + noise * gauss(), g: 118 + drift * 0.8 + 0.6 * p + noise * gauss(), b: 98 + drift * 0.7 + 0.15 * p + noise * gauss(),
         blink: closed ? 0.9 : 0.02, open: closed ? 0.04 : 0.29 + 0.008 * gauss(),
         cx: 0.5 + mv * gauss(), cy: 0.5 + mv * gauss(), fw: 0.3,
@@ -548,7 +625,7 @@
     VERSION, THRESH, LM, PROFILES, CARE,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, beats, ibis, rmssd, breathingCoupling,
-    faceFeatures, fitGaze, predictGaze, gazeAccuracy,
+    faceFeatures, fitGaze, predictGaze, gazeAccuracy, fitAffine, applyAffine, oneEuro,
     sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, synthFrames,
   };
 });

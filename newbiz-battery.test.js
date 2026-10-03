@@ -74,9 +74,25 @@ const R = require('./newbiz-report.js');
   const W = 1000, A = 0.35 * 0.15 * W, cal = { xL: 560 - A, xC: 560, xR: 560 + A };
   const tr = { type: 'anti', side: 'R', onset: 0, end: 1200, samples: [] };
   for (let t = -500; t <= 1200; t += 33) tr.samples.push({ t, x: t >= 260 ? 560 - A : 560, bl: t === -170 });
-  assert.equal(B.saccadeTrial(tr, W, null).valid, false);
+  const r0 = B.saccadeTrial(tr, W, null);                       // 보정 없이: 약한 반응으로만 잡히고 잠복기는 쓰지 않는다
+  assert.ok(!r0.valid || (r0.weak && r0.lat === null), JSON.stringify(r0));
   const r = B.saccadeTrial(tr, W, cal);
-  assert.equal(r.valid, true); assert.equal(r.error, false);
+  assert.equal(r.valid, true); assert.equal(r.error, false); assert.equal(r.weak, false); assert.ok(r.lat > 200 && r.lat < 300);
+  /* 블록 중심 보정: 보정 뒤 머리가 움직여 응시점이 화면 폭의 20%만큼 옮겨 가도, 같은 블록 시행들의 중심으로 판정한다 */
+  const shift = 200, mkS = (side, i) => {
+    const t2 = { type: 'anti', side, onset: 0, end: 1200, samples: [] };
+    for (let t = -500; t <= 1200; t += 33) t2.samples.push({ t, x: 560 + shift + (t >= 260 ? (side === 'R' ? -A : A) : 0) + (i % 3 - 1) });
+    return t2;
+  };
+  const block = Array.from({ length: 8 }, (_, i) => mkS(i % 2 ? 'L' : 'R', i));
+  assert.equal(B.saccadeTrial(block[0], W, cal).reason, 'offcenter');           // 보정 중심만 쓰면 버려지던 시행
+  const st = B.saccadeStats([...block.map(t => ({ ...t, type: 'pro', side: t.side === 'R' ? 'L' : 'R' })), ...block], W, true, cal);
+  assert.equal(st.anti.valid, 8); assert.equal(st.anti.errorRate, 0);
+  /* 단발 튐(한 프레임)은 반응으로 잡지 않는다 */
+  const spike = { type: 'pro', side: 'R', onset: 0, end: 1200, samples: [] };
+  for (let t = -500; t <= 1200; t += 33) spike.samples.push({ t, x: 560 + (t >= 297 && t < 330 ? 90 : 0) + (t >= 600 ? A : 0) });
+  const rs = B.saccadeTrial(spike, W, cal);
+  assert.ok(rs.valid && rs.lat > 560, `spike lat ${rs.lat}`);
 }
 
 /* 5) 원활 추적: 이득·지연 복원 */
@@ -188,7 +204,7 @@ for (const [p, e] of Object.entries(expect)) {
   assert.ok(checkReport(B.run(none), 'phq-skip').includes('응답하지 않았어요'));
 }
 
-/* 11) MIST: 모든 난이도에서 답은 0~9 정수이고 식을 계산하면 답과 같다 · 제한 시간 적응 */
+/* 11) MIST: 덧셈·뺄셈만, 난이도별 항 수·자릿수, 답은 0~9 정수이고 식을 계산하면 답과 같다 · 제한 시간 적응 */
 {
   let seed = 5; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (let lv = 1; lv <= 5; lv++) for (let i = 0; i < 300; i++) {
@@ -196,7 +212,10 @@ for (const [p, e] of Object.entries(expect)) {
     assert.ok(Number.isInteger(q.ans) && q.ans >= 0 && q.ans <= 9, `L${lv} ${q.text}=${q.ans}`);
     const v = Function(`return ${q.text.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-')}`)();
     assert.equal(v, q.ans, `L${lv} ${q.text}`);
-    if (lv >= 4) assert.ok(/[×÷]/.test(q.text), `L${lv} 곱셈·나눗셈 포함`);
+    assert.ok(!/[×÷]/.test(q.text), `L${lv} 덧셈·뺄셈만`);
+    const nums = q.text.split(/ [+−] /).map(Number);
+    assert.equal(nums.length, { 1: 2, 2: 3, 3: 2, 4: 2, 5: 3 }[lv], `L${lv} 항 수 ${q.text}`);
+    if (lv >= 3) assert.ok(nums.some(n => n >= 10) && q.text.includes('−'), `L${lv} 두 자리 + 뺄셈 ${q.text}`);
   }
   assert.deepEqual(B.mistNext(4000, 3), { limit: 3600, streak: 0 });
   assert.deepEqual(B.mistNext(4000, -3), { limit: 4400, streak: 0 });
@@ -241,6 +260,30 @@ for (const [p, e] of Object.entries(expect)) {
   assert.ok(w.score > 70, `weighted ${w.score}`);
   const t = B.aggregateDomain('alert', [I('a', true, 80, 0.4), I('b', true, null, null, { value: null })]);
   assert.equal(t.tentative, true);
+}
+
+/* 15) 자율신경: 압박 반응이 작으면 회복률 대신 잔여 심박으로 판정, 기준선이 약하면 과제 직전 구간을 기준으로 */
+{
+  const rec = B.simulate('balanced'); 
+  const r = B.run(rec);
+  assert.ok(r.recoveryResid !== null);
+  assert.ok(r.battery.indicators.find(i => i.key === 'recoveryResid').value !== null);
+  /* 압박 반응이 1bpm 뿐인 사람: 회복률은 없고 잔여 심박은 있다 */
+  const P0 = B.PERSONAS.balanced.hr.stress;
+  B.PERSONAS.balanced.hr.stress = 1;
+  const small = B.run(B.simulate('balanced'));
+  B.PERSONAS.balanced.hr.stress = P0;
+  assert.equal(small.recovery, null);
+  assert.ok(small.recoveryResid !== null && small.battery.domains.autonomic.status !== 'na');
+  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('잔여 심박')));
+  /* 기준선 구간 신호를 잡음으로 망가뜨리면 과제 직전 구간이 기준이 된다 */
+  const rec2 = B.simulate('overload'), bl = rec2.phases.baseline;
+  let sd = 5; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647 - 0.5; };
+  rec2.frames = rec2.frames.map(f => f.t >= bl.start && f.t <= bl.end ? { ...f, r: 175 + 30 * rnd(), g: 118 + 30 * rnd(), b: 98 + 30 * rnd(), rr: [0, 1, 2].map(() => [175 + 30 * rnd(), 118 + 30 * rnd(), 98 + 30 * rnd()]) } : f);
+  const r2 = B.run(rec2);
+  assert.equal(r2.hrRef, 'pre');
+  assert.ok(r2.stressDelta > 8, `delta ${r2.stressDelta}`);
+  checkReport(r2, 'pre-ref');
 }
 
 /* 14) 좌우 균형 가중: 오른쪽만 보는 사람이 정서 자극 위치와 무관하게 편향으로 잡히지 않는다 */

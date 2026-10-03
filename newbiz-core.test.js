@@ -93,4 +93,40 @@ const N = require('./newbiz-core.js');
   assert.equal(r2.profile.code, 'partial');
 }
 
+/* 영점 조정: 축별 기울기·이동 복원, 과보정 제한 */
+{
+  const pts = [[200, 150], [1240, 150], [1240, 750], [200, 750], [720, 450]].map(([x, y]) => ({ x, y, gx: 0.85 * x + 60, gy: 1.1 * y - 30 }));
+  const A = N.fitAffine(pts);
+  pts.forEach(p => { const g = N.applyAffine(A, { x: p.gx, y: p.gy }); assert.ok(Math.abs(g.x - p.x) < 1 && Math.abs(g.y - p.y) < 1); });
+  const wild = N.fitAffine(pts.map(p => ({ ...p, gx: 0.3 * p.x })));
+  assert.equal(wild.x.a, 1.35);                                   // 기울기 상한
+  assert.equal(N.fitAffine(pts.slice(0, 2)), null);
+}
+
+/* One Euro: 머물 때 떨림을 크게 줄이고, 큰 이동은 0.3초 안에 따라간다 */
+{
+  const f = N.oneEuro({ minCutoff: 0.6, beta: 0.004 });
+  let seed = 3; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  const still = [], out = [];
+  for (let i = 0; i < 90; i++) { const x = 500 + 40 * rnd(); still.push(x); out.push(f(x, i * 33)); }
+  const sd = a => { const m = a.reduce((s, v) => s + v, 0) / a.length; return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / a.length); };
+  assert.ok(sd(out.slice(30)) < sd(still.slice(30)) * 0.35, `jitter ${sd(out.slice(30))} vs ${sd(still.slice(30))}`);
+  let y = 0;
+  for (let i = 90; i < 100; i++) y = f(1100 + 40 * rnd(), i * 33);
+  assert.ok(y > 1000, `follow ${y}`);
+}
+
+/* 다중 영역 rPPG: 한 영역의 리듬성 잡음이 전체 평균 채널을 망가뜨려도, 깨끗한 두 볼 영역의 일치로 심박을 지킨다 */
+{
+  const frames = N.synthFrames(0, 30000, () => 75, { seed: 9, noise: 0.15 });
+  let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  /* 1.6Hz(96bpm) 리듬성 움직임 잡음(예: 눈썹·앞머리 움직임) — 색 성분이 맞지 않아 POS 로도 지워지지 않는다. 이마만 오염 */
+  const art = f => { const n = 2.2 * Math.sin(2 * Math.PI * 1.6 * f.t / 1000) + 0.3 * rnd(); return [1.6 * n, -1.2 * n, 0.4 * n]; };
+  const bad = frames.map(f => { const a = art(f); return { ...f, r: f.r + a[0] * 0.6, g: f.g + a[1] * 0.6, b: f.b + a[2] * 0.6, rr: [f.rr[0].map((x, i) => x + a[i]), f.rr[1], f.rr[2]] }; });
+  const only = N.hrWindows(N.buildBvp(bad.map(f => ({ ...f, rr: undefined }))));
+  const fused = N.hrWindows(N.buildBvp(bad));
+  const good = w => w.filter(x => Math.abs(x.bpm - 75) <= 3).length / w.length;
+  assert.ok(good(fused) >= 0.9 && good(only) < 0.5, `fused ${good(fused)} vs single ${good(only)}`);
+}
+
 console.log('newbiz-core tests passed');

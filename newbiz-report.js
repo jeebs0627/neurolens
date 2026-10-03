@@ -206,7 +206,7 @@
       body += b.pursuit && b.pursuit.trace ? `<div class="group-t">원활 추적 · 표적 대비 시선</div>${pursuitSvg(b.pursuit)}${b.pursuit.ok ? '' : `<p class="warn-line">${esc(b.pursuit.reason)} — 추적 지표를 판정에서 제외했어요.</p>`}` : (b.pursuit && !b.pursuit.ok ? `<p class="warn-line">원활 추적: ${esc(b.pursuit.reason)}</p>` : '');
       body += b.sart ? `<div class="group-t">SART · 시행별 반응</div>${sartSvg(b.sart)}${b.sart.invalid ? `<p class="warn-line">${esc(b.sart.invalid)}</p>` : ''}` : '';
       body += methodBox('oculo', b, C, `<p><b>프로토콜</b> 응시점 ${P.saccade.fixMin / 1000}~${P.saccade.fixMax / 1000}초 무작위 후 응시점이 사라지며 표적이 화면 중심에서 폭의 ${Math.round(P.saccade.ecc * 100)}% 위치에 1초 제시(단계 패러다임). 프로사카드 블록 → 연습 → 안티사카드 블록. 원활 추적은 ${P.pursuit.freq}Hz 수평 정현파(진폭 폭의 ${Math.round(P.pursuit.amp * 100)}%), 첫 ${P.pursuit.skipMs / 1000}초 제외 후 최적 지연에서의 이득과 이득 보정 잔차 SD를 계산.${C.cite(['antoniades', 'maruta'])}</p>`);
-      body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + 마스크 ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 11%)에서 반응 억제.${C.cite(['robertson'])}</p>`);
+      body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + ${P.sart.mask ? '마스크' : '빈 화면'} ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 11%)에서 반응 억제.${C.cite(['robertson'])}</p>`);
     } else if (k === 'emotion') {
       body += `<div class="two"><div><div class="group-t">정서 주의 × 신체 반응 · 2축 유형</div>${quadrantSvg(r)}</div><div class="prof-mini"><div class="group-t">2축 유형</div><b>${esc(r.profile.title)}</b><p>${esc(r.profile.desc)}</p></div></div>`;
       const photo = r.stimMode === 'photo';
@@ -264,6 +264,8 @@
     const applied = [
       q.latency && q.latency.offset ? `기기 입력 지연 보정 −${q.latency.offset}ms (가장 빠른 10% 반응 ${q.latency.fast10}ms 기준, 경과 반응 기준 ${q.latency.lapseMs}ms)` : null,
       q.sideBalanced ? '정서 자유 보기: 좌우 균형 가중 적용 (개인의 좌우 시선 치우침 상쇄)' : null,
+      q.hrRef === 'pre' ? '안정 기준선 심박이 약해 압박 과제 직전 안정 구간을 심박 비교 기준으로 사용' : null,
+      q.calib && q.calib.affine ? `시선 영점 조정 적용: 보정 오차 ${q.calib.before}% → ${q.calib.errPct}% (${esc(q.calib.model)} 모델${q.calib.control ? ` · 시선 이동 ${q.calib.control.hit}/${q.calib.control.n} 성공` : ''})` : null,
       q.borderline.length ? `측정 오차 범위가 판정 경계에 걸친 지표 ${q.borderline.length}개: ${q.borderline.join(' · ')}` : null,
       q.excluded.length ? `신뢰도가 낮아 판정에서 뺀 지표: ${q.excluded.join(' · ')}` : null,
       q.downgraded.length ? `수렴 원칙으로 ‘관리 필요’를 ‘주의’로 낮춘 영역: ${q.downgraded.map(k => B.DOMAINS[k].name).join(' · ')}` : null,
@@ -275,7 +277,8 @@
         <li><b>측정 오차 띠</b> 시행 수로 구한 95% 구간이 판정 기준에 걸치면 ‘경계’로 표시합니다 — 적은 시행으로 내린 판정을 과신하지 않기 위해서입니다${C.cite(['jacobson', 'hedge'])}.</li>
         <li><b>수렴 원칙</b> ‘관리 필요’는 서로 다른 지표 2개 이상이 같은 방향을 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만 내립니다.</li>
         <li><b>수행 타당도</b> 자극 전 반응이 3분당 20회를 넘는 PVT, 반응해야 할 숫자의 절반 이상을 놓친 SART, 방향을 구분하지 못한 사카드는 판정에서 뺍니다.</li>
-        <li><b>개인 기준 보정</b> 심박은 본인 안정 기준선 대비, 시선은 개인 시선 진폭·드리프트·좌우 균형으로, 반응시간은 기기 입력 지연(상한 60ms)으로 보정합니다.</li>
+        <li><b>개인 기준 보정</b> 심박은 본인 안정 기준선(약하면 과제 직전 안정 구간) 대비, 시선은 추적 보정·영점 조정·블록별 드리프트·개인 시선 진폭·좌우 균형으로, 반응시간은 기기 입력 지연(상한 60ms)으로 보정합니다.</li>
+        <li><b>다중 영역 심박</b> 이마·양 볼의 심박을 따로 구해 가장 많은 영역이 동의하는 값을 씁니다. 한 영역에만 생긴 움직임 잡음이 심박으로 잘못 잡히지 않게 합니다.</li>
       </ol>
       <div class="tbl-wrap"><table class="itbl" style="min-width:480px"><thead><tr><th>검사</th><th>신뢰도</th><th>비고</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${applied.length ? `<ul class="qlist" style="margin-top:8px">${applied.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`;
@@ -363,7 +366,7 @@
       <ul class="qlist">
         <li>얼굴 인식 프레임 ${r.quality.faceCoverage}% · 영상은 브라우저 안에서만 처리 (MediaPipe Face Landmarker 478점)${C.cite(['mediapipe'])}</li>
         <li>원격 심박: POS 알고리즘, 10초 창 스펙트럼 SNR로 품질 판정 — 기준선 ${{ good: '양호', fair: '보통', poor: '약함', none: '측정 안 됨' }[r.hr.baseline.quality]}${C.cite(['pos'])}</li>
-        <li>시선: 9점 보정 릿지 회귀 · ${esc(calText)}${r.resized ? ' · 측정 중 화면 크기 변경으로 정확도 저하 가능' : ''}${C.cite(['webcamET'])}</li>
+        <li>시선: 9점 응시 + 추적 보정 릿지 회귀 · 영점 조정 · ${esc(calText)}${C.cite(['pfeuffer', 'casiez'])}${r.resized ? ' · 측정 중 화면 크기 변경으로 정확도 저하 가능' : ''}${C.cite(['webcamET'])}</li>
       </ul>
       <div class="group-t">해석상 한계</div>
       <p class="small">참고 범위는 파일럿 규준 수립 전 잠정값이며, 연구실 장비(적외선 안구추적기·심전도)로 얻은 문헌 수치와 직접 비교할 수 없습니다. 단일 측정은 수면·카페인·시간대의 영향을 받으므로 같은 조건에서 반복 측정한 개인 기준선 대비 변화로 해석하는 것이 가장 정확합니다. 본 결과는 의학적 진단이 아닌 웰니스 참고 지표입니다.</p>
