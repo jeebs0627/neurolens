@@ -3,6 +3,10 @@
  "form": "A",
  "status": "provisional",
  "statusNote": "AI 생성 세트 A — 휘도(평균 129)·대비 정합, 정서-중립 쌍둥이 구성 완료. SAM 정서가·각성가 평정 전 잠정 세트 (2026-10-03 검토)",
+ "baseline": [
+  "calm/scape_02.jpg"
+ ],
+ "baselineNote": "calm/scape_02.jpg — 02scape.png 에서 생성기 워터마크(우하단 반짝이) 제거, 채도 0.86·대비 0.93, 감마로 평균 밝기 151 (2026-10-03)",
  "images": [
   {
    "id": "DYS-A-01",
