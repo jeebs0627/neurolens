@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'newbiz-battery-0.4';
+  const VERSION = 'newbiz-battery-0.5';
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -79,6 +79,13 @@
     cristea: 'Cristea IA, Kok RN, Cuijpers P. Efficacy of cognitive bias modification interventions in anxiety and depression: meta-analysis. Br J Psychiatry. 2015;206(1):7–16.',
     borkovec: 'Borkovec TD, Wilkinson L, Folensbee R, Lerman C. Stimulus control applications to the treatment of worry. Behav Res Ther. 1983;21(3):247–251.',
     goessl: 'Goessl VC, Curtiss JE, Hofmann SG. The effect of heart rate variability biofeedback training on stress and anxiety: a meta-analysis. Psychol Med. 2017;47(15):2578–2586.',
+    jennings: 'Jennings JR, Kamarck T, Stewart C, Eddy M, Johnson P. Alternate cardiovascular baseline assessment techniques: vanilla or resting baseline. Psychophysiology. 1992;29(6):742–750.',
+    piferi: 'Piferi RL, Kline KA, Younger J, Lawler KA. An alternative approach for achieving cardiovascular baseline: viewing an aquatic video. Int J Psychophysiol. 2000;37(2):207–217.',
+    kirschbaum: 'Kirschbaum C, Pirke KM, Hellhammer DH. The ‘Trier Social Stress Test’ — a tool for investigating psychobiological stress responses in a laboratory setting. Neuropsychobiology. 1993;28(1–2):76–81.',
+    shaffer: 'Shaffer F, Meehan ZM. A practical guide to resonance frequency assessment for heart rate variability biofeedback. Front Neurosci. 2020;14:570400.',
+    nunnally: 'Nunnally JC, Bernstein IH. Psychometric Theory. 3rd ed. New York: McGraw-Hill; 1994.',
+    hedge: 'Hedge C, Powell G, Sumner P. The reliability paradox: why robust cognitive tasks do not produce reliable individual differences. Behav Res Methods. 2018;50(3):1166–1186.',
+    jacobson: 'Jacobson NS, Truax P. Clinical significance: a statistical approach to defining meaningful change in psychotherapy research. J Consult Clin Psychol. 1991;59(1):12–19.',
     zaccaro: 'Zaccaro A, Piarulli A, Laurino M, et al. How breath-control can change your life: a systematic review on psycho-physiological correlates of slow breathing. Front Hum Neurosci. 2018;12:353.',
   };
 
@@ -89,11 +96,22 @@
     saccade: { fixMin: 1000, fixMax: 2000, targetMs: 1200, gapMs: 400, ecc: 0.35, window: 1000 }, // 단계 패러다임 (Antoniades et al., 2013 참고)
     pursuit: { freq: 0.25, amp: 0.36, skipMs: 1500 },                                            // 수평 정현파 추적
     perclos: { closure: 0.8, blink: 0.5 },                                                       // P80 (Wierwille et al., 1994)
+    /* MIST (Dedovic et al., 2005): 난이도 1~5 무작위, 답은 항상 0~9 한 자리, 제한 시간은 연속 3회 정답이면 10% 단축·연속 3회 실패면 10% 연장 */
+    stress: { limitMs: 4500, minMs: 2000, maxMs: 7000, step: 0.1, streak: 3, target: 0.8 },
+    /* 개인 기기 지연 보정: 가장 빠른 10% 반응이 이 값보다 느린 만큼을 입력·표시 지연으로 보고 빼 준다 (상한 maxMs) */
+    latency: { fastRef: 210, maxMs: 60, minTrials: 10 },
   };
+  /* ---------- 보정·품질 원칙 (NL-QC) ----------
+   * 1) 신뢰도 가중: 지표마다 신호 품질·유효 시행으로 신뢰도 r(0~1)을 매기고, 영역 점수는 (핵심 2배 가중 × r) 가중 평균. r < minR 이면 판정 제외
+   * 2) 측정 오차 띠: 시행 수에서 표준오차를 구해 95% 구간이 판정 경계에 걸치면 ‘경계’로 표시 (Jacobson & Truax, 1991)
+   * 3) 수렴 원칙: ‘관리 필요’는 서로 다른 지표 2개 이상이 저하를 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만. 아니면 ‘주의’로 낮춘다
+   * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다
+   * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */
+  const QC = { version: 'NL-QC 1.0', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
-    full:  { baseline: 60, pursuit: 24, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 9, stress: 45, recovery: 60 },
-    quick: { baseline: 30, pursuit: 14, pro: 6, anti: 12, practice: 1, trials: 4, fv: { neu: 4, neg: 12, pos: 6 }, pvt: 90, pvtPractice: 2, sart: 63, sartPractice: 9, stress: 30, recovery: 40 },
+    full:  { baseline: 60, pursuit: 24, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
+    quick: { baseline: 30, pursuit: 14, pro: 6, anti: 12, practice: 1, trials: 4, fv: { neu: 4, neg: 12, pos: 6 }, pvt: 90, pvtPractice: 2, sart: 63, sartPractice: 9, stress: 40, recovery: 40 },
   };
 
   const MODULES = {
@@ -112,14 +130,14 @@
     sustain: {
       title: '지속 주의', tests: 'SART 반응 억제 과제 + 머리 움직임', domain: 'control', min: { full: 3, quick: 1.7 },
       paradigm: '숫자 1~9가 빠르게(250ms + 마스크 900ms) 나타날 때 3을 제외한 모든 숫자에 반응한다. 지속 주의와 반응 억제의 실패(일상적 주의 실수)를 측정하는 연속수행검사(CPT) 계열 과제이며, 수행 중 머리 움직임을 웹캠으로 함께 기록한다.',
-      limits: '원판(225시행)을 108시행(표준)·63시행(빠른 측정)으로 단축하고, 본 시행 전 9시행 연습에서 피드백을 준다. 머리 움직임은 얼굴 랜드마크 이동량이며 적외선 동작 분석(QbTest류)보다 해상도가 낮다.',
+      limits: '자극 속도(숫자 250ms + 마스크 900ms)와 본 시행 중 정오 피드백 없음은 원판 그대로이고, 원판(225시행)을 108시행(표준)·63시행(빠른 측정)으로 단축했다. 본 시행 전 연습(표준 18시행)에서만 정오 피드백을 주며, 본 시행에서는 정오와 무관한 입력 확인 표시만 보인다. 머리 움직임은 얼굴 랜드마크 이동량이며 적외선 동작 분석(QbTest류)보다 해상도가 낮다.',
       refs: ['robertson', 'rosvold', 'kofler', 'teicher'],
     },
     core: {
-      title: '정서 주의 · 스트레스 반응', tests: '정서 자유 보기 + 제한 시간 암산 + 분당 6회 공명 호흡', domain: 'emotion · autonomic', min: { full: 4, quick: 2.5 },
-      paradigm: '정서-중립 사진 쌍(위협·슬픔·긍정 vs 내용이 맞춰진 중립 사진)을 자유롭게 보는 동안의 시선 체류(주의 편향), 제한 시간 암산(MIST 계열 사회평가 압박) 중 심박 반응, 공명 주파수 호흡 중 심박 회복과 호흡-심박 동조를 rPPG(POS)로 측정한다.',
-      limits: 'rPPG는 조명·움직임에 민감하며 HRV(RMSSD)는 30fps 한계로 참고값이다. 정서 사진 세트가 없으면 밝기를 맞춘 도식 얼굴·단어로 대체하며, 이 경우 표준화 사진 자극보다 강도가 약하다.',
-      refs: ['armstrong', 'dedovic', 'lehrer', 'pos', 'mediapipe'],
+      title: '정서 주의 · 스트레스 반응', tests: '정서 자유 보기 + MIST 암산 압박 + 분당 6회 공명 호흡', domain: 'emotion · autonomic', min: { full: 4.5, quick: 2.8 },
+      paradigm: '정서-중립 사진 쌍(위협·슬픔·긍정 vs 내용이 맞춰진 중립 사진)을 자유롭게 보는 동안의 시선 체류(주의 편향), MIST 방식 암산(난이도 1~5 무작위 · 사칙연산 · 답 0~9 · 수행에 따라 줄어드는 제한 시간 · 목표 정답률 막대) 중 심박 반응, 공명 주파수 호흡 중 심박 회복과 호흡-심박 동조를 rPPG(POS)로 측정한다.',
+      limits: 'rPPG는 조명·움직임에 민감하며 HRV(RMSSD)는 30fps 한계로 참고값이다. MIST 원판의 거짓 평균 비교(기만) 대신 실제 목표 정답률(80%)과 비교하며, 시간은 1분으로 단축했다. 정서 사진 세트가 없으면 밝기를 맞춘 도식 얼굴·단어로 대체하며, 이 경우 표준화 사진 자극보다 강도가 약하다.',
+      refs: ['armstrong', 'dedovic', 'kirschbaum', 'lehrer', 'pos', 'mediapipe'],
     },
   };
 
@@ -208,21 +226,28 @@
     });
   }
 
-  /* PVT-B: trials [{onset, rt|null}] + falseStarts(자극 전 반응 수) + durationMs */
+  /* PVT-B: trials [{onset, rt|null}] + falseStarts(자극 전 반응 수) + durationMs
+   * 기기 지연 보정(NL-QC 5): 가장 빠른 10% 반응이 기준(210ms)보다 느린 만큼(상한 60ms)을 키보드·화면 지연으로 보고
+   * 중앙값에서 빼고 경과 반응 기준(355ms)에 더한다. 시행이 10개 미만이면 보정하지 않는다. */
   function pvtStats(pvt) {
     if (!pvt || !Array.isArray(pvt.trials) || pvt.trials.length < 5) return null;
-    const P = PROTOCOL.pvt, min = (pvt.durationMs || 0) / 60000;
+    const P = PROTOCOL.pvt, Lc = PROTOCOL.latency, min = (pvt.durationMs || 0) / 60000;
     const rts = pvt.trials.filter(t => finite(t.rt) && t.rt >= P.falseMs).map(t => t.rt);
     if (min < 0.5 || rts.length < 5) return null;
+    const sorted = [...rts].sort((a, b) => a - b), k = Math.max(1, Math.round(sorted.length * 0.1));
+    const fast10 = mean(sorted.slice(0, k));
+    const offset = rts.length >= Lc.minTrials ? Math.round(clamp(fast10 - Lc.fastRef, 0, Lc.maxMs)) : 0;
+    const lapseMs = P.lapseMs + offset;
     const early = pvt.trials.filter(t => finite(t.rt) && t.rt < P.falseMs).length;
     const timeouts = pvt.trials.filter(t => !finite(t.rt)).length;
-    const lapses = rts.filter(rt => rt >= P.lapseMs).length + timeouts;
+    const lapses = rts.filter(rt => rt >= lapseMs).length + timeouts;
     const falseStarts = (pvt.falseStarts || 0) + early;
-    const sorted = [...rts].sort((a, b) => a - b), k = Math.max(1, Math.round(sorted.length * 0.1));
+    const falsePer3 = round(falseStarts * 3 / min, 1);
+    const invalid = falsePer3 > QC.pvtFalseMax ? `자극 전 반응이 너무 많아요 (3분당 ${falsePer3}회) — 무작위로 누른 것으로 보여 판정에서 뺐어요` : null;
     return {
-      n: pvt.trials.length, valid: rts.length, medianRt: round(median(rts)), meanSpeed: round(mean(rts.map(r => 1000 / r)), 2),
-      lapses, timeouts, falseStarts, lapsesPer3: round(lapses * 3 / min, 1), falsePer3: round(falseStarts * 3 / min, 1),
-      slow10: round(mean(sorted.slice(-k))), fast10: round(mean(sorted.slice(0, k))), durationMin: round(min, 1),
+      n: pvt.trials.length, valid: rts.length, medianRt: round(median(rts) - offset), rawMedianRt: round(median(rts)), offset, lapseMs, meanSpeed: round(mean(rts.map(r => 1000 / Math.max(100, r - offset))), 2),
+      lapses, timeouts, falseStarts, lapsesPer3: round(lapses * 3 / min, 1), falsePer3, invalid,
+      slow10: round(mean(sorted.slice(-k))), fast10: round(fast10), durationMin: round(min, 1),
       rts: pvt.trials.map(t => finite(t.rt) ? Math.round(t.rt) : null),
     };
   }
@@ -249,7 +274,7 @@
     }
     const min = tot / 60000;
     if (!(min > 0)) return null;
-    return { perclos: round(closedT / tot * 100, 1), blinkMs: blinks.length >= 3 ? round(mean(blinks)) : null, blinkRate: round(blinks.length / min, 1), longPerMin: round(longN / min, 1), minutes: round(min, 1) };
+    return { coverage: round(Math.min(1, s.length / ((end - start) / 1000 * 24)), 2), perclos: round(closedT / tot * 100, 1), blinkMs: blinks.length >= 3 ? round(mean(blinks)) : null, blinkRate: round(blinks.length / min, 1), longPerMin: round(longN / min, 1), minutes: round(min, 1) };
   }
 
   /* 사카드 1시행: 응시점 기준선 대비 첫 이탈의 방향·잠복기.
@@ -347,6 +372,41 @@
     return { ok: !reason, reason, gain: round(gain, 2), lagMs: best.L, r: round(best.r, 2), errPct: round(errPct, 1), coverage, trace };
   }
 
+  /* MIST 문제 (Dedovic et al., 2005): 난이도 1~5, 답은 0~9 정수, 나눗셈은 나누어떨어지게.
+   *   1: 한 자리 수 3개 ±   2: 한 자리 수 4개 ±   3: 곱셈 항 1개 + 두 자리 수 ±
+   *   4: 곱셈·나눗셈 항 + ±   5: 두 자리 수 4항, 곱셈·나눗셈 포함 */
+  function mistProblem(level, rand = Math.random) {
+    const ri = (a, b) => a + Math.floor(rand() * (b - a + 1));
+    const LV = {
+      1: ['n1', 'n1', 'n1'], 2: ['n1', 'n1', 'n1', 'n1'], 3: ['mul', 'n2', 'n1'], 4: ['div', 'mul', 'n1'], 5: ['mul', 'div', 'n2', 'n1'],
+    }[level] || ['n1', 'n1', 'n1'];
+    for (let tries = 0; tries < 400; tries++) {
+      const terms = LV.map(kind => {
+        if (kind === 'n1') { const v = ri(1, 9); return { v, t: String(v) }; }
+        if (kind === 'n2') { const v = ri(10, level >= 5 ? 99 : 40); return { v, t: String(v) }; }
+        if (kind === 'mul') { const a = ri(2, 9), b = ri(2, level >= 5 ? 12 : 9); return { v: a * b, t: `${a} × ${b}` }; }
+        const d = ri(2, 9), q = ri(2, 9); return { v: q, t: `${d * q} ÷ ${d}` };
+      });
+      for (let i = terms.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [terms[i], terms[j]] = [terms[j], terms[i]]; }
+      let ans = terms[0].v, text = terms[0].t;
+      for (let i = 1; i < terms.length; i++) {
+        const plus = rand() < 0.5;
+        ans += plus ? terms[i].v : -terms[i].v;
+        text += ` ${plus ? '+' : '−'} ${terms[i].t}`;
+      }
+      if (ans >= 0 && ans <= 9) return { level, text, ans };
+    }
+    const a = ri(0, 9), b = ri(0, 9 - a);
+    return { level, text: `${a} + ${b}`, ans: a + b };
+  }
+  /* MIST 제한 시간: 연속 3회 정답이면 10% 단축, 연속 3회 오답·시간 초과면 10% 연장 */
+  function mistNext(limit, streak) {
+    const P = PROTOCOL.stress;
+    if (streak >= P.streak) return { limit: Math.max(P.minMs, Math.round(limit * (1 - P.step))), streak: 0 };
+    if (streak <= -P.streak) return { limit: Math.min(P.maxMs, Math.round(limit * (1 + P.step))), streak: 0 };
+    return { limit, streak };
+  }
+
   /* SART: trials [{digit, onset, rt|null}] — 응답 창은 숫자+마스크 1150ms */
   function sartSequence(n, rand = Math.random) {
     const out = [];
@@ -361,10 +421,12 @@
     if (nogo.length < 2 || go.length < 10) return null;
     const rts = go.filter(t => finite(t.rt) && t.rt >= 100).map(t => t.rt);
     const m = mean(rts), sd = std(rts);
+    const omission = go.filter(t => !finite(t.rt)).length / go.length;
     return {
-      n: T.length, nogo: nogo.length,
+      n: T.length, nogo: nogo.length, go: go.length,
+      invalid: omission > QC.sartOmitMax ? `반응해야 할 숫자의 ${Math.round(omission * 100)}%에 반응하지 않았어요 — 과제를 따라가지 못한 것으로 보여 판정에서 뺐어요` : null,
       commission: round(nogo.filter(t => finite(t.rt)).length / nogo.length, 3),
-      omission: round(go.filter(t => !finite(t.rt)).length / go.length, 3),
+      omission: round(omission, 3),
       meanRt: round(m), sdRt: round(sd), cv: rts.length >= 10 ? round(sd / m, 3) : null,
       rts: T.map(t => ({ rt: finite(t.rt) ? Math.round(t.rt) : null, nogo: t.digit === PROTOCOL.sart.nogo })),
     };
@@ -428,10 +490,10 @@
     const st = k => domains[k].status;
     const fl = k => SEV[st(k)] >= 1;
     const measured = DOMAIN_KEYS.filter(k => st(k) !== 'na');
-    const flagged = measured.filter(fl).sort((x, y) => SEV[st(y)] - SEV[st(x)] || domains[x].score - domains[y].score || HIER.indexOf(x) - HIER.indexOf(y));
+    const flagged = measured.filter(fl).sort((x, y) => (domains[x].tentative ? 1 : 0) - (domains[y].tentative ? 1 : 0) || SEV[st(y)] - SEV[st(x)] || domains[x].score - domains[y].score || HIER.indexOf(x) - HIER.indexOf(y));
     let primary = flagged[0] || null;
     /* 피로 게이팅: 각성이 가장 심한 영역과 같은 수준이면 각성을 먼저 다룬다 (Lim & Dinges, 2010) */
-    if (primary && primary !== 'alert' && fl('alert') && SEV[st('alert')] >= SEV[st(primary)]) primary = 'alert';
+    if (primary && primary !== 'alert' && fl('alert') && !domains.alert.tentative && SEV[st('alert')] >= SEV[st(primary)]) primary = 'alert';
     const secondary = flagged.filter(k => k !== primary)[0] || null;
     const code = measured.length < 2 ? 'insufficient' : primary || 'balanced';
 
@@ -533,6 +595,29 @@
     kpi: '2~4주 후 같은 문항으로 다시 확인', remeasure: '자기보고 + 정서 주의 모듈 · 2주 후',
   };
 
+  /* NL-QC 1·3) 신뢰도 가중 영역 점수 + 수렴 원칙.
+   * list = 그 영역의 지표들 [{primary, value, score, status, r, borderline, excluded}] */
+  function aggregateDomain(k, indicators) {
+    const list = indicators.filter(i => i.domain === k), m = list.filter(i => i.value !== null && !i.excluded);
+    const prim = list.filter(i => i.primary), mp = prim.filter(i => i.value !== null && !i.excluded);
+    const wAll = list.reduce((s, i) => s + (i.primary ? 2 : 1), 0) || 1;
+    const conf = round(m.reduce((s, i) => s + (i.primary ? 2 : 1) * i.r, 0) / wAll, 2);
+    const d = { key: k, ...DOMAINS[k], measured: m.length, total: list.length, coverage: prim.length ? round(mp.length / prim.length, 2) : 0, partial: mp.length < prim.length, confidence: m.length ? conf : 0, notes: [] };
+    if (!m.length) return { ...d, score: null, status: 'na', tentative: false };
+    const wsum = m.reduce((s, i) => s + (i.primary ? 2 : 1) * i.r, 0);
+    const score = m.reduce((s, i) => s + i.score * (i.primary ? 2 : 1) * i.r, 0) / wsum;
+    let status = statusOf(score);
+    const firm = i => !i.borderline && i.r >= 0.8;
+    if (status === 'ok' && mp.some(i => i.status === 'concern' && firm(i))) { status = 'watch'; d.notes.push('핵심 지표 하나가 ‘관리 필요’여서 평균이 양호해도 ‘주의’로 표시했어요'); }
+    if (status === 'concern') {
+      const support = m.filter(i => SEV[i.status] >= 1).length;
+      if (support < 2 && !mp.some(i => i.status === 'concern' && firm(i))) { status = 'watch'; d.notes.push('저하를 가리키는 지표가 하나뿐이라 수렴 원칙에 따라 ‘주의’로 낮췄어요'); }
+    }
+    const tentative = d.confidence < QC.tentative;
+    if (tentative) d.notes.push(`측정 신뢰도가 낮아(${Math.round(d.confidence * 100)}%) 잠정 결과로만 보세요`);
+    return { ...d, score: round(score), status, tentative };
+  }
+
   /* ---------- 전체 분석 ----------
    * rec = core 기록(frames, phases, trials, calibration, checkin, screenW, demo) + {pursuit, saccade, pvt, sart, steps, stressScore, sim}
    * phases 에는 실제로 끝까지 수행한 구간만 담는다 (건너뛴 구간은 지운 상태로 전달). */
@@ -553,24 +638,50 @@
 
     const a = { pvt, eye, saccade, pursuit, sart, sartMotion, gazeOk: base.quality.gazeOk, attentionBias: base.gaze.attentionBias, firstNeg: base.gaze.firstNeg,
       negDelta: base.negDelta, stressDelta: base.stressDelta, recovery: base.recovery, coupling: base.coupling ? base.coupling.ampBpm : null };
+
+    /* NL-QC 1) 지표별 신뢰도 r · 2) 표준오차 */
+    const negSt = (rec.trials || []).filter(t => t.kind === 'neg').map(t => N.trialStats(t, W)).filter(x => x.valid);
+    const negN = (rec.trials || []).filter(t => t.kind === 'neg').length;
+    const sartFrames = span('sart') ? face.filter(f => f.t >= span('sart')[0] && f.t <= span('sart')[1]).length / Math.max(1, (span('sart')[1] - span('sart')[0]) / 1000 * 24) : 0;
+    const hq = q => QC.hrQ[q && q.quality] ?? 0;
+    const rOf = {
+      pvt: () => pvt && !pvt.invalid ? clamp(pvt.valid / 30, 0, 1) : 0,
+      eye: () => eye ? clamp((eye.coverage - 0.4) / 0.4, 0, 1) : 0,
+      anti: () => saccade && saccade.ok ? clamp(saccade.anti.valid / Math.max(8, saccade.anti.n * 0.8), 0, 1) : 0,
+      sart: () => sart && !sart.invalid ? clamp(sart.n / 54, 0, 1) : 0,
+      pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.5) / 0.3, 0, 1) : 0,
+      motion: () => clamp((sartFrames - 0.4) / 0.4, 0, 1),
+      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) : 0,
+    };
+    const REL = {
+      pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,
+      antiError: rOf.anti, sartCommission: rOf.sart, sartCv: rOf.sart, sartOmission: () => sart ? clamp(sart.n / 54, 0, 1) : 0,
+      pursuitGain: rOf.pursuit, pursuitErr: rOf.pursuit, motion: rOf.motion,
+      bias: rOf.gaze, firstNeg: rOf.gaze, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),
+      stressDelta: () => Math.min(hq(base.hr.baseline), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)), coupling: () => hq(base.hr.recovery),
+    };
+    const binSe = (p, n) => { if (!(n > 0) || !finite(p)) return null; const q = (p * n + 2) / (n + 4); return Math.sqrt(q * (1 - q) / (n + 4)) * 100; };   // Agresti–Coull
+    const SE = {
+      pvtLapses: () => pvt ? Math.sqrt(Math.max(1, pvt.lapses)) * 3 / Math.max(0.5, pvt.durationMin) : null,
+      antiError: () => saccade && saccade.ok ? binSe(saccade.anti.errorRate, saccade.anti.valid) : null,
+      sartCommission: () => sart ? binSe(sart.commission, sart.nogo) : null,
+      sartOmission: () => sart ? binSe(sart.omission, sart.go) : null,
+      bias: () => negSt.length >= 3 ? std(negSt.map(x => x.emoShare)) / Math.sqrt(negSt.length) * 100 : null,
+      firstNeg: () => { const f = negSt.filter(x => x.first); return f.length ? binSe(f.filter(x => x.first === 'emo').length / f.length, f.length) : null; },
+    };
     const indicators = INDICATORS.map(ind => {
       const raw = ind.get(a), has = finite(raw), v = has ? round(raw, ind.d) : null, sc = has ? scoreOf(v, ind.band) : null;
+      const r = has ? round(REL[ind.key] ? REL[ind.key]() : 1, 2) : null;
+      const se = has && SE[ind.key] ? SE[ind.key]() : null;
+      const ci = finite(se) ? [round(v - 1.96 * se, ind.d), round(v + 1.96 * se, ind.d)] : null;
+      const borderline = !!ci && [ind.band.ok, ind.band.concern].some(cut => ci[0] < cut && cut < ci[1]);
+      const excluded = has && r < QC.minR;
       return { key: ind.key, domain: ind.domain, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
-        value: v, score: round(sc), status: statusOf(sc), range: rangeText(ind) };
+        value: v, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded };
     });
 
     const domains = {};
-    DOMAIN_KEYS.forEach(k => {
-      const list = indicators.filter(i => i.domain === k), m = list.filter(i => i.value !== null);
-      const prim = list.filter(i => i.primary), mp = prim.filter(i => i.value !== null);
-      const d = { key: k, ...DOMAINS[k], measured: m.length, total: list.length, coverage: round(mp.length / prim.length, 2), partial: mp.length < prim.length };
-      if (!m.length) { domains[k] = { ...d, score: null, status: 'na' }; return; }
-      const wsum = m.reduce((s, i) => s + (i.primary ? 2 : 1), 0);
-      const score = m.reduce((s, i) => s + i.score * (i.primary ? 2 : 1), 0) / wsum;
-      let status = statusOf(score);
-      if (status === 'ok' && mp.some(i => i.status === 'concern')) status = 'watch';       // 핵심 지표 하나가 '관리 필요'면 평균에 묻히지 않게
-      domains[k] = { ...d, score: round(score), status };
-    });
+    DOMAIN_KEYS.forEach(k => { domains[k] = aggregateDomain(k, indicators); });
 
     const integrated = integrate(domains, indicators, base, rec.checkin);
     const care = [integrated.primary, integrated.secondary].filter(Boolean).map((k, i) => ({ domain: k, rank: i + 1, ...CARE_PLAN[k] }));
@@ -578,11 +689,34 @@
     const phq = phqScore(rec.checkin), links = phqLinks(phq, domains);
     if (phq && phq.consult) care.unshift({ ...SAFETY_TRACK, rank: 0 });
 
+    /* NL-QC 요약: 검사별 신뢰도 · 제외 사유 · 보정 내역 */
+    const measuredD = DOMAIN_KEYS.filter(k => domains[k].status !== 'na');
+    const overall = measuredD.length ? round(mean(measuredD.map(k => domains[k].confidence)), 2) : 0;
+    const stepQ = (key, label, r, note) => ({ key, label, r: finite(r) ? round(r, 2) : null, note: note || null });
+    const qc = {
+      version: QC.version, confidence: overall, grade: overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D',
+      steps: [
+        stepQ('baseline', '안정 기준선 · 심박', hq(base.hr.baseline), base.hr.baseline.quality === 'poor' ? '심박 신호가 약해 기준선 비교가 제한돼요' : null),
+        rec.pvt ? stepQ('pvt', 'PVT-B · PERCLOS', Math.min(rOf.pvt(), eye ? rOf.eye() : 1), pvt && pvt.invalid) : null,
+        rec.saccade ? stepQ('saccade', '프로·안티사카드', rOf.anti(), saccade && saccade.reason) : null,
+        rec.pursuit ? stepQ('pursuit', '원활 추적', rOf.pursuit(), pursuit && pursuit.reason) : null,
+        rec.sart ? stepQ('sart', 'SART', rOf.sart(), sart && sart.invalid) : null,
+        (rec.trials || []).length ? stepQ('freeview', '정서 자유 보기', rOf.gaze(), a.gazeOk ? null : '시선 신호가 부족해 정서 주의 지표를 판정하지 않았어요') : null,
+        rec.stressScore ? stepQ('stress', '압박 과제 · 회복', Math.min(REL.stressDelta(), REL.recovery()), base.stressDelta === null ? '심박 신호가 약해 압박 반응을 계산하지 못했어요' : null) : null,
+      ].filter(Boolean),
+      latency: pvt ? { offset: pvt.offset, lapseMs: pvt.lapseMs, fast10: pvt.fast10 } : null,
+      sideBalanced: !!(base.gaze.blocks && base.gaze.blocks.neg && base.gaze.blocks.neg.balanced),
+      borderline: indicators.filter(i => i.borderline).map(i => i.label),
+      excluded: indicators.filter(i => i.excluded).map(i => i.label),
+      downgraded: DOMAIN_KEYS.filter(k => domains[k].notes.some(n => n.includes('수렴 원칙'))),
+    };
+
     const pv = (x, k, s = 1, dd = 0) => x && finite(x[k]) ? round(x[k] * s, dd) : null;
     const info = {
       alert: [
         { label: 'PVT 반응 속도 (1/RT 평균)', value: pv(pvt, 'meanSpeed', 1, 2), unit: '/초', refs: ['basner'] },
         { label: '가장 느린 10% 반응', value: pv(pvt, 'slow10'), unit: 'ms', refs: ['basner'] },
+        { label: '기기 지연 보정 (보정 전 중앙값)', value: pvt && pvt.offset ? `−${pvt.offset}ms (${pvt.rawMedianRt})` : null, unit: '', refs: ['basner'] },
         { label: '깜빡임 빈도 (PVT 중)', value: pv(eye, 'blinkRate', 1, 1), unit: '회/분', refs: ['caffier'] },
         { label: '0.5초 넘는 눈감김', value: pv(eye, 'longPerMin', 1, 1), unit: '회/분', refs: ['caffier'] },
         { label: '기준선 PERCLOS', value: pv(eyeBase, 'perclos', 1, 1), unit: '%', refs: ['wierwille'] },
@@ -611,7 +745,7 @@
 
     return {
       ...base, phaseTimes: ph, stressScore: rec.stressScore || null, stimMode: rec.stimMode || 'schematic', stimForm: rec.stimForm || null, mode: rec.mode || null, resized: !!rec.resized,
-      battery: { version: VERSION, pvt, eye, eyeBase, saccade, pursuit, sart, sartMotion, indicators, info, domains, integrated, care, phq, phqLinks: links, steps: rec.steps || {}, sim: rec.sim || null },
+      battery: { version: VERSION, qc, pvt, eye, eyeBase, saccade, pursuit, sart, sartMotion, indicators, info, domains, integrated, care, phq, phqLinks: links, steps: rec.steps || {}, sim: rec.sim || null },
     };
   }
 
@@ -771,6 +905,6 @@
 
   return {
     VERSION, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
-    phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
+    QC, mistProblem, mistNext, aggregateDomain, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
   };
 });

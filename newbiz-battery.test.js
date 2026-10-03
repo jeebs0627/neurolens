@@ -188,4 +188,67 @@ for (const [p, e] of Object.entries(expect)) {
   assert.ok(checkReport(B.run(none), 'phq-skip').includes('응답하지 않았어요'));
 }
 
+/* 11) MIST: 모든 난이도에서 답은 0~9 정수이고 식을 계산하면 답과 같다 · 제한 시간 적응 */
+{
+  let seed = 5; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (let lv = 1; lv <= 5; lv++) for (let i = 0; i < 300; i++) {
+    const q = B.mistProblem(lv, rand);
+    assert.ok(Number.isInteger(q.ans) && q.ans >= 0 && q.ans <= 9, `L${lv} ${q.text}=${q.ans}`);
+    const v = Function(`return ${q.text.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-')}`)();
+    assert.equal(v, q.ans, `L${lv} ${q.text}`);
+    if (lv >= 4) assert.ok(/[×÷]/.test(q.text), `L${lv} 곱셈·나눗셈 포함`);
+  }
+  assert.deepEqual(B.mistNext(4000, 3), { limit: 3600, streak: 0 });
+  assert.deepEqual(B.mistNext(4000, -3), { limit: 4400, streak: 0 });
+  assert.deepEqual(B.mistNext(4000, 2), { limit: 4000, streak: 2 });
+  assert.equal(B.mistNext(B.PROTOCOL.stress.minMs, 3).limit, B.PROTOCOL.stress.minMs);
+}
+
+/* 12) NL-QC: PVT 기기 지연 보정 · 수행 타당도 */
+{
+  const rts = Array.from({ length: 40 }, (_, i) => 290 + (i % 10) * 12);       // 가장 빠른 10% ≈ 290ms → 보정 60ms(상한)
+  const s = B.pvtStats({ trials: rts.map((rt, i) => ({ onset: i * 4000, rt })), falseStarts: 0, durationMs: 180000 });
+  assert.equal(s.offset, 60); assert.equal(s.lapseMs, 415); assert.equal(s.medianRt, s.rawMedianRt - 60);
+  assert.equal(s.lapses, 0);                                                    // 기준이 415ms 로 늘어 380ms 대 반응은 경과가 아님
+  const spam = B.pvtStats({ trials: rts.map((rt, i) => ({ onset: i * 4000, rt })), falseStarts: 25, durationMs: 180000 });
+  assert.ok(spam.invalid);
+  const seq = B.sartSequence(54, () => 0.3);
+  const lazy = B.sartStats({ trials: seq.map((digit, i) => ({ digit, onset: i, rt: i % 3 ? null : 400 })) });
+  assert.ok(lazy.invalid);
+  const r = B.run(B.simulate('balanced'));
+  r.battery.indicators.forEach(i => { if (i.value !== null) assert.ok(i.r >= 0 && i.r <= 1, `r ${i.key}`); });
+  assert.ok(['A', 'B'].includes(r.battery.qc.grade));
+  /* PVT 를 무작위로 누르면 각성 지표가 판정에서 빠진다 */
+  const rec = B.simulate('fatigue'); rec.pvt.falseStarts = 80;
+  const rr = B.run(rec);
+  assert.ok(rr.battery.indicators.filter(i => i.key.startsWith('pvtL') || i.key === 'pvtMedian').every(i => i.excluded));
+  assert.ok(rr.battery.qc.excluded.length >= 2);
+  checkReport(rr, 'pvt-invalid');
+}
+
+/* 13) NL-QC: 신뢰도 가중 · 수렴 원칙 · 잠정 */
+{
+  const I = (key, primary, score, r = 1, extra = {}) => ({ key, domain: 'alert', primary, value: 1, score, status: B.statusOf(score), r, borderline: false, excluded: false, ...extra });
+  /* 단 하나의 지표만 저하이고 그 지표가 경계면 ‘관리 필요’를 ‘주의’로 낮춘다 */
+  const one = B.aggregateDomain('alert', [I('a', true, 10, 1, { borderline: true }), I('b', false, 80)]);
+  assert.equal(one.status, 'watch'); assert.ok(one.notes.some(n => n.includes('수렴 원칙')));
+  /* 두 지표가 함께 저하면 그대로 */
+  assert.equal(B.aggregateDomain('alert', [I('a', true, 10), I('b', false, 30)]).status, 'concern');
+  /* 고신뢰 핵심 지표 하나가 관리 필요면 평균이 양호해도 주의 */
+  assert.equal(B.aggregateDomain('alert', [I('a', true, 30), I('b', true, 100), I('c', true, 100), I('d', false, 100)]).status, 'watch');
+  /* 신뢰도가 낮은 지표는 덜 반영되고, 전체 신뢰도가 낮으면 잠정 */
+  const w = B.aggregateDomain('alert', [I('a', true, 0, 0.35), I('b', true, 100, 1)]);
+  assert.ok(w.score > 70, `weighted ${w.score}`);
+  const t = B.aggregateDomain('alert', [I('a', true, 80, 0.4), I('b', true, null, null, { value: null })]);
+  assert.equal(t.tentative, true);
+}
+
+/* 14) 좌우 균형 가중: 오른쪽만 보는 사람이 정서 자극 위치와 무관하게 편향으로 잡히지 않는다 */
+{
+  const W = 1000, mk = (side, emoSide) => ({ kind: 'neg', emoSide, onset: 0, end: 3000, samples: Array.from({ length: 90 }, (_, i) => ({ t: i * 33, x: side === 'R' ? 800 : 200 })) });
+  const trials = [mk('R', 'R'), mk('R', 'R'), mk('R', 'R'), mk('R', 'L'), mk('R', 'L')];   // 정서 자극이 오른쪽 3회 · 왼쪽 2회, 시선은 늘 오른쪽
+  const b = N.blockStats(trials, W);
+  assert.equal(b.balanced, true); assert.equal(b.emoShare, 0.5);
+}
+
 console.log('newbiz-battery tests passed');

@@ -374,12 +374,16 @@
     const valid = total >= dur * 0.3;
     return { valid, emoShare: valid ? emo / total : null, first: valid ? first : null, firstVisitMs: valid ? firstVisit : null };
   }
+  /* 좌우 균형 가중(NL-QC 5): 유효 시행이 한쪽에 몰리면 개인의 좌우 시선 치우침이 편향처럼 보이므로,
+   * 정서 자극이 왼쪽·오른쪽에 있던 시행을 따로 평균한 뒤 두 평균을 같은 비중으로 합친다 (양쪽 2시행 이상일 때) */
   function blockStats(trials, W) {
-    const st = trials.map(t => trialStats(t, W)).filter(s => s.valid);
+    const st = trials.map(t => ({ ...trialStats(t, W), side: t.emoSide })).filter(s => s.valid);
     const firsts = st.filter(s => s.first);
+    const L = st.filter(s => s.side === 'L').map(s => s.emoShare), R = st.filter(s => s.side === 'R').map(s => s.emoShare);
+    const balanced = L.length >= 2 && R.length >= 2;
     return {
-      n: trials.length, valid: st.length,
-      emoShare: st.length ? round(mean(st.map(s => s.emoShare)), 3) : null,
+      n: trials.length, valid: st.length, balanced,
+      emoShare: !st.length ? null : balanced ? round((mean(L) + mean(R)) / 2, 3) : round(mean(st.map(s => s.emoShare)), 3),
       firstEmoRate: firsts.length ? round(firsts.filter(s => s.first === 'emo').length / firsts.length, 2) : null,
       dwellMs: st.length ? round(median(st.map(s => s.firstVisitMs)), 0) : null,
     };

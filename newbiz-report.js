@@ -43,7 +43,10 @@
   }
 
   const stBadge = s => `<span class="st st-${s}">${B.STATUS[s]}</span>`;
-  const valText = i => i.value === null ? '—' : `${i.d >= 1 ? i.value.toFixed(i.d) : i.value}${i.unit ? ` <small>${esc(i.unit)}</small>` : ''}`;
+  const valText = i => i.value === null ? '—' : `${i.d >= 1 ? i.value.toFixed(i.d) : i.value}${i.unit ? ` <small>${esc(i.unit)}</small>` : ''}${i.ci ? `<div class="ci">95% ${fmt(i.ci[0], i.d)}~${fmt(i.ci[1], i.d)}</div>` : ''}`;
+  /* 판정 칸: 상태 + NL-QC 표시(경계 · 신뢰도 낮음 · 제외) */
+  const judge = i => i.excluded ? `<span class="st st-na">판정 제외</span><div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>`
+    : `${stBadge(i.status)}${i.borderline ? '<div class="qtag b">경계 · 오차 범위가 기준에 걸침</div>' : ''}${finite(i.r) && i.r < 0.8 ? `<div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>` : ''}`;
 
   function moduleStatus(b, mod) {
     const st = MODULE_STEPS[mod].map(k => (b.steps[k] && b.steps[k].status) || 'off');
@@ -89,11 +92,12 @@
     const lo = 100, hi = 1000, ys = v => py + (1 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * ih, xs = i => px + (n > 1 ? i / (n - 1) : 0.5) * iw;
     const pts = rts.map((rt, i) => rt === null
       ? `<text x="${xs(i)}" y="${py + 9}" text-anchor="middle" font-size="12" fill="#D2486A">×</text>`
-      : `<circle cx="${xs(i).toFixed(1)}" cy="${ys(rt).toFixed(1)}" r="3.4" fill="${rt >= B.PROTOCOL.pvt.lapseMs ? '#C98A12' : '#2458E6'}" opacity=".85"/>`).join('');
+      : `<circle cx="${xs(i).toFixed(1)}" cy="${ys(rt).toFixed(1)}" r="3.4" fill="${rt >= (pvt.lapseMs || B.PROTOCOL.pvt.lapseMs) ? '#C98A12' : '#2458E6'}" opacity=".85"/>`).join('');
     const yl = [200, 355, 600, 1000].map(v => `<text x="${px - 6}" y="${ys(v) + 4}" text-anchor="end" font-size="10.5" fill="#8A93A8">${v}</text>`).join('');
+    const L = pvt.lapseMs || 355;
     return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="PVT 시행별 반응시간">
-      <line x1="${px}" x2="${px + iw}" y1="${ys(355)}" y2="${ys(355)}" stroke="#C98A12" stroke-dasharray="4 4"/>
-      <text x="${px + iw}" y="${ys(355) - 5}" text-anchor="end" font-size="10.5" fill="#8A5508">경과 반응 기준 355ms</text>
+      <line x1="${px}" x2="${px + iw}" y1="${ys(L)}" y2="${ys(L)}" stroke="#C98A12" stroke-dasharray="4 4"/>
+      <text x="${px + iw}" y="${ys(L) - 5}" text-anchor="end" font-size="10.5" fill="#8A5508">경과 반응 기준 ${L}ms${L > 355 ? ` (355 + 기기 지연 보정 ${L - 355})` : ''}</text>
       ${yl}${pts}<text x="${px + iw / 2}" y="${H - 6}" text-anchor="middle" font-size="11" fill="#647089">시행 순서 → (파랑: 정상 반응 · 주황: 경과 반응 · ×: 무반응)</text></svg>`;
   }
 
@@ -179,7 +183,7 @@
   /* ---------- 섹션 ---------- */
   function indicatorTable(list, info, C) {
     const rows = list.map(i => `<tr><td><b>${esc(i.label)}</b>${i.primary ? '<span class="core-tag">핵심</span>' : ''}<div class="td-d">${esc(i.desc)}</div></td>
-      <td class="num">${valText(i)}</td><td class="rng">${esc(i.range)}</td><td>${stBadge(i.status)}</td><td class="refc">${C.cite(i.refs)}</td></tr>`).join('');
+      <td class="num">${valText(i)}</td><td class="rng">${esc(i.range)}</td><td>${judge(i)}</td><td class="refc">${C.cite(i.refs)}</td></tr>`).join('');
     const inf = (info || []).filter(x => x.value !== null).map(x => `<tr class="info"><td>${esc(x.label)}<div class="td-d">참고 지표 · 판정에 쓰지 않음</div></td><td class="num">${esc(x.value)}${x.unit ? ` <small>${esc(x.unit)}</small>` : ''}</td><td class="rng">—</td><td><span class="st st-na">참고</span></td><td class="refc">${C.cite(x.refs)}</td></tr>`).join('');
     return `<div class="tbl-wrap"><table class="itbl"><thead><tr><th>지표</th><th>결과</th><th>참고 범위 (잠정)</th><th>판정</th><th>근거</th></tr></thead><tbody>${rows}${inf}</tbody></table></div>`;
   }
@@ -195,12 +199,12 @@
     let body = '';
     const P = B.PROTOCOL;
     if (k === 'alert') {
-      body += b.pvt ? `<div class="group-t">PVT-B · 시행별 반응시간</div>${pvtSvg(b.pvt)}` : '';
+      body += b.pvt ? `<div class="group-t">PVT-B · 시행별 반응시간</div>${pvtSvg(b.pvt)}${b.pvt.invalid ? `<p class="warn-line">${esc(b.pvt.invalid)}</p>` : ''}` : '';
       body += methodBox('alert', b, C, `<p><b>프로토콜</b> 자극 간격 ${P.pvt.isiMin / 1000}~${P.pvt.isiMax / 1000}초 무작위, 경과 반응 ≥ ${P.pvt.lapseMs}ms, 조기 반응 &lt; ${P.pvt.falseMs}ms 또는 자극 전 입력, 무반응 ${P.pvt.timeoutMs / 1000}초. PERCLOS는 개인별 눈 열림 범위로 정규화한 닫힘 ≥ ${P.perclos.closure * 100}% 시간 비율.${C.cite(['basnerB', 'wierwille'])}</p>`);
     } else if (k === 'control') {
       body += b.saccade ? `<div class="group-t">프로·안티사카드 · 시행 결과</div>${saccadeSvg(b.saccade)}${b.saccade.ok ? '' : `<p class="warn-line">${esc(b.saccade.reason)} — 안티사카드 지표를 판정에서 제외했어요.</p>`}` : '';
       body += b.pursuit && b.pursuit.trace ? `<div class="group-t">원활 추적 · 표적 대비 시선</div>${pursuitSvg(b.pursuit)}${b.pursuit.ok ? '' : `<p class="warn-line">${esc(b.pursuit.reason)} — 추적 지표를 판정에서 제외했어요.</p>`}` : (b.pursuit && !b.pursuit.ok ? `<p class="warn-line">원활 추적: ${esc(b.pursuit.reason)}</p>` : '');
-      body += b.sart ? `<div class="group-t">SART · 시행별 반응</div>${sartSvg(b.sart)}` : '';
+      body += b.sart ? `<div class="group-t">SART · 시행별 반응</div>${sartSvg(b.sart)}${b.sart.invalid ? `<p class="warn-line">${esc(b.sart.invalid)}</p>` : ''}` : '';
       body += methodBox('oculo', b, C, `<p><b>프로토콜</b> 응시점 ${P.saccade.fixMin / 1000}~${P.saccade.fixMax / 1000}초 무작위 후 응시점이 사라지며 표적이 화면 중심에서 폭의 ${Math.round(P.saccade.ecc * 100)}% 위치에 1초 제시(단계 패러다임). 프로사카드 블록 → 연습 → 안티사카드 블록. 원활 추적은 ${P.pursuit.freq}Hz 수평 정현파(진폭 폭의 ${Math.round(P.pursuit.amp * 100)}%), 첫 ${P.pursuit.skipMs / 1000}초 제외 후 최적 지연에서의 이득과 이득 보정 잔차 SD를 계산.${C.cite(['antoniades', 'maruta'])}</p>`);
       body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + 마스크 ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 11%)에서 반응 억제.${C.cite(['robertson'])}</p>`);
     } else if (k === 'emotion') {
@@ -210,14 +214,15 @@
         ? `정서 사진 세트 ${esc(r.stimForm || 'A')} — 위협·슬픔·긍정 사진과 내용 유형(인물·동물·장면·사물)이 같은 중립 사진을 짝지어 4초 제시. 사진은 SAM 정서가·각성가 평정과 휘도 정합을 거쳐 선별${C.cite(['sam', 'kurdi', 'marchewka'])}.`
         : '정서 사진 세트가 준비되지 않아 밝기를 맞춘 도식 얼굴과 단어 자극을 3.5초 제시했습니다. 사진 자극보다 정서 강도가 약해 편향이 작게 측정될 수 있습니다.'} 자유 보기 체류 지표는 dot-probe 반응시간보다 재검사 신뢰도가 높게 보고됩니다${C.cite(['waechter'])}.</p>`);
     } else if (k === 'autonomic') {
-      body += `<div class="group-t">구간별 원격 심박 (rPPG · POS)</div>${timelineSvg(r)}`;
-      body += `<p class="disc">압박 과제 정답 ${r.stressScore ? `${r.stressScore.correct}/${r.stressScore.total}` : '—'} · 안정 시 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함', none: '없음' }[r.hr.baseline.quality]}${C.cite(['pos'])}</p>`;
+      body += `<div class="group-t">구간별 원격 심박 (rPPG · POS)</div>${timelineSvg(r)}<p class="disc">기준선은 빈 화면 대신 잔잔한 풍경을 보는 ‘바닐라 기준선’으로 쟀어요${C.cite(['jennings', 'piferi'])}. 공명 호흡은 분당 6회(0.1Hz)${C.cite(['lehrer', 'shaffer'])}.</p>`;
+      body += `<p class="disc">MIST 압박 과제 정답 ${r.stressScore ? `${r.stressScore.correct}/${r.stressScore.total}` : '—'}${r.stressScore && r.stressScore.minLimit ? ` · 최단 제한 시간 ${(r.stressScore.minLimit / 1000).toFixed(1)}초` : ''}${C.cite(['dedovic'])} · 안정 시 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함', none: '없음' }[r.hr.baseline.quality]}${C.cite(['pos'])}</p>`;
     }
     return `<section class="card dom" id="dom-${k}">
       <div class="dom-h"><div><div class="kicker">Domain ${idx} · ${esc(d.en)}</div><h2>${esc(d.name)} <span class="net">${esc(d.network)}</span></h2>
         <p class="muted small" style="margin:0">${esc(d.what)}${C.cite(d.refs)}</p></div>
         <div class="dom-score st-${d.status}"><b>${d.score === null ? '—' : d.score}</b><span>${B.STATUS[d.status]}</span></div></div>
-      ${d.status === 'na' ? '<p class="warn-line">이 영역의 검사를 수행하지 않았거나 신호가 부족해 측정되지 않았어요.</p>' : ''}
+      ${d.status === 'na' ? '<p class="warn-line">이 영역의 검사를 수행하지 않았거나 신호가 부족해 측정되지 않았어요.</p>'
+        : `<div class="confbar"><span>측정 신뢰도</span><span class="cb"><i style="width:${Math.round(d.confidence * 100)}%"></i></span><b>${Math.round(d.confidence * 100)}%</b>${d.tentative ? '<span class="st st-watch">잠정</span>' : ''}</div>${(d.notes || []).map(n => `<p class="qnote">${esc(n)}</p>`).join('')}`}
       ${indicatorTable(list, b.info[k], C)}${body}</section>`;
   }
 
@@ -235,6 +240,45 @@
       ${p.consult ? '<div class="mismatch" style="background:#FCEEF1;border-color:#F2C9D3;color:#7A2238"><b>상담 권장</b> 최근 2주 기분 부담이 높게 보고됐어요. 아래 케어 플랜 첫 항목의 상담 안내를 확인해 주세요. 이 결과는 진단이 아닙니다.</div>' : ''}
       ${rows ? `<div class="tbl-wrap"><table class="itbl" style="min-width:560px"><thead><tr><th>자기보고 증상</th><th>응답</th><th>연결된 측정</th><th>대조</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : '<p class="muted small">PHQ-2만 응답해 증상별 대조는 하지 않았어요 (PHQ-2가 3점 이상일 때 추가 문항을 묻습니다).</p>'}`;
+  }
+
+  /* 케어 로드맵: 측정 → 오늘 → 1~2주 루틴 → 재측정 → 4주 비교 (폐루프) */
+  function careRoadmap(b) {
+    const main = b.care.find(t => t.domain !== 'safety') || b.care[0];
+    const steps = [
+      ['오늘', '1분 호흡 바이오피드백으로 같은 카메라에서 바로 몸의 변화를 확인'],
+      ['1~2주', `${main.title}: 매일 루틴 ${main.items.length}가지 — 목표 ${main.kpi}`],
+      ['2주 후', `재측정 · ${main.remeasure}`],
+      ['4주 후', '전체 배터리 재측정 → 이번 결과(개인 기준선)와 영역별 변화 비교'],
+    ];
+    return `<div class="group-t">케어 로드맵 · 측정–케어–재측정 폐루프</div>
+      <ol class="roadmap">${steps.map(([w, t], i) => `<li><span class="rm-n">${i + 1}</span><b>${esc(w)}</b><p>${esc(t)}</p></li>`).join('')}</ol>`;
+  }
+
+  /* NL-QC: 우리 보정 원칙과 이번 측정에 실제로 적용된 내역 */
+  function qcSection(b, C) {
+    const q = b.qc;
+    if (!q) return '';
+    const G = { A: ['st-ok', '높음'], B: ['st-ok', '양호'], C: ['st-watch', '보통 · 일부 잠정'], D: ['st-concern', '낮음 · 재측정 권장'] };
+    const rows = q.steps.map(x => `<tr><td><b>${esc(x.label)}</b></td><td class="num">${x.r === null ? '—' : Math.round(x.r * 100) + '<small>%</small>'}</td><td>${x.note ? esc(x.note) : '<span class="muted">이상 없음</span>'}</td></tr>`).join('');
+    const applied = [
+      q.latency && q.latency.offset ? `기기 입력 지연 보정 −${q.latency.offset}ms (가장 빠른 10% 반응 ${q.latency.fast10}ms 기준, 경과 반응 기준 ${q.latency.lapseMs}ms)` : null,
+      q.sideBalanced ? '정서 자유 보기: 좌우 균형 가중 적용 (개인의 좌우 시선 치우침 상쇄)' : null,
+      q.borderline.length ? `측정 오차 범위가 판정 경계에 걸친 지표 ${q.borderline.length}개: ${q.borderline.join(' · ')}` : null,
+      q.excluded.length ? `신뢰도가 낮아 판정에서 뺀 지표: ${q.excluded.join(' · ')}` : null,
+      q.downgraded.length ? `수렴 원칙으로 ‘관리 필요’를 ‘주의’로 낮춘 영역: ${q.downgraded.map(k => B.DOMAINS[k].name).join(' · ')}` : null,
+    ].filter(Boolean);
+    return `<div class="group-t">보정 · 품질 관리 (${esc(q.version)})</div>
+      <div class="qcgrade"><span class="st ${G[q.grade][0]}">측정 신뢰도 ${esc(q.grade)} · ${G[q.grade][1]}</span><b>${Math.round(q.confidence * 100)}%</b><span class="muted small">측정된 영역의 신뢰도 평균</span></div>
+      <ol class="qlist qprin">
+        <li><b>신뢰도 가중</b> 지표마다 신호 품질·유효 시행 수로 신뢰도(0~100%)를 매겨 영역 점수에 곱해 반영하고, 30% 미만인 지표는 판정에서 뺍니다${C.cite(['nunnally'])}.</li>
+        <li><b>측정 오차 띠</b> 시행 수로 구한 95% 구간이 판정 기준에 걸치면 ‘경계’로 표시합니다 — 적은 시행으로 내린 판정을 과신하지 않기 위해서입니다${C.cite(['jacobson', 'hedge'])}.</li>
+        <li><b>수렴 원칙</b> ‘관리 필요’는 서로 다른 지표 2개 이상이 같은 방향을 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만 내립니다.</li>
+        <li><b>수행 타당도</b> 자극 전 반응이 3분당 20회를 넘는 PVT, 반응해야 할 숫자의 절반 이상을 놓친 SART, 방향을 구분하지 못한 사카드는 판정에서 뺍니다.</li>
+        <li><b>개인 기준 보정</b> 심박은 본인 안정 기준선 대비, 시선은 개인 시선 진폭·드리프트·좌우 균형으로, 반응시간은 기기 입력 지연(상한 60ms)으로 보정합니다.</li>
+      </ol>
+      <div class="tbl-wrap"><table class="itbl" style="min-width:480px"><thead><tr><th>검사</th><th>신뢰도</th><th>비고</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${applied.length ? `<ul class="qlist" style="margin-top:8px">${applied.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`;
   }
 
   function render(r, ctx = {}) {
@@ -297,6 +341,7 @@
         <p class="muted small" style="margin:2px 0 8px">${esc(t.goal)}</p>
         <ol>${t.items.map(it => `<li>${esc(it.text)}${C.cite(it.refs)}</li>`).join('')}</ol>
         <div class="kpi"><span><b>목표 지표</b> ${esc(t.kpi)}</span><span><b>재측정</b> ${esc(t.remeasure)}</span></div></div>`).join('')}
+      ${careRoadmap(b)}
       <div class="btns no-print">
         <button class="btn care" id="bioStart">지금 1분 호흡 바이오피드백</button>
         <button class="btn ghost" id="again">다시 측정</button>
@@ -310,7 +355,8 @@
     <div class="card">
       <h2>평가 방법과 측정 품질</h2>
       <div class="group-t">점수화와 통합 규칙</div>
-      <p class="small">각 지표는 문헌 보고 범위를 웹캠·브라우저 환경에 맞춘 기준점으로 0–100점 환산했습니다 (최적 100 · 양호 한계 70 · 주의 한계 40 · 최저 0, 사이는 선형 보간). 영역 점수는 핵심 지표에 2배 가중을 둔 평균이며, 핵심 지표 하나라도 ‘관리 필요’면 평균이 양호여도 ‘주의’로 올립니다. 1순위 영역은 저하 정도가 가장 큰 영역이되, 각성이 같은 수준으로 저하된 경우 각성을 먼저 둡니다 — 수면 부족이 다른 인지 수행 저하를 설명할 수 있기 때문입니다${C.cite(['limDinges'])}. 영역 간 연결 해석은 주의 통제 이론${C.cite(['act'])}, 신경내장 통합 모델${C.cite(['thayer'])}, 지속 인지 가설${C.cite(['brosschot'])}을 규칙으로 적용했습니다.</p>
+      <p class="small">각 지표는 문헌 보고 범위를 웹캠·브라우저 환경에 맞춘 기준점으로 0–100점 환산했습니다 (최적 100 · 양호 한계 70 · 주의 한계 40 · 최저 0, 사이는 선형 보간). 영역 점수는 핵심 지표 2배 가중에 지표별 측정 신뢰도를 곱한 가중 평균이며, 경계가 아닌 고신뢰 핵심 지표가 ‘관리 필요’면 평균이 양호여도 ‘주의’로 올립니다. 1순위 영역은 저하 정도가 가장 큰 영역이되, 각성이 같은 수준으로 저하된 경우 각성을 먼저 둡니다 — 수면 부족이 다른 인지 수행 저하를 설명할 수 있기 때문입니다${C.cite(['limDinges'])}. 영역 간 연결 해석은 주의 통제 이론${C.cite(['act'])}, 신경내장 통합 모델${C.cite(['thayer'])}, 지속 인지 가설${C.cite(['brosschot'])}을 규칙으로 적용했습니다.</p>
+      ${qcSection(b, C)}
       <div class="group-t">단계별 수행 상태</div>
       <div class="steps">${Object.keys(STEP_NAMES).filter(k => b.steps[k]).map(k => `<span class="mchip m-${b.steps[k].status}">${STEP_NAMES[k]} · ${STEP_LABEL[b.steps[k].status] || esc(b.steps[k].status)}</span>`).join('') || '<span class="muted small">—</span>'}</div>
       <div class="group-t">신호 품질</div>

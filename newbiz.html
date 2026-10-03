@@ -229,6 +229,8 @@ html.staging,html.staging body{overflow:hidden}
 @keyframes blinkin{0%,45%{opacity:0}50%,100%{opacity:1}}
 .a-blink{animation:blinkin 2.4s steps(1) infinite}
 @keyframes grow{0%,100%{transform:scale(.6)}50%{transform:scale(1)}}
+@keyframes shrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.a-shrink{transform-origin:left;transform-box:fill-box;animation:shrink 3s linear infinite}
 .a-grow{transform-origin:center;transform-box:fill-box;animation:grow 10s ease-in-out infinite}
 
 /* ---------- 리포트 ---------- */
@@ -319,8 +321,166 @@ html.staging,html.staging body{overflow:hidden}
 .bio .hrbig span{font-size:13.5px;color:var(--muted)}
 .bio svg.spark{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(520px,86vw);height:70px}
 .bio .cue{bottom:8%}
+/* ---------- 첫 화면 ---------- */
+.lp-hero{position:relative;overflow:hidden;border-radius:24px;background:linear-gradient(135deg,#0E1A33 0%,#1B2F5E 55%,#24407A 100%);color:#fff;padding:44px 44px 40px;margin-bottom:16px;box-shadow:0 18px 50px rgba(14,26,51,.18)}
+.lp-hero::after{content:'';position:absolute;right:-120px;top:-120px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(116,149,255,.28),transparent 65%)}
+.lp-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:center}
+.lp-hero .kicker{color:#9DB6FF}
+.lp-hero h1{font-size:36px;line-height:1.28;margin:12px 0 14px;color:#fff}
+.lp-hero h1 em{font-style:normal;background:linear-gradient(90deg,#9DB6FF,#7FE0C8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lp-hero .lead{color:#C9D5F2;font-size:16px}
+.lp-stats{display:flex;gap:26px;flex-wrap:wrap;margin:22px 0 26px}
+.lp-stats div b{display:block;font-family:var(--font-num);font-size:26px;color:#fff;line-height:1.1}
+.lp-stats div span{font-size:12.5px;color:#9FB0D6}
+.lp-cta{display:flex;gap:10px;flex-wrap:wrap}
+.lp-cta .btn{background:#fff;color:var(--ink);box-shadow:none}
+.lp-cta .btn:hover{background:#E9EEFB}
+.lp-cta .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.lp-cta .btn.ghost:hover{background:rgba(255,255,255,.08)}
+.lp-vis{position:relative;aspect-ratio:1;max-width:340px;justify-self:center;width:100%}
+.lp-vis svg{width:100%;height:100%}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.lp-orbit{transform-origin:170px 170px;animation:orbit 40s linear infinite}
+@keyframes dashflow{to{stroke-dashoffset:-240}}
+.lp-ecg{stroke-dasharray:120 120;animation:dashflow 3s linear infinite}
+@keyframes gazeScan{0%,100%{transform:translate(-26px,-6px)}25%{transform:translate(18px,-10px)}50%{transform:translate(24px,8px)}75%{transform:translate(-14px,10px)}}
+.lp-iris{animation:gazeScan 7s ease-in-out infinite}
+@keyframes softPulse{0%,100%{opacity:.35}50%{opacity:1}}
+.lp-node{animation:softPulse 3.2s ease-in-out infinite}
+.sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:34px 4px 14px;flex-wrap:wrap}
+.sec-h h2{margin:6px 0 0;font-size:24px}
+.sec-h p{margin:0;color:var(--muted);font-size:14px;max-width:480px;word-break:keep-all}
+.gets{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.get{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 20px 18px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s}
+.get:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(14,26,51,.04),0 14px 30px rgba(14,26,51,.09)}
+.get .gi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px}
+.get .gi svg{width:22px;height:22px}
+.get h3{font-size:16px;margin:0 0 6px}
+.get p{font-size:13.5px;color:var(--ink-2);margin:0;word-break:keep-all}
+.get .eg{margin-top:10px;font-size:12px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+.gets .get.wide{grid-column:span 3;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center}
+.carewrap{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:10px}
+.caremap{display:grid;gap:8px}
+.cm-row{display:grid;grid-template-columns:200px 28px 1fr 220px;gap:10px;align-items:center;padding:12px 14px;border-radius:14px;background:#FAFBFD;border:1px solid var(--line)}
+.cm-row .cm-d{display:flex;gap:10px;align-items:center}
+.cm-row .cm-d i{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-family:var(--font-num);font-weight:800;font-size:12px;color:#fff;flex:none}
+.cm-row .cm-d b{font-size:14px;display:block}
+.cm-row .cm-d span{font-size:11.5px;color:var(--muted)}
+.cm-row .arr{color:#A3ABBD;font-size:18px;text-align:center}
+.cm-row .cm-t b{font-size:14.5px;color:var(--care)}
+.cm-row .cm-t p{margin:2px 0 0;font-size:12.5px;color:var(--ink-2);word-break:keep-all}
+.cm-row .cm-k{font-size:12px;color:#1F5E52;background:var(--care-soft);border:1px solid var(--care-line);border-radius:10px;padding:7px 10px;word-break:keep-all}
+.cm-row.safe{background:#FCF3F5;border-color:#F2C9D3}
+.cm-row.safe .cm-t b{color:#A2304A}
+.loop{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.loop div{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 12px;text-align:center;font-size:12.5px;color:var(--ink-2);word-break:keep-all}
+.loop div b{display:block;font-size:14px;color:var(--ink);margin:4px 0 2px}
+.loop div em{font-style:normal;font-family:var(--font-num);font-size:11px;font-weight:700;color:var(--blue)}
+.loop div:not(:last-child)::after{content:'›';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:#A3ABBD;font-size:18px;z-index:1}
+/* 리포트 · 품질 표시 */
+.ci{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:1px}
+.qtag{font-size:10.5px;color:#7A8296;margin-top:3px;white-space:nowrap}
+.qtag.b{color:#8A5508}
+.confbar{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);margin:-4px 0 12px}
+.confbar .cb{width:140px;height:6px;border-radius:9px;background:#E6EAF1;overflow:hidden}
+.confbar .cb i{display:block;height:100%;background:linear-gradient(90deg,#7C9BEA,#2F9E6A)}
+.confbar b{font-family:var(--font-num);color:var(--ink-2)}
+.qnote{font-size:12.5px;color:#6B5A1E;background:#FFF8E9;border-radius:9px;padding:6px 10px;margin:0 0 8px}
+.qcgrade{display:flex;align-items:center;gap:12px;margin:4px 0 10px}
+.qcgrade b{font-family:var(--font-num);font-size:22px}
+.qprin li{margin:6px 0}
+.roadmap{list-style:none;padding:0;margin:6px 0 4px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.roadmap li{background:#fff;border:1px solid var(--care-line);border-radius:14px;padding:12px 12px 10px;position:relative}
+.roadmap .rm-n{position:absolute;right:10px;top:8px;font-family:var(--font-num);font-weight:800;font-size:20px;color:#D5EBE5}
+.roadmap b{font-size:14px;color:var(--care)}
+.roadmap p{margin:4px 0 0;font-size:12.5px;color:var(--ink-2);word-break:keep-all}
+/* 카메라 준비: 기준선 안내 */
+.preview .guide-msg{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(14,26,51,.72);color:#fff;font-size:12.5px;font-weight:700;border-radius:999px;padding:5px 12px;white-space:nowrap;z-index:2}
+.preview .guide-msg.ok{background:rgba(31,122,90,.85)}
+
+/* ---------- 측정 무대 고도화 ---------- */
+@keyframes cardIn{from{opacity:0;transform:translate(-50%,calc(-50% + 14px))}to{opacity:1;transform:translate(-50%,-50%)}}
+.brief{animation:cardIn .35s cubic-bezier(.2,.8,.2,1);box-shadow:0 20px 60px rgba(14,26,51,.10)}
+.brief .dstrip{position:absolute;left:0;top:22px;bottom:22px;width:4px;border-radius:0 4px 4px 0}
+.brief .orig{margin:12px 0 0;font-size:13px;color:#2B4A7E;background:#E8EEF8;border-radius:10px;padding:8px 12px;word-break:keep-all}
+.brief .orig b{color:#1D3A6E}
+.st-top{background:rgba(232,235,241,.92)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fade{animation:fadeIn .4s ease}
+.cd{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:150px;height:150px;display:grid;place-items:center}
+.cd svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.cd b{font-family:var(--font-num);font-size:58px;font-weight:700;color:#3A4560}
+.cd span{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:14px;color:#7C869B}
+@keyframes cdPop{from{transform:scale(1.25);opacity:0}to{transform:scale(1);opacity:1}}
+.cd b.pop{animation:cdPop .35s ease}
+/* 응답 확인 표시 (정오와 무관) */
+.ack{position:absolute;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid #A9B2C5;transition:background .08s,border-color .08s,transform .08s}
+.ack.on{background:#5D6E94;border-color:#5D6E94;transform:scale(1.25)}
+.ack-l{position:absolute;left:50%;transform:translateX(-50%);font-size:12px;color:#8E97AA;white-space:nowrap}
+/* SART 연습 피드백 */
+.sart-fb{display:flex;gap:8px;align-items:center;justify-content:center;width:90%;font-weight:700}
+.sart-fb .ok{color:#2F7D5C}.sart-fb .ng{color:#B23A57}
+.sart-meta{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-size:13px;color:#7C869B;display:flex;gap:16px;white-space:nowrap}
+.sart-meta b{color:#4C5774}
+/* PVT */
+.pvt-box{box-shadow:inset 0 2px 6px rgba(14,26,51,.06)}
+.pvt-hint{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-size:13px;color:#7C869B;white-space:nowrap}
+/* MIST */
+.mist{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(680px,92vw);text-align:center}
+.mist-top{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:#7C869B;margin-bottom:6px}
+.mist-lv{display:flex;gap:3px;align-items:center}
+.mist-lv i{width:16px;height:6px;border-radius:3px;background:#D3D9E5}
+.mist-lv i.on{background:#7D879E}
+.mist .prob{font-family:var(--font-num);font-size:clamp(34px,5vw,54px);font-weight:700;color:#2C3650;letter-spacing:.01em;margin:6px 0 0}
+.mist .prob .q{color:#9AA3B6}
+.mist .tbar{width:100%;height:6px;border-radius:9px;background:#D3D9E5;margin:16px auto 18px;overflow:hidden}
+.mist .tbar i{display:block;height:100%;background:#7D879E}
+.keypad{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.keypad button{padding:12px 0;border-radius:12px;border:1.5px solid #C9D0DD;background:#F2F4F8;font-family:var(--font-num);font-size:22px;font-weight:700;color:#2C3650;transition:transform .08s,border-color .1s}
+.keypad button:hover{border-color:#9AA6BF}
+.keypad button.hit{transform:scale(.94);border-color:#5D6E94}
+.mist .fb{height:24px;margin-top:12px;font-size:15px;font-weight:700;color:#59647D}
+.perf{margin:14px auto 0;width:100%;text-align:left}
+.perf-h{display:flex;justify-content:space-between;font-size:12px;color:#7C869B;margin-bottom:5px}
+.perf-t{position:relative;height:10px;border-radius:9px;background:#D9DEE7}
+.perf-t i{position:absolute;left:0;top:0;bottom:0;border-radius:9px;background:#7D879E;transition:width .3s}
+.perf-t em{position:absolute;top:-4px;bottom:-4px;width:2px;background:#3A4560}
+.perf-t em::after{content:'목표';position:absolute;top:-17px;white-space:nowrap;left:50%;transform:translateX(-50%);font-size:10.5px;font-style:normal;color:#3A4560;font-weight:700}
+/* 기준선 풍경 */
+.calm{position:absolute;inset:57px 0 0 0;overflow:hidden}
+.calm svg{width:100%;height:100%;display:block}
+@keyframes drift{from{transform:translateX(-30%)}to{transform:translateX(130%)}}
+.cloud{animation:drift linear infinite}
+@keyframes wave{0%,100%{transform:translateX(0)}50%{transform:translateX(-40px)}}
+.wv{animation:wave 9s ease-in-out infinite}
+@keyframes shimmer{0%,100%{opacity:.25}50%{opacity:.6}}
+.shim{animation:shimmer 6s ease-in-out infinite}
+.calm-dot{position:absolute;left:50%;top:calc(50% + 28px);width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#7C88A2;box-shadow:0 0 0 6px rgba(124,136,162,.18)}
+.calm-cue{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);font-size:14px;color:#5E6A84;background:rgba(245,247,250,.75);border-radius:999px;padding:6px 16px;white-space:nowrap}
+/* 공명 호흡 페이서 */
+.pacer{position:absolute;left:50%;top:calc(50% + 10px);transform:translate(-50%,-50%);width:min(760px,94vw);text-align:center}
+.pacer-ring{position:relative;width:min(300px,42vmin);height:min(300px,42vmin);margin:0 auto}
+.pacer-ring svg{position:absolute;inset:0;width:100%;height:100%}
+.pacer-lbl{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:2px}
+.pacer-lbl b{font-size:24px;color:#2C3650}
+.pacer-lbl span{font-family:var(--font-num);font-size:34px;font-weight:700;color:#4C5774;line-height:1}
+.pacer-meta{display:flex;justify-content:center;gap:22px;margin-top:16px;font-size:13px;color:#7C869B}
+.pacer-meta b{color:#3A4560;font-family:var(--font-num)}
+.pacer-wave{width:100%;height:70px;margin-top:14px;display:block}
+.bio .pacer{top:56%}
 @media (max-width:820px){
   .card{padding:24px 20px}
+  .lp-hero{padding:30px 22px}
+  .lp-grid,.gets{grid-template-columns:1fr}
+  .gets .get.wide{grid-column:auto;grid-template-columns:1fr}
+  .lp-hero h1{font-size:27px}
+  .lp-vis{max-width:220px}
+  .cm-row{grid-template-columns:1fr}
+  .cm-row .arr{display:none}
+  .loop{grid-template-columns:1fr 1fr}
+  .loop div::after{display:none}
+  .roadmap{grid-template-columns:1fr 1fr}
+  .keypad{grid-template-columns:repeat(5,1fr)}
   .hero,.setup,.sum-grid,.two,.brief-grid{grid-template-columns:1fr}
   .prep,.meta{grid-template-columns:1fr 1fr}
   h1{font-size:25px}
@@ -343,27 +503,79 @@ html.staging,html.staging body{overflow:hidden}
 <main>
 <!-- 1. 소개 -->
 <section id="sIntro">
-  <div class="card">
-    <div class="hero">
+  <div class="lp-hero">
+    <div class="lp-grid">
       <div>
-        <div class="kicker">Integrated Self-Regulation Assessment</div>
-        <h1>웹캠 하나로 각성 · 주의 통제 ·<br>정서 주의 · 자율신경 조절을 평가합니다</h1>
-        <p class="lead">각 검사는 학술적으로 검증된 패러다임을 웹캠 환경에 맞게 구현한 것입니다. 결과는 <b>주의 네트워크 모델</b>과 <b>신경내장 통합 모델</b>이라는 하나의 틀로 통합해 해석하고, 우선순위 케어와 재측정 지표까지 제시합니다.</p>
-        <div class="prep">
-          <div><b>조명</b>얼굴 정면이 밝고 균일하게</div>
-          <div><b>거리</b>화면에서 50~70cm, 정면 자세</div>
-          <div><b>환경</b>방해 없는 곳에서 약 15분</div>
-          <div><b>입력</b>키보드 스페이스바 사용</div>
-          <div><b>안경</b>반사가 심하면 화면 밝기 낮추기</div>
-          <div><b>브라우저</b>PC 크롬 · 엣지 권장</div>
+        <div class="kicker">NeuroLens · Integrated Self-Regulation Assessment</div>
+        <h1>웹캠 15분으로<br><em>지친 건지, 흔들린 건지,<br>긴장한 건지</em> 구분해 드립니다</h1>
+        <p class="lead">눈꺼풀 · 시선 · 반응 속도 · 얼굴 심박을 학술 검사 7종으로 측정해 <b style="color:#fff">각성 · 주의 통제 · 정서 주의 · 자율신경 조절</b> 네 영역을 하나의 모델로 해석하고, 가장 먼저 다룰 영역에 맞춘 케어와 재측정 목표까지 정해 드려요.</p>
+        <div class="lp-stats">
+          <div><b>4</b><span>자기조절 영역</span></div>
+          <div><b>7</b><span>검증된 검사 패러다임</span></div>
+          <div><b>18</b><span>판정 지표 · 근거 문헌 연결</span></div>
+          <div><b>0</b><span>서버로 보내는 영상</span></div>
+        </div>
+        <div class="lp-cta">
+          <button class="btn" type="button" id="toSetup">검사 구성하고 시작하기 ↓</button>
+          <button class="btn ghost" type="button" id="toSample">예시 리포트 보기</button>
         </div>
       </div>
-      <div class="domains" aria-label="평가 영역">
-        <div><i class="d1">01</i><div><b>각성</b><span>경계 네트워크 · PVT-B · PERCLOS</span></div></div>
-        <div><i class="d2">02</i><div><b>주의 통제</b><span>실행 통제 · 안티사카드 · 원활 추적 · SART</span></div></div>
-        <div><i class="d3">03</i><div><b>정서 주의</b><span>정서 자극 정향 · 정서 사진 자유 보기</span></div></div>
-        <div><i class="d4">04</i><div><b>자율신경 조절</b><span>신경내장 조절 · 압박 반응 · 공명 호흡 회복</span></div></div>
+      <div class="lp-vis" aria-hidden="true">
+        <svg viewBox="0 0 340 340">
+          <defs><radialGradient id="lpg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#3D5FA8" stop-opacity=".55"/><stop offset="1" stop-color="#3D5FA8" stop-opacity="0"/></radialGradient></defs>
+          <circle cx="170" cy="170" r="160" fill="url(#lpg)"/>
+          <circle cx="170" cy="170" r="128" fill="none" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 6"/>
+          <g class="lp-orbit">
+            <circle cx="170" cy="42" r="15" fill="#3C6FE0"/><text x="170" y="47" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">01</text>
+            <circle cx="298" cy="170" r="15" fill="#6A4FD8"/><text x="298" y="175" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">02</text>
+            <circle cx="170" cy="298" r="15" fill="#C9577A"/><text x="170" y="303" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">03</text>
+            <circle cx="42" cy="170" r="15" fill="#1E8A7A"/><text x="42" y="175" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">04</text>
+          </g>
+          <path d="M100 166 Q170 108 240 166 Q170 224 100 166Z" fill="rgba(255,255,255,.08)" stroke="#fff" stroke-width="3"/>
+          <g class="lp-iris"><circle cx="170" cy="166" r="22" fill="#9DB6FF"/><circle cx="170" cy="166" r="9" fill="#0E1A33"/><circle cx="176" cy="160" r="3.5" fill="#fff"/></g>
+          <path class="lp-ecg" d="M78 236 H130 L140 222 L150 252 L160 214 L170 236 H262" fill="none" stroke="#7FE0C8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle class="lp-node" cx="96" cy="92" r="4" fill="#9DB6FF"/><circle class="lp-node" cx="250" cy="96" r="4" fill="#7FE0C8" style="animation-delay:1s"/><circle class="lp-node" cx="252" cy="250" r="4" fill="#F0A3B8" style="animation-delay:2s"/>
+        </svg>
       </div>
+    </div>
+  </div>
+
+  <div class="sec-h"><div><div class="kicker">What you get</div><h2>이 검사로 얻는 것</h2></div><p>“요즘 왜 이렇게 집중이 안 되지?”에 대한 답을, 느낌이 아니라 측정으로 드립니다.</p></div>
+  <div class="gets">
+    <div class="get"><div class="gi" style="background:#EDF2FE"><svg viewBox="0 0 24 24" fill="none" stroke="#1F4FD8" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></div>
+      <h3>네 영역 점수와 통합 유형</h3><p>각성 · 주의 통제 · 정서 주의 · 자율신경 조절을 0–100점으로 환산하고, ‘각성 저하 우선형’ ‘주의 통제 부하형’ 같은 하나의 유형으로 요약해요.</p><div class="eg">예) 각성 52 · 주의 통제 61 → 각성 저하 우선형</div></div>
+    <div class="get"><div class="gi" style="background:#F0EDFF"><svg viewBox="0 0 24 24" fill="none" stroke="#6A4FD8" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 11 16.7 6M7.3 13l9.4 5"/></svg></div>
+      <h3>왜 그런지 — 영역 간 연결</h3><p>피로가 주의를 끌어내리는지, 걱정이 몸의 긴장을 늘리는지 등 영역 사이의 원인 경로를 학술 모델로 해석해요.</p><div class="eg">피로 게이팅 · 주의 통제 이론 · 신경내장 통합 · 지속 인지 가설</div></div>
+    <div class="get"><div class="gi" style="background:#FCEEF1"><svg viewBox="0 0 24 24" fill="none" stroke="#C93C5C" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M5 8l-3 4 3 4M19 8l3 4-3 4"/></svg></div>
+      <h3>느끼는 나 vs 측정된 나</h3><p>스스로 느끼는 졸림·긴장·최근 2주 기분(PHQ)과 실제 측정의 차이를 보여 줘요. 자각보다 먼저 나타나는 신호를 잡아냅니다.</p><div class="eg">예) “안 졸린데요” → 경과 반응 9회 · PERCLOS 14%</div></div>
+    <div class="get"><div class="gi" style="background:var(--care-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#167A6B" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-4.4-9-9C1.5 8.3 3.6 5 7 5c2 0 3.6 1.2 5 3 1.4-1.8 3-3 5-3 3.4 0 5.5 3.3 4 7-2 4.6-9 9-9 9z"/></svg></div>
+      <h3>우선순위 케어 플랜</h3><p>가장 먼저 다룰 1·2순위 영역에 근거 기반 루틴 3가지씩을 배정하고, 목표 지표(KPI)를 숫자로 정해요.</p><div class="eg">수면 규칙화 · 주의 훈련 · 주의 전환 · 공명 호흡</div></div>
+    <div class="get"><div class="gi" style="background:var(--amber-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#B87508" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></div>
+      <h3>재측정으로 효과 확인</h3><p>같은 검사로 2주·4주 뒤 다시 재서 ‘평소의 나’ 대비 변화를 확인해요. 결과지 안에서 1분 호흡 케어의 즉시 효과도 잴 수 있어요.</p><div class="eg">개인 기준선 · 측정–케어–재측정 폐루프</div></div>
+    <div class="get"><div class="gi" style="background:#EEF1F6"><svg viewBox="0 0 24 24" fill="none" stroke="#2B3754" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
+      <h3>믿을 수 있는 정도까지</h3><p>지표마다 신호 품질과 오차 범위를 함께 보여 줘요. 측정이 불안정하면 판정하지 않거나 ‘잠정’으로 표시하는 자체 보정 원칙(NL-QC)을 적용해요.</p><div class="eg">신뢰도 가중 · 오차 띠 · 수렴 원칙 · 타당도 검사</div></div>
+  </div>
+
+  <div class="sec-h"><div><div class="kicker">From result to care</div><h2>결과는 이렇게 케어로 이어집니다</h2></div><p>저하된 영역이 곧 케어의 출발점입니다. 각성이 떨어졌다면 다른 영역보다 각성을 먼저 다뤄요(피로 게이팅).</p></div>
+  <div class="carewrap"><div class="caremap" id="careMap"></div></div>
+  <div class="loop">
+    <div><em>01 · 1분</em><b>자기보고</b>지금 상태 4문항 + 최근 2주 기분(선택)</div>
+    <div><em>02 · 1분</em><b>카메라 확인</b>얼굴 위치·조명·심박 신호 점검</div>
+    <div><em>03 · 약 15분</em><b>측정 9단계</b>단계마다 안내를 읽고 직접 시작</div>
+    <div><em>04 · 즉시</em><b>통합 리포트</b>영역 점수 · 원인 경로 · 품질</div>
+    <div><em>05 · 2~4주</em><b>케어 · 재측정</b>루틴 실천 후 같은 검사로 비교</div>
+  </div>
+
+  <div class="card" id="setupCard" style="margin-top:22px">
+    <div class="kicker">Configure</div>
+    <h2 style="margin-bottom:4px">검사 구성과 동의</h2>
+    <div class="prep" style="margin-top:14px">
+      <div><b>조명</b>얼굴 정면이 밝고 균일하게</div>
+      <div><b>거리</b>화면에서 50~70cm, 정면 자세</div>
+      <div><b>환경</b>방해 없는 곳에서 약 15분</div>
+      <div><b>입력</b>키보드 스페이스바 · 숫자 키</div>
+      <div><b>안경</b>반사가 심하면 화면 밝기 낮추기</div>
+      <div><b>브라우저</b>PC 크롬 · 엣지 권장</div>
     </div>
     <div class="sec-t"><h3>검사 구성</h3><span class="small muted">포함할 모듈을 고르세요 · 시선 보정과 기준선은 항상 포함</span></div>
     <table class="btbl">
@@ -437,15 +649,16 @@ html.staging,html.staging body{overflow:hidden}
   <div class="card">
     <div class="kicker">Signal Check · 측정 환경 확인</div>
     <h2>얼굴이 화면 가운데에 오도록 앉아 주세요</h2>
-    <p class="lead">네 가지 항목이 모두 초록색이 되면 측정 품질이 가장 좋아요. 측정은 전체 화면으로 진행되며, 단계마다 안내를 읽고 직접 시작합니다.</p>
+    <p class="lead">다섯 가지 항목이 모두 초록색이 되면 측정 품질이 가장 좋아요. 측정은 전체 화면으로 진행되며, 단계마다 안내를 읽고 직접 시작합니다.</p>
     <div class="setup">
       <div>
-        <div class="preview"><video id="camPreview" playsinline muted></video><canvas id="overlay"></canvas></div>
-        <p class="small muted" style="margin:8px 2px 0">초록 점: 홍채 · 상자: 심박을 읽는 피부 영역(이마·양 볼)</p>
+        <div class="preview"><video id="camPreview" playsinline muted></video><canvas id="overlay"></canvas><div class="guide-msg" id="guideMsg" hidden></div></div>
+        <p class="small muted" style="margin:8px 2px 0">가로·세로 기준선이 만나는 곳에 코끝을, 점선 타원 안에 얼굴을 맞춰 주세요 · 초록 점: 홍채 · 분홍 상자: 심박을 읽는 피부 영역</p>
       </div>
       <div>
         <ul class="checks">
           <li><span><i class="dot" id="dFace"></i>얼굴 인식</span><b id="vFace">—</b></li>
+          <li><span><i class="dot" id="dPos"></i>위치 · 거리</span><b id="vPos">—</b></li>
           <li><span><i class="dot" id="dLight"></i>조명 밝기</span><b id="vLight">—</b></li>
           <li><span><i class="dot" id="dFps"></i>카메라 프레임</span><b id="vFps">—</b></li>
           <li><span><i class="dot" id="dStill"></i>머리 안정</span><b id="vStill">—</b></li>
@@ -497,9 +710,9 @@ html.staging,html.staging body{overflow:hidden}
 <div class="bio" id="bio">
   <button class="sbtn quit" id="bioQuit">닫기</button>
   <div class="hrbig"><b id="bioHr">--</b><span id="bioQ">심박 측정 준비 중…</span></div>
-  <div class="breath" id="bioCircle"></div><div class="breath-lbl" id="bioLbl">준비</div>
+  <div id="bioPacer"></div>
   <svg class="spark" id="bioSpark" viewBox="0 0 520 70" preserveAspectRatio="none"></svg>
-  <div class="cue" id="bioMsg">원이 커질 때 5초 들이쉬고, 작아질 때 5초 내쉬어요 (분당 6회)</div>
+  <div class="cue" id="bioMsg">원이 커지고 바깥 띠가 차오를 때 5초 들이쉬고, 작아질 때 5초 내쉬어요 (분당 6회)</div>
 </div>
 <video id="camProc" class="selfcam" playsinline muted></video>
 
@@ -579,9 +792,9 @@ $('modTable').innerHTML = MOD_ORDER.map(k => {
 function fvTrials(d) { return S.stimMode === 'photo' || stimReady(S.mode) ? d.fv.neu + d.fv.neg + d.fv.pos : 3 * d.trials; }
 function stepEstimateSec(key, d) {
   return {
-    calibration: 40, baseline: d.baseline + 20, pursuit: d.pursuit + 25, saccade: (d.pro + d.anti + d.practice) * 3.2 + 50,
-    freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 25, pvt: d.pvt + d.pvtPractice * 3.5 + 30, sart: (d.sart + d.sartPractice) * 1.15 + 35,
-    stress: d.stress + 20, recovery: d.recovery + 20,
+    calibration: 40, baseline: d.baseline + 24, pursuit: d.pursuit + 25, saccade: (d.pro + d.anti + d.practice) * 3.2 + 50,
+    freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 25, pvt: d.pvt + d.pvtPractice * 3.5 + 36, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 42,
+    stress: d.stress + 26, recovery: d.recovery + 24,
   }[key] || 0;
 }
 const MOD_STEPS = { alert: ['pvt'], oculo: ['pursuit', 'saccade'], sustain: ['sart'], core: ['freeview', 'stress', 'recovery'] };
@@ -605,6 +818,19 @@ $('agree').addEventListener('change', refreshIntro);
 $('simPersona').innerHTML = Object.keys(B.PERSONAS).map(k => `<option value="${k}">${esc(B.PERSONAS[k].label)}</option>`).join('');
 refreshIntro();
 loadStimuli().then(refreshIntro);
+/* 결과 → 케어 연결 지도 (리포트의 케어 플랜과 같은 정의를 씀) */
+{
+  const short = t => { const x = t.split(/ — | \(/)[0]; return x.length > 34 ? x.slice(0, 33) + '…' : x; };
+  const row = (cls, ico, n, name, sub, title, items, kpi) => `<div class="cm-row ${cls}"><div class="cm-d"><i class="${ico}">${n}</i><div><b>${esc(name)}</b><span>${esc(sub)}</span></div></div><div class="arr">→</div><div class="cm-t"><b>${esc(title)}</b><p>${esc(items)}</p></div><div class="cm-k"><b>목표</b> ${esc(kpi)}</div></div>`;
+  $('careMap').innerHTML = [['alert', 'd1', '01'], ['control', 'd2', '02'], ['emotion', 'd3', '03'], ['autonomic', 'd4', '04']].map(([k, ico, n]) => {
+    const D = B.DOMAINS[k], T = B.CARE_PLAN[k];
+    return row('', ico, n, `${D.name} 저하`, D.network, T.title, T.items.map(i => short(i.text)).join(' · '), T.kpi);
+  }).join('')
+    + row('safe', '', '!', '최근 2주 기분 부담 높음', 'PHQ-8 10점 이상', '전문가 상담 연결 (최우선)', '정신건강복지센터·정신건강의학과 안내 · 위기상담 109 · 루틴 병행', '2~4주 후 같은 문항으로 재확인').replace('<i class="">', '<i style="background:#C93C5C">')
+    + row('', '', '✓', '모든 영역 양호', '개인 기준선', B.CARE_PLAN.balanced.title, B.CARE_PLAN.balanced.items.map(i => short(i.text)).join(' · '), B.CARE_PLAN.balanced.kpi).replace('<i class="">', '<i style="background:#7C88A2">');
+}
+$('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+$('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full'); });
 $('goCheckin').addEventListener('click', () => { S.demo = false; S.mode = modeVal(); show('sCheckin'); });
 $('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
 $('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
@@ -806,6 +1032,21 @@ function drawOverlay() {
     const W = cv.clientWidth, H = cv.clientHeight;
     if (cv.width !== W) { cv.width = W; cv.height = H; }
     ctx.clearRect(0, 0, W, H);
+    /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭) */
+    const pos = posCheck(), okc = pos && pos.ok;
+    ctx.save();
+    ctx.setLineDash([7, 6]); ctx.lineWidth = 1.5; ctx.strokeStyle = okc ? 'rgba(59,227,138,.85)' : 'rgba(255,255,255,.6)';
+    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.moveTo(0, H * POS.cy); ctx.lineTo(W, H * POS.cy); ctx.stroke();
+    ctx.setLineDash([4, 6]); ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(W / 2, H * POS.cy, W * POS.rx, H * POS.ry, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (S.feat && now() - S.lastFace < 500) {
+      const fx = S.feat.cx * W, fy = S.feat.cy * H;
+      ctx.strokeStyle = okc ? '#3BE38A' : '#FFC24A'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(fx - 9, fy); ctx.lineTo(fx + 9, fy); ctx.moveTo(fx, fy - 9); ctx.lineTo(fx, fy + 9); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(W / 2, H * POS.cy); ctx.globalAlpha = 0.5; ctx.stroke();
+    }
+    ctx.restore();
     const lm = S.lastLm;
     if (lm) {
       ctx.fillStyle = 'rgba(255,255,255,.35)';
@@ -819,6 +1060,20 @@ function drawOverlay() {
   };
   requestAnimationFrame(draw);
 }
+/* 얼굴 위치·거리 판정: 화면은 거울처럼 보이므로 안내 방향도 거울 기준 */
+const POS = { cy: 0.48, rx: 0.17, ry: 0.32, tol: 0.08, fwMin: 0.17, fwMax: 0.38 };
+function posCheck() {
+  const f = S.feat;
+  if (!f || now() - S.lastFace > 500) return null;
+  const dx = (1 - f.cx) - 0.5, dy = f.cy - POS.cy;
+  let msg = null;
+  if (f.fw < POS.fwMin) msg = '조금 더 가까이 앉아 주세요';
+  else if (f.fw > POS.fwMax) msg = '조금 뒤로 물러나 주세요';
+  else if (Math.abs(dx) > POS.tol) msg = dx > 0 ? '← 왼쪽으로 조금 이동' : '오른쪽으로 조금 이동 →';
+  else if (Math.abs(dy) > POS.tol) msg = dy > 0 ? '↑ 얼굴을 조금 위로 (또는 화면을 아래로)' : '↓ 얼굴을 조금 아래로';
+  else if (Math.abs(f.yaw) > 0.09) msg = '고개를 돌리지 말고 정면을 봐 주세요';
+  return { ok: !msg, msg: msg || '좋아요 · 이 자세를 유지하세요' };
+}
 function setDot(id, state) { $(id).className = 'dot ' + (state || ''); }
 function setupTicker() {
   setInterval(() => {
@@ -829,6 +1084,9 @@ function setupTicker() {
     const fps = S.fpsTimes.length / 2;
     const motion = N.motionIndex(S.buf.filter(f => f.ok), t - 5000, t);
     setDot('dFace', faceOk ? 'ok' : 'bad'); $('vFace').textContent = faceOk ? '인식됨' : '찾는 중';
+    const pos = posCheck(), gm = $('guideMsg');
+    setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';
+    gm.hidden = !pos; if (pos) { gm.textContent = pos.msg; gm.className = 'guide-msg' + (pos.ok ? ' ok' : ''); }
     const lightOk = lum >= 70 && lum <= 215;
     setDot('dLight', !Number.isFinite(lum) ? '' : lightOk ? 'ok' : 'warn');
     $('vLight').textContent = !Number.isFinite(lum) ? '—' : lum < 70 ? '어두움' : lum > 215 ? '너무 밝음' : '적정';
@@ -947,6 +1205,7 @@ function centerMsg(html) { body.innerHTML = `<div class="center">${html}</div>`;
 const demoCue = text => S.demo ? `<div class="cue">데모 모드 · ${text}</div>` : '';
 
 /* ---------- 단계 안내 카드: 충분히 읽고 직접 시작 ---------- */
+const DCOL = { calibration: '#7C88A2', baseline: '#7C88A2', pvt: '#3C6FE0', pursuit: '#6A4FD8', saccade: '#6A4FD8', sart: '#6A4FD8', freeview: '#C9577A', stress: '#1E8A7A', recovery: '#1E8A7A' };
 const V = {
   cal: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/>' + [0, 1, 2].map(r => [0, 1, 2].map(c => `<circle cx="${30 + c * 120}" cy="${26 + r * 59}" r="7" fill="${r === 1 && c === 1 ? '#C93C5C' : '#B7BFCD'}"/>`).join('')).join('') + '</svg>',
   fix: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><text x="150" y="102" text-anchor="middle" font-size="48" fill="#59647D" font-family="Sora">+</text></svg>',
@@ -956,8 +1215,9 @@ const V = {
   fv: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><rect x="24" y="44" width="110" height="82" rx="6" fill="#C9CFDA"/><rect x="166" y="44" width="110" height="82" rx="6" fill="#C9CFDA"/><circle cx="79" cy="78" r="16" fill="#AEB6C6"/><path d="M58 112 Q79 96 100 112" fill="#AEB6C6"/><path d="M186 112 L210 82 L232 104 L246 92 L262 112z" fill="#AEB6C6"/></svg>',
   pvt: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><rect x="90" y="50" width="120" height="66" rx="12" fill="#EFF1F5" stroke="#A9B2C5" stroke-width="2"/><text class="a-blink" x="150" y="96" text-anchor="middle" font-size="30" font-weight="700" fill="#B83A49" font-family="Sora">247</text><text x="150" y="146" text-anchor="middle" font-size="12" fill="#66728A">숫자가 보이면 바로 스페이스바</text></svg>',
   sart: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/>' + [['7', 60, 1], ['2', 120, 1], ['3', 180, 0], ['9', 240, 1]].map(([d, x, k]) => `<text x="${x}" y="92" text-anchor="middle" font-size="34" font-weight="700" fill="#2C3650" font-family="Sora">${d}</text><text x="${x}" y="128" text-anchor="middle" font-size="12" font-weight="700" fill="${k ? '#1F4FD8' : '#C93C5C'}">${k ? '누름' : '멈춤'}</text>`).join('') + '</svg>',
-  math: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><text x="150" y="72" text-anchor="middle" font-size="30" font-weight="700" fill="#2C3650" font-family="Sora">47 + 26</text>' + [['73', 80], ['63', 150], ['74', 220]].map(([v, x]) => `<rect x="${x - 28}" y="94" width="56" height="38" rx="9" fill="#F2F4F8" stroke="#C9D0DD"/><text x="${x}" y="120" text-anchor="middle" font-size="18" font-weight="700" fill="#2C3650" font-family="Sora">${v}</text>`).join('') + '</svg>',
-  breath: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><circle class="a-grow" cx="150" cy="85" r="56" fill="none" stroke="#8E9AB3" stroke-width="3"/><text x="150" y="91" text-anchor="middle" font-size="15" font-weight="700" fill="#3A4560">5초 · 5초</text></svg>',
+  math: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><text x="150" y="58" text-anchor="middle" font-size="24" font-weight="700" fill="#2C3650" font-family="Sora">42 ÷ 6 − 3 × 2 = ?</text><rect x="24" y="72" width="252" height="5" rx="2.5" fill="#D3D9E5"/><rect class="a-shrink" x="24" y="72" width="252" height="5" rx="2.5" fill="#7D879E"/>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((v, i) => `<rect x="${24 + i * 25.4}" y="92" width="21" height="30" rx="6" fill="${v === 1 ? '#DCE1EA' : '#F2F4F8'}" stroke="${v === 1 ? '#5D6E94' : '#C9D0DD'}"/><text x="${34.5 + i * 25.4}" y="113" text-anchor="middle" font-size="13" font-weight="700" fill="#2C3650" font-family="Sora">${v}</text>`).join('') + '<rect x="24" y="138" width="252" height="7" rx="3.5" fill="#D9DEE7"/><rect x="24" y="138" width="150" height="7" rx="3.5" fill="#7D879E"/><rect x="224" y="134" width="2" height="15" fill="#3A4560"/><text x="225" y="160" text-anchor="middle" font-size="10" fill="#3A4560" font-weight="700">목표 80%</text></svg>',
+  breath: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><circle cx="110" cy="85" r="58" fill="none" stroke="#D3D9E5" stroke-width="5"/><circle class="a-grow" cx="110" cy="85" r="46" fill="rgba(127,163,184,.2)" stroke="#7FA3B8" stroke-width="3"/><text x="110" y="90" text-anchor="middle" font-size="14" font-weight="700" fill="#3A4560">들숨 5초</text><path d="M188 110 C204 110 210 60 226 60 S248 110 264 110" fill="none" stroke="#7FA3B8" stroke-width="2.5"/><text x="226" y="138" text-anchor="middle" font-size="11" fill="#66728A">분당 6회 · 0.1Hz</text></svg>',
+  calm: '<svg viewBox="0 0 300 170"><defs><linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9E2EC"/><stop offset="1" stop-color="#EEF1F5"/></linearGradient></defs><rect x="6" y="6" width="288" height="158" rx="10" fill="url(#cg1)"/><path d="M6 104 L60 70 L100 92 L150 58 L206 96 L246 74 L294 100 V112 H6Z" fill="#CBD5E1"/><rect x="6" y="110" width="288" height="54" fill="#DCE4EC"/><path class="a-swing" d="M60 130 q20 -6 40 0 t40 0" fill="none" stroke="#EEF2F6" stroke-width="3" style="animation-duration:9s"/><circle cx="150" cy="96" r="4" fill="#7C88A2"/></svg>',
 };
 function stepInfo(key) {
   const d = B.DUR[S.mode], P = B.PROTOCOL;
@@ -965,9 +1225,11 @@ function stepInfo(key) {
     calibration: { tag: '측정 준비 · Gaze calibration', title: '시선 보정', vis: V.cal, time: '약 25초', resp: '눈으로 바라보기',
       what: '눈과 머리 자세를 화면 좌표에 맞춰, 화면의 어느 곳을 보고 있는지 추정할 수 있게 합니다. 이후 모든 시선 검사의 정확도를 좌우하는 단계입니다.',
       how: ['머리는 고정하고 <b>눈으로만</b> 빨간 점의 가운데를 바라봐 주세요', '점 9개가 차례로 나타난 뒤, 파란 점 4개로 정확도를 확인해요', '안경 반사가 있다면 화면 밝기를 조금 낮춰 주세요'], ref: 'Semmelmann & Weigelt, 2018 · 9점 릿지 회귀 보정' },
-    baseline: { tag: '측정 준비 · Resting baseline', title: '안정 기준선', vis: V.fix, time: `${d.baseline}초`, resp: '응시만',
-      what: '아무 과제 없이 쉬는 동안의 심박과 눈꺼풀 상태를 재서, 이후 모든 반응을 비교할 <b>나만의 기준</b>으로 씁니다.',
-      how: ['가운데 + 를 편안히 바라봐 주세요', '말하거나 움직이지 않고 평소처럼 호흡해요', '눈을 억지로 크게 뜨지 않아도 돼요'], ref: 'Wang et al., 2017 · 원격 심박(rPPG, POS)' },
+    baseline: { tag: '측정 준비 · Resting baseline', title: '안정 기준선', vis: V.calm, time: `${d.baseline}초`, resp: '편안히 바라보기',
+      what: '과제 없이 잔잔한 풍경을 보는 동안의 심박과 눈꺼풀 상태를 재서, 이후 모든 반응을 비교할 <b>나만의 기준</b>으로 씁니다.',
+      how: ['잔잔한 호수 풍경이 펼쳐져요. 가운데 작은 점 근처를 <b>편안히</b> 바라봐 주세요', '말하거나 움직이지 않고 평소처럼 호흡해요 (호흡을 조절하지 않아도 돼요)', '끝나면 자동으로 다음 안내가 나와요'],
+      orig: '빈 화면을 응시하는 휴식보다 잔잔한 풍경 영상을 보는 <b>‘바닐라 기준선’</b>이 지루함·잡념이 섞이지 않은 더 안정된 심박 기준선을 준다고 보고됐어요. 풍경의 밝기는 측정 화면과 같게 맞춰 카메라 심박에 영향을 주지 않아요.',
+      ref: 'Jennings et al., 1992 · Piferi et al., 2000 · 원격 심박 POS: Wang et al., 2017' },
     pursuit: { tag: 'Domain 2 · 주의 통제', title: '원활 추적', vis: V.pursuit, time: `${d.pursuit}초`, resp: '눈으로 따라가기',
       what: '움직이는 표적을 눈으로 부드럽게 따라가는 능력은 주의 유지와 예측적 시선 조절을 반영합니다. 추적이 흔들리는 정도를 주의 동기화 지표로 봅니다.',
       how: ['먼저 가운데 점을 1초 바라보며 시선을 재정렬해요', '파란 점이 좌우로 천천히 움직여요', '머리는 고정하고 <b>눈으로만</b> 점의 가운데를 계속 따라가세요'], ref: 'Lencer & Trillenberg, 2008 · Maruta et al., 2010' },
@@ -980,16 +1242,24 @@ function stepInfo(key) {
       note: S.stimMode === 'photo' ? '일부 사진은 불쾌감을 줄 수 있어요. 불편하면 언제든 ‘이 단계 건너뛰기’를 누르세요.' : null, ref: 'Armstrong & Olatunji, 2012 · 자유 보기 체류 시간' },
     pvt: { tag: 'Domain 1 · 각성', title: '정신운동 경계 과제 (PVT-B)', vis: V.pvt, time: `연습 후 ${d.pvt}초`, resp: '스페이스바 · 화면 터치', trials: `연습 ${d.pvtPractice}회`,
       what: '예측할 수 없는 간격으로 나타나는 자극에 얼마나 빨리, 빠짐없이 반응하는지로 기본 각성 수준을 봅니다. 수면 부족에 가장 민감한 검사이며, 같은 시간 동안 눈꺼풀 감김(PERCLOS)도 함께 잽니다.',
-      how: ['상자에 빨간 숫자가 올라가기 시작하면 <b>스페이스바를 바로</b> 누르세요', '숫자가 나오기 전에는 누르지 마세요 (조기 반응으로 기록돼요)', `연습 ${d.pvtPractice}회 후 본 검사 ${d.pvt}초 · 남은 시간이 아래에 표시돼요`], ref: 'Basner, Mollicone & Dinges, 2011 · PVT-B' },
-    sart: { tag: 'Domain 2 · 주의 통제', title: '지속 주의 반응 과제 (SART)', vis: V.sart, time: `약 ${Math.round((d.sart + d.sartPractice) * 1.15 / 6) / 10}분`, resp: '스페이스바 · 화면 터치', trials: `연습 ${d.sartPractice} + 본 검사 ${d.sart}개`,
+      how: ['상자에 빨간 숫자가 올라가기 시작하면 <b>스페이스바를 바로</b> 누르세요', '누르면 내 반응시간(ms)이 바로 표시돼요 · 숫자가 나오기 전에는 누르지 마세요', `연습 ${d.pvtPractice}회 후 본 검사 ${d.pvt}초 · 남은 시간이 아래에 표시돼요`],
+      orig: `<b>원판 그대로</b> PVT-B는 ${d.pvt === 180 ? '3분' : '정해진 시간'} 동안 한 가지 과제를 이어 가도록 표준화된 검사예요. 단조로운 과제를 지속할수록 반응이 늦어지는 정도 자체가 각성 지표라, 다른 과제를 섞으면 수면 부족에 대한 민감도가 떨어져요. 짧게 하려면 첫 화면에서 ‘빠른 측정(90초)’을 고르세요.`,
+      ref: 'Basner, Mollicone & Dinges, 2011 · PVT-B' },
+    sart: { tag: 'Domain 2 · 주의 통제', title: '지속 주의 반응 과제 (SART)', vis: V.sart, time: `약 ${Math.round(((d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8) / 6) / 10}분`, resp: '스페이스바 · 화면 터치', trials: `연습 ${d.sartPractice} + 본 검사 ${d.sart}개`,
       what: '빠르게 지나가는 숫자에 습관적으로 반응하다가 특정 숫자에서 멈추는 능력으로 지속 주의와 반응 억제를 봅니다. 수행 중 머리 움직임도 함께 기록합니다.',
-      how: ['숫자 1~9가 약 1초 간격으로 하나씩 나타나요', '<b>3을 뺀 모든 숫자</b>에 스페이스바를 누르세요', `<b>3이 나오면 누르지 않아요</b> · 연습 ${d.sartPractice}개 → 본 검사 ${d.sart}개, 진행 개수가 아래에 표시돼요`], ref: 'Robertson et al., 1997 · SART' },
-    stress: { tag: 'Domain 4 · 자율신경 조절', title: '압박 과제', vis: V.math, time: `${d.stress}초`, resp: '키보드 1·2·3 · 클릭',
-      what: '제한 시간 안에 암산하는 압박 상황에서 심박이 얼마나 오르는지로 스트레스 반응성을 봅니다.',
-      how: ['문제마다 <b>3초 안에</b> 정답을 고르세요', '키보드 1 · 2 · 3 또는 클릭으로 답해요', '잘할수록 제한 시간이 짧아져요 — 일부러 어렵게 만든 과제이니 틀려도 괜찮아요'], ref: 'Dedovic et al., 2005 · MIST 계열 압박 과제' },
+      how: ['숫자 1~9가 <b>1.15초마다 하나씩</b> 빠르게 지나가요', '<b>3을 뺀 모든 숫자</b>에 스페이스바 · <b>3이 나오면 누르지 않아요</b>', `연습 ${d.sartPractice}개는 매번 정답 여부를 알려 주고, 본 검사 ${d.sart}개는 누를 때마다 <b>입력 확인 점</b>만 켜져요`],
+      orig: '<b>원판 그대로</b> 숫자 0.25초 + 마스크 0.9초의 빠른 속도와, 본 검사 중 정답을 알려 주지 않는 것은 Robertson 등(1997)의 원판 설정이에요. 빠른 리듬에 맞춰 습관적으로 누르다가 3에서 멈출 수 있는지가 측정의 핵심이라, 정오를 알려 주면 다른 검사가 돼요. 속도와 정확성을 똑같이 중요하게 생각해 주세요.',
+      ref: 'Robertson et al., 1997 · SART' },
+    stress: { tag: 'Domain 4 · 자율신경 조절', title: '압박 과제 (MIST 암산)', vis: V.math, time: `${d.stress}초`, resp: '숫자 키 0~9 · 클릭',
+      what: '수행에 맞춰 점점 짧아지는 제한 시간 안에 암산하는 압박 상황에서 심박이 얼마나 오르는지로 스트레스 반응성을 봅니다.',
+      how: ['난이도 1~5의 <b>사칙연산</b> 문제가 무작위로 나와요 · 답은 항상 <b>0~9 한 자리</b>', '키보드 숫자 키 또는 화면의 숫자 버튼으로 답해요', '3문제 연속 맞히면 제한 시간이 10% 줄어요 — 일부러 어렵게 만든 과제이니 틀려도 괜찮아요'],
+      orig: '<b>원판 구성</b> 몬트리올 영상 스트레스 과제(MIST)처럼 덧셈·뺄셈·곱셈·나눗셈, 난이도 무작위 혼합, 적응형 제한 시간, 목표 대비 성적 막대를 씁니다. 원판의 ‘가짜 평균 비교’ 대신 실제 목표 정답률 80%를 보여 줘요. 압박 반응을 비교하려면 과제 종류를 고정하는 것이 표준이라 다른 과제는 섞지 않았어요.',
+      ref: 'Dedovic et al., 2005 · MIST' },
     recovery: { tag: 'Domain 4 · 자율신경 조절', title: '공명 호흡 회복', vis: V.breath, time: `${d.recovery}초`, resp: '호흡 따라 하기',
       what: '분당 6회 호흡을 따라 하는 동안, 압박으로 오른 심박이 얼마나 되돌아오고 호흡에 맞춰 출렁이는지로 회복력과 자율신경 조절을 봅니다.',
-      how: ['원이 커질 때 <b>5초 들이쉬고</b>, 작아질 때 <b>5초 내쉬어요</b>', '코로 천천히, 편안한 깊이로 호흡해요', '움직이지 않고 원을 바라봐 주세요'], ref: 'Lehrer & Gevirtz, 2014 · 공명 주파수 호흡' },
+      how: ['원이 커지고 바깥 띠가 차오를 때 <b>5초 들이쉬고</b>, 작아질 때 <b>5초 내쉬어요</b>', '코로 천천히, 편안한 깊이로 — 억지로 깊게 쉬지 않아도 돼요', '아래 파형의 점이 올라가면 들숨, 내려가면 날숨이에요'],
+      orig: '분당 6회(0.1Hz)는 성인 대부분의 <b>공명 주파수</b> 근처로, 호흡에 맞춰 심박이 가장 크게 출렁이는 속도예요. 이 출렁임의 폭이 미주신경성 조절의 대리 지표가 됩니다.',
+      ref: 'Lehrer & Gevirtz, 2014 · Shaffer & Meehan, 2020' },
   };
   return I[key];
 }
@@ -1021,12 +1291,13 @@ function stepSummary(key) {
 async function brief(key, opt = {}) {
   const m = { ...stepInfo(key), ...opt };
   const idx = S.plan.findIndex(p => p[0] === key), prevKey = idx > 0 ? S.plan[idx - 1][0] : null, prev = !opt.noPrev && prevKey ? stepSummary(prevKey) : null;
-  body.innerHTML = `<div class="brief" role="dialog" aria-labelledby="bT">
+  body.innerHTML = `<div class="brief" role="dialog" aria-labelledby="bT"><span class="dstrip" style="background:${DCOL[key] || '#7C88A2'}"></span>
     <div class="brief-top"><span class="tag">Step ${S.stepIdx} / ${S.stepTotal} · ${esc(m.tag)}</span>${prev ? `<span class="prev ${prev.cls}">${prev.cls === 'skip' ? '—' : prev.cls === 'warn' ? '!' : '✓'} ${esc(prev.text)}</span>` : ''}</div>
     <h2 id="bT">${esc(m.title)}</h2>
     <p class="what">${m.what}</p>
     <div class="brief-grid"><ol>${m.how.map(h => `<li>${h}</li>`).join('')}</ol><div class="vis">${m.vis}</div></div>
     <div class="facts"><span>소요<b>${esc(m.time)}</b></span>${m.trials ? `<span>구성<b>${esc(m.trials)}</b></span>` : ''}<span>응답<b>${esc(m.resp)}</b></span></div>
+    ${m.orig ? `<p class="orig">${m.orig}</p>` : ''}
     ${m.note ? `<p class="note">${esc(m.note)}</p>` : ''}
     ${S.demo && GAZE_STEPS.includes(key) ? '<p class="note" style="background:#E7ECF7;color:#2B3D6E">데모 모드: 마우스 위치가 시선 역할을 해요.</p>' : ''}
     <p class="ref">근거 · ${esc(m.ref)}</p>
@@ -1039,6 +1310,17 @@ async function pauseCard(title, html, cta = '계속', alt) {
   body.innerHTML = `<div class="brief" style="width:min(640px,92vw)"><h2>${esc(title)}</h2><div class="what">${html}</div>
     <div class="go"><button class="btn" id="pGo">${esc(cta)}<span class="kbd">Enter</span></button>${alt ? alt.map((a, i) => `<button class="btn ghost" data-alt="${i + 1}">${esc(a)}</button>`).join('') : ''}</div></div>`;
   return go('pGo');
+}
+
+/* 3·2·1 카운트다운 (과제 시작 직전, 응답 입력은 받지 않음) */
+async function countdown(label = '곧 시작해요', n = 3) {
+  const C = 2 * Math.PI * 66;
+  body.innerHTML = `<div class="cd fade"><svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="66" fill="none" stroke="#D3D9E5" stroke-width="6"/><circle id="cdR" cx="75" cy="75" r="66" fill="none" stroke="#7C88A2" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0" style="transition:stroke-dashoffset .95s linear"/></svg><b id="cdN">${n}</b><span>${esc(label)}</span></div>`;
+  for (let i = n; i > 0; i--) {
+    const el = $('cdN'); el.textContent = i; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    $('cdR').style.strokeDashoffset = C * (1 - (i - 1) / n);
+    await wait(1000);
+  }
 }
 
 /* ---------- 단계 실행기 ---------- */
@@ -1171,9 +1453,29 @@ async function calibrate() {
   }
 }
 
+/* 바닐라 기준선용 풍경: 밝기는 측정 무대(#E8EBF1)와 비슷하게, 움직임은 느리고 대비는 낮게 */
+function calmScene() {
+  const cloud = (y, s, dur, delay, op) => `<g class="cloud" style="animation-duration:${dur}s;animation-delay:-${delay}s;opacity:${op}"><g transform="translate(0 ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="120" ry="34" fill="#F6F8FA"/><ellipse cx="-60" cy="10" rx="80" ry="26" fill="#F6F8FA"/><ellipse cx="70" cy="12" rx="90" ry="24" fill="#F6F8FA"/></g></g>`;
+  const wave = (y, d, w) => `<path class="wv" style="animation-delay:-${d}s" d="M-100 ${y} q ${w / 4} -7 ${w / 2} 0${` t ${w / 2} 0`.repeat(Math.ceil(1900 / (w / 2)))}" fill="none" stroke="#EEF2F6" stroke-width="3" stroke-linecap="round" opacity=".9"/>`;
+  return `<div class="calm fade"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D7E0EA"/><stop offset="1" stop-color="#EEF1F5"/></linearGradient>
+      <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DCE4EC"/><stop offset="1" stop-color="#E6EBF0"/></linearGradient>
+      <radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFF8EC"/><stop offset="1" stop-color="#FFF8EC" stop-opacity="0"/></radialGradient></defs>
+    <rect width="1600" height="900" fill="url(#sky)"/>
+    <circle class="shim" cx="1180" cy="360" r="190" fill="url(#sun)"/>
+    ${cloud(150, 1, 150, 20, 0.85)}${cloud(250, 0.7, 190, 90, 0.7)}${cloud(110, 0.55, 230, 160, 0.6)}
+    <path d="M0 560 L140 470 L260 520 L420 420 L560 500 L700 450 L860 520 L1010 430 L1160 500 L1300 455 L1460 515 L1600 470 V600 H0Z" fill="#D2DAE4"/>
+    <path d="M0 590 L180 520 L330 565 L480 515 L640 570 L820 530 L980 575 L1150 525 L1320 570 L1480 540 L1600 560 V620 H0Z" fill="#C7D1DC"/>
+    <rect y="600" width="1600" height="300" fill="url(#lake)"/>
+    <ellipse class="shim" cx="1180" cy="640" rx="220" ry="16" fill="#F5F0E6" opacity=".5"/>
+    ${wave(660, 0, 160)}${wave(720, 3, 200)}${wave(790, 6, 240)}${wave(860, 2, 280)}
+    <path d="M0 900 L0 820 Q120 800 220 840 L300 900Z" fill="#CBD5DF"/><path d="M1600 900 L1600 800 Q1470 790 1380 845 L1300 900Z" fill="#CBD5DF"/>
+  </svg></div><div class="calm-dot"></div><div class="calm-cue">편안히 바라보세요 · 말하거나 움직이지 않기</div>`;
+}
 async function phaseBaseline(sec) {
   await brief('baseline');
-  body.innerHTML = '<div class="fix">+</div>';
+  body.innerHTML = calmScene();
+  await wait(1500);                                   // 화면 전환 직후 1.5초는 적응 구간 (기준선에 넣지 않음)
   const stop = task('안정 기준선', sec * 1000);
   mark('baseline', 'start'); await wait(sec * 1000); mark('baseline', 'end');
   stop();
@@ -1289,12 +1591,18 @@ function faceSvg(kind) {
 /* 사진 시행 구성: 정서 사진마다 내용 유형(content)이 같은 중립 사진을 짝지어 내용 차이가 시선을 끌지 않게 한다 */
 function buildPhotoTrials(d) {
   const set = S.stim.set, f = d.fv, pool = shuffle([...set.neutral]), used = new Set();
-  const take = content => { let i = pool.findIndex(x => !used.has(x.file) && content && x.content === content); if (i < 0) i = pool.findIndex(x => !used.has(x.file)); const x = pool[i]; used.add(x.file); return x; };
+  /* 짝 고르기 우선순위: manifest 의 쌍둥이(twin) → 같은 content → 아무 중립 사진 */
+  const take = (content, twin) => {
+    let i = twin ? pool.findIndex(x => !used.has(x.file) && x.id === twin) : -1;
+    if (i < 0) i = pool.findIndex(x => !used.has(x.file) && content && x.content === content);
+    if (i < 0) i = pool.findIndex(x => !used.has(x.file));
+    const x = pool[i]; used.add(x.file); return x;
+  };
   const emo = (cat, n) => shuffle([...set[cat]]).slice(0, n);
   const neg = shuffle([...emo('threat', f.neg / 2).map(x => ({ x, sub: 'threat' })), ...emo('dysphoric', f.neg / 2).map(x => ({ x, sub: 'dysphoric' }))]);
   const pos = emo('positive', f.pos).map(x => ({ x }));
   const neu = Array.from({ length: f.neu }, () => ({ x: take(null) }));
-  const pair = (kind, list) => list.map(({ x, sub }) => ({ kind, sub, emo: x, other: take(x.content) }));
+  const pair = (kind, list) => list.map(({ x, sub }) => ({ kind, sub, emo: x, other: take(x.content, x.twin) }));
   return { neu: pair('neu', neu), neg: pair('neg', neg), pos: pair('pos', pos) };
 }
 /* 미리 불러오기: 하나라도 실패하면 깨진 사진을 보여 주지 않도록 false */
@@ -1376,12 +1684,14 @@ async function phasePvt(d) {
   const P = B.PROTOCOL.pvt, sec = d.pvt;
   await brief('pvt');
   if (document.activeElement) document.activeElement.blur();
-  body.innerHTML = '<div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
+  await countdown('연습 시작');
+  body.innerHTML = '<div class="pvt-hint">연습 · 숫자가 나타나면 바로 스페이스바</div><div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
   for (let i = 0; i < d.pvtPractice; i++) { taskSet('PVT 연습', i, d.pvtPractice); await pvtTrial(P, $('pvtBox'), $('pvtMsg')); }
   taskHide();
-  await pauseCard('연습 끝 · 본 검사', `이제 ${sec}초 동안 이어져요. 숫자가 나타나면 바로 스페이스바를 누르세요. 남은 시간이 아래에 표시돼요.`, '본 검사 시작');
+  await pauseCard('연습 끝 · 본 검사', `이제 ${sec}초 동안 같은 과제가 이어져요. 지루하게 느껴지는 것도 검사의 일부예요 — 끝까지 숫자가 나타나는 순간에 집중해 바로 스페이스바를 누르세요. 남은 시간이 아래에 표시돼요.`, '본 검사 시작');
   if (document.activeElement) document.activeElement.blur();
-  body.innerHTML = '<div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
+  await countdown('본 검사 시작');
+  body.innerHTML = '<div class="pvt-hint">숫자가 나타나면 바로 스페이스바</div><div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
   const box = $('pvtBox'), msg = $('pvtMsg');
   const data = { trials: [], falseStarts: 0, durationMs: 0 };
   S.pvt = data;
@@ -1396,25 +1706,35 @@ async function phasePvt(d) {
   mark('pvt', 'end');
 }
 
-/* SART: 3을 제외한 숫자에 반응 (Robertson et al., 1997). 연습에서는 즉시 피드백, 본 검사는 진행 개수 표시 */
+/* SART: 3을 제외한 숫자에 반응 (Robertson et al., 1997). 원판대로 본 검사에는 정오 피드백이 없고, 정오와 무관한 입력 확인 점만 켠다.
+ * 연습에서는 시행마다 정오를 알려 준다 (원판 18시행 연습) */
+function sartScreen(practice, n) {
+  body.innerHTML = `<div class="sart-meta"><span><b>${practice ? '연습' : '본 검사'}</b> · ${n}개</span><span>3을 뺀 숫자 → 스페이스바</span><span><b>3</b> → 누르지 않기</span></div>
+    <div class="sart"><span id="sartD"></span></div>
+    <div class="ack" id="sAck" style="top:64%"></div><div class="ack-l" style="top:calc(64% + 20px)">입력 확인</div>
+    <div class="sart-fb" id="sartFb" style="top:76%"></div>`;
+}
 async function sartRun(seq, P, practice, onEach) {
-  const el = $('sartD'), fb = $('sartFb'), out = [];
+  const el = $('sartD'), fb = $('sartFb'), ack = $('sAck'), out = [];
+  let ackT = 0;
+  const flash = () => { ack.classList.add('on'); clearTimeout(ackT); ackT = setTimeout(() => ack.classList.remove('on'), 160); };
   for (let i = 0; i < seq.length; i++) {
     const tr = { digit: seq[i], onset: null, rt: null };
     el.style.fontSize = P.sizes[Math.floor(Math.random() * P.sizes.length)] + 'px';
     el.textContent = seq[i];
     tr.onset = await nextFrame();
-    S.onResp = e => { if (tr.rt === null) tr.rt = e.timeStamp - tr.onset; };
+    S.onResp = e => { if (tr.rt === null) { tr.rt = e.timeStamp - tr.onset; flash(); } };
     await wait(P.digitMs);
     el.textContent = '⊗'; el.style.fontSize = '84px';
     await wait(P.maskMs);
     S.onResp = null;
     out.push(tr);
-    if (practice) {                                  // 연습: 시행마다 바로 피드백을 보여 주고 지운 뒤 다음 숫자
-      const nogo = tr.digit === P.nogo;
-      fb.textContent = nogo ? (tr.rt !== null ? '3에서는 누르지 않아요' : '좋아요 · 3에서 멈췄어요') : (tr.rt === null ? '놓쳤어요 · 3이 아니면 누르세요' : '좋아요');
+    if (practice) {                                  // 연습: 시행마다 바로 정오를 보여 주고 지운 뒤 다음 숫자
+      const nogo = tr.digit === P.nogo, pressed = tr.rt !== null;
+      const ok = nogo ? !pressed : pressed;
+      fb.innerHTML = `<span class="${ok ? 'ok' : 'ng'}">${ok ? '✓' : '✗'} ${nogo ? (pressed ? '3에서는 누르지 않아요' : '좋아요 · 3에서 멈췄어요') : (pressed ? '좋아요' : '놓쳤어요 · 3이 아니면 누르세요')}</span>`;
       el.textContent = '';
-      await wait(700);
+      await wait(800);
       fb.textContent = '';
     }
     if (onEach) onEach(i + 1);
@@ -1424,40 +1744,43 @@ async function sartRun(seq, P, practice, onEach) {
 async function phaseSart(d) {
   const P = B.PROTOCOL.sart, n = d.sart;
   await brief('sart');
-  const practiceSeq = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const practiceSeq = d.sartPractice > 9 ? [...shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]), ...shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9])].slice(0, d.sartPractice) : shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, d.sartPractice);
   if (document.activeElement) document.activeElement.blur();
-  body.innerHTML = '<div class="sart"><span id="sartD"></span></div><div class="sart-fb" id="sartFb"></div>';
-  await sartRun(practiceSeq, P, true, i => taskSet('SART 연습', i, practiceSeq.length));
+  await countdown('연습 시작 · 3에서만 멈추기');
+  sartScreen(true, practiceSeq.length);
+  const prac = await sartRun(practiceSeq, P, true, i => taskSet('SART 연습', i, practiceSeq.length));
   taskHide();
-  await pauseCard('연습 끝 · 본 검사', `이제 숫자 <b>${n}개</b>(약 ${Math.round(n * 1.15 / 6) / 10}분)가 이어지고, 피드백은 나오지 않아요. 3을 뺀 모든 숫자에 스페이스바를 누르세요. 진행 개수가 아래에 표시돼요.`, '본 검사 시작');
+  const pOk = prac.filter(t => (t.digit === P.nogo) === (t.rt === null)).length;
+  await pauseCard('연습 끝 · 본 검사', `연습 정확도 <b>${pOk}/${prac.length}</b>. 이제 숫자 <b>${n}개</b>(약 ${Math.round(n * 1.15 / 6) / 10}분)가 같은 속도로 이어지고, 원판처럼 <b>정답 여부는 표시되지 않아요</b>. 누를 때마다 숫자 아래 <b>입력 확인 점</b>이 잠깐 켜져요. 3을 뺀 모든 숫자에 스페이스바를 누르세요.`, '본 검사 시작');
   if (document.activeElement) document.activeElement.blur();
-  body.innerHTML = '<div class="sart"><span id="sartD"></span></div><div class="sart-fb" id="sartFb"></div>';
+  await countdown('본 검사 시작');
+  sartScreen(false, n);
   S.sart = { trials: [] };
   mark('sart', 'start');
   S.sart.trials = await sartRun(B.sartSequence(n), P, false, i => taskSet('SART 본 검사', i, n));
   mark('sart', 'end');
 }
 
-/* 압박 과제: 제한 시간 암산 (피드백은 화면 밝기를 바꾸지 않도록 글자로만) */
-function makeQ() {
-  const plus = Math.random() < 0.5;
-  let a = 23 + Math.floor(Math.random() * 67), b = 6 + Math.floor(Math.random() * 34);
-  if (!plus && b > a) [a, b] = [b, a];
-  const ans = plus ? a + b : a - b;
-  const opts = new Set([ans]);
-  while (opts.size < 3) { const dd = [1, 2, 10, 9, 11][Math.floor(Math.random() * 5)] * (Math.random() < 0.5 ? -1 : 1); opts.add(ans + dd); }
-  return { text: `${a} ${plus ? '+' : '−'} ${b}`, ans, opts: shuffle([...opts]) };
-}
+/* 압박 과제: MIST (Dedovic et al., 2005) — 난이도 1~5 무작위 사칙연산, 답 0~9, 적응형 제한 시간, 목표 대비 성적 막대.
+ * 피드백은 화면 밝기를 바꾸지 않도록 글자로만 */
 async function phaseStress(sec) {
+  const P = B.PROTOCOL.stress;
   await brief('stress');
+  if (document.activeElement) document.activeElement.blur();
+  await countdown('암산 과제가 곧 시작돼요');
   mark('stress', 'start');
-  const end = now() + sec * 1000, stopT = task('압박 과제', sec * 1000);
-  let correct = 0, total = 0, limit = 3000;
+  const end = now() + sec * 1000, stopT = task('MIST 암산', sec * 1000);
+  let correct = 0, total = 0, limit = P.limitMs, streak = 0, minLimit = limit;
+  const levels = [0, 0, 0, 0, 0];
   while (now() < end) {
-    const q = makeQ();
-    body.innerHTML = `<div class="math"><div class="prob">${q.text}</div><div class="tbar"><i id="tb" style="width:100%"></i></div>
-      <div class="opts">${q.opts.map((o, i) => `<button data-v="${o}">${o}<div style="font-size:11px;color:#8A93A8">${i + 1}</div></button>`).join('')}</div>
-      <div class="fb" id="fb"></div><div class="score">정답 ${correct} / ${total}</div></div>`;
+    const lv = 1 + Math.floor(Math.random() * 5), q = B.mistProblem(lv);
+    levels[lv - 1]++;
+    const pct = total ? Math.round(correct / total * 100) : 0;
+    body.innerHTML = `<div class="mist"><div class="mist-top"><span class="mist-lv">난이도&nbsp;${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lv ? 'on' : ''}"></i>`).join('')}</span><span>제한 시간 ${(limit / 1000).toFixed(1)}초</span></div>
+      <div class="prob">${esc(q.text)} = <span class="q">?</span></div><div class="tbar"><i id="tb" style="width:100%"></i></div>
+      <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(v => `<button type="button" data-v="${v}">${v}</button>`).join('')}</div>
+      <div class="fb" id="fb"></div>
+      <div class="perf"><div class="perf-h"><span>내 정답률 <b>${pct}%</b> · ${correct}/${total}</span><span>목표 ${Math.round(P.target * 100)}%</span></div><div class="perf-t"><i style="width:${pct}%"></i><em style="left:${P.target * 100}%"></em></div></div></div>`;
     const t0 = now(), tb = $('tb');
     requestAnimationFrame(() => { tb.style.transition = `width ${limit}ms linear`; tb.style.width = '0%'; });
     const v = await new Promise((res, rej) => {
@@ -1465,33 +1788,71 @@ async function phaseStress(sec) {
       const done = x => { clearTimeout(w.to); waiters.delete(w); S.onKey = null; res(x); };
       w.to = setTimeout(() => done(null), limit);
       waiters.add(w);
-      S.onKey = e => { const i = '123'.indexOf(e.key); if (i >= 0) done(q.opts[i]); };
-      body.querySelectorAll('button[data-v]').forEach(b => b.addEventListener('click', () => done(+b.dataset.v)));
+      S.onKey = e => { if (/^[0-9]$/.test(e.key)) { e.preventDefault(); done(+e.key); } };
+      body.querySelectorAll('.keypad button').forEach(b => b.addEventListener('click', () => done(+b.dataset.v)));
     });
     total++;
     const ok = v === q.ans; if (ok) correct++;
-    $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : '오답';
-    limit = ok && now() - t0 < limit * 0.6 ? Math.max(2000, limit - 150) : Math.min(3200, limit + 100);
-    await wait(350);
+    if (v !== null) { const hb = body.querySelector(`.keypad button[data-v="${v}"]`); if (hb) hb.classList.add('hit'); }
+    tb.style.transition = 'none'; tb.style.width = Math.max(0, 100 - (now() - t0) / limit * 100) + '%';
+    $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : `오답 · 정답 ${q.ans}`;
+    streak = ok ? Math.max(0, streak) + 1 : Math.min(0, streak) - 1;
+    ({ limit, streak } = B.mistNext(limit, streak));
+    minLimit = Math.min(minLimit, limit);
+    await wait(ok ? 450 : 750);
   }
   stopT();
   mark('stress', 'end');
-  S.stressScore = { correct, total };
+  S.stressScore = { correct, total, minLimit, levels };
 }
 
+/* 공명 호흡 페이서: 들숨 5초 · 날숨 5초. 원(크기)·바깥 띠(단계 진행)·초 카운트·호흡 파형을 함께 보여 준다 */
+const BREATH_T = 10000;
+function pacerHtml(id, opt = {}) {
+  const C = 2 * Math.PI * 140;
+  return `<div class="pacer fade" id="${id}"><div class="pacer-ring"><svg viewBox="0 0 300 300" aria-hidden="true">
+      <circle cx="150" cy="150" r="140" fill="none" stroke="#D3D9E5" stroke-width="6"/>
+      <circle id="${id}P" cx="150" cy="150" r="140" fill="none" stroke="#7FA3B8" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" transform="rotate(-90 150 150)"/>
+      <circle cx="150" cy="150" r="118" fill="none" stroke="#DCE2EA" stroke-width="1.5" stroke-dasharray="2 6"/>
+      <circle id="${id}C" cx="150" cy="150" r="112" fill="rgba(127,163,184,.16)" stroke="#7FA3B8" stroke-width="3" style="transform-origin:150px 150px"/>
+    </svg><div class="pacer-lbl"><b id="${id}L">준비</b><span id="${id}S"></span></div></div>
+    ${opt.meta === false ? '' : `<div class="pacer-meta"><span>호흡 <b id="${id}N">0</b>${opt.cycles ? ` / ${opt.cycles}` : ''}</span><span>속도 <b>분당 6회</b></span><span>들숨 <b>5초</b> · 날숨 <b>5초</b></span></div>`}
+    ${opt.wave === false ? '' : `<svg class="pacer-wave" id="${id}W" viewBox="0 0 760 70" preserveAspectRatio="none" aria-hidden="true"></svg>`}</div>`;
+}
+function startPacer(id, t0) {
+  const C = 2 * Math.PI * 140, P = $(id + 'P'), Cc = $(id + 'C'), L = $(id + 'L'), Sx = $(id + 'S'), Nn = $(id + 'N'), Wv = $(id + 'W');
+  const ease = x => 0.5 - 0.5 * Math.cos(Math.PI * x);
+  const WIN = 30000, Wd = 760, yOf = t => 35 + 26 * Math.cos(2 * Math.PI * t / BREATH_T);   // 들숨 동안 위로 (y 감소)
+  if (Wv) {
+    let d = '';
+    for (let x = 0; x <= Wd; x += 4) d += (x ? 'L' : 'M') + x + ' ' + yOf(x / Wd * WIN).toFixed(1) + ' ';
+    Wv.innerHTML = `<path d="${d}" fill="none" stroke="#B8C8D4" stroke-width="2.5"/><circle id="${id}D" r="7" fill="#5F8AA3" stroke="#fff" stroke-width="2"/>`;
+  }
+  const dot = $(id + 'D');
+  let raf = 0, last = '';
+  const tick = () => {
+    const el = Math.max(0, now() - t0), tt = el % BREATH_T, inhale = tt < BREATH_T / 2, ph = (inhale ? tt : tt - BREATH_T / 2) / (BREATH_T / 2);
+    Cc.style.transform = `scale(${(inhale ? 0.55 + 0.45 * ease(ph) : 1 - 0.45 * ease(ph)).toFixed(4)})`;
+    P.style.strokeDashoffset = (C * (1 - ph)).toFixed(1);
+    const lbl = inhale ? '들이쉬기' : '내쉬기', sec = String(Math.max(1, Math.ceil(5 - ph * 5)));
+    if (lbl + sec !== last) { L.textContent = lbl; Sx.textContent = sec; last = lbl + sec; }
+    if (Nn) Nn.textContent = Math.floor(el / BREATH_T) + 1;
+    if (dot) { const x = (el % WIN) / WIN * Wd; dot.setAttribute('cx', x.toFixed(1)); dot.setAttribute('cy', yOf(el % WIN).toFixed(1)); }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(raf);
+}
 async function phaseRecovery(sec) {
   await brief('recovery');
-  body.innerHTML = '<div class="breath" id="br"></div><div class="breath-lbl" id="brl">들이쉬기</div>';
-  const br = $('br'), brl = $('brl');
+  await countdown('천천히 호흡을 준비하세요');
+  body.innerHTML = pacerHtml('rp', { cycles: Math.round(sec * 1000 / BREATH_T) });
   mark('recovery', 'start');
-  const end = now() + sec * 1000, stopT = task('공명 호흡', sec * 1000);
-  let inhale = true;
-  while (now() < end) {
-    br.classList.toggle('in', inhale); brl.textContent = inhale ? '들이쉬기' : '내쉬기';
-    await wait(Math.min(5000, Math.max(0, end - now())));
-    inhale = !inhale;
-  }
-  stopT();
+  const stopP = startPacer('rp', now());
+  S.cleanup.push(stopP);
+  const stopT = task('공명 호흡', sec * 1000);
+  await wait(sec * 1000);
+  stopT(); stopP();
   mark('recovery', 'end');
 }
 
@@ -1562,7 +1923,7 @@ function bindReport(r) {
 /* ---------- 1분 호흡 바이오피드백 (케어 + 재측정) ---------- */
 async function runBio() {
   const SEC = 60;
-  const bio = $('bio'), circle = $('bioCircle'), lbl = $('bioLbl');
+  const bio = $('bio');
   const fmt = (v, d = 0, sign = false) => v === null || v === undefined || !Number.isFinite(v) ? '—' : (sign && v > 0 ? '+' : '') + v.toFixed(d);
   const synthetic = S.demo || !S.stream;
   S.bioFrames = []; bio.classList.add('on');
@@ -1570,13 +1931,10 @@ async function runBio() {
   const t0 = now();
   const demoFn = t => 79 - Math.min(7, (t - t0) / 7000) + 3.5 * Math.sin(2 * Math.PI * 0.1 * (t - t0) / 1000 - Math.PI / 2);
   if (!synthetic) S.bioRecording = true;
-  let inhale = true, nextSwitch = t0 + 1500, closed = false;
+  let closed = false;
   $('bioQuit').onclick = () => { closed = true; };
-  lbl.textContent = '준비';
-  const tick = setInterval(() => {
-    const t = now();
-    if (t >= nextSwitch) { circle.classList.toggle('in', inhale); lbl.textContent = inhale ? '들이쉬기' : '내쉬기'; inhale = !inhale; nextSwitch += 5000; }
-  }, 100);
+  $('bioPacer').innerHTML = pacerHtml('bp', { cycles: SEC * 1000 / BREATH_T, wave: false });
+  const stopPacer = startPacer('bp', t0);
   while (now() - t0 < SEC * 1000 && !closed) {
     await new Promise(r => setTimeout(r, 1000));
     const frames = synthetic ? N.synthFrames(now() - 10000, now(), demoFn, { seed: Math.floor(now()) % 997, noise: 0.35 }) : S.bioFrames;
@@ -1589,9 +1947,9 @@ async function runBio() {
       $('bioSpark').innerHTML = `<polyline points="${pts}" fill="none" stroke="#D94B6A" stroke-width="2.5"/>`;
     }
   }
-  clearInterval(tick);
+  stopPacer();
   S.bioRecording = false;
-  bio.classList.remove('on'); circle.classList.remove('in');
+  bio.classList.remove('on');
   if (closed && now() - t0 < 30000) return;
   const t1 = now();
   const frames = synthetic ? N.synthFrames(t0, t1, demoFn, { seed: 31, noise: 0.35 }) : S.bioFrames;
