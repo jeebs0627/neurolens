@@ -22,6 +22,7 @@ API 키: Vercel 환경변수 rPPG (대소문자 변형 RPPG · rppg 도 허용).
 """
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler
@@ -200,10 +201,12 @@ def _call(model, prompt, api_key, max_tokens, thinking=True):
 
 
 def generate(prompt, api_key, max_tokens):
-    """설정 모델 → (사고 설정 거부 시) 사고 설정 없이 → (모델 없음 404 시) 대체 모델 순으로 시도."""
+    """설정 모델 → (사고 설정 거부 400) 설정 없이 → (일시 오류 429·5xx) 1.2초 뒤 한 번 더 → (모델 없음 404·계속 실패) 대체 모델."""
     last = None
-    for model in (MODEL, FALLBACK_MODEL) if MODEL != FALLBACK_MODEL else (MODEL,):
-        for thinking in (True, False):
+    models = (MODEL, FALLBACK_MODEL) if MODEL != FALLBACK_MODEL else (MODEL,)
+    for model in models:
+        thinking, retried = True, False
+        while True:
             try:
                 return _call(model, prompt, api_key, max_tokens, thinking), model
             except urllib.error.HTTPError as e:
@@ -213,9 +216,14 @@ def generate(prompt, api_key, max_tokens):
                 except Exception:  # noqa: BLE001
                     pass
                 if e.code == 400 and thinking:
-                    continue          # 사고 설정을 모르는 모델 → 설정 없이 재시도
-                if e.code == 404:
-                    break             # 모델 없음 → 대체 모델
+                    thinking = False      # 사고 설정을 모르는 모델 → 설정 없이 재시도
+                    continue
+                if e.code in (429, 500, 502, 503, 504) and not retried:
+                    retried = True
+                    time.sleep(1.2)
+                    continue
+                if e.code in (404, 429, 500, 502, 503, 504):
+                    break                 # 다음(대체) 모델
                 raise
     raise last
 
