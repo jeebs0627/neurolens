@@ -208,6 +208,10 @@ html.staging,html.staging body{overflow:hidden}
 .ph{position:absolute;top:50%;transform:translate(-50%,-50%);margin:0;width:min(36vw,560px);aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#D5DAE3}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
 .sac-fix{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#59647D;box-shadow:0 0 0 6px rgba(89,100,125,.14)}
+.rng-mark{position:absolute;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:2px dashed #B9C1D3}
+.rng-dot{position:absolute;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:#59647D;box-shadow:0 0 0 7px rgba(89,100,125,.16)}
+.rng-dot.pop{animation:rngPop .25s ease-out}
+@keyframes rngPop{from{transform:scale(.4);opacity:.2}to{transform:scale(1);opacity:1}}
 .sac-tgt{position:absolute;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 7px rgba(201,60,92,.15)}
 .pvt{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center}
 .pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#B83A49;background:#EFF1F5}
@@ -325,6 +329,66 @@ html.staging,html.staging body{overflow:hidden}
 .bio .hrbig span{font-size:13.5px;color:var(--muted)}
 .bio svg.spark{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(520px,86vw);height:70px}
 .bio .cue{bottom:8%}
+/* ---------- 간편 보고서 ---------- */
+.vt{display:flex;gap:6px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:16px;margin:0 0 14px;box-shadow:var(--shadow)}
+.vt button{flex:1;border:0;background:transparent;border-radius:11px;padding:11px 10px;font-weight:800;font-size:15px;color:var(--muted)}
+.vt button[aria-selected="true"]{background:var(--ink);color:#fff}
+.sp{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;animation:fadeIn .4s ease}
+.sp>*,.sp-grid>*,.sp-two>*{min-width:0}
+.sp-todo label span{min-width:0;word-break:keep-all;overflow-wrap:anywhere}
+#sReport{min-width:0;overflow-wrap:anywhere}
+.sp-k{display:block;font-size:12.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin-bottom:6px}
+.sp-hero{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-radius:26px;padding:30px 32px;color:#0E1A33;overflow:hidden;position:relative}
+.sp-sun{background:linear-gradient(135deg,#FFF4D6,#FFE3A3 55%,#FFD27A)}
+.sp-partly{background:linear-gradient(135deg,#EAF3FF,#D7E8FF 55%,#FFE9B8)}
+.sp-cloud{background:linear-gradient(135deg,#EEF1F6,#DCE3EE)}
+.sp-rain{background:linear-gradient(135deg,#E3EAF5,#C9D6EA)}
+.sp-na{background:#EEF1F6}
+.sp-hero h2{font-size:42px;margin:2px 0 4px;letter-spacing:-.03em}
+.sp-hero p{margin:0;font-size:16px;color:#2B3754}
+.sp-score{display:flex;align-items:baseline;gap:8px;margin-top:16px}
+.sp-score b{font-family:var(--font-num);font-size:54px;line-height:1}
+.sp-score span{font-size:13px;color:#4A5672;font-weight:700}
+.sp-type{display:inline-block;margin-top:10px;background:rgba(255,255,255,.7);border-radius:999px;padding:5px 14px;font-weight:800;font-size:14px}
+.w-ico{width:min(190px,36vw);height:auto}
+.w-sun{transform-origin:80px 80px;animation:orbit 30s linear infinite}
+.w-cloud{animation:cloudBob 5s ease-in-out infinite}
+@keyframes cloudBob{50%{transform:translateY(-4px)}}
+.w-rain line{animation:rainDrop 1.1s linear infinite}
+@keyframes rainDrop{from{transform:translateY(-6px);opacity:0}50%{opacity:1}to{transform:translateY(8px);opacity:0}}
+.sp-safe{padding:14px 16px;border-radius:16px;background:#FCEEF1;border:1px solid #F2C9D3;color:#7A2238;font-size:14.5px}
+.sp-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 20px;box-shadow:var(--shadow)}
+.sp-ai p{margin:0;font-size:16px;line-height:1.8;word-break:keep-all}
+.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sp-dom{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow);border-top:5px solid var(--dc)}
+.sp-dom-h{display:flex;gap:10px;align-items:flex-start}
+.sp-emo{font-size:30px;line-height:1}
+.sp-dom-h b{display:block;font-size:18px}
+.sp-dom-h small{display:block;font-size:12px;color:var(--muted);line-height:1.45;word-break:keep-all}
+.sp-meter{display:flex;gap:5px;margin:14px 0 6px}
+.sp-meter i{flex:1;height:12px;border-radius:6px;background:#EEF1F6}
+.sp-meter i.on{background:var(--dc);animation:meterIn .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes meterIn{from{transform:scaleY(.2);opacity:0}}
+.sp-st-watch .sp-meter i.on{opacity:.85}.sp-st-concern .sp-meter i.on{opacity:.75}
+.sp-lv{display:flex;justify-content:space-between;align-items:baseline}
+.sp-lv b{font-size:17px}.sp-lv span{font-family:var(--font-num);color:var(--muted);font-weight:700}
+.sp-dom p{margin:8px 0 0;font-size:14.5px;color:var(--ink-2);word-break:keep-all}
+.sp-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sp-chips{display:flex;gap:6px;flex-wrap:wrap}
+.sp-chips span{background:#E9F6EF;color:#1C6E49;border-radius:999px;padding:7px 13px;font-weight:800;font-size:14px}
+.sp-chips.warm span{background:#FFF3DF;color:#8A5508}
+.sp-m{margin:8px 0 0;font-size:13px;color:var(--muted);word-break:keep-all}
+.sp-feel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px;font-weight:700;padding:8px 0;border-bottom:1px dashed var(--line)}
+.sp-feel i{font-style:normal;color:var(--muted)}
+.sp-todo ul{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:8px}
+.sp-todo label{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;font-size:15px;transition:background .15s,border-color .15s}
+.sp-todo input{width:22px;height:22px;accent-color:var(--care);flex:none}
+.sp-todo label:has(input:checked){background:var(--care-soft);border-color:var(--care-line)}
+.sp-todo label:has(input:checked) span{text-decoration:line-through;color:var(--muted)}
+.sp-next{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.sp-next b{font-size:22px}
+.sp-disc{text-align:center;font-size:12px;color:var(--muted);margin:4px 0 10px}
+@media (max-width:820px){.sp-hero{grid-template-columns:1fr;padding:24px 20px}.sp-hero-v{justify-self:center;order:-1}.sp-grid,.sp-two{grid-template-columns:1fr}.sp-hero h2{font-size:34px}}
 /* ---------- 리포트 대시보드 ---------- */
 #sReport{animation:fadeIn .4s ease}
 .rnav{position:sticky;top:61px;z-index:15;display:flex;gap:4px;overflow-x:auto;padding:8px;margin:0 0 14px;background:rgba(243,245,249,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;scrollbar-width:none}
@@ -614,6 +678,8 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 /* 기준선 풍경 */
 .calm{position:absolute;inset:57px 0 0 0;overflow:hidden}
 .calm svg{width:100%;height:100%;display:block}
+.calm-ph{width:100%;height:100%;object-fit:cover;display:block;animation:kenburns linear forwards}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.05)}}
 @keyframes drift{from{transform:translateX(-30%)}to{transform:translateX(130%)}}
 .cloud{animation:drift linear infinite}
 @keyframes wave{0%,100%{transform:translateX(0)}50%{transform:translateX(-40px)}}
@@ -650,6 +716,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
   .prep,.meta{grid-template-columns:1fr 1fr}
   h1{font-size:25px}
   .nav-r .pill{display:none}
+  .logo .sub{display:none}
   .btbl th:nth-child(4),.btbl td:nth-child(4){display:none}
   .stepper{display:none}
   .st-top{justify-content:space-between}
@@ -673,7 +740,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
       <div>
         <div class="kicker">NeuroLens · Integrated Self-Regulation Assessment</div>
         <h1>웹캠 15분으로<br><em>지친 건지, 흔들린 건지,<br>긴장한 건지</em> 구분해 드립니다</h1>
-        <p class="lead">눈꺼풀 · 시선 · 반응 속도 · 얼굴 심박을 학술 검사 7종으로 측정해 <b style="color:#fff">각성 · 주의 통제 · 정서 주의 · 자율신경 조절</b> 네 영역을 하나의 모델로 해석하고, 가장 먼저 다룰 영역에 맞춘 케어와 재측정 목표까지 정해 드려요.</p>
+        <p class="lead">눈꺼풀 · 시선 · 반응 속도 · 얼굴 심박을 학술 검사 7종으로 측정해 <b style="color:#fff">또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력</b> 네 영역을 하나의 모델로 해석하고, 가장 먼저 다룰 영역에 맞춘 케어와 재측정 목표까지 정해 드려요.</p>
         <div class="lp-stats">
           <div><b>4</b><span>자기조절 영역</span></div>
           <div><b>7</b><span>검증된 검사 패러다임</span></div>
@@ -708,7 +775,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
   <div class="sec-h"><div><div class="kicker">What you get</div><h2>이 검사로 얻는 것</h2></div><p>“요즘 왜 이렇게 집중이 안 되지?”에 대한 답을, 느낌이 아니라 측정으로 드립니다.</p></div>
   <div class="gets">
     <div class="get"><div class="gi" style="background:#EDF2FE"><svg viewBox="0 0 24 24" fill="none" stroke="#1F4FD8" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></div>
-      <h3>네 영역 점수와 통합 유형</h3><p>각성 · 주의 통제 · 정서 주의 · 자율신경 조절을 0–100점으로 환산하고, ‘각성 저하 우선형’ ‘주의 통제 부하형’ 같은 하나의 유형으로 요약해요.</p><div class="eg">예) 각성 52 · 주의 통제 61 → 각성 저하 우선형</div></div>
+      <h3>네 영역 점수와 통합 유형</h3><p>또렷함(각성) · 집중 조절(주의 통제) · 마음의 시선(정서 주의) · 몸의 회복력(자율신경 조절)을 0–100점으로 환산하고, ‘피로 회복 우선형’ ‘집중 흔들림형’ 같은 하나의 유형으로 요약해요.</p><div class="eg">예) 또렷함 52 · 집중 조절 61 → 피로 회복 우선형</div></div>
     <div class="get"><div class="gi" style="background:#F0EDFF"><svg viewBox="0 0 24 24" fill="none" stroke="#6A4FD8" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 11 16.7 6M7.3 13l9.4 5"/></svg></div>
       <h3>왜 그런지 — 영역 간 연결</h3><p>피로가 주의를 끌어내리는지, 걱정이 몸의 긴장을 늘리는지 등 영역 사이의 원인 경로를 학술 모델로 해석해요.</p><div class="eg">피로 게이팅 · 주의 통제 이론 · 신경내장 통합 · 지속 인지 가설</div></div>
     <div class="get"><div class="gi" style="background:#FCEEF1"><svg viewBox="0 0 24 24" fill="none" stroke="#C93C5C" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M5 8l-3 4 3 4M19 8l3 4-3 4"/></svg></div>
@@ -929,7 +996,7 @@ const S = {
   model: null, affine: null, gaze: null, view: null, euro: null, rawG: null, drift: { dx: 0, dy: 0 }, feat: null, lastLm: null, rois: null, lastFace: 0, lastTs: 0, fpsTimes: [],
   onFeature: null, onResp: null, onKey: null, onGo: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
   stim: null, stimMode: 'schematic',
-  hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
+  aiText: null, hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
 };
 const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
 /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */
@@ -956,7 +1023,7 @@ async function loadStimuli() {
     if (!res.ok) return;
     const m = await res.json(), set = {};
     STIM_CATS.forEach(c => { set[c] = (m.images || []).filter(x => x && x.category === c && typeof x.file === 'string' && !x.exclude); });
-    S.stim = { set, form: m.form || 'A', base: STIM_URL.replace(/[^/]+$/, '') };
+    S.stim = { set, form: m.form || 'A', base: STIM_URL.replace(/[^/]+$/, ''), baseline: Array.isArray(m.baseline) ? m.baseline.filter(x => typeof x === 'string') : [] };
   } catch (_) { S.stim = null; }
 }
 function stimReady(mode) {
@@ -976,7 +1043,7 @@ const refShort = keys => keys.map(k => {
   const t = B.REFS[k] || '', authors = t.split('.')[0], year = (t.match(/\b(19|20)\d{2}\b/) || [''])[0];
   return `${authors.split(/[ ,]/)[0]}${/,/.test(authors) ? ' 외' : ''} ${year}`;
 }).join(' · ');
-const DOM_LABEL = { alert: '각성', control: '주의 통제', 'emotion · autonomic': '정서 주의 · 자율신경' };
+const DOM_LABEL = { alert: '또렷함', control: '집중 조절', 'emotion · autonomic': '마음의 시선 · 몸의 회복력' };
 $('modTable').innerHTML = MOD_ORDER.map(k => {
   const m = B.MODULES[k];
   return `<tr><td><input type="checkbox" data-mod="${k}" checked aria-label="${esc(m.title)} 포함"></td>
@@ -1459,7 +1526,7 @@ function stepInfo(key) {
       orig: '응시 보정만 쓰면 점 9개 사이의 공간이 부정확해지기 쉬워요. 움직이는 점을 따라가는 <b>추적 보정</b>으로 화면 전체의 자료를 더하고, 두 모델 중 검증 오차가 작은 쪽을 고른 뒤, 축별 <b>영점 조정</b>으로 남은 치우침을 없앱니다. 커서는 떨림과 지연을 함께 줄이는 One Euro 필터로 표시해요.',
       ref: 'Semmelmann & Weigelt, 2018 · Pfeuffer et al., 2013 (추적 보정) · Casiez et al., 2012 (One Euro 필터)' },
     baseline: { tag: '측정 준비 · Resting baseline', title: '안정 기준선', vis: V.calm, time: `${d.baseline}초`, resp: '편안히 바라보기',
-      what: '과제 없이 잔잔한 풍경을 보는 동안의 심박과 눈꺼풀 상태를 재서, 이후 모든 반응을 비교할 <b>나만의 기준</b>으로 씁니다.',
+      what: '과제 없이 잔잔한 풍경(사진 또는 그림)을 보는 동안의 심박과 눈꺼풀 상태를 재서, 이후 모든 반응을 비교할 <b>나만의 기준</b>으로 씁니다.',
       how: ['잔잔한 호수 풍경이 펼쳐져요. 가운데 작은 점 근처를 <b>편안히</b> 바라봐 주세요', '말하거나 움직이지 않고 평소처럼 호흡해요 (호흡을 조절하지 않아도 돼요)', '끝나면 자동으로 다음 안내가 나와요'],
       orig: '빈 화면을 응시하는 휴식보다 잔잔한 풍경 영상을 보는 <b>‘바닐라 기준선’</b>이 지루함·잡념이 섞이지 않은 더 안정된 심박 기준선을 준다고 보고됐어요. 풍경의 밝기는 측정 화면과 같게 맞춰 카메라 심박에 영향을 주지 않아요.',
       ref: 'Jennings et al., 1992 · Piferi et al., 2000 · 원격 심박 POS: Wang et al., 2017' },
@@ -1634,7 +1701,7 @@ async function runSession() {
 async function driftCheck() {
   if (S.demo || !S.model) return;
   const H = stage.clientHeight, W = stage.clientWidth;
-  body.innerHTML = `<div class="cal-dot val pulse" style="left:${W / 2}px;top:${H / 2}px"></div><div class="cue">가운데 점을 바라봐 주세요</div>`;
+  body.innerHTML = `<div class="sac-fix" style="width:20px;height:20px;margin:-10px 0 0 -10px"></div><div class="cue">가운데 점을 바라봐 주세요 · 시선 영점 맞추기</div>`;
   await wait(450);
   const xs = [], ys = [];
   const stop = every(33, () => { if (S.rawG && now() - S.rawG.t < 100 && !S.rawG.bl) { xs.push(S.rawG.x); ys.push(S.rawG.y); } });
@@ -1831,9 +1898,30 @@ function calmScene() {
     <path d="M0 900 L0 820 Q120 800 220 840 L300 900Z" fill="#CBD5DF"/><path d="M1600 900 L1600 800 Q1470 790 1380 845 L1300 900Z" fill="#CBD5DF"/>
   </svg></div><div class="calm-dot"></div><div class="calm-cue">편안히 바라보세요 · 말하거나 움직이지 않기</div>`;
 }
+/* 기준선 풍경 사진 (선택): manifest.json 의 "baseline": ["calm/xxx.jpg", ...] 중 하나를 무작위로.
+ * 사진 평균 밝기를 재서 측정 무대와 비슷한 밝기(목표 185/255)로 맞추고 채도를 조금 낮춘다 — 화면 밝기 변화가 카메라 심박에 섞이지 않게.
+ * 불러오지 못하면 그림 풍경(SVG)으로 대신한다 */
+function photoLum(img) {
+  try {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 48;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, 64, 48);
+    const d = x.getImageData(0, 0, 64, 48).data; let s = 0;
+    for (let i = 0; i < d.length; i += 4) s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    return s / (d.length / 4);
+  } catch (_) { return null; }
+}
+async function calmPhoto(sec) {
+  const list = S.stim && S.stim.baseline;
+  if (!list || !list.length) return null;
+  const src = S.stim.base + list[Math.floor(Math.random() * list.length)];
+  const img = await new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; setTimeout(() => res(null), 5000); });
+  if (!img) return null;
+  const lum = photoLum(img), k = lum ? Math.min(1.6, Math.max(0.7, 185 / lum)) : 1;
+  return `<div class="calm fade"><img class="calm-ph" src="${esc(src)}" alt="" style="filter:brightness(${k.toFixed(2)}) saturate(.85) contrast(.92);animation-duration:${sec + 4}s"></div><div class="calm-dot"></div><div class="calm-cue">편안히 바라보세요 · 말하거나 움직이지 않기</div>`;
+}
 async function phaseBaseline(sec) {
   await brief('baseline');
-  body.innerHTML = calmScene();
+  body.innerHTML = (await calmPhoto(sec)) || calmScene();
   await wait(1500);                                   // 화면 전환 직후 1.5초는 적응 구간 (기준선에 넣지 않음)
   const stop = task('안정 기준선', sec * 1000);
   mark('baseline', 'start'); await wait(sec * 1000); mark('baseline', 'end');
@@ -1870,10 +1958,13 @@ async function phasePursuit(sec) {
 async function sacCalibrate() {
   const W = stage.clientWidth, H = stage.clientHeight, ecc = B.PROTOCOL.saccade.ecc;
   const seq = [['C', 0], ['R', 1], ['C', 0], ['L', -1], ['C', 0]], got = { L: [], C: [], R: [] };
-  body.innerHTML = `<div class="cal-dot val" id="sDot" style="left:${W / 2}px;top:${H / 2}px"></div><div class="cue">점을 따라 눈으로만 바라봐 주세요 · 개인 시선 범위 측정</div>`;
+  /* 사카드 과제와 같은 모양(회색 응시점 · 표적 고리)으로, 점이 미끄러지지 않고 제자리에 나타난다 — 원활 추적과 구분 */
+  body.innerHTML = `<div class="rng-mark" style="left:${W / 2 - ecc * W}px"></div><div class="rng-mark" style="left:${W / 2}px"></div><div class="rng-mark" style="left:${W / 2 + ecc * W}px"></div>
+    <div class="rng-dot" id="sDot" style="left:${W / 2}px"></div><div class="cue">시선 범위 맞추기 · 고리가 켜지는 곳을 눈으로만 바라봐 주세요 (점이 움직이는 과제가 아니에요)</div>`;
   const dot = $('sDot');
   for (const [k, s] of seq) {
-    dot.style.left = (W / 2 + s * ecc * W) + 'px';
+    dot.classList.remove('pop'); void dot.offsetWidth;
+    dot.style.left = (W / 2 + s * ecc * W) + 'px'; dot.classList.add('pop');
     await wait(450);
     const stop = every(33, () => {
       if (S.demo) got[k].push(S.mouse.x);
@@ -2265,7 +2356,11 @@ function finishWith(rec) {
   S.result = res;
   const hist = loadHistory();
   saveHistory(res);
-  $('sReport').innerHTML = R.render(res, { history: hist.slice(0, 5) });
+  S.aiText = null;
+  $('sReport').innerHTML = `<div class="vt no-print" role="tablist" aria-label="보고서 보기 방식"><button type="button" role="tab" id="vtSimple" aria-selected="false">🌤 간편 보고서</button><button type="button" role="tab" id="vtFull" aria-selected="true">📊 전문가 보고서</button></div>
+    <div id="rptSimple" hidden></div><div id="rptFull">${R.render(res, { history: hist.slice(0, 5) })}</div>`;
+  renderSimpleView(res);
+  $('vtSimple').onclick = () => setView('simple'); $('vtFull').onclick = () => setView('full');
   bindReport(res);
   show('sReport');
   aiSummary(res, false);
@@ -2296,7 +2391,7 @@ async function aiSummary(res, force) {
   const key = AI_KEY + (res.measuredAt || '') + (res.battery.sim ? ':' + res.battery.sim.persona : '');
   if (btn) btn.onclick = () => aiSummary(res, true);
   if (!force) {
-    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.text) { aiRender(c.text, c.model, false); return; } } catch (_) {}
+    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.text) { aiRender(c.text, c.model, false); S.aiText = c.text; renderSimpleView(res); return; } } catch (_) {}
     if (!$('aiOpt').checked) { el.innerHTML = '<p class="err">AI 총평을 받지 않도록 선택했어요. ‘다시 생성’을 누르면 지금 만들 수 있어요.</p>'; if (btn) btn.textContent = 'AI 총평 만들기'; return; }
   }
   if (btn) { btn.disabled = true; btn.textContent = '작성 중…'; }
@@ -2309,6 +2404,7 @@ async function aiSummary(res, force) {
     if (!r.ok || !j.text) throw new Error(j.error || `HTTP ${r.status}`);
     try { localStorage.setItem(key, JSON.stringify({ text: j.text, model: j.model || null })); } catch (_) {}
     aiRender(j.text, j.model, true);
+    S.aiText = j.text; renderSimpleView(res);
   } catch (e) {
     el.innerHTML = `<p class="err">AI 총평을 불러오지 못했어요 (${esc(e.name === 'AbortError' ? '시간 초과' : e.message || '연결 오류')}). 아래 대시보드와 영역별 결과는 그대로 확인할 수 있어요. 잠시 뒤 ‘다시 생성’을 눌러 주세요.</p>`;
   } finally {
@@ -2365,6 +2461,30 @@ function saveHistory(r) {
     list.unshift({ at: r.measuredAt, demo: r.demo, code: b.integrated.code, title: b.integrated.title, scores, phq2: b.phq ? b.phq.phq2 : null, phq8: b.phq ? b.phq.phq8 : null });
     localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0, 20)));
   } catch (_) {}
+}
+/* 간편 보고서: 쉬운 말·날씨 비유·카드. AI 총평이 오면 첫 문단을 ‘AI가 정리한 한마디’로 함께 보여 준다 */
+const TODO_KEY = 'nlNewbiz:todo:';
+function renderSimpleView(res) {
+  const el = $('rptSimple'); if (!el) return;
+  let first = S.aiText ? String(S.aiText).split(/\n\s*\n|\n/).map(t => t.trim()).filter(Boolean)[0] || null : null;
+  if (first) first = first.split(/(?<=[.!?])\s+/).filter((x, i) => !(i === 0 && /시뮬레이션|예시 데이터/.test(x))).join(' ') || null;
+  el.innerHTML = R.renderSimple(res, { ai: first });
+  const key = TODO_KEY + (res.measuredAt || '');
+  let done = {}; try { done = JSON.parse(localStorage.getItem(key) || '{}'); } catch (_) {}
+  el.querySelectorAll('[data-todo]').forEach(cb => {
+    cb.checked = !!done[cb.dataset.todo];
+    cb.addEventListener('change', () => { done[cb.dataset.todo] = cb.checked; try { localStorage.setItem(key, JSON.stringify(done)); } catch (_) {} });
+  });
+  const bio = $('spBio'); if (bio) bio.addEventListener('click', runBio);
+}
+function setView(v) {
+  $('rptSimple').hidden = v !== 'simple'; $('rptFull').hidden = v === 'simple';
+  $('vtSimple').setAttribute('aria-selected', String(v === 'simple')); $('vtFull').setAttribute('aria-selected', String(v !== 'simple'));
+  if (v === 'simple') {                                   // 종합 점수 카운트업
+    const b = document.querySelector('#rptSimple [data-count]'), to = b ? +b.dataset.count : NaN;
+    if (b && Number.isFinite(to)) { const t0 = performance.now(); const step = ts => { const k = Math.min(1, (ts - t0) / 900); b.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function bindReport(r) {
   $('bioStart').addEventListener('click', runBio);

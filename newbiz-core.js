@@ -615,12 +615,20 @@
       : usableHr(hr.pre) ? { ...hr.pre, src: 'pre' } : null;
     const stressDelta = ref && usableHr(hr.stress) ? round(hr.stress.bpm - ref.bpm, 1) : null;
     const negDelta = usableHr(hr.neu) && usableHr(hr.neg) ? round(hr.neg.bpm - hr.neu.bpm, 1) : null;
-    /* 회복률은 압박 반응이 3bpm 이상일 때만 의미가 있다 (작은 분모는 비율을 크게 흔든다).
-     * 반응이 작을 때는 대신 ‘회복 후 잔여 심박’(회복 후반 − 기준)으로 회복을 판정한다 */
-    let recovery = null, recoveryResid = null;
-    if (ref && usableHr(hr.recoveryLate)) {
-      recoveryResid = round(hr.recoveryLate.bpm - ref.bpm, 1);
-      if (stressDelta !== null && stressDelta >= 3) recovery = round(clamp((hr.stress.bpm - hr.recoveryLate.bpm) / stressDelta, -1, 2) * 100, 0);
+    /* 심박 회복률 (항상 계산되도록 재정의):
+     *   회복률 = 1 − (회복 후반 − 기준)⁺ / max(압박 정점 − 기준, 3bpm)
+     *   - 압박 정점 = 압박 구간 심박 창들의 상위 25% 값(중앙값보다 반응을 잘 잡는다)
+     *   - 분모 하한 3bpm: 반응이 작아도 비율이 폭주하지 않고, ‘다 돌아왔으면 100%’라는 직관을 지킨다
+     *   - 회복 후반 신호가 약하면 회복 구간 전체 심박으로 대신한다 (recoverySrc 에 기록)
+     * 반응이 큰 경우에는 고전적 정의(정점 대비 되돌아온 비율)와 같다 */
+    let recovery = null, recoveryResid = null, recoverySrc = null;
+    const lateHr = usableHr(hr.recoveryLate) ? (recoverySrc = 'late', hr.recoveryLate) : usableHr(hr.recovery) ? (recoverySrc = 'whole', hr.recovery) : null;
+    const stressWins = wins.filter(w => w.t >= (se - ss > 20000 ? ss + 8000 : ss) && w.t <= se && w.snr >= SNR_FAIR);
+    const peak = stressWins.length >= 2 ? quantile(stressWins.map(w => w.bpm), 0.75) : usableHr(hr.stress) ? hr.stress.bpm : null;
+    hr.stressPeak = finite(peak) ? round(peak, 1) : null;
+    if (ref && lateHr) {
+      recoveryResid = round(lateHr.bpm - ref.bpm, 1);
+      if (finite(peak)) recovery = round(clamp(1 - Math.max(0, lateHr.bpm - ref.bpm) / Math.max(peak - ref.bpm, 3), -1, 1) * 100, 0);
     }
     const recIbis = sig && usableHr(hr.recovery) ? ibis(beats(sig, rs, re, hr.recovery.bpm)) : [];
     const coupling = breathingCoupling(recIbis);
@@ -662,7 +670,7 @@
     return {
       version: VERSION, demo: !!rec.demo, measuredAt: rec.measuredAt || null, checkin: rec.checkin || null,
       quality: { faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },
-      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),
+      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),
       gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate },
       blink, motion, expr, exprNeg,
       profile: { code, ...PROFILES[code], biasHigh, bodyHigh },

@@ -28,9 +28,9 @@ class RppgPromptTests(unittest.TestCase):
 
     def test_prompt_contains_measurements_and_care(self):
         text = rppg.build_prompt(payload("fatigue"))
-        self.assertIn("각성 저하 우선형", text)
+        self.assertIn("피로 회복 우선형", text)
         self.assertIn("PVT 경과 반응", text)
-        self.assertIn("각성 회복 트랙", text)
+        self.assertIn("피로 회복 트랙", text)
         self.assertIn("시뮬레이션 예시", text)
         self.assertNotIn("PHQ", text)
 
@@ -62,7 +62,7 @@ class RppgOutputCheckTests(unittest.TestCase):
         text = rppg.build_prompt(b)
         self.assertIn("어젯밤 수면 5~6시간", text)
         fb = rppg.fallback_summary(b)
-        self.assertIn("각성 저하 우선형", fb)
+        self.assertIn("피로 회복 우선형", fb)
         self.assertEqual(rppg.check_output(fb, text), [])
 
 

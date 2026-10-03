@@ -96,3 +96,23 @@ newbiz.html 의 '정서 자유 보기' 검사가 쓰는 사진 세트입니다. 
 - Kurdi B, Lozano S, Banaji MR. Introducing the Open Affective Standardized Image Set (OASIS). Behav Res Methods. 2017;49(2):457–470.
 - Marchewka A, Żurawski Ł, Jednoróg K, Grabowska A. The Nencki Affective Picture System (NAPS). Behav Res Methods. 2014;46(2):596–610.
 - Waechter S, Nelson AL, Wright C, Hyatt A, Oakman J. Measuring attentional bias to threat: reliability of dot probe and eye movement indices. Cognit Ther Res. 2014;38(3):313–333.
+
+## 6. 안정 기준선 풍경 사진 (선택)
+
+안정 기준선 단계의 배경은 기본으로 그림 풍경(SVG)을 쓰고, `manifest.json` 에 아래처럼 사진을 등록하면 그중 하나를 무작위로 씁니다.
+
+```json
+{ "version": 1, "form": "A", "baseline": ["calm/lake_01.jpg", "calm/forest_01.jpg"], "images": [] }
+```
+
+일반 풍경 사진을 써도 됩니다. 다만 기준선은 ‘아무 자극 없이 쉬는 상태’를 재는 단계라 아래 조건을 지켜 주세요 (바닐라 기준선: Jennings et al., 1992; 수중 영상 기준선: Piferi et al., 2000).
+
+| 조건 | 이유 |
+|---|---|
+| 잔잔한 자연 풍경 (호수·숲·들판·하늘·잔잔한 바다) | 정서가 중립~약간 긍정이어야 심박이 오르지 않음 |
+| 사람·동물·얼굴·글자·로고 없음 | 시선과 주의를 끄는 요소는 기준선을 오염시킴 |
+| 강한 대비·원색·번쩍이는 빛 반사 피하기 | 화면 밝기 변화가 카메라 심박(rPPG)에 섞임 |
+| 가로 16:9 이상, 1920×1080 이상, JPG 85% · 1MB 이하 | 전체 화면을 채우고 빠르게 불러오기 위해 |
+| 저작권: 직접 촬영·상업 이용 가능한 라이선스(Unsplash 등)·AI 생성 | 서비스에 쓰이므로 |
+
+코드가 사진의 평균 밝기를 재서 측정 화면과 비슷한 밝기(목표 185/255, 0.7~1.6배 범위)로 자동 보정하고, 채도와 대비를 조금 낮추며, 기준선 시간 동안 아주 천천히(5%) 확대해 정지 화면의 지루함을 줄입니다. 사진을 불러오지 못하면 그림 풍경으로 대신합니다.

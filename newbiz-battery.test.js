@@ -262,7 +262,7 @@ for (const [p, e] of Object.entries(expect)) {
   assert.equal(t.tentative, true);
 }
 
-/* 15) 자율신경: 압박 반응이 작으면 회복률 대신 잔여 심박으로 판정, 기준선이 약하면 과제 직전 구간을 기준으로 */
+/* 15) 자율신경: 압박 반응이 작아도 회복률이 계산되고, 회복 후반이 약하면 전체 구간으로, 기준선이 약하면 과제 직전 구간을 기준으로 */
 {
   const rec = B.simulate('balanced'); 
   const r = B.run(rec);
@@ -273,9 +273,15 @@ for (const [p, e] of Object.entries(expect)) {
   B.PERSONAS.balanced.hr.stress = 1;
   const small = B.run(B.simulate('balanced'));
   B.PERSONAS.balanced.hr.stress = P0;
-  assert.equal(small.recovery, null);
+  assert.ok(small.recovery !== null && small.recovery >= 50, `small reaction recovery ${small.recovery}`);   // 반응이 작아도 회복률이 계산된다
   assert.ok(small.recoveryResid !== null && small.battery.domains.autonomic.status !== 'na');
-  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('잔여 심박')));
+  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('평소 수준으로 돌아왔는지')));
+  /* 회복 후반 신호가 망가져도 회복 구간 전체로 대신 계산 */
+  const rec3 = B.simulate('control'), rp = rec3.phases.recovery, mid = (rp.start + rp.end) / 2;
+  let sd3 = 9; const rnd3 = () => { sd3 = (sd3 * 16807) % 2147483647; return sd3 / 2147483647 - 0.5; };
+  rec3.frames = rec3.frames.map(f => (f.t >= mid && f.t <= rp.end ? { ...f, r: 175 + 30 * rnd3(), g: 118 + 30 * rnd3(), b: 98 + 30 * rnd3(), rr: [0, 1, 2].map(() => [175 + 30 * rnd3(), 118 + 30 * rnd3(), 98 + 30 * rnd3()]) } : f));
+  const r3 = B.run(rec3);
+  assert.ok(r3.recovery !== null, `whole-window fallback ${r3.recoverySrc}`);
   /* 기준선 구간 신호를 잡음으로 망가뜨리면 과제 직전 구간이 기준이 된다 */
   const rec2 = B.simulate('overload'), bl = rec2.phases.baseline;
   let sd = 5; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647 - 0.5; };
@@ -358,5 +364,17 @@ for (const [p, e] of Object.entries(expect)) {
   assert.ok(JSON.stringify(no.summary).length < 200000 && JSON.stringify(no.meta).length < 30000);
   assert.equal(RS.browserFamily('Mozilla/5.0 (Windows NT 10.0) AppleWebKit Chrome/141.0 Safari/537.36').browser, 'chrome');
 }
+
+/* 21) 간편 보고서: 네 영역 카드 · 날씨 · 오늘 할 일, 잘못된 값 없음, 전문 용어 대신 쉬운 이름 */
+for (const p of Object.keys(B.PERSONAS)) {
+  const r = B.run(B.simulate(p, { seed: 7 }));
+  const h = R.renderSimple(r, { ai: '테스트 한마디' });
+  assert.ok(!/undefined|NaN|\[object/.test(h), `${p}: simple 잘못된 값`);
+  assert.equal((h.match(/class="sp-dom /g) || []).length, 4);
+  assert.ok(h.includes('오늘의 마음 날씨') && h.includes('오늘부터 해볼 3가지') && h.includes('id="spBio"'));
+  ['또렷함', '집중 조절', '마음의 시선', '몸의 회복력'].forEach(n => assert.ok(h.includes(n), `${p}: ${n}`));
+  assert.ok(!/PERCLOS|사카드|SART|rPPG/.test(h), `${p}: 전문 용어 노출`);
+}
+assert.equal(R.weatherOf(90).key, 'sun'); assert.equal(R.weatherOf(70).key, 'partly'); assert.equal(R.weatherOf(50).key, 'cloud'); assert.equal(R.weatherOf(30).key, 'rain');
 
 console.log('newbiz-battery tests passed');

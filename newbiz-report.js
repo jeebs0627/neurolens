@@ -386,7 +386,7 @@
       body += `<p class="disc">MIST 압박 과제 정답 ${r.stressScore ? `${r.stressScore.correct}/${r.stressScore.total}` : '—'}${r.stressScore && r.stressScore.minLimit ? ` · 최단 제한 시간 ${(r.stressScore.minLimit / 1000).toFixed(1)}초` : ''}${C.cite(['dedovic'])} · 안정 시 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함', none: '없음' }[r.hr.baseline.quality]}${C.cite(['pos'])}</p>`;
     }
     return `<section class="card dom" id="dom-${k}" style="--dc:${DCOLOR[k]}">
-      <div class="dom-h"><div><div class="kicker" style="color:${DCOLOR[k]}"><span class="dic sm" style="color:${DCOLOR[k]};background:${DCOLOR[k]}1A">${icon(k)}</span> Domain ${idx} · ${esc(d.en)}</div><h2>${esc(d.name)} <span class="net">${esc(d.network)}</span></h2>
+      <div class="dom-h"><div><div class="kicker" style="color:${DCOLOR[k]}"><span class="dic sm" style="color:${DCOLOR[k]};background:${DCOLOR[k]}1A">${icon(k)}</span> Domain ${idx} · ${esc(d.en)}</div><h2>${esc(d.name)} <span class="net">${esc(d.pro)} · ${esc(d.network)}</span></h2>
         <p class="muted small" style="margin:0">${esc(d.what)}${C.cite(d.refs)}</p></div>
         <div class="dom-ring">${ring(d.score, { size: 96, stroke: 9, color: d.status === 'na' ? '#A3ABBD' : DCOLOR[k], track: '#E6EAF1', text: '#0E1A33', sub: B.STATUS[d.status], title: d.name })}</div></div>
       ${d.status === 'na' ? '<p class="warn-line">이 영역의 검사를 수행하지 않았거나 신호가 부족해 측정되지 않았어요.</p>'
@@ -458,6 +458,76 @@
       ${applied.length ? `<ul class="qlist" style="margin-top:8px">${applied.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`;
   }
 
+  /* ---------- 간편 보고서 (일반인용) ----------
+   * 전문 지표 없이 ‘오늘의 마음 날씨’ 비유와 네 장의 카드, 오늘 할 일 3가지로 결과를 전한다.
+   * 판정 근거는 전문가 보고서와 같은 영역 점수·상태이며, 문장만 쉬운 말로 바꾼다 */
+  const LAY = {
+    alert: { ok: '잠이 충분하고 머리가 맑은 상태예요', watch: '조금 피곤한 상태예요. 오늘은 무리하지 마세요', concern: '많이 피곤해요. 지금은 휴식이 가장 먼저예요', icon: '🔋' },
+    control: { ok: '하려던 일에 집중을 잘 붙잡고 있어요', watch: '집중이 가끔 흐트러져요', concern: '집중이 자주 흔들려요. 한 번에 한 가지씩 해 보세요', icon: '🎯' },
+    emotion: { ok: '불편한 정보에 쉽게 끌려가지 않아요', watch: '걱정거리에 마음이 조금 오래 머물러요', concern: '불편한 생각에 마음이 자주 붙잡혀요', icon: '👀' },
+    autonomic: { ok: '긴장해도 몸이 금방 편안해져요', watch: '긴장이 몸에 조금 남아 있어요', concern: '몸이 긴장을 오래 붙잡고 있어요', icon: '💓' },
+  };
+  const LEVEL = sc => (sc >= 85 ? ['아주 좋음', 5] : sc >= 70 ? ['좋음', 4] : sc >= 55 ? ['보통', 3] : sc >= 40 ? ['조금 지침', 2] : ['챙김 필요', 1]);
+  function weatherOf(idx) {
+    if (idx === null) return { key: 'na', name: '측정 부족', line: '측정된 영역이 적어 날씨를 정하지 못했어요' };
+    if (idx >= 80) return { key: 'sun', name: '맑음', line: '몸도 마음도 컨디션이 좋은 날이에요' };
+    if (idx >= 65) return { key: 'partly', name: '구름 조금', line: '대체로 괜찮지만 살짝 챙길 부분이 있어요' };
+    if (idx >= 45) return { key: 'cloud', name: '흐림', line: '조금 지쳐 있어요. 오늘은 페이스를 낮춰 보세요' };
+    return { key: 'rain', name: '비', line: '많이 지쳐 있어요. 쉬어 가는 날로 정해 주세요' };
+  }
+  function weatherSvg(k) {
+    const sun = (cx, cy, r) => `<g class="w-sun"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#FFC94A"/>${Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4; return `<line x1="${cx + Math.cos(a) * (r + 8)}" y1="${cy + Math.sin(a) * (r + 8)}" x2="${cx + Math.cos(a) * (r + 18)}" y2="${cy + Math.sin(a) * (r + 18)}" stroke="#FFC94A" stroke-width="6" stroke-linecap="round"/>`; }).join('')}</g>`;
+    const cloud = (x, y, s, c) => `<g class="w-cloud" transform="translate(${x} ${y}) scale(${s})"><path d="M20 60 a22 22 0 0 1 8-42 a30 30 0 0 1 56 6 a20 20 0 0 1 4 36z" fill="${c}"/></g>`;
+    const rain = `<g class="w-rain">${[38, 62, 86].map((x, i) => `<line x1="${x}" y1="${118 + i * 4}" x2="${x - 6}" y2="${136 + i * 4}" stroke="#6FA8E8" stroke-width="5" stroke-linecap="round"/>`).join('')}</g>`;
+    const body = k === 'sun' ? sun(80, 80, 34) : k === 'partly' ? sun(96, 62, 26) + cloud(18, 54, 1.05, '#fff') : k === 'cloud' ? cloud(26, 30, 1.1, '#E4E9F2') + cloud(4, 56, 1.0, '#fff') : k === 'rain' ? cloud(14, 30, 1.2, '#D5DCE8') + rain : cloud(20, 40, 1.1, '#E4E9F2');
+    return `<svg viewBox="0 0 160 160" class="w-ico" aria-hidden="true">${body}</svg>`;
+  }
+  function renderSimple(r, ctx = {}) {
+    const b = r.battery, I = b.integrated, idx = overallIndex(b), wx = weatherOf(idx), c = r.checkin || {};
+    const D = B.DOMAIN_KEYS.map(k => ({ k, d: b.domains[k] }));
+    const good = D.filter(x => x.d.status === 'ok'), low = D.filter(x => x.d.status === 'watch' || x.d.status === 'concern').sort((x, y) => x.d.score - y.d.score);
+    const main = b.care.find(t => t.domain !== 'safety') || b.care[0];
+    const short = t => { const x = t.split(/ — | \(/)[0].replace(/PVT/g, '반응 속도'); return x.length > 64 ? x.slice(0, 63) + '…' : x; };
+    const next = new Date(r.measuredAt ? new Date(r.measuredAt).getTime() : Date.now()); next.setDate(next.getDate() + 14);
+    const feel = [];
+    I.mismatches.filter(m => !m.aligned).forEach(m => {
+      if (m.key === 'sleep-unaware') feel.push(['😌 별로 안 졸렸어요', '😪 실제로는 꽤 피곤했어요']);
+      if (m.key === 'sleep-subjective') feel.push(['😪 졸렸어요', '🙂 실제 또렷함은 괜찮았어요']);
+      if (m.key === 'tension-body-hidden') feel.push(['😌 긴장 안 됐어요', '💓 몸은 꽤 긴장했어요']);
+      if (m.key === 'tension-mind-only') feel.push(['😣 많이 긴장됐어요', '😌 몸은 생각보다 차분했어요']);
+    });
+    const safety = b.care.find(t => t.domain === 'safety');
+    return `<div class="sp">
+      <section class="sp-hero sp-${wx.key}">
+        <div class="sp-hero-t"><span class="sp-k">오늘의 마음 날씨</span><h2>${esc(wx.name)}</h2><p>${esc(wx.line)}</p>
+          <div class="sp-score"><b data-count="${idx ?? ''}">${idx ?? '—'}</b><span>/ 100 종합 컨디션</span></div>
+          <div class="sp-type">${esc(I.title)}</div></div>
+        <div class="sp-hero-v">${weatherSvg(wx.key)}</div>
+      </section>
+      ${safety ? '<div class="sp-safe"><b>먼저 확인해 주세요</b> 최근 2주 마음이 많이 힘들었다고 답했어요. 혼자 견디지 말고 가까운 정신건강복지센터나 전문가와 이야기해 보세요 · 위기상담 109 (24시간)</div>' : ''}
+      ${ctx.ai ? `<section class="sp-card sp-ai"><span class="sp-k">✦ AI가 정리한 한마디</span><p>${esc(ctx.ai)}</p></section>` : ''}
+      <section class="sp-grid">${D.map(({ k, d }) => {
+        const [lv, n] = d.status === 'na' ? ['측정 안 됨', 0] : LEVEL(d.score);
+        return `<div class="sp-dom sp-st-${d.status}" style="--dc:${DCOLOR[k]}">
+          <div class="sp-dom-h"><span class="sp-emo">${LAY[k].icon}</span><div><b>${esc(d.name)}</b><small>${esc(d.what)}</small></div></div>
+          <div class="sp-meter" aria-label="${esc(lv)}">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}" style="animation-delay:${i * 90}ms"></i>`).join('')}</div>
+          <div class="sp-lv"><b>${esc(lv)}</b>${d.score === null ? '' : `<span>${d.score}점</span>`}</div>
+          <p>${esc(d.status === 'na' ? '이번에는 측정되지 않았어요' : LAY[k][d.status])}</p></div>`;
+      }).join('')}</section>
+      <section class="sp-two">
+        <div class="sp-card"><span class="sp-k">💪 나의 강점</span>${good.length ? `<div class="sp-chips">${good.map(x => `<span>${LAY[x.k].icon} ${esc(x.d.name)}</span>`).join('')}</div>` : '<p class="sp-m">이번에는 뚜렷한 강점 영역이 없었어요. 쉬고 나면 달라질 수 있어요</p>'}</div>
+        <div class="sp-card"><span class="sp-k">🌱 오늘 챙길 것</span>${low.length ? `<div class="sp-chips warm">${low.slice(0, 2).map(x => `<span>${LAY[x.k].icon} ${esc(x.d.name)}</span>`).join('')}</div>` : '<p class="sp-m">특별히 챙길 영역이 없어요. 지금 리듬을 지켜 주세요</p>'}</div>
+      </section>
+      ${feel.length ? `<section class="sp-card"><span class="sp-k">🪞 느낌 vs 실제</span>${feel.map(([a, z]) => `<div class="sp-feel"><span>${esc(a)}</span><i>→</i><span>${esc(z)}</span></div>`).join('')}<p class="sp-m">느낌과 몸의 신호가 다를 때가 있어요. 측정이 알려 주는 쪽도 함께 믿어 주세요</p></section>` : ''}
+      <section class="sp-card sp-todo"><span class="sp-k">✅ 오늘부터 해볼 3가지 · ${esc(main.title)}</span>
+        <ul>${main.items.slice(0, 3).map((it, i) => `<li><label><input type="checkbox" data-todo="${i}"><span>${esc(short(it.text))}</span></label></li>`).join('')}</ul>
+        <p class="sp-m">체크하면 이 기기에 기억해요 · 2주 동안 꾸준히 해 보세요</p></section>
+      <section class="sp-card sp-next"><div><span class="sp-k">📅 다음 측정</span><b>${esc(next.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }))}</b><p class="sp-m">같은 시간대에 다시 재면 ‘평소의 나’와 비교해 변화를 보여 드려요</p></div>
+        <button class="btn care" type="button" id="spBio">1분 호흡으로 지금 바로 회복해 보기</button></section>
+      <p class="sp-disc">웰니스 참고용 결과이며 의학적 진단이 아니에요 · 자세한 근거는 ‘전문가 보고서’에서 볼 수 있어요</p>
+    </div>`;
+  }
+
   function render(r, ctx = {}) {
     const b = r.battery, I = b.integrated, C = citer(), c = r.checkin || {};
     const when = r.measuredAt ? new Date(r.measuredAt) : null;
@@ -485,14 +555,14 @@
     <section class="rhero" id="r-top">
       <div class="rhero-top"><div><div class="kicker">NeuroLens Lab · Integrated Self-Regulation Report</div>
         <h1>통합 자기조절 리포트</h1>
-        <p class="rhero-sub">각성 · 주의 통제 · 정서 주의 · 자율신경 조절을 하나의 모델로 통합해 해석합니다${C.cite(['posner', 'thayerLane'])}</p></div>${source}</div>
+        <p class="rhero-sub">또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력을 하나의 모델로 통합해 해석합니다${C.cite(['posner', 'thayerLane'])}</p></div>${source}</div>
       <div class="rhero-main">
         <div class="rhero-gauge">${ring(idx, { size: 168, stroke: 14, color: idx === null ? '#8A93A8' : idx >= 70 ? '#4FD1A1' : idx >= 40 ? '#F2B544' : '#F27C98', sub: '종합 지수', title: '종합 지수' })}
           <div class="rhero-qc"><span>측정 신뢰도</span><b>${esc(qc.grade)}</b><em>${Math.round((qc.confidence || 0) * 100)}%</em></div></div>
         <div class="rhero-type"><span class="rhero-k">통합 유형</span><div class="rhero-t">${esc(I.title)}</div><div class="chips">${chips}</div>
           <p>${esc(I.lead)}${I.code === 'alert' ? C.cite(['limDinges']) : ''}</p></div>
       </div>
-      <div class="rdoms">${B.DOMAIN_KEYS.map(k => { const d = b.domains[k]; return `<a class="rdom" href="#dom-${k}"><div class="rdom-h"><span class="dic" style="color:${DCOLOR[k]};background:rgba(255,255,255,.1)">${icon(k, '#fff')}</span><span>${esc(d.name)}<small>${esc(d.en)}</small></span></div>
+      <div class="rdoms">${B.DOMAIN_KEYS.map(k => { const d = b.domains[k]; return `<a class="rdom" href="#dom-${k}"><div class="rdom-h"><span class="dic" style="color:${DCOLOR[k]};background:rgba(255,255,255,.1)">${icon(k, '#fff')}</span><span>${esc(d.name)}<small>${esc(d.pro)} · ${esc(d.en)}</small></span></div>
         <div class="rdom-b">${ring(d.score, { size: 74, stroke: 7, color: d.status === 'na' ? '#8A93A8' : DCOLOR[k], title: d.name })}<div><span class="st st-${d.status}">${B.STATUS[d.status]}</span>${d.tentative ? '<span class="st st-watch" style="margin-left:4px">잠정</span>' : ''}<div class="rdom-c"><span>신뢰도</span><i><b style="width:${Math.round((d.confidence || 0) * 100)}%"></b></i></div></div></div></a>`; }).join('')}</div>
       <dl class="rmeta"><div><dt>측정 일시</dt><dd>${when ? esc(when.toLocaleString('ko-KR')) : '—'}</dd></div><div><dt>세션 ID</dt><dd>${esc(sid)}</dd></div><div><dt>측정 시간</dt><dd>${mins === null ? '—' : mins + '분'} · ${r.mode === 'quick' ? '빠른 측정' : '표준 측정'}</dd></div><div><dt>시선 보정</dt><dd>${esc(calText)}</dd></div></dl>
     </section>
@@ -573,5 +643,5 @@
     return h;
   }
 
-  return { render, citer, esc, summaryPayload, overallIndex };
+  return { render, renderSimple, weatherOf, citer, esc, summaryPayload, overallIndex };
 });

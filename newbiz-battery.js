@@ -123,25 +123,25 @@
 
   const MODULES = {
     alert: {
-      title: '각성', tests: 'PVT-B 정신운동 경계 과제 + PERCLOS 눈꺼풀 분석', domain: 'alert', min: { full: 3.5, quick: 2 },
+      title: '또렷함 검사', tests: 'PVT-B 정신운동 경계 과제 + PERCLOS 눈꺼풀 분석', domain: 'alert', min: { full: 3.5, quick: 2 },
       paradigm: '무작위 간격(1~4초)으로 나타나는 숫자 카운터에 최대한 빨리 반응한다. 수면 부족·피로에 가장 민감한 행동 지표로 확립된 PVT의 3분 단축형(PVT-B)이며, 같은 시간 동안 웹캠으로 눈꺼풀이 80% 이상 닫힌 시간 비율(PERCLOS)을 함께 잰다.',
       limits: '브라우저·키보드 입력 지연(약 20~60ms)이 반응시간에 더해진다. PERCLOS는 개인별 눈 열림 범위로 정규화한 근사값이며 안경 반사·조명에 영향을 받는다.',
       refs: ['dinges85', 'basnerB', 'basner', 'wierwille', 'dingesGrace', 'caffier'],
     },
     oculo: {
-      title: '안구운동 통제', tests: '원활 추적 + 프로·안티사카드', domain: 'control', min: { full: 2.5, quick: 1.5 },
+      title: '눈 움직임 조절', tests: '원활 추적 + 프로·안티사카드', domain: 'control', min: { full: 2.5, quick: 1.5 },
       paradigm: '좌우로 움직이는 점을 눈으로 따라가는 원활 추적과, 주변에 나타난 점을 보거나(프로사카드) 반대쪽을 보는(안티사카드) 과제다. 안티사카드는 반사적 시선을 억제하는 전전두 실행 통제를 직접 반영한다.',
       limits: '웹캠 시선은 정확도 약 1~2°, 30fps라 잠복기는 ±33ms 해상도의 참고값이다. 사카드 직전 좌·중·우 응시로 개인별 시선 진폭을 재고 그 40%를 반응 기준으로 삼아, 고정 기준보다 유효 시행을 크게 늘렸다. 판정에는 시선 방향(오류율)처럼 웹캠으로도 안정적인 지표를 주로 쓴다.',
       refs: ['hallett', 'munoz', 'antoniades', 'lencer', 'maruta', 'webcamET'],
     },
     sustain: {
-      title: '지속 주의', tests: 'SART 반응 억제 과제 + 머리 움직임', domain: 'control', min: { full: 3, quick: 1.7 },
+      title: '지속 집중', tests: 'SART 반응 억제 과제 + 머리 움직임', domain: 'control', min: { full: 3, quick: 1.7 },
       paradigm: '숫자 1~9가 빠르게(250ms 제시 + 900ms 빈 화면, 1.15초 간격) 나타날 때 3을 제외한 모든 숫자에 반응한다. 지속 주의와 반응 억제의 실패(일상적 주의 실수)를 측정하는 연속수행검사(CPT) 계열 과제이며, 수행 중 머리 움직임을 웹캠으로 함께 기록한다.',
       limits: '자극 간격(1.15초)·숫자 크기 5단계·본 시행 중 정오 피드백 없음은 원판 그대로다. 원판의 마스크(원 안의 ×)는 ‘틀렸다’는 표시로 오인되기 쉬워 빈 화면으로 바꿨으며, 마스크가 없으면 과제가 다소 쉬워질 수 있어 억제 실패율 기준은 파일럿에서 재설정한다. 또한 원판(225시행)을 108시행(표준)·63시행(빠른 측정)으로 단축했다. 본 시행 전 연습(표준 18시행)에서만 정오 피드백을 주며, 본 시행에서는 정오와 무관한 입력 확인 표시만 보인다. 머리 움직임은 얼굴 랜드마크 이동량이며 적외선 동작 분석(QbTest류)보다 해상도가 낮다.',
       refs: ['robertson', 'rosvold', 'kofler', 'teicher'],
     },
     core: {
-      title: '정서 주의 · 스트레스 반응', tests: '정서 자유 보기 + MIST 암산 압박 + 분당 6회 공명 호흡', domain: 'emotion · autonomic', min: { full: 4.5, quick: 2.8 },
+      title: '마음·몸 반응', tests: '정서 자유 보기 + MIST 암산 압박 + 분당 6회 공명 호흡', domain: 'emotion · autonomic', min: { full: 4.5, quick: 2.8 },
       paradigm: '정서-중립 사진 쌍(위협·슬픔·긍정 vs 내용이 맞춰진 중립 사진)을 자유롭게 보는 동안의 시선 체류(주의 편향), MIST 방식 암산(난이도 1~5 무작위 · 덧셈·뺄셈 · 답 0~9 · 수행에 따라 줄어드는 제한 시간 · 목표 정답률 막대) 중 심박 반응, 공명 주파수 호흡 중 심박 회복과 호흡-심박 동조를 rPPG(POS)로 측정한다.',
       limits: 'rPPG는 조명·움직임에 민감하며 HRV(RMSSD)는 30fps 한계로 참고값이다. MIST 원판의 거짓 평균 비교(기만) 대신 실제 목표 정답률(80%)과 비교하며, 시간은 1분으로 단축했다. 정서 사진 세트가 없으면 밝기를 맞춘 도식 얼굴·단어로 대체하며, 이 경우 표준화 사진 자극보다 강도가 약하다.',
       refs: ['armstrong', 'dedovic', 'kirschbaum', 'lehrer', 'pos', 'mediapipe'],
@@ -150,11 +150,12 @@
 
   const DOMAIN_KEYS = ['alert', 'control', 'emotion', 'autonomic'];
   const HIER = ['alert', 'autonomic', 'control', 'emotion'];
+  /* name = 결과지에 보이는 쉬운 이름 · pro = 전문 용어(부제로 함께 표시) */
   const DOMAINS = {
-    alert: { name: '각성', en: 'Alerting', network: '경계 네트워크', what: '주의를 유지하는 토대인 기본 각성 수준', refs: ['posner', 'limDinges'], modules: ['alert'] },
-    control: { name: '주의 통제', en: 'Executive control', network: '실행 통제 네트워크', what: '반사적 반응을 억제하고 목표에 주의를 유지하는 능력', refs: ['posner', 'munoz', 'robertson'], modules: ['oculo', 'sustain'] },
-    emotion: { name: '정서 주의', en: 'Emotional orienting', network: '정서 자극 정향', what: '부정·긍정 정보로 주의가 향하고 머무는 경향', refs: ['armstrong', 'act'], modules: ['core'] },
-    autonomic: { name: '자율신경 조절', en: 'Autonomic regulation', network: '신경내장 조절', what: '압박에 대한 심박 반응과 회복, 호흡-심박 동조', refs: ['thayerLane', 'dedovic'], modules: ['core'] },
+    alert: { name: '또렷함', pro: '각성', en: 'Alertness', network: '경계 네트워크', what: '피곤하지 않고 깨어 있는 정도 — 모든 집중의 바탕이 되는 기본 에너지', refs: ['posner', 'limDinges'], modules: ['alert'] },
+    control: { name: '집중 조절', pro: '주의 통제', en: 'Focus control', network: '실행 통제 네트워크', what: '충동적으로 반응하지 않고, 하려던 일에 집중을 유지하는 힘', refs: ['posner', 'munoz', 'robertson'], modules: ['oculo', 'sustain'] },
+    emotion: { name: '마음의 시선', pro: '정서 주의', en: 'Emotional attention', network: '정서 자극 정향', what: '불편하거나 기쁜 정보에 눈과 마음이 얼마나 끌리고 머무는지', refs: ['armstrong', 'act'], modules: ['core'] },
+    autonomic: { name: '몸의 회복력', pro: '자율신경 조절', en: 'Body recovery', network: '신경내장 조절', what: '긴장할 때 몸(심박)이 얼마나 반응하고, 다시 편안해지는 힘', refs: ['thayerLane', 'dedovic'], modules: ['core'] },
   };
 
   /* ---------- 지표 정의: band = 좋음 기준점(best) · 양호 한계(ok) · 주의 한계(concern) · 최저점(worst) ---------- */
@@ -196,7 +197,7 @@
     { key: 'stressDelta', domain: 'autonomic', w: 2, label: '압박 심박 반응', unit: 'bpm', d: 1, band: BAND('low', 2, 6, 12, 25), refs: ['dedovic'],
       desc: '제한 시간 암산 − 기준선 심박. 과도한 반응 여부만 판정한다', get: a => a.stressDelta },
     { key: 'recovery', domain: 'autonomic', w: 2, label: '심박 회복률', unit: '%', d: 0, band: BAND('high', 100, 50, 20, -20), refs: ['thayer'],
-      desc: '압박으로 오른 심박이 호흡 구간 후반에 되돌아온 비율 (압박 반응 3bpm 이상일 때만 계산)', get: a => a.recovery },
+      desc: '호흡 후 심박이 평소 수준으로 돌아온 정도. 1 − (회복 후반 − 기준) ÷ max(압박 정점 − 기준, 3bpm)', get: a => a.recovery },
     { key: 'recoveryResid', domain: 'autonomic', w: 1, label: '회복 후 잔여 심박', unit: 'bpm', d: 1, band: BAND('low', 0, 3, 7, 15), refs: ['thayer'],
       desc: '호흡 구간 후반 심박 − 기준 심박. 압박 반응이 작아 회복률을 계산할 수 없을 때도 회복을 판정한다', get: a => a.recoveryResid },
     { key: 'coupling', domain: 'autonomic', w: 1, label: '공명 호흡 심박 동조', unit: 'bpm', d: 1, band: BAND('high', 8, 3, 1.5, 0), refs: ['lehrer'],
@@ -482,43 +483,43 @@
 
   /* ---------- 통합 해석 ---------- */
   const HEAD = {
-    alert: { title: '각성 저하 우선형', lead: '주의 체계의 토대인 각성 수준이 낮게 측정됐어요. 각성이 떨어지면 주의 통제와 정서 조절 수행도 함께 떨어지므로, 다른 영역의 결과보다 먼저 수면·휴식으로 각성을 회복하는 것이 우선입니다.' },
-    control: { title: '주의 통제 부하형', lead: '반사적 반응을 억제하고 목표에 주의를 유지하는 실행 통제 지표가 낮았어요. 각성은 유지되고 있어, 피로보다는 주의를 조절하는 자원 자체가 부하를 받고 있는 패턴입니다.' },
-    emotion: { title: '정서 주의 편향형', lead: '부정 정보로 주의가 향하고 머무는 경향이 두드러졌어요. 걱정·반추가 주의를 붙잡아 조용히 에너지를 쓰고 있을 수 있습니다.' },
-    autonomic: { title: '신체 스트레스 반응형', lead: '압박 상황에서 심박 반응이 크거나 회복이 더뎠어요. 생각보다 몸이 먼저, 그리고 오래 긴장하는 패턴입니다.' },
-    balanced: { title: '균형 조절형', lead: '측정된 영역이 모두 참고 범위 안에 있었어요. 각성·주의 통제·정서 주의·자율신경 조절이 균형을 이루고 있습니다. 지금 상태를 개인 기준선으로 기록해 두면 이후 변화를 민감하게 알아챌 수 있어요.' },
+    alert: { title: '피로 회복 우선형', lead: '모든 집중의 바탕인 또렷함(각성)이 낮게 측정됐어요. 피곤하면 집중과 감정 조절도 함께 흔들리기 때문에, 다른 결과보다 먼저 수면과 휴식으로 기본 에너지를 되찾는 것이 우선이에요.' },
+    control: { title: '집중 흔들림형', lead: '충동을 누르고 하려던 일에 집중을 붙잡아 두는 힘(주의 통제)이 낮았어요. 피곤해서라기보다, 집중을 조절하는 힘 자체에 부담이 쌓인 패턴이에요.' },
+    emotion: { title: '마음 쏠림형', lead: '불편한 정보에 눈과 마음이 먼저 가고 오래 머무는 경향(정서 주의 편향)이 두드러졌어요. 걱정이나 곱씹는 생각이 조용히 에너지를 쓰고 있을 수 있어요.' },
+    autonomic: { title: '몸 긴장형', lead: '긴장되는 상황에서 심박이 크게 오르거나 다시 편안해지는 데 시간이 걸렸어요(자율신경 조절). 마음보다 몸이 먼저, 그리고 오래 긴장하는 패턴이에요.' },
+    balanced: { title: '균형 조절형', lead: '측정한 네 가지가 모두 참고 범위 안이었어요. 또렷함·집중 조절·마음의 시선·몸의 회복력이 균형을 이루고 있어요. 지금 상태를 나의 기준으로 남겨 두면 나중의 변화를 민감하게 알아챌 수 있어요.' },
     insufficient: { title: '통합 해석 보류', lead: '측정된 영역이 2개 미만이라 영역 사이의 관계를 해석하지 않았어요. 측정된 지표만 참고하고, 가능한 검사를 더 포함해 다시 측정해 보세요.' },
   };
   const PATHWAYS = {
-    fatigue: { title: '피로 게이팅 · 각성 → 주의·정서', refs: ['limDinges', 'yoo'],
-      text: w => `각성 지표가 낮은 상태에서 ${w} 지표도 함께 낮았어요. 수면 부족은 주의 통제와 정서 조절 수행을 함께 떨어뜨리는 것으로 알려져 있어, 이번 결과의 일부는 피로의 영향일 수 있습니다. 충분히 쉰 뒤 같은 시간대에 재측정하면 두 원인을 구분할 수 있어요.` },
-    act: { title: '주의 통제 이론 · 정서 편향 ↔ 억제 통제', refs: ['act', 'derakshan'],
+    fatigue: { title: '피로가 집중·마음을 끌어내림 (피로 게이팅)', refs: ['limDinges', 'yoo'],
+      text: w => `또렷함이 낮은 상태에서 ${w}도 함께 낮았어요. 수면 부족은 주의 통제와 정서 조절 수행을 함께 떨어뜨리는 것으로 알려져 있어, 이번 결과의 일부는 피로의 영향일 수 있습니다. 충분히 쉰 뒤 같은 시간대에 재측정하면 두 원인을 구분할 수 있어요.` },
+    act: { title: '불편한 정보에 끌림 ↔ 멈추는 힘 약해짐 (주의 통제 이론)', refs: ['act', 'derakshan'],
       text: () => '부정 자극으로 주의가 쏠리는 경향과 반응 억제의 약화가 함께 나타났어요. 주의 통제 이론은 불안이 목표 지향적 주의(억제 기능)를 약화시키고 자극 주도적 주의를 강화한다고 설명합니다. 정서 편향과 주의 통제를 함께 다루는 케어가 효율적이에요.' },
-    nvi: { title: '신경내장 통합 · 주의 통제 ↔ 자율신경', refs: ['thayerLane', 'thayer'],
-      text: () => '실행 통제 지표와 자율신경 조절 지표가 함께 낮았어요. 신경내장 통합 모델은 전전두엽의 억제 회로가 인지 통제와 미주신경성 심장 조절을 함께 담당한다고 봅니다. 호흡·심박 조절 훈련이 주의 통제에도 도움이 될 수 있는 근거입니다.' },
-    perseverative: { title: '지속 인지 가설 · 정서 주의 ↔ 신체 반응', refs: ['brosschot', 'armstrong'],
+    nvi: { title: '집중 조절 ↔ 몸의 회복력이 함께 낮음 (신경내장 통합)', refs: ['thayerLane', 'thayer'],
+      text: () => '집중 조절과 몸의 회복력이 함께 낮았어요. 신경내장 통합 모델은 전전두엽의 억제 회로가 인지 통제와 미주신경성 심장 조절을 함께 담당한다고 봅니다. 호흡·심박 조절 훈련이 주의 통제에도 도움이 될 수 있는 근거입니다.' },
+    perseverative: { title: '곱씹는 생각 ↔ 오래가는 몸의 긴장 (지속 인지 가설)', refs: ['brosschot', 'armstrong'],
       text: () => '부정 정보에 머무는 주의와 큰 신체 반응·느린 회복이 함께 나타났어요. 지속 인지 가설은 걱정·반추가 스트레스성 생리 활성을 연장시킨다고 설명합니다. 반추를 줄이는 개입과 신체 이완을 함께 권합니다.' },
   };
   const CARE_PLAN = {
-    alert: { title: '각성 회복 트랙', goal: '각성 수준을 먼저 회복해 다른 영역을 정확히 다시 평가합니다.',
+    alert: { title: '피로 회복 트랙', goal: '또렷함을 먼저 되찾아 다른 영역을 정확히 다시 봅니다.',
       items: [
         { text: '2주간 기상 시각을 ±30분 안에 고정하고, 잠자리에서 깨어 있는 시간을 줄이기 (CBT-I의 수면 제한·자극 조절 원리)', refs: ['trauer'] },
         { text: '오후 졸림이 심한 날 10분 이내 짧은 낮잠 (15시 이전)', refs: ['brooks'] },
         { text: '고집중 작업 전 3분 PVT로 상태 확인 — 경과 반응이 ‘주의’ 이상이면 작업 순서를 조정', refs: ['basnerB'] },
       ], kpi: 'PVT 경과 반응 3분당 3회 이하 · PERCLOS 8% 이하', remeasure: '각성 모듈 · 2주 후 같은 시간대' },
-    control: { title: '주의 통제 트랙', goal: '반응 억제와 주의 유지 자원을 키웁니다.',
+    control: { title: '집중력 트랙', goal: '충동을 멈추는 힘과 집중을 유지하는 힘을 키웁니다.',
       items: [
         { text: '마음챙김 주의 훈련 하루 10분 (호흡에 주의를 두고, 벗어나면 알아차려 되돌리기)', refs: ['tang'] },
         { text: '중강도 유산소 운동 주 3회 30분 — 실행 기능 향상 근거가 가장 일관된 생활 개입', refs: ['hillman'] },
         { text: '알림을 끄고 25분 단일 과제 블록으로 일하기 (주의 전환 비용 줄이기)', refs: [] },
       ], kpi: 'SART 억제 실패 40% 이하 · 반응시간 변동성 0.25 이하 · 안티사카드 오류 25% 이하', remeasure: '안구운동 통제 + 지속 주의 모듈 · 4주 후' },
-    emotion: { title: '주의 전환 트랙', goal: '부정 정보에서 주의를 떼어내는 유연성을 키웁니다.',
+    emotion: { title: '마음 전환 트랙', goal: '불편한 정보에서 마음을 떼어내는 유연성을 키웁니다.',
       items: [
         { text: '주의 전환 연습 하루 2분 — 부정 자극 반대편 표적에 반응하는 주의 편향 수정(ABM) 형식. 효과 크기는 작게 보고되므로 다른 루틴과 병행', refs: ['hakamata', 'cristea'] },
         { text: '걱정 시간 정하기 — 반추를 하루 정해진 15분으로 모으기', refs: ['borkovec'] },
         { text: '생각 라벨링: “나는 지금 ~라는 생각을 하고 있다”로 거리 두기', refs: ['tang'] },
       ], kpi: '부정 자극 응시 58% 이하', remeasure: '정서 주의 · 스트레스 반응 모듈 · 2주 후' },
-    autonomic: { title: '신체 이완 트랙', goal: '압박 뒤 심박이 빨리 되돌아오는 회복력을 키웁니다.',
+    autonomic: { title: '몸 이완 트랙', goal: '긴장 뒤 심박이 빨리 편안해지는 회복력을 키웁니다.',
       items: [
         { text: '분당 6회 공명 호흡 하루 2회 5분 (들숨 5초 · 날숨 5초)', refs: ['lehrer', 'zaccaro'] },
         { text: '4주 심박 바이오피드백 — 호흡 중 심박이 출렁이는 폭을 키우는 연습', refs: ['goessl'] },
@@ -558,9 +559,9 @@
     if (base.mismatch) mismatches.push({ key: 'tension-' + base.mismatch.kind, title: '느끼는 긴장 ↔ 몸의 반응', text: base.mismatch.text, refs: ['garfinkel'], aligned: base.mismatch.kind === 'aligned' });
     const kss = checkin && finite(checkin.kss) ? checkin.kss : null;
     if (kss !== null && st('alert') !== 'na') {
-      if (kss <= 5 && fl('alert')) mismatches.push({ key: 'sleep-unaware', title: '느끼는 졸림 ↔ 각성 수행', text: `스스로 느끼는 졸림(KSS ${kss}/9)은 크지 않았지만 각성 지표는 저하돼 있었어요. 수면이 부족하면 주관적 졸림은 일찍 적응해 버리지만 수행 저하는 계속 쌓이는 것으로 알려져 있어, 느낌보다 측정을 기준으로 휴식을 계획하는 것이 안전해요.`, refs: ['vanDongen', 'kss'] });
-      else if (kss >= 7 && !fl('alert')) mismatches.push({ key: 'sleep-subjective', title: '느끼는 졸림 ↔ 각성 수행', text: `졸림을 크게 느꼈지만(KSS ${kss}/9) 각성 수행은 참고 범위 안이었어요. 지루함·의욕 저하 같은 요인이 졸림으로 느껴지고 있을 수 있어요.`, refs: ['kss'] });
-      else mismatches.push({ key: 'sleep-aligned', title: '느끼는 졸림 ↔ 각성 수행', text: `스스로 느끼는 졸림(KSS ${kss}/9)과 각성 수행이 대체로 일치했어요.`, refs: ['kss'], aligned: true });
+      if (kss <= 5 && fl('alert')) mismatches.push({ key: 'sleep-unaware', title: '느끼는 졸림 ↔ 실제 또렷함', text: `스스로 느끼는 졸림(KSS ${kss}/9)은 크지 않았지만 각성 지표는 저하돼 있었어요. 수면이 부족하면 주관적 졸림은 일찍 적응해 버리지만 수행 저하는 계속 쌓이는 것으로 알려져 있어, 느낌보다 측정을 기준으로 휴식을 계획하는 것이 안전해요.`, refs: ['vanDongen', 'kss'] });
+      else if (kss >= 7 && !fl('alert')) mismatches.push({ key: 'sleep-subjective', title: '느끼는 졸림 ↔ 실제 또렷함', text: `졸림을 크게 느꼈지만(KSS ${kss}/9) 각성 수행은 참고 범위 안이었어요. 지루함·의욕 저하 같은 요인이 졸림으로 느껴지고 있을 수 있어요.`, refs: ['kss'] });
+      else mismatches.push({ key: 'sleep-aligned', title: '느끼는 졸림 ↔ 실제 또렷함', text: `스스로 느끼는 졸림(KSS ${kss}/9)과 각성 수행이 대체로 일치했어요.`, refs: ['kss'], aligned: true });
     }
 
     return { code, ...HEAD[code], primary: code === 'insufficient' ? null : primary, secondary: code === 'insufficient' ? null : secondary, measured, flagged, pathways, mismatches };
@@ -577,9 +578,9 @@
     const c = checkin || {}, out = [];
     const short = c.sleep === 'lt5' || c.sleep === '5to6', recentCaf = c.caffeine === 'lt1' || c.caffeine === '1to3';
     if (CONTEXT.sleep[c.sleep]) {
-      if (short && fl('alert')) out.push({ key: 'sleep-short-low', title: '어젯밤 수면 ↔ 각성 저하', text: `어젯밤 수면이 ${CONTEXT.sleep[c.sleep]}이었어요. 이번 각성 저하의 상당 부분은 하룻밤 수면 부족의 영향일 수 있어요. 충분히 잔 다음 날 같은 시간대에 다시 재 보면 일시적인 상태인지 지속되는 패턴인지 구분할 수 있어요.`, refs: ['vanDongen', 'limDinges'] });
-      else if (short) out.push({ key: 'sleep-short-ok', title: '어젯밤 수면 ↔ 각성 유지', text: `수면이 ${CONTEXT.sleep[c.sleep]}으로 짧았지만 각성 수행은 유지됐어요. 다만 수면 부족은 며칠 쌓이면 수행이 계단식으로 떨어지는 것으로 알려져 있어 오늘은 무리하지 않는 편이 좋아요.`, refs: ['vanDongen'] });
-      else if (fl('alert')) out.push({ key: 'sleep-ok-low', title: '어젯밤 수면 ↔ 각성 저하', text: `수면 시간(${CONTEXT.sleep[c.sleep]})은 부족하지 않았는데 각성이 낮게 나왔어요. 수면의 질, 측정 시각, 피로 누적을 함께 살펴볼 필요가 있어요.`, refs: ['limDinges'] });
+      if (short && fl('alert')) out.push({ key: 'sleep-short-low', title: '어젯밤 수면 ↔ 또렷함 저하', text: `어젯밤 수면이 ${CONTEXT.sleep[c.sleep]}이었어요. 이번 각성 저하의 상당 부분은 하룻밤 수면 부족의 영향일 수 있어요. 충분히 잔 다음 날 같은 시간대에 다시 재 보면 일시적인 상태인지 지속되는 패턴인지 구분할 수 있어요.`, refs: ['vanDongen', 'limDinges'] });
+      else if (short) out.push({ key: 'sleep-short-ok', title: '어젯밤 수면 ↔ 또렷함 유지', text: `수면이 ${CONTEXT.sleep[c.sleep]}으로 짧았지만 각성 수행은 유지됐어요. 다만 수면 부족은 며칠 쌓이면 수행이 계단식으로 떨어지는 것으로 알려져 있어 오늘은 무리하지 않는 편이 좋아요.`, refs: ['vanDongen'] });
+      else if (fl('alert')) out.push({ key: 'sleep-ok-low', title: '어젯밤 수면 ↔ 또렷함 저하', text: `수면 시간(${CONTEXT.sleep[c.sleep]})은 부족하지 않았는데 각성이 낮게 나왔어요. 수면의 질, 측정 시각, 피로 누적을 함께 살펴볼 필요가 있어요.`, refs: ['limDinges'] });
     }
     if (CONTEXT.caffeine[c.caffeine] && recentCaf) {
       out.push({ key: fl('alert') ? 'caffeine-low' : 'caffeine-ok', title: '최근 카페인', text: fl('alert')
@@ -628,8 +629,8 @@
    * 비대면으로 묻지 않도록 제외한 PHQ-8 을 쓴다 (Kroenke et al., 2009). 2단계 실시: Levis et al., 2020.
    * 점수는 영역 점수에 섞지 않고, 측정 영역과의 대조와 케어 우선순위(상담 안내)에만 쓴다. */
   const PHQ = {
-    stem: '지난 2 주일 동안 당신은 다음의 문제들로 인해서 얼마나 자주 방해를 받았습니까?',
-    options: ['전혀 방해 받지 않았다', '며칠 동안 방해 받았다', '7 일 이상 방해 받았다', '거의 매일 방해 받았다'],
+    stem: '지난 2주 동안, 아래 나열되는 증상들에 얼마나 자주 시달렸습니까?',
+    options: ['전혀 아니다', '여러 날 동안', '일주일 이상', '거의 매일'],
     items: [
       '일 또는 여가 활동을 하는 데 흥미나 즐거움을 느끼지 못함',
       '기분이 가라앉거나, 우울하거나, 희망이 없음',
@@ -643,7 +644,7 @@
     screenCut: 3,                        // PHQ-2 ≥ 3 → 나머지 6문항 (Kroenke et al., 2003)
     bands: [[4, '낮음'], [9, '가벼움'], [14, '중간'], [19, '높음'], [24, '매우 높음']],   // PHQ-8 0–24 구간 (Kroenke et al., 2009)
     consultCut: 10,                      // PHQ-8 ≥ 10 → 전문가 상담 안내 (Kroenke et al., 2009; 한국판 절단점 10, 박승진 외, 2010)
-    copyright: '환자 건강 질문지 한국어판 © 2005 Pfizer Inc. · 허가 없이 사용 가능 (phqscreeners.com) · 9번 문항 제외(PHQ-8)',
+    copyright: '환자 건강 질문지(PHQ) © Pfizer Inc. · 허가 없이 사용 가능 (phqscreeners.com) · 한국어판 문항을 바탕으로 질문·선택지 표현을 자연스럽게 다듬음 (점수 0~3 동일) · 9번 문항 제외(PHQ-8)',
   };
   /* 문항 ↔ 측정 영역 연결 (자기보고와 객관 측정의 대조) */
   const PHQ_LINKS = [
@@ -673,7 +674,7 @@
     return PHQ_LINKS.map(L => {
       const vals = L.items.map(i => phq.items[i]);
       if (!vals.every(finite)) return null;
-      const self = Math.max(...vals) >= 2;                 // '7 일 이상 방해 받았다' 이상
+      const self = Math.max(...vals) >= 2;                 // '일주일 이상' 이상
       const d = domains[L.domain], measured = !!d && d.status !== 'na', low = measured && SEV[d.status] >= 1;
       const kind = !measured ? 'na' : self && low ? 'both' : self ? 'self' : low ? 'measure' : 'none';
       return { ...L, score: vals.reduce((x, y) => x + y, 0), max: vals.length * 3, self, kind, text: LINK_TEXT[kind], status: measured ? d.status : 'na' };
@@ -800,7 +801,9 @@
       if (base.hrRef === 'pre') domains.autonomic.notes.push('안정 기준선의 심박 신호가 약해, 압박 과제 직전 안정 구간을 비교 기준으로 썼어요');
       if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);
       else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);
-      if (base.recovery === null && base.recoveryResid !== null) domains.autonomic.notes.push(`압박 반응이 ${base.stressDelta === null ? '측정되지 않아' : `${base.stressDelta}bpm으로 작아`} 회복률 대신 ‘회복 후 잔여 심박’으로 회복을 판정했어요`);
+      if (base.recovery !== null && base.hr.stressPeak !== null && refHr && refHr.bpm !== null && base.hr.stressPeak - refHr.bpm < 3) domains.autonomic.notes.push('압박 때 심박이 크게 오르지 않아, 회복률은 ‘호흡 후 심박이 평소 수준으로 돌아왔는지’로 계산했어요');
+      if (base.recoverySrc === 'whole') domains.autonomic.notes.push('호흡 구간 후반 신호가 약해 호흡 구간 전체 심박으로 회복률을 계산했어요');
+      if (base.recovery === null) domains.autonomic.notes.push(`심박 회복률을 계산하지 못했어요 — ${!refHr || refHr.quality === 'poor' || refHr.quality === 'none' ? '기준 심박' : base.hr.stressPeak === null ? '압박 구간 심박' : '호흡 구간 심박'} 신호가 약했어요. 밝은 조명에서 움직임을 줄이면 잡혀요`);
     }
 
     const integrated = integrate(domains, indicators, base, rec.checkin);
