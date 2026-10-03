@@ -294,4 +294,69 @@ for (const [p, e] of Object.entries(expect)) {
   assert.equal(b.balanced, true); assert.equal(b.emoShare, 0.5);
 }
 
+/* 16) 화면 이탈 구간: 겹친 PVT·SART 시행은 빠지고 PVT 시간도 그만큼 줄어든다 */
+{
+  const rec = B.simulate('balanced'), ph = rec.phases.pvt;
+  const base = B.run(B.simulate('balanced'));
+  rec.hidden = [{ start: ph.start + 30000, end: ph.start + 60000 }];
+  const r = B.run(rec);
+  assert.ok(r.battery.pvt.n < base.battery.pvt.n, `pvt n ${r.battery.pvt.n} vs ${base.battery.pvt.n}`);
+  assert.ok(r.battery.pvt.durationMin < base.battery.pvt.durationMin);
+  assert.ok(r.battery.qc.hidden && r.battery.qc.hidden.dropped > 0);
+  checkReport(r, 'hidden');
+}
+
+/* 17) 공명 호흡 순응: 호흡이 분당 15회로 뚜렷하면 호흡 동조 지표를 판정에서 뺀다 */
+{
+  const rec = B.simulate('control');
+  const r0 = B.run(rec);
+  assert.equal(r0.battery.qc.breath.off, false);
+  const rr = rec.phases.recovery;
+  rec.frames = rec.frames.map(f => (f.t >= rr.start && f.t <= rr.end ? { ...f, cy: 0.5 + 0.004 * Math.sin(2 * Math.PI * 0.25 * f.t / 1000) } : f));
+  const r = B.run(rec), cp = r.battery.indicators.find(i => i.key === 'coupling');
+  assert.equal(r.battery.qc.breath.off, true);
+  assert.ok(cp.excluded || cp.value === null);
+  assert.ok(r.battery.domains.autonomic.notes.some(n => n.includes('호흡 동조 지표는 판정에서')));
+}
+
+/* 18) 측정 맥락: 짧은 수면 + 각성 저하 → 맥락 해석, 최근 카페인 + 각성 양호 → 과대 추정 가능성 */
+{
+  const fl = s => k => s.includes(k);
+  assert.ok(B.contextNotes({ sleep: '5to6' }, null, fl(['alert'])).some(c => c.key === 'sleep-short-low'));
+  assert.ok(B.contextNotes({ caffeine: 'lt1' }, null, fl([])).some(c => c.key === 'caffeine-ok'));
+  assert.equal(B.contextNotes({ sleep: '7to8', caffeine: 'gt6' }, '2026-10-03T01:00:00Z', fl([])).length, 0);
+  const r = B.run(B.simulate('fatigue'));
+  assert.ok(r.battery.integrated.context.some(c => c.key === 'sleep-short-low'));
+  const html = checkReport(r, 'context');
+  assert.ok(html.includes('측정 맥락') && html.includes('점수 구성'));
+}
+
+/* 19) 점수 분해: 기여의 합 = 영역 점수, 비중 합 = 100%, 저하 지표에는 다음 단계 목표 */
+{
+  const r = B.run(B.simulate('fatigue'));
+  B.DOMAIN_KEYS.forEach(k => {
+    const d = r.battery.domains[k], ex = d.explain;
+    if (d.score === null) return;
+    assert.ok(Math.abs(ex.reduce((s, e) => s + e.points, 0) - d.score) <= 1.2, `${k} sum`);
+    assert.ok(Math.abs(ex.reduce((s, e) => s + e.share, 0) - 100) <= 2, `${k} share`);
+    ex.filter(e => e.status !== 'ok').forEach(e => assert.ok(e.next && /이하|이상/.test(e.next.text), `${k} next`));
+  });
+}
+
+/* 20) 연구 데이터 패키지: PHQ 는 별도 동의 때만, 시계열은 정수 양자화, 복원 가능한 배율 */
+{
+  const RS = require('./newbiz-research.js');
+  const rec = B.simulate('overload'), res = B.run(rec);
+  const no = RS.pack(rec, res, { research: true, phq: false }, {});
+  assert.ok(!('phq' in no.summary.checkin) && no.summary.phq === null);
+  const yes = RS.pack(rec, res, { research: true, phq: true }, {});
+  assert.ok(Array.isArray(yes.summary.checkin.phq) && yes.summary.phq.phq8 !== null);
+  const F = no.payload.frames;
+  assert.equal(F.t.length, rec.frames.length);
+  assert.ok(F.r.every(v => v === null || Number.isInteger(v)));
+  assert.ok(Math.abs(F.r[10] / RS.FRAME_COLS.r - rec.frames[10].r) < 0.01);
+  assert.ok(JSON.stringify(no.summary).length < 200000 && JSON.stringify(no.meta).length < 30000);
+  assert.equal(RS.browserFamily('Mozilla/5.0 (Windows NT 10.0) AppleWebKit Chrome/141.0 Safari/537.36').browser, 'chrome');
+}
+
 console.log('newbiz-battery tests passed');

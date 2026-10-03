@@ -22,6 +22,7 @@ API 키: Vercel 환경변수 rPPG (대소문자 변형 RPPG · rppg 도 허용).
 """
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -71,6 +72,17 @@ PATHWAYS = {
     "nvi": "신경내장 통합 — 주의 통제와 자율신경 조절이 함께 낮음(같은 전전두 조절 회로)",
     "perseverative": "지속 인지 가설 — 걱정·반추가 몸의 긴장을 길게 끄는 패턴",
 }
+SLEEP = {"lt5": "5시간 미만", "5to6": "5~6시간", "6to7": "6~7시간", "7to8": "7~8시간", "gt8": "8시간 이상"}
+CAFFEINE = {"none": "오늘 안 마심", "lt1": "1시간 이내", "1to3": "1~3시간 전", "3to6": "3~6시간 전", "gt6": "6시간 이상 전"}
+CONTEXT_NOTES = {
+    "sleep-short-low": "어젯밤 수면이 짧았고 각성도 낮음 — 하룻밤 수면 부족의 영향일 수 있어 충분히 잔 뒤 재측정으로 구분",
+    "sleep-short-ok": "수면이 짧았지만 각성 수행은 유지 — 누적되지 않게 주의",
+    "sleep-ok-low": "수면 시간은 충분했는데 각성이 낮음 — 수면의 질·측정 시각·피로 누적 확인",
+    "caffeine-low": "최근 카페인을 마셨는데도 각성이 낮음 — 카페인이 가린 피로가 클 수 있음",
+    "caffeine-ok": "최근 카페인 섭취 — 각성 결과가 평소보다 좋게 나왔을 수 있음",
+    "time-dip": "생체리듬상 각성이 낮은 시간대에 측정",
+}
+BANNED = ["우울증", "불안장애", "공황장애", "ADHD", "주의력결핍", "치매", "조현", "양극성", "PTSD", "외상후", "정신질환", "장애로", "처방", "약물", "복용", "진단됩니다", "진단할 수", "진단 결과"]
 MISMATCHES = {
     "tension-body-hidden": "스스로는 긴장이 낮다고 느꼈지만 몸은 압박에 뚜렷하게 반응함",
     "tension-mind-only": "스스로는 긴장이 높다고 느꼈지만 몸의 반응은 차분함",
@@ -145,6 +157,16 @@ def build_prompt(b):
         v = _num(ck.get(key), 1, hi)
         if v is not None:
             ci.append(f"{label} {int(v)}/{hi}")
+    cx = b.get("context") if isinstance(b.get("context"), dict) else {}
+    ctx = []
+    if cx.get("sleep") in SLEEP:
+        ctx.append(f"어젯밤 수면 {SLEEP[cx['sleep']]}")
+    if cx.get("caffeine") in CAFFEINE:
+        ctx.append(f"마지막 카페인 {CAFFEINE[cx['caffeine']]}")
+    hour = _num(cx.get("hour"), 0, 23)
+    if hour is not None:
+        ctx.append(f"측정 시각 {int(hour)}시")
+    ctx_notes = [CONTEXT_NOTES[k] for k in (cx.get("notes") if isinstance(cx.get("notes"), list) else []) if k in CONTEXT_NOTES][:4]
     qc = b.get("qc") if isinstance(b.get("qc"), dict) else {}
     grade = qc.get("grade") if qc.get("grade") in ("A", "B", "C", "D") else None
     demo = b.get("demo") is True
@@ -161,6 +183,9 @@ def build_prompt(b):
 [지금 느끼는 상태(자기보고) ↔ 측정]
 - 자기보고: {', '.join(ci) or '응답 없음'}
 {chr(10).join('- ' + m for m in mism) or '- 대조 결과 없음'}
+[측정 맥락 — 점수는 그대로, 해석에만 사용]
+- {', '.join(ctx) or '응답 없음'}
+{chr(10).join('- ' + n for n in ctx_notes) or '- 해석을 바꿀 맥락 요인 없음'}
 [배정된 케어]
 {chr(10).join(care_lines)}
 [측정 신뢰도 등급] {grade or '—'}
@@ -169,7 +194,7 @@ def build_prompt(b):
 - 한국어 존댓말, 4문단, 총 650~850자. 제목·목록·마크다운·이모지 없이 문단만 쓴다. '귀하' 같은 딱딱한 호칭 없이 대화하듯 쓴다.
 - 1문단(한눈에): 통합 유형과 전체 그림을 2~3문장으로. 양호한 영역(강점)을 먼저 짚어 준다.
 - 2문단(무엇이 보였나): 주의·관리 필요 영역을 쉬운 말로 풀어 설명한다. 지표 이름 대신 '반응이 늦어진 순간', '멈춰야 할 때 손이 먼저 나간 비율'처럼 일상 언어를 쓰고, 핵심 수치는 2~4개만 인용한다. 영역 간 연결이 있으면 왜 함께 나타날 수 있는지 한 문장으로 설명한다.
-- 3문단(느끼는 나와 측정된 나): 자기보고와 측정의 일치·차이를 해석한다. 잠정·경계 결과가 있으면 '한 번의 측정으로 단정하기 어렵다'고 정직하게 말한다.
+- 3문단(느끼는 나와 측정된 나, 그리고 맥락): 자기보고와 측정의 일치·차이를 해석하고, 수면·카페인·측정 시각 같은 맥락이 결과에 영향을 줬을 수 있으면 함께 짚는다. 잠정·경계 결과가 있으면 '한 번의 측정으로 단정하기 어렵다'고 정직하게 말한다.
 - 4문단(케어): 배정된 케어 트랙에서 오늘부터 할 수 있는 루틴 1~2가지를 구체적으로 권하고, 재측정 시점과 기대할 변화를 말한 뒤 따뜻한 격려로 마친다.
 - '완벽히', '반드시', '확실히 좋아진다'처럼 결과를 장담하지 않는다. 변화는 '기대할 수 있다', '확인해 볼 수 있다'로 말한다.
 - 질병명·진단명·약물·임상 용어(우울증, 불안장애, ADHD 등)를 쓰지 않는다. '진단'이 아니라 '웰니스 참고 지표'다. 없는 수치나 검사를 만들어 내지 않는다. 측정 안 된 영역은 추측하지 않는다."""
@@ -228,6 +253,43 @@ def generate(prompt, api_key, max_tokens):
     raise last
 
 
+_NUM = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)")
+
+
+def check_output(text, prompt):
+    """생성된 총평 검증: ① 진단·임상 금칙어 ② 입력(프롬프트)에 없는 숫자. 문제 목록을 돌려준다 (비면 통과)."""
+    problems = [f"금칙어 {w}" for w in BANNED if w in text]
+    allowed = {float(x) for x in _NUM.findall(prompt)}
+    for x in _NUM.findall(text):
+        v = float(x)
+        if v <= 10 and v == int(v):
+            continue                      # 문단·횟수 같은 작은 정수(1~10)는 문장 구성에 흔하므로 허용
+        if not any(abs(v - a) <= 0.11 or (a and abs(v - a) / abs(a) < 0.01) for a in allowed):
+            problems.append(f"입력에 없는 수치 {x}")
+    return problems
+
+
+def fallback_summary(b):
+    """AI 가 검증을 통과하지 못할 때 쓰는 고정 문형 총평 (입력 지표만으로 조립)."""
+    doms = b.get("domains") if isinstance(b.get("domains"), dict) else {}
+    good, low = [], []
+    for k, (name, _) in DOMAINS.items():
+        d = doms.get(k) if isinstance(doms.get(k), dict) else {}
+        st, sc = d.get("status"), _num(d.get("score"), 0, 100)
+        if st == "ok" and sc is not None:
+            good.append(f"{name}({int(round(sc))}점)")
+        elif st in ("watch", "concern") and sc is not None:
+            low.append((name, int(round(sc)), STATUS[st]))
+    t = b.get("type") if b.get("type") in TYPES else "insufficient"
+    care_keys = [k for k in (b.get("care") if isinstance(b.get("care"), list) else []) if k in CARE][:1] or ["balanced"]
+    c = CARE[care_keys[0]]
+    p1 = f"이번 결과는 ‘{TYPES[t]}’으로 정리됐어요." + (f" {', '.join(good)}은 참고 범위 안에서 잘 유지되고 있어요." if good else "")
+    p2 = (" ".join(f"{n}은 {s}점으로 ‘{lab}’ 수준이에요." for n, s, lab in low) + " 아래 영역별 결과에서 어떤 지표가 점수를 낮췄는지 확인해 보세요.") if low else "측정된 영역에서 두드러지게 낮은 곳은 없었어요."
+    p3 = "한 번의 측정은 그날의 수면·컨디션 영향을 받으므로, 같은 시간대에 다시 재서 비교하면 더 정확해요."
+    p4 = f"우선 {c[0]}을 권해요: {c[1]}. {c[2]}으로 변화를 확인해 보세요."
+    return "\n\n".join([p1, p2, p3, p4])
+
+
 class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
@@ -256,9 +318,16 @@ class handler(BaseHTTPRequestHandler):
             text, model = generate(prompt, api_key, 256 if probe else 3072)
             if probe:
                 return self._send(200, {"ok": text.strip().upper().rstrip(".") == "OK", "model": model})
-            if not text.strip():
-                return self._send(502, {"error": "empty_response"})
-            self._send(200, {"text": text.strip(), "model": model})
+            problems = check_output(text, prompt) if text.strip() else ["빈 응답"]
+            if problems:
+                print("rppg output rejected", problems[:5])
+                strict = prompt + "\n\n[재작성 지시] 직전 초안이 규칙을 어겼다(" + "; ".join(problems[:4]) + "). 위 측정 결과에 있는 숫자만 쓰고, 금지 용어 없이 다시 작성한다."
+                text, model = generate(strict, api_key, 3072)
+                problems = check_output(text, prompt) if text.strip() else ["빈 응답"]
+            if problems:
+                print("rppg fallback", problems[:5])
+                return self._send(200, {"text": fallback_summary(body), "model": "규칙 기반 요약", "fallback": True})
+            self._send(200, {"text": text.strip(), "model": model, "checked": True})
         except urllib.error.HTTPError as e:
             self._send(502, {"error": f"HTTP {e.code}"})
         except Exception as e:  # noqa: BLE001

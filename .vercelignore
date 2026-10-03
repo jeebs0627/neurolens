@@ -12,3 +12,4 @@ gemini.key
 /.claude/
 /__pycache__/
 /api/*_test.py
+/tools/

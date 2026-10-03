@@ -129,4 +129,43 @@ const N = require('./newbiz-core.js');
   assert.ok(good(fused) >= 0.9 && good(only) < 0.5, `fused ${good(fused)} vs single ${good(only)}`);
 }
 
+/* 시선 커서 보조: 표적 반경보다 크게(화면 폭 7.5%) 어긋나고 떨리는 시선도 2초 안에 표적 반경에 안정적으로 들어온다 */
+{
+  const W = 1440, H = 900, T = { x: 1000, y: 300 }, R = W * 0.065;
+  let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  const off = { x: -0.075 * W, y: 0.03 * H };
+  const plain = N.oneEuro({ minCutoff: 0.6, beta: 0.004 }), plainY = N.oneEuro({ minCutoff: 0.6, beta: 0.004 });
+  const gc = N.gazeCursor({ W, H });
+  let inA = 0, inP = 0, path = [];
+  for (let i = 0; i < 90; i++) {
+    const t = i * 33, raw = { x: T.x + off.x + 45 * rnd(), y: T.y + off.y + 35 * rnd() };
+    const a = gc.step(raw, t, T), p = { x: plain(raw.x, t), y: plainY(raw.y, t) };
+    if (i >= 30) { if (Math.hypot(a.x - T.x, a.y - T.y) <= R) inA++; if (Math.hypot(p.x - T.x, p.y - T.y) <= R) inP++; path.push(a); }
+  }
+  assert.ok(inA >= 55 && inA > inP, `assisted ${inA}/60 vs plain ${inP}/60`);
+  assert.ok(gc.bias.x > 10 && gc.bias.y < -5, `bias ${gc.bias.x.toFixed(1)},${gc.bias.y.toFixed(1)}`);
+  const jit = Math.max(...path.map(q => q.x)) - Math.min(...path.map(q => q.x));
+  assert.ok(jit < 40, `jitter ${jit}`);
+  /* 속도 제한: 한 프레임에 화면 절반을 뛰는 시선도 커서는 0.9W/s 이내로 이동 */
+  const g2 = N.gazeCursor({ W, H }); g2.step({ x: 100, y: 450 }, 0); const j = g2.step({ x: 1300, y: 450 }, 33);
+  assert.ok(j.x - 100 <= 0.9 * W * 0.033 + 1, `clamped ${j.x}`);
+}
+
+/* 호흡수: 얼굴 상하 미세 움직임으로 분당 6회·15회 호흡을 구분, 잡음만 있으면 '뚜렷한 리듬 없음' */
+{
+  const r6 = N.respiration(N.synthFrames(0, 60000, () => 70, { seed: 3, breathAt: t => 0.004 * Math.sin(2 * Math.PI * 0.1 * t / 1000) }), 0, 60000);
+  const r15 = N.respiration(N.synthFrames(0, 60000, () => 70, { seed: 3, breathAt: t => 0.004 * Math.sin(2 * Math.PI * 0.25 * t / 1000) }), 0, 60000);
+  const r0 = N.respiration(N.synthFrames(0, 60000, () => 70, { seed: 3 }), 0, 60000);
+  assert.ok(r6.clear && Math.abs(r6.bpm - 6) < 0.8, JSON.stringify(r6));
+  assert.ok(r15.clear && Math.abs(r15.bpm - 15) < 1, JSON.stringify(r15));
+  assert.equal(r0.clear, false);
+}
+
+/* 조명 급변 감지 */
+{
+  const fr = N.synthFrames(0, 30000, () => 70, { seed: 4 }).map(f => ({ ...f, lum: f.t > 15000 ? 150 : 120 }));
+  const j = N.lumJumps(fr);
+  assert.equal(j.length, 1); assert.ok(Math.abs(j[0] - 15000) < 2100);
+}
+
 console.log('newbiz-core tests passed');

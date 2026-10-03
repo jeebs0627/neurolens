@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'newbiz-battery-0.6';
+  const VERSION = 'newbiz-battery-0.7';
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -85,6 +85,8 @@
     shaffer: 'Shaffer F, Meehan ZM. A practical guide to resonance frequency assessment for heart rate variability biofeedback. Front Neurosci. 2020;14:570400.',
     pfeuffer: 'Pfeuffer K, Vidal M, Turner J, Bulling A, Gellersen H. Pursuit calibration: making gaze calibration less tedious and more flexible. Proc ACM UIST. 2013:261–270.',
     casiez: 'Casiez G, Roussel N, Vogel D. 1€ filter: a simple speed-based low-pass filter for noisy input in interactive systems. Proc ACM CHI. 2012:2527–2530.',
+    wesensten: 'Wesensten NJ, Belenky G, Kautz MA, Thorne DR, Reichardt RM, Balkin TJ. Maintaining alertness and performance during sleep deprivation: modafinil versus caffeine. Psychopharmacology. 2002;159(3):238–247.',
+    blatter: 'Blatter K, Cajochen C. Circadian rhythms in cognitive performance: methodological constraints, protocols, theoretical underpinnings. Physiol Behav. 2007;90(2–3):196–208.',
     nunnally: 'Nunnally JC, Bernstein IH. Psychometric Theory. 3rd ed. New York: McGraw-Hill; 1994.',
     hedge: 'Hedge C, Powell G, Sumner P. The reliability paradox: why robust cognitive tasks do not produce reliable individual differences. Behav Res Methods. 2018;50(3):1166–1186.',
     jacobson: 'Jacobson NS, Truax P. Clinical significance: a statistical approach to defining meaningful change in psychotherapy research. J Consult Clin Psychol. 1991;59(1):12–19.',
@@ -112,7 +114,7 @@
    * 3) 수렴 원칙: ‘관리 필요’는 서로 다른 지표 2개 이상이 저하를 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만. 아니면 ‘주의’로 낮춘다
    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다
    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */
-  const QC = { version: 'NL-QC 1.1', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
+  const QC = { version: 'NL-QC 1.2', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
     full:  { baseline: 60, pursuit: 24, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
@@ -564,6 +566,52 @@
     return { code, ...HEAD[code], primary: code === 'insufficient' ? null : primary, secondary: code === 'insufficient' ? null : secondary, measured, flagged, pathways, mismatches };
   }
 
+  /* ---------- 측정 맥락: 어젯밤 수면 · 마지막 카페인 · 측정 시각 ----------
+   * 각성 지표(PVT·PERCLOS)는 수면량, 카페인, 하루 중 시각의 영향을 크게 받는다 (Van Dongen et al., 2003; Wesensten et al., 2002;
+   * Blatter & Cajochen, 2007). 점수를 바꾸지 않고, 결과를 ‘일시적 상태’로 볼지 ‘지속 패턴’으로 볼지 해석을 돕는다 */
+  const CONTEXT = {
+    sleep: { lt5: '5시간 미만', '5to6': '5~6시간', '6to7': '6~7시간', '7to8': '7~8시간', gt8: '8시간 이상' },
+    caffeine: { none: '오늘 안 마심', lt1: '1시간 이내', '1to3': '1~3시간 전', '3to6': '3~6시간 전', gt6: '6시간 이상 전' },
+  };
+  function contextNotes(checkin, measuredAt, fl) {
+    const c = checkin || {}, out = [];
+    const short = c.sleep === 'lt5' || c.sleep === '5to6', recentCaf = c.caffeine === 'lt1' || c.caffeine === '1to3';
+    if (CONTEXT.sleep[c.sleep]) {
+      if (short && fl('alert')) out.push({ key: 'sleep-short-low', title: '어젯밤 수면 ↔ 각성 저하', text: `어젯밤 수면이 ${CONTEXT.sleep[c.sleep]}이었어요. 이번 각성 저하의 상당 부분은 하룻밤 수면 부족의 영향일 수 있어요. 충분히 잔 다음 날 같은 시간대에 다시 재 보면 일시적인 상태인지 지속되는 패턴인지 구분할 수 있어요.`, refs: ['vanDongen', 'limDinges'] });
+      else if (short) out.push({ key: 'sleep-short-ok', title: '어젯밤 수면 ↔ 각성 유지', text: `수면이 ${CONTEXT.sleep[c.sleep]}으로 짧았지만 각성 수행은 유지됐어요. 다만 수면 부족은 며칠 쌓이면 수행이 계단식으로 떨어지는 것으로 알려져 있어 오늘은 무리하지 않는 편이 좋아요.`, refs: ['vanDongen'] });
+      else if (fl('alert')) out.push({ key: 'sleep-ok-low', title: '어젯밤 수면 ↔ 각성 저하', text: `수면 시간(${CONTEXT.sleep[c.sleep]})은 부족하지 않았는데 각성이 낮게 나왔어요. 수면의 질, 측정 시각, 피로 누적을 함께 살펴볼 필요가 있어요.`, refs: ['limDinges'] });
+    }
+    if (CONTEXT.caffeine[c.caffeine] && recentCaf) {
+      out.push({ key: fl('alert') ? 'caffeine-low' : 'caffeine-ok', title: '최근 카페인', text: fl('alert')
+        ? `카페인을 ${CONTEXT.caffeine[c.caffeine]}에 마셨는데도 각성이 낮게 나왔어요. 카페인이 가린 피로가 더 클 수 있어 휴식이 우선이에요.`
+        : `카페인을 ${CONTEXT.caffeine[c.caffeine]}에 마셨어요. 카페인은 반응 속도와 경계 수행을 일시적으로 끌어올리므로, 이번 각성 결과는 평소보다 좋게 나왔을 수 있어요. 재측정은 카페인 조건을 맞춰 주세요.`, refs: ['wesensten'] });
+    }
+    const d = measuredAt ? new Date(measuredAt) : null, hr = d && !isNaN(d) ? d.getHours() : null;
+    if (hr !== null && fl('alert') && ((hr >= 13 && hr < 16) || hr >= 23 || hr < 7)) {
+      out.push({ key: 'time-dip', title: '측정 시각', text: hr >= 13 && hr < 16 ? '오후 1~4시는 생체리듬상 각성이 잠시 떨어지는 시간대예요. 같은 결과라도 오전에 다시 재면 차이가 날 수 있어요.' : '늦은 밤·이른 새벽은 생체리듬상 각성이 가장 낮은 시간대예요. 낮 시간대 재측정과 비교해 보세요.', refs: ['blatter'] });
+    }
+    return out;
+  }
+
+  /* ---------- 설명 가능성: 영역 점수 분해 + 판정 경계까지의 거리 ----------
+   * 영역 점수 = Σ (가중치 × 신뢰도 × 지표 점수) / Σ (가중치 × 신뢰도) 이므로, 지표별 기여(점)를 그대로 나눠 보여 줄 수 있다 */
+  function explainDomain(k, indicators) {
+    const m = indicators.filter(i => i.domain === k && i.value !== null && !i.excluded);
+    const wsum = m.reduce((s, i) => s + (i.primary ? 2 : 1) * i.r, 0);
+    if (!(wsum > 0)) return [];
+    return m.map(i => {
+      const share = (i.primary ? 2 : 1) * i.r / wsum;
+      return { key: i.key, label: i.label, status: i.status, share: round(share * 100), points: round(share * i.score, 1), score: i.score, next: i.next || null };
+    }).sort((a, b) => b.share - a.share);
+  }
+  /* 지금 판정보다 한 단계 좋아지려면 지표가 얼마여야 하는가 */
+  function nextBand(ind, v) {
+    const b = ind.band, st = statusOf(scoreOf(v, b));
+    if (st === 'ok') return null;
+    const target = st === 'concern' ? b.concern : b.ok;
+    return { to: st === 'concern' ? 'watch' : 'ok', target, text: `${ind.d >= 2 ? target.toFixed(2) : target}${ind.unit || ''} ${b.dir === 'low' ? '이하' : '이상'}이면 ‘${STATUS[st === 'concern' ? 'watch' : 'ok']}’` };
+  }
+
   /* 정서 사진 모드: 부정 블록 안의 위협·슬픔 자극을 따로 집계 (불안은 위협, 우울은 슬픔 자극 편향과 관련; Armstrong & Olatunji, 2012) */
   function emoSub(rec, W, gazeOk) {
     if (!gazeOk) return [];
@@ -668,6 +716,17 @@
    * rec = core 기록(frames, phases, trials, calibration, checkin, screenW, demo) + {pursuit, saccade, pvt, sart, steps, stressScore, sim}
    * phases 에는 실제로 끝까지 수행한 구간만 담는다 (건너뛴 구간은 지운 상태로 전달). */
   function run(rec) {
+    /* NL-QC 6) 화면이 가려졌던 구간(탭 전환·창 전환)과 겹친 시행은 판정에서 뺀다 */
+    const hidden = (rec.hidden || []).filter(h => finite(h.start) && finite(h.end) && h.end > h.start);
+    const hid = t => hidden.some(h => t >= h.start - 500 && t <= h.end + 1500);
+    let dropped = 0;
+    if (hidden.length) {
+      const keep = arr => (arr || []).filter(t => { const bad = hid(t.onset); if (bad) dropped++; return !bad; });
+      const overlap = (a, b) => hidden.reduce((s, h) => s + Math.max(0, Math.min(b, h.end) - Math.max(a, h.start)), 0);
+      rec = { ...rec, trials: keep(rec.trials), saccade: rec.saccade ? keep(rec.saccade) : rec.saccade, sart: rec.sart ? { ...rec.sart, trials: keep(rec.sart.trials) } : rec.sart };
+      if (rec.pvt && rec.phases && rec.phases.pvt) rec.pvt = { ...rec.pvt, trials: keep(rec.pvt.trials), durationMs: Math.max(0, rec.pvt.durationMs - overlap(rec.phases.pvt.start, rec.phases.pvt.end)) };
+      if (rec.pursuit) rec.pursuit = { ...rec.pursuit, samples: rec.pursuit.samples.filter(z => !hid(z.t)) };
+    }
     const base = N.analyze(rec);
     const ph = rec.phases || {};
     const span = k => ph[k] && finite(ph[k].start) && finite(ph[k].end) ? [ph[k].start, ph[k].end] : null;
@@ -688,17 +747,23 @@
     /* NL-QC 1) 지표별 신뢰도 r · 2) 표준오차 */
     const negSt = (rec.trials || []).filter(t => t.kind === 'neg').map(t => N.trialStats(t, W)).filter(x => x.valid);
     const negN = (rec.trials || []).filter(t => t.kind === 'neg').length;
+    /* NL-QC 7) 단계별 카메라 프레임 수: 시선·사카드 지표는 24fps 이상에서 온전히, 10fps 에서 0.3배로 */
+    const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };
+    const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp((v - 10) / 14, 0.3, 1); };
     const sartFrames = span('sart') ? face.filter(f => f.t >= span('sart')[0] && f.t <= span('sart')[1]).length / Math.max(1, (span('sart')[1] - span('sart')[0]) / 1000 * 24) : 0;
     const hq = q => QC.hrQ[q && q.quality] ?? 0;
     const refHr = base.hrRef === 'pre' ? base.hr.pre : base.hr.baseline;
+    /* NL-QC 8) 공명 호흡 순응: 카메라로 잰 호흡 리듬이 뚜렷한데 분당 6회(0.1Hz)에서 벗어나 있으면 호흡 동조 지표를 판정하지 않는다
+     * (따라 하지 않은 사람의 ‘동조 약함’을 조절력 부족으로 오해하지 않기 위해) */
+    const resp = base.resp, breathOff = !!(resp && resp.clear && Math.abs(resp.hz - 0.1) > 0.03);
     const rOf = {
       pvt: () => pvt && !pvt.invalid ? clamp(pvt.valid / 30, 0, 1) : 0,
       eye: () => eye ? clamp((eye.coverage - 0.4) / 0.4, 0, 1) : 0,
-      anti: () => saccade && saccade.ok ? clamp((saccade.anti.valid - saccade.anti.weak * 0.5) / Math.max(8, saccade.anti.n * 0.8), 0, 1) : 0,
+      anti: () => saccade && saccade.ok ? clamp((saccade.anti.valid - saccade.anti.weak * 0.5) / Math.max(8, saccade.anti.n * 0.8), 0, 1) * fpsF('saccade') : 0,
       sart: () => sart && !sart.invalid ? clamp(sart.n / 54, 0, 1) : 0,
-      pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.5) / 0.3, 0, 1) : 0,
+      pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.5) / 0.3, 0, 1) * fpsF('pursuit') : 0,
       motion: () => clamp((sartFrames - 0.4) / 0.4, 0, 1),
-      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) : 0,
+      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) * fpsF('neg') : 0,
     };
     const REL = {
       pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,
@@ -706,7 +771,7 @@
       pursuitGain: rOf.pursuit, pursuitErr: rOf.pursuit, motion: rOf.motion,
       bias: rOf.gaze, firstNeg: rOf.gaze, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),
       stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)),
-      recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => hq(base.hr.recovery),
+      recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => (breathOff ? 0 : hq(base.hr.recovery)),
     };
     const binSe = (p, n) => { if (!(n > 0) || !finite(p)) return null; const q = (p * n + 2) / (n + 4); return Math.sqrt(q * (1 - q) / (n + 4)) * 100; };   // Agresti–Coull
     const SE = {
@@ -725,17 +790,22 @@
       const borderline = !!ci && [ind.band.ok, ind.band.concern].some(cut => ci[0] < cut && cut < ci[1]);
       const excluded = has && r < QC.minR;
       return { key: ind.key, domain: ind.domain, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
-        value: v, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded };
+        value: v, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded,
+        next: has && !excluded ? nextBand(ind, v) : null };
     });
 
     const domains = {};
     DOMAIN_KEYS.forEach(k => { domains[k] = aggregateDomain(k, indicators); });
     if (domains.autonomic.status !== 'na') {
       if (base.hrRef === 'pre') domains.autonomic.notes.push('안정 기준선의 심박 신호가 약해, 압박 과제 직전 안정 구간을 비교 기준으로 썼어요');
+      if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);
+      else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);
       if (base.recovery === null && base.recoveryResid !== null) domains.autonomic.notes.push(`압박 반응이 ${base.stressDelta === null ? '측정되지 않아' : `${base.stressDelta}bpm으로 작아`} 회복률 대신 ‘회복 후 잔여 심박’으로 회복을 판정했어요`);
     }
 
     const integrated = integrate(domains, indicators, base, rec.checkin);
+    integrated.context = contextNotes(rec.checkin, rec.measuredAt, k => domains[k] && SEV[domains[k].status] >= 1);
+    DOMAIN_KEYS.forEach(k => { domains[k].explain = explainDomain(k, indicators); });
     const care = [integrated.primary, integrated.secondary].filter(Boolean).map((k, i) => ({ domain: k, rank: i + 1, ...CARE_PLAN[k] }));
     if (!care.length) care.push({ domain: 'balanced', rank: 1, ...CARE_PLAN.balanced });
     const phq = phqScore(rec.checkin), links = phqLinks(phq, domains);
@@ -762,6 +832,9 @@
       borderline: indicators.filter(i => i.borderline).map(i => i.label),
       excluded: indicators.filter(i => i.excluded).map(i => i.label),
       downgraded: DOMAIN_KEYS.filter(k => domains[k].notes.some(n => n.includes('수렴 원칙'))),
+      hidden: hidden.length ? { n: hidden.length, sec: round(hidden.reduce((x, h) => x + h.end - h.start, 0) / 1000, 1), dropped } : null,
+      fps: Object.fromEntries(['baseline', 'pursuit', 'saccade', 'neg', 'pvt', 'sart', 'stress', 'recovery'].map(k => [k, fpsOf(k) === null ? null : round(fpsOf(k), 1)]).filter(x => x[1] !== null)),
+      lightJumps: base.lightJumps || 0, breath: resp ? { bpm: resp.bpm, clear: resp.clear, src: resp.src, off: breathOff } : null,
     };
 
     const pv = (x, k, s = 1, dd = 0) => x && finite(x[k]) ? round(x[k] * s, dd) : null;
@@ -805,19 +878,19 @@
   /* ---------- 시뮬레이션 피험자 (카메라 없는 검증용) ----------
    * 페르소나별로 생리 신호(합성 영상 프레임)와 과제 반응을 만들어 리포트 전 과정을 검증한다. 결과에는 반드시 ‘시뮬레이션’ 표시. */
   const PERSONAS = {
-    balanced: { label: '균형 조절 (대조)', checkin: { valence: 6, tension: 2, energy: 4, kss: 3, phq: [0, 1] },
+    balanced: { label: '균형 조절 (대조)', checkin: { valence: 6, tension: 2, energy: 4, kss: 3, sleep: '7to8', caffeine: '3to6', phq: [0, 1] },
       hr: { base: 68, task: 1, neg: 1, stress: 5, rec: 0.9, coup: 9 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.6, sart: 0.8 },
       pvt: { mu: 282, sd: 28, lapse: 0.01, early: 0.01 }, anti: { err: 0.14, corr: 0.85, lat: 285, pro: 195 },
       pursuit: { gain: 0.93, lag: 80, noise: 0.025 }, sart: { com: 0.28, om: 0.01, rt: 360, cv: 0.18 }, bias: 0.52, first: 0.5, pos: 0.56, math: 0.85 },
-    fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4, phq: [1, 2, 3, 3, 1, 1, 2, 1] },
+    fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4, sleep: '5to6', caffeine: 'none', phq: [1, 2, 3, 3, 1, 1, 2, 1] },
       hr: { base: 65, task: 1, neg: 1.5, stress: 5, rec: 0.75, coup: 7 }, eye: { blinkMs: 260, drowsy: 0.12 }, motion: { base: 0.7, sart: 1.0 },
       pvt: { mu: 318, sd: 55, lapse: 0.12, early: 0.05 }, anti: { err: 0.3, corr: 0.7, lat: 320, pro: 220 },
       pursuit: { gain: 0.72, lag: 150, noise: 0.05 }, sart: { com: 0.56, om: 0.1, rt: 430, cv: 0.36 }, bias: 0.54, first: 0.52, pos: 0.5, math: 0.7 },
-    control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3, phq: [1, 1] },
+    control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3, sleep: '6to7', caffeine: '1to3', phq: [1, 1] },
       hr: { base: 72, task: 2, neg: 1, stress: 7, rec: 0.42, coup: 3.2 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.8, sart: 3.4 },
       pvt: { mu: 288, sd: 40, lapse: 0.03, early: 0.06 }, anti: { err: 0.5, corr: 0.6, lat: 300, pro: 190 },
       pursuit: { gain: 0.86, lag: 90, noise: 0.04 }, sart: { com: 0.66, om: 0.04, rt: 330, cv: 0.37 }, bias: 0.53, first: 0.52, pos: 0.54, math: 0.75 },
-    overload: { label: '정서·신체 과부하', checkin: { valence: 4, tension: 2, energy: 3, kss: 5, phq: [2, 2, 1, 2, 1, 2, 1, 1] },
+    overload: { label: '정서·신체 과부하', checkin: { valence: 4, tension: 2, energy: 3, kss: 5, sleep: '6to7', caffeine: 'gt6', phq: [2, 2, 1, 2, 1, 2, 1, 1] },
       hr: { base: 76, task: 2, neg: 4.5, stress: 13, rec: 0.12, coup: 1.2 }, eye: { blinkMs: 170, drowsy: 0.01 }, motion: { base: 0.7, sart: 1.2 },
       pvt: { mu: 300, sd: 40, lapse: 0.04, early: 0.02 }, anti: { err: 0.36, corr: 0.7, lat: 310, pro: 200 },
       pursuit: { gain: 0.88, lag: 90, noise: 0.03 }, sart: { com: 0.45, om: 0.03, rt: 370, cv: 0.26 }, bias: 0.72, first: 0.7, pos: 0.47, math: 0.65 },
@@ -941,6 +1014,7 @@
       seed: (opt.seed || 7) + 11, noise: 0.15,
       eyeAt: () => P.eye,
       motionAt: x => (inP('sart', x) ? P.motion.sart : P.motion.base) / 0.8,
+      breathAt: x => 0.003 * Math.sin(2 * Math.PI * (inP('recovery', x) ? 0.1 : 0.25) * x / 1000),
       frownAt: x => (inP('neg', x) ? 0.05 + (P.bias > 0.6 ? 0.05 : 0.015) : 0.05),
     });
 
@@ -958,6 +1032,6 @@
 
   return {
     VERSION, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
-    QC, mistProblem, mistNext, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
+    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
   };
 });

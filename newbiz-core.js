@@ -11,7 +11,7 @@
 })(typeof window !== 'undefined' ? window : null, function () {
   'use strict';
 
-  const VERSION = 'newbiz-mvp-0.3';
+  const VERSION = 'newbiz-mvp-0.4';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -276,14 +276,58 @@
     const band = bandpass(x, fs, targetHz * 0.6, targetHz * 1.6);
     const amp = quantile(Array.from(band), 0.9) - quantile(Array.from(band), 0.1);
     const nfft = Math.max(1024, nextPow2(x.length * 4)), p = powerSpectrum(x, nfft), df = fs / nfft;
-    let inB = 0, tot = 0;
+    let inB = 0, tot = 0, pk = -1, pf = null;
     for (let i = 0; i < p.length; i++) {
       const f = i * df;
       if (f < 0.04 || f > 0.4) continue;
       tot += p[i];
       if (Math.abs(f - targetHz) <= 0.025) inB += p[i];
+      if (p[i] > pk) { pk = p[i]; pf = f; }
     }
-    return { ampBpm: round(amp, 1), ratio: tot > 0 ? round(inB / tot, 2) : null };
+    return { ampBpm: round(amp, 1), ratio: tot > 0 ? round(inB / tot, 2) : null, peakHz: round(pf, 3) };
+  }
+
+  /* ---------- 호흡수 추정 (공명 호흡 순응 확인) ----------
+   * 카메라만으로 호흡을 보는 두 경로: ① 호흡에 따른 머리·얼굴의 미세한 상하 움직임(얼굴 중심 cy),
+   * ② 피부 밝기의 저주파 변동(호흡성 강도 변조). 4Hz 로 맞춘 뒤 0.05~0.6Hz 대역의 스펙트럼 피크와
+   * 피크 집중도(피크 ±0.02Hz 파워 / 대역 전체)를 구해, 집중도가 더 높은 경로를 쓴다.
+   * 집중도가 0.4 미만이면 ‘뚜렷한 호흡 리듬 없음’으로 보고 판정하지 않는다 */
+  function respiration(frames, start, end) {
+    const s = (frames || []).filter(f => f.ok && f.t >= start && f.t <= end && finite(f.cy));
+    if (s.length < 150 || end - start < 25000) return null;
+    const fs = 4, out = [];
+    const series = [['motion', s.map(f => f.cy)], ['intensity', s.map(f => (finite(f.g) ? f.g / Math.max(1, f.r + f.g + f.b) : NaN))]];
+    for (const [src, col] of series) {
+      if (!col.every(finite)) continue;
+      const rs = resample(s.map(f => f.t), [col], fs), x = Array.from(rs.data[0]);
+      if (x.length < fs * 20) continue;
+      const band = bandpass(Float64Array.from(x), fs, 0.05, 0.6);
+      const nfft = Math.max(1024, nextPow2(band.length * 4)), p = powerSpectrum(band, nfft), df = fs / nfft;
+      let pk = 0, pi = -1, tot = 0;
+      for (let i = 0; i < p.length; i++) { const f = i * df; if (f < 0.05 || f > 0.6) continue; tot += p[i]; if (p[i] > pk) { pk = p[i]; pi = i; } }
+      if (pi < 0 || !(tot > 0)) continue;
+      let near = 0;
+      for (let i = 0; i < p.length; i++) if (Math.abs(i - pi) * df <= 0.02) near += p[i];
+      out.push({ src, hz: round(pi * df, 3), bpm: round(pi * df * 60, 1), conc: round(near / tot, 2) });
+    }
+    if (!out.length) return null;
+    const best = out.sort((a, b) => b.conc - a.conc)[0];
+    return { ...best, clear: best.conc >= 0.4 };
+  }
+  /* 조명 급변: 2초 창 평균 피부 밝기가 직전 창보다 12% 넘게 바뀐 시각 (rPPG 창을 이 근처에서 제외) */
+  function lumJumps(frames) {
+    const s = (frames || []).filter(f => f.ok && finite(f.lum));
+    const out = [];
+    if (s.length < 120) return out;
+    let i = 0, prev = null;
+    while (i < s.length) {
+      const t0 = s[i].t; let j = i, sum = 0;
+      while (j < s.length && s[j].t < t0 + 2000) { sum += s[j].lum; j++; }
+      const m = sum / Math.max(1, j - i);
+      if (prev !== null && Math.abs(m - prev) / Math.max(1, prev) > 0.12) out.push(t0);
+      prev = m; i = j;
+    }
+    return out;
   }
 
   /* ---------- 시선 특징 (MediaPipe Face Landmarker 478점) ---------- */
@@ -406,6 +450,47 @@
     };
   }
 
+  /* 시선 커서 (보조 포함): 원시 시선 → ① 학습된 치우침 보정 → ② 강한 One Euro 평활 → ③ 최대 속도 제한
+   * → ④ 표적 근처 자석 보조. 실제 시선이 표적에서 조금 어긋나 있어도 커서를 표적 쪽으로 안정적으로 모아 준다.
+   *  - 치우침 학습: 커서가 표적 근처(보조 반경 안)에 느리게 머무는 동안에만, 표적 − 보정 시선 차이를 천천히(프레임당 3%) 누적
+   *    (보정 학습에는 쓰지 않고 커서 표시와 사후 평가에만 쓴다 — 커서를 보며 사용자가 시선을 '보상'할 수 있으므로)
+   *  - 자석: 표적까지 거리 d 가 보조 반경 Ra 안이면 커서를 표적 + (시선 − 표적) × (0.35 + 0.65·d/Ra) 로 당긴다
+   *  - 속도 제한: 화면 폭의 0.9배/초 — 사카드로 커서가 순간 이동해 보이는 것을 막는다 */
+  function gazeCursor(opt = {}) {
+    const W = opt.W || 1440, H = opt.H || 900, Ra = opt.assist || W * 0.14, vmax = (opt.vmax || 0.9) * W;
+    const fx = oneEuro({ minCutoff: opt.minCutoff ?? 0.35, beta: opt.beta ?? 0.0015 }), fy = oneEuro({ minCutoff: opt.minCutoff ?? 0.35, beta: opt.beta ?? 0.0015 });
+    const bias = { x: 0, y: 0, n: 0 }, maxB = { x: W * 0.08, y: H * 0.08 };
+    let pos = null, last = null, lastT = null;
+    return {
+      bias,
+      step(raw, t, target) {
+        const cx = raw.x + bias.x, cy = raw.y + bias.y;
+        let x = fx(cx, t), y = fy(cy, t);
+        const dt = lastT === null ? 0.033 : Math.max(0.001, (t - lastT) / 1000);
+        const speed = last ? Math.hypot(x - last.x, y - last.y) / dt : 0;
+        if (last) { const d = Math.hypot(x - last.x, y - last.y), lim = vmax * dt; if (d > lim) { x = last.x + (x - last.x) * lim / d; y = last.y + (y - last.y) * lim / d; } }
+        last = { x, y }; lastT = t;
+        let out = { x, y }, near = false;
+        if (target) {
+          const d = Math.hypot(x - target.x, y - target.y);
+          if (d < Ra) {
+            near = true;
+            const k = 0.35 + 0.65 * d / Ra;
+            out = { x: target.x + (x - target.x) * k, y: target.y + (y - target.y) * k };
+            if (speed < W * 0.25) {                                 // 머무는 중에만 치우침 학습
+              bias.x = clamp(bias.x + 0.03 * (target.x - x), -maxB.x, maxB.x);
+              bias.y = clamp(bias.y + 0.03 * (target.y - y), -maxB.y, maxB.y);
+              bias.n++;
+            }
+          }
+        }
+        pos = out;
+        return { ...out, near, speed };
+      },
+      get pos() { return pos; },
+    };
+  }
+
   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */
   function gazeAccuracy(points, W, H) {
     const errs = points.filter(p => finite(p.gx) && finite(p.gy)).map(p => Math.hypot(p.gx - p.x, (p.gy - p.y) * 0.6));
@@ -503,8 +588,14 @@
 
   /* 측정 기록 전체 → 지표·프로파일. rec = {frames, phases:{name:{start,end}}, trials, calibration, checkin, demo} */
   function analyze(rec) {
+    /* 화면이 가려진 구간(탭 전환 등)의 프레임은 쓰지 않는다 */
+    const hidden = (rec.hidden || []).filter(h => finite(h.start) && finite(h.end));
+    const inHidden = t => hidden.some(h => t >= h.start - 500 && t <= h.end + 1500);
+    if (hidden.length) rec = { ...rec, frames: rec.frames.map(f => (f.ok && inHidden(f.t) ? { ...f, ok: false } : f)) };
     const sig = buildBvp(rec.frames);
-    const wins = hrWindows(sig);
+    const jumps = lumJumps(rec.frames);
+    /* 10초 창이 조명 급변 시각을 포함하면 그 창은 버린다 */
+    const wins = hrWindows(sig).filter(w => !jumps.some(j => Math.abs(w.t - j) < 5500));
     const ph = rec.phases;
     const span = n => ph[n] ? [ph[n].start, ph[n].end] : [NaN, NaN];
     const hr = {};
@@ -533,6 +624,7 @@
     }
     const recIbis = sig && usableHr(hr.recovery) ? ibis(beats(sig, rs, re, hr.recovery.bpm)) : [];
     const coupling = breathingCoupling(recIbis);
+    const resp = rs < re ? respiration(rec.frames, rs + 5000, re) : null;
     const baseIbis = sig && usableHr(hr.baseline) ? ibis(beats(sig, ...span('baseline'), hr.baseline.bpm)) : [];
     const hrv = rmssd(baseIbis);
 
@@ -570,7 +662,7 @@
     return {
       version: VERSION, demo: !!rec.demo, measuredAt: rec.measuredAt || null, checkin: rec.checkin || null,
       quality: { faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },
-      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, coupling, hrv: round(hrv, 0),
+      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),
       gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate },
       blink, motion, expr, exprNeg,
       profile: { code, ...PROFILES[code], biasHigh, bodyHigh },
@@ -613,7 +705,7 @@
         t, ok: true, rr: opt.rois === false ? undefined : [ch(0), ch(1), ch(2)],
         r: 175 + drift + 0.25 * p + noise * gauss(), g: 118 + drift * 0.8 + 0.6 * p + noise * gauss(), b: 98 + drift * 0.7 + 0.15 * p + noise * gauss(),
         blink: closed ? 0.9 : 0.02, open: closed ? 0.04 : 0.29 + 0.008 * gauss(),
-        cx: 0.5 + mv * gauss(), cy: 0.5 + mv * gauss(), fw: 0.3,
+        cx: 0.5 + mv * gauss(), cy: 0.5 + mv * gauss() + (opt.breathAt ? opt.breathAt(t) : 0), fw: 0.3,
         frown: (opt.frownAt ? opt.frownAt(t) : 0.05) + 0.01 * rand(), smile: 0.1 + 0.01 * rand(),
       });
       t += dt;
@@ -625,7 +717,7 @@
     VERSION, THRESH, LM, PROFILES, CARE,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, beats, ibis, rmssd, breathingCoupling,
-    faceFeatures, fitGaze, predictGaze, gazeAccuracy, fitAffine, applyAffine, oneEuro,
-    sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, synthFrames,
+    faceFeatures, fitGaze, predictGaze, gazeAccuracy, fitAffine, applyAffine, oneEuro, gazeCursor,
+    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, synthFrames,
   };
 });

@@ -104,6 +104,10 @@ h3{font-size:16px;margin:0 0 8px}
 .scale button:hover{border-color:#B8C6EC}
 .scale button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 .ends{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:4px}
+.choice{display:flex;flex-wrap:wrap;gap:6px}
+.choice button{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;font-size:14px;color:var(--ink-2)}
+.choice button:hover{border-color:#B8C6EC}
+.choice button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 .phq{margin-top:30px;padding-top:24px;border-top:1px solid var(--line)}
 .phq-h{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
 .phq-stem{font-weight:700;margin:6px 0 12px;word-break:keep-all}
@@ -433,11 +437,34 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .kpi-t em{font-style:normal;font-size:11.5px;font-weight:800;color:var(--ink-2)}
 .st-b-ok{border-left-color:#2F9E6A}.st-b-watch{border-left-color:#C98A12}.st-b-concern{border-left-color:#D2486A}
 .dtl{margin-top:16px}
+.qtag.nx{color:#1F5E52}
+.xpl{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 14px;background:#FCFDFE}
+.xpl-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:13.5px}
+.xpl-bar{display:flex;height:12px;border-radius:9px;overflow:hidden;background:#EEF1F6;margin:8px 0 10px;gap:2px}
+.xpl-bar i{display:block;height:100%}
+.xpl-lost{display:block;height:100%;background:repeating-linear-gradient(135deg,#EEF1F6 0 4px,#E1E6EE 4px 8px)}
+.xpl-rows{display:grid;gap:4px}
+.xpl-r{display:grid;grid-template-columns:10px 1.4fr 70px 76px 1.3fr;gap:10px;align-items:center;font-size:12.5px}
+.xdot{width:10px;height:10px;border-radius:3px}
+.xl{color:var(--ink-2)}.xs{color:var(--muted)}.xp{font-family:var(--font-num);color:var(--muted)}.xp b{color:var(--ink)}
+.xn{color:#1F5E52;font-size:12px}
+.ctx{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ctx-c{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#FAFBFD}
+.ctx-c span{display:block;font-size:11.5px;color:var(--muted);font-weight:700}.ctx-c b{font-size:14px}
+@media (max-width:820px){.xpl-r{grid-template-columns:10px 1fr 64px;}.xpl-r .xs,.xpl-r .xn{display:none}.ctx{grid-template-columns:1fr}}
 /* 케어 */
 .tracks{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
 .tracks .track{margin:0}
 .track.safe{background:#FCEEF1;border-color:#F2C9D3}
 .track.safe .rank{background:#B23A57}
+.rsopt{margin-top:10px;border:1px solid #CFE4DD;background:#F3FAF7;border-radius:13px;padding:12px 16px;font-size:13.5px;color:var(--ink-2)}
+.rsopt summary{cursor:pointer;list-style:none}
+.rsopt summary::-webkit-details-marker{display:none}
+.rsopt input{width:17px;height:17px;accent-color:var(--care);vertical-align:-3px}
+.rs-d p{margin:8px 0;font-size:13px;word-break:keep-all}
+.rs-phq{display:block;margin-top:6px;font-size:13px}
+.rs-banner{margin-top:12px;padding:12px 15px;border-radius:12px;background:var(--care-soft);border:1px solid var(--care-line);font-size:13.5px;color:#1F5E52;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rs-banner code{font-size:13px;background:#fff}
 .ai-opt{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:13px;background:#F5F3FF;border:1px solid #DDD5FF;color:var(--ink-2);font-size:13.5px;margin-top:10px}
 .ai-opt input{margin-top:4px;width:18px;height:18px;accent-color:#4a3aa7}
 @media (max-width:820px){
@@ -577,7 +604,9 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .zone.in{background:rgba(47,158,106,.12)}
 .zone.hit{background:rgba(47,158,106,.22)}
 .zone.miss{background:rgba(201,60,92,.10)}
-.gcur{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(31,79,216,.85);box-shadow:0 0 0 6px rgba(31,79,216,.18);display:none;pointer-events:none}
+.zone-a{position:absolute;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(47,158,106,.07),transparent 70%);pointer-events:none}
+.gcur.near{background:rgba(47,158,106,.9);box-shadow:0 0 0 6px rgba(47,158,106,.2)}
+.gcur{transition:background .2s;position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(31,79,216,.85);box-shadow:0 0 0 6px rgba(31,79,216,.18);display:none;pointer-events:none}
 .calsum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
 .calsum div{background:#EDF0F5;border-radius:10px;padding:8px 10px}
 .calsum span{display:block;font-size:11.5px;color:var(--muted)}
@@ -728,6 +757,16 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
     </label>
     <label class="ai-opt"><input type="checkbox" id="aiOpt" checked>
       <span><b>AI 종합 총평 받기</b> — 리포트 첫머리에 결과를 쉬운 말로 풀어 주는 해설을 붙여요. 보내는 것은 영역 점수·판정 지표 수치·지금 상태 4문항뿐이며, 영상과 최근 2주 기분(PHQ) 응답은 보내지 않아요.</span></label>
+    <details class="rsopt" id="rsBox">
+      <summary><label onclick="event.stopPropagation()"><input type="checkbox" id="rsOpt"> <b>연구 데이터 제공에 동의 (선택)</b></label> <span class="small muted">— 검사 정확도를 높이는 연구에 측정 데이터를 보탭니다 · 자세히</span></summary>
+      <div class="rs-d">
+        <p><b>목적</b> 웹캠 기반 시선·심박·반응 측정 알고리즘의 고도화, 규준(참고 범위) 수립, 기계학습 모델 학습</p>
+        <p><b>보내는 것</b> 영역 점수·지표·측정 품질, 지금 상태와 측정 맥락 응답, 그리고 측정 신호 원자료 — 프레임별 피부색 평균값·얼굴 위치·눈 열림·시선 특징, 눈과 홍채의 <b>좌표</b>(이미지 아님), 시행별 시선 좌표와 반응 시간. 화면 크기·카메라 해상도·브라우저 종류.</p>
+        <p><b>보내지 않는 것</b> 카메라 영상·사진, 이름·연락처·계정. 최근 2주 기분(PHQ) 응답은 아래에서 따로 동의한 경우에만.</p>
+        <p><b>보관과 철회</b> 연구 목적으로만 쓰고 5년 보관 후 파기합니다. 제출 후 리포트에 나오는 <b>참가 코드</b>로 언제든 철회할 수 있고, 이 기기에서는 ‘제출 철회’ 버튼으로 즉시 삭제됩니다. 동의하지 않아도 검사와 결과에는 아무 영향이 없습니다.</p>
+        <label class="rs-phq"><input type="checkbox" id="rsPhq" disabled> 최근 2주 기분(PHQ) 응답도 연구에 포함 (선택)</label>
+      </div>
+    </details>
     <div class="btns">
       <button class="btn" id="goCheckin" disabled>평가 시작</button>
       <button class="btn ghost" id="goDemo" disabled>카메라 없이 데모 진행</button>
@@ -764,6 +803,10 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
     <div class="q"><div class="lbl">지금 얼마나 졸린가요? <span class="small muted" style="font-weight:500">(카롤린스카 졸림 척도)</span></div>
       <div class="scale" id="qKss" style="grid-template-columns:repeat(9,1fr)"></div>
       <div class="ends"><span>매우 또렷함</span><span>중간</span><span>매우 졸림 · 버티기 힘듦</span></div></div>
+    <div class="q"><div class="lbl">어젯밤 몇 시간 잤나요? <span class="small muted" style="font-weight:500">(각성 결과를 해석하는 맥락)</span></div>
+      <div class="choice" id="qSleep" data-key="sleep"></div></div>
+    <div class="q"><div class="lbl">커피·에너지음료 등 카페인을 마지막으로 마신 때는?</div>
+      <div class="choice" id="qCaf" data-key="caffeine"></div></div>
     <div class="phq" id="phq">
       <div class="phq-h"><h3 style="margin:0">최근 2주 · 환자 건강 질문지 (PHQ)</h3><span class="small muted">약 30초 · 응답에 따라 6문항이 추가될 수 있어요</span></div>
       <p class="small muted" style="margin:6px 0 0">지금의 상태(위)와 함께 최근 2주의 흐름을 보면, 오늘 측정이 일시적인 컨디션인지 지속되는 패턴인지 구분할 수 있어요. 응답은 이 기기에만 남습니다.</p>
@@ -842,6 +885,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
   <div class="facewarn" id="faceWarn">얼굴이 보이지 않아요. 화면 정면을 봐 주세요.</div>
   <div id="stageBody"></div>
   <div class="taskbar" id="taskbar" hidden><span id="taskName"></span><span class="tb"><i id="taskBar"></i></span><b id="taskLeft"></b></div>
+  <div class="fswarn" id="hideWarn" style="bottom:64px">다른 창을 보던 구간은 판정에서 빼고 계산해요. 화면을 계속 봐 주세요.</div>
   <div class="fswarn" id="fsWarn">전체 화면이 해제됐어요. 시선 측정 정확도를 위해 다시 켜 주세요. <button class="sbtn" id="fsBack">전체 화면</button></div>
 </div>
 <!-- 바이오피드백 -->
@@ -857,6 +901,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 <script src="newbiz-core.js"></script>
 <script src="newbiz-battery.js"></script>
 <script src="newbiz-report.js"></script>
+<script src="newbiz-research.js"></script>
 <script type="module">
 const N = window.NLNewbiz, B = window.NLBattery, R = window.NLReport;
 const MP_VER = '0.10.14';
@@ -864,6 +909,14 @@ const MP_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 const STORE_KEY = 'nlNewbiz:v2';
 const STIM_URL = 'newbiz-stim/manifest.json';
+/* 연구 데이터 저장소 (Supabase · RLS + newbiz_research_* RPC 만 허용, publishable 키) */
+const RS_DB = { url: 'https://qonoakggniupuxwvzmmw.supabase.co', key: 'sb_publishable_hl6-Y_kMQelu2DByu4bE4g_V9Ru3jNo' };
+const RS_KEY = 'nlNewbiz:research';
+/* 연구용 눈·홍채 랜드마크 (이미지가 아니라 좌표만): 홍채 10 · 양쪽 눈꺼풀 윤곽 32 · 머리 자세 기준 5 */
+const LM_IDX = [468, 469, 470, 471, 472, 473, 474, 475, 476, 477,
+  33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246,
+  362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398,
+  1, 10, 152, 234, 454];
 const $ = id => document.getElementById(id);
 const now = () => performance.now();
 const esc = R.esc;
@@ -876,6 +929,7 @@ const S = {
   model: null, affine: null, gaze: null, view: null, euro: null, rawG: null, drift: { dx: 0, dy: 0 }, feat: null, lastLm: null, rois: null, lastFace: 0, lastTs: 0, fpsTimes: [],
   onFeature: null, onResp: null, onKey: null, onGo: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
   stim: null, stimMode: 'schematic',
+  hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
 };
 const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
 /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */
@@ -972,6 +1026,7 @@ loadStimuli().then(refreshIntro);
 }
 $('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full'); });
+$('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) $('rsPhq').checked = false; });
 $('goCheckin').addEventListener('click', () => { S.demo = false; S.mode = modeVal(); show('sCheckin'); });
 $('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
 $('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
@@ -994,6 +1049,15 @@ function scale(el, n, key) {
     el.appendChild(b);
   }
 }
+function choice(el, map) {
+  el.innerHTML = Object.entries(map).map(([k, v]) => `<button type="button" data-v="${k}" aria-pressed="false">${esc(v)}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    S.checkin[el.dataset.key] = b.dataset.v;
+    checkinReady();
+  }));
+}
+choice($('qSleep'), B.CONTEXT.sleep); choice($('qCaf'), B.CONTEXT.caffeine);
 scale($('qValence'), 9, 'valence'); scale($('qTension'), 5, 'tension'); scale($('qEnergy'), 5, 'energy'); scale($('qKss'), 9, 'kss');
 
 /* 최근 2주 자기보고: PHQ-2 → 3점 이상이면 3~8번 문항 추가 (PHQ-8, 9번 자해 문항 제외) */
@@ -1030,7 +1094,7 @@ function phqDone() {
   return phqAns[0] + phqAns[1] < PQ.screenCut || [2, 3, 4, 5, 6, 7].every(i => Number.isFinite(phqAns[i]));
 }
 function checkinReady() {
-  const base = S.checkin.valence && S.checkin.tension && S.checkin.energy && S.checkin.kss;
+  const base = S.checkin.valence && S.checkin.tension && S.checkin.energy && S.checkin.kss && S.checkin.sleep && S.checkin.caffeine;
   S.checkin.phq = $('phqSkip').checked || !Number.isFinite(phqAns[1]) ? null : phqAns.slice(0, phqAns[0] + phqAns[1] >= PQ.screenCut ? 8 : 2);
   $('goSetup').disabled = !(base && phqDone());
 }
@@ -1117,8 +1181,11 @@ function blendMap(res) {
   return m;
 }
 
-function processFrame() {
-  let t = now();
+/* 프레임 시각 = 카메라가 실제로 찍은 시각(requestVideoFrameCallback 의 captureTime). 처리 시각을 쓰면 얼굴 인식에 걸린
+ * 15~40ms(기기마다 다름)가 섞여 심박 파형과 사카드 잠복기가 흔들린다. 없거나 이상하면 처리 시각으로 대신한다 */
+function processFrame(meta) {
+  const tp = now();
+  let t = meta && Number.isFinite(meta.captureTime) && meta.captureTime <= tp && tp - meta.captureTime < 400 ? meta.captureTime : tp;
   if (t <= S.lastTs) t = S.lastTs + 0.01;
   S.lastTs = t;
   let res;
@@ -1129,7 +1196,7 @@ function processFrame() {
   if (lm) {
     const f = N.faceFeatures(lm), roi = sampleRoi(lm);
     if (f && roi) {
-      if (S.onFeature && roi.n < 30) S.onFeature(now(), f);            // 피부 영역이 어두워도 시선 보정 표본은 받는다
+      if (S.onFeature && roi.n < 30) S.onFeature(t, f);                // 피부 영역이 어두워도 시선 보정 표본은 받는다
       S.rois = roi.rois;
       const bs = blendMap(res);
       Object.assign(fr, {
@@ -1137,7 +1204,10 @@ function processFrame() {
         blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,
         frown: ((bs.mouthFrownLeft || 0) + (bs.mouthFrownRight || 0) + (bs.browDownLeft || 0) + (bs.browDownRight || 0)) / 4,
         smile: ((bs.mouthSmileLeft || 0) + (bs.mouthSmileRight || 0)) / 2,
+        u: f.u, v: f.v, yaw: f.yaw, pitch: f.pitch, lag: Math.round(now() - t),
       });
+      /* 연구용 눈·홍채 랜드마크: 시선 보정·시선 과제 동안만, 영상 좌표 ×10000 정수 */
+      if (S.lmRec && S.landmarks) { const row = [t]; for (const i of LM_IDX) row.push(Math.round(lm[i].x * 1e4), Math.round(lm[i].y * 1e4)); S.landmarks.rows.push(row); }
       S.feat = f; S.lastFace = t;
       if (S.onFeature && roi.n >= 30) S.onFeature(t, f);
       if (S.model) {
@@ -1147,6 +1217,7 @@ function processFrame() {
         const g = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy };          // 과제 직전 가운데 응시로 잰 치우침(drift) 보정
         S.gaze = S.gaze ? { x: S.gaze.x + 0.4 * (g.x - S.gaze.x), y: S.gaze.y + 0.4 * (g.y - S.gaze.y) } : g;
         if (!bl) S.view = { x: S.euro.x(g.x, t), y: S.euro.y(g.y, t), t };   // 화면 표시용 시선 커서: One Euro 평활 (깜빡임 프레임은 건너뜀)
+        if (!bl && S.onGaze) S.onGaze(g, t);
         /* 분석용은 원시값(rx). 시선 표본은 피부색 영역(rPPG)과 무관하게 얼굴만 잡히면 모두 기록하고, 깜빡임(bl)은 분석에서 뺀다 */
         if (S.curTrial) S.curTrial.samples.push({ t, x: S.gaze.x, y: S.gaze.y, rx: g.x, ry: g.y, bl });
       }
@@ -1164,7 +1235,7 @@ function pushFrame(fr) {
 }
 function startLoop() {
   if (procVideo.requestVideoFrameCallback) {
-    const cb = () => { processFrame(); procVideo.requestVideoFrameCallback(cb); };
+    const cb = (_, meta) => { processFrame(meta); procVideo.requestVideoFrameCallback(cb); };
     procVideo.requestVideoFrameCallback(cb);
   } else {
     let lastT = -1;
@@ -1313,6 +1384,17 @@ document.addEventListener('fullscreenchange', () => {
   $('fsWarn').classList.toggle('on', off);
   if (off && S.model) S.resized = true;
 });
+/* 화면 이탈(탭 전환·다른 창으로 포커스 이동) 구간 기록 → 그 구간과 겹친 시행·심박은 판정에서 자동 제외 */
+function hideBegin() { if (stage.classList.contains('on') && S.recording && S.hideStart === null) S.hideStart = now(); }
+function hideEnd() {
+  if (S.hideStart === null) return;
+  const h = { start: S.hideStart, end: now() };
+  S.hideStart = null;
+  if (h.end - h.start >= 200) { S.hidden.push(h); $('hideWarn').classList.add('on'); setTimeout(() => $('hideWarn').classList.remove('on'), 4000); }
+}
+document.addEventListener('visibilitychange', () => (document.hidden ? hideBegin() : hideEnd()));
+window.addEventListener('blur', hideBegin);
+window.addEventListener('focus', hideEnd);
 window.addEventListener('mousemove', e => { S.mouse = { x: e.clientX, y: e.clientY }; });
 window.addEventListener('resize', () => { if (S.recording && S.model) S.resized = true; });
 
@@ -1373,7 +1455,7 @@ function stepInfo(key) {
   const I = {
     calibration: { tag: '측정 준비 · Gaze calibration', title: '시선 보정 · 영점 조정', vis: V.cal, time: '약 1분 10초', resp: '눈으로 바라보기 · 따라가기',
       what: '눈과 머리 자세를 화면 좌표에 맞춰, 화면의 어느 곳을 보고 있는지 추정할 수 있게 합니다. 이후 모든 시선 검사의 정확도를 좌우하는 단계라 세 가지 방법을 겹쳐 씁니다.',
-      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면을 천천히 돌아다니는 파란 점을 12초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 실제로 시선으로 좌표를 옮길 수 있는지 확인해요'],
+      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면을 천천히 돌아다니는 파란 점을 12초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 원 가까이 가면 커서가 원 쪽으로 끌려 들어가 떨림 없이 멈출 수 있어요'],
       orig: '응시 보정만 쓰면 점 9개 사이의 공간이 부정확해지기 쉬워요. 움직이는 점을 따라가는 <b>추적 보정</b>으로 화면 전체의 자료를 더하고, 두 모델 중 검증 오차가 작은 쪽을 고른 뒤, 축별 <b>영점 조정</b>으로 남은 치우침을 없앱니다. 커서는 떨림과 지연을 함께 줄이는 One Euro 필터로 표시해요.',
       ref: 'Semmelmann & Weigelt, 2018 · Pfeuffer et al., 2013 (추적 보정) · Casiez et al., 2012 (One Euro 필터)' },
     baseline: { tag: '측정 준비 · Resting baseline', title: '안정 기준선', vis: V.calm, time: `${d.baseline}초`, resp: '편안히 바라보기',
@@ -1486,6 +1568,7 @@ const DISCARD = {
 async function runStep(key, fn) {
   const st = S.steps[key] = { status: 'running' };
   S.cur = key; S.stepPhases = [];
+  S.lmRec = !S.demo && (key === 'calibration' || GAZE_STEPS.includes(key));
   renderStepper();
   $('skip').hidden = false;
   try { await fn(); st.status = S.demo ? 'input' : 'done'; }
@@ -1496,12 +1579,13 @@ async function runStep(key, fn) {
     if (DISCARD[key]) DISCARD[key]();
   } finally {
     S.cleanup.forEach(f => f()); S.cleanup = [];
-    S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null; S.cur = null;
+    S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null; S.onGaze = null; S.cur = null; S.lmRec = false;
     $('skip').hidden = true; taskHide();
     renderStepper();
   }
 }
 async function runSession() {
+  Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null });
   Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 } });
   S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';
   if (S.demo) S.calib = { grade: 'good', errPct: null, mouse: true };
@@ -1574,6 +1658,7 @@ async function cal9(W, H) {
   const dot = $('calDot');
   for (const [x, y] of pts) {
     dot.style.left = x + 'px'; dot.style.top = y + 'px';
+    if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });
     S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), samples);
     await wait(1700);
   }
@@ -1594,6 +1679,7 @@ async function calPursuit(W, H, sec = 12.5) {
   raf = requestAnimationFrame(anim);
   S.cleanup.push(() => cancelAnimationFrame(raf));
   S.onFeature = featSampler(t0, 1000, sec * 1000, t => pos(t - t0 - LAG), out, 0.5);
+  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, path: 'x=W*(0.5+0.38*sin(2pi*0.12*t)), y=H*(0.5+0.34*sin(2pi*0.08*t+pi/2)), t in s from t0' };
   const stopT = task('추적 보정', sec * 1000);
   await wait(sec * 1000);
   stopT(); cancelAnimationFrame(raf); S.onFeature = null;
@@ -1605,6 +1691,7 @@ async function calCollect(points, label) {
   const dot = $('vDot'), out = [];
   for (const p of points) {
     dot.style.left = p.x + 'px'; dot.style.top = p.y + 'px';
+    if (S.calibLog) S.calibLog.targets.push({ t: now(), x: p.x, y: p.y, kind: label.includes('영점') ? 'zone' : 'val' });
     const fs = [];
     S.onFeature = (t, f) => fs.push(f);
     await wait(500); fs.length = 0;
@@ -1629,47 +1716,56 @@ function looAffineErr(pairs, W, H) {
   });
   return N.gazeAccuracy(pred, W, H);
 }
-/* 시선 커서 과제: 영역(원) 안에 커서를 0.6초 머물게 하기. 커서는 One Euro 로 평활한 보정 시선 */
+/* 시선 커서 과제: 영역(원) 안에 커서를 0.6초 머물게 하기.
+ * 커서 = N.gazeCursor: 치우침 학습 + 강한 One Euro 평활 + 속도 제한 + 표적 근처 자석 보조 → 떨림이 적고 원하는 곳에 멈추기 쉽다.
+ * 머무름 판정은 들어올 때 반경 R, 나갈 때 1.3R (경계에서 깜빡이지 않게), 150ms 미만 이탈은 무시 */
 async function cursorTask(zones, W, H) {
-  const R = Math.max(46, W * 0.055), HOLD = 600, LIMIT = 6000, res = [];
+  const R = Math.max(52, W * 0.065), HOLD = 600, LIMIT = 7000, res = [];
+  const gc = N.gazeCursor({ W, H });
   for (let i = 0; i < zones.length; i++) {
     const z = zones[i];
-    body.innerHTML = `<div class="zone" id="zn" style="left:${z.x}px;top:${z.y}px;width:${2 * R}px;height:${2 * R}px"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#D3D9E5" stroke-width="5"/><circle id="znP" cx="50" cy="50" r="46" fill="none" stroke="#2F9E6A" stroke-width="5" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 50 50)"/></svg></div>
-      <div class="gcur" id="gc"></div><div class="cue">시선으로 커서(●)를 원 안에 옮겨 잠시 머물러 주세요 · 영역 ${i + 1}/${zones.length} · 3단계 시선 이동 확인</div>`;
-    const zn = $('zn'), gc = $('gc'), zp = $('znP');
-    resetEuro();
+    body.innerHTML = `<div class="zone-a" style="left:${z.x}px;top:${z.y}px;width:${W * 0.28}px;height:${W * 0.28}px"></div><div class="zone" id="zn" style="left:${z.x}px;top:${z.y}px;width:${2 * R}px;height:${2 * R}px"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#D3D9E5" stroke-width="5"/><circle id="znP" cx="50" cy="50" r="46" fill="none" stroke="#2F9E6A" stroke-width="5" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 50 50)"/></svg></div>
+      <div class="gcur" id="gc"></div><div class="cue">원 쪽을 편하게 바라보세요 — 가까이 가면 커서(●)가 원 안으로 끌려 들어가요 · 영역 ${i + 1}/${zones.length} · 3단계 시선 이동 확인</div>`;
+    const zn = $('zn'), gc0 = $('gc'), zp = $('znP');
     const t0 = now();
-    let inSince = null, done = null;
+    let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0;
+    S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; };
     await new Promise((res2, rej) => {
-      const w = { rej, cleanup: () => {} };
+      const w = { rej, cleanup: () => { cancelAnimationFrame(raf); S.onGaze = null; } };
       waiters.add(w);
-      const id = setInterval(() => {
-        const v = S.view, t = now();
-        if (v && t - v.t < 200) {
-          gc.style.display = 'block'; gc.style.left = v.x + 'px'; gc.style.top = v.y + 'px';
-          const inside = Math.hypot(v.x - z.x, v.y - z.y) <= R;
-          if (inside) { if (inSince === null) inSince = t; } else inSince = null;
-          zn.classList.toggle('in', inside);
-          zp.style.strokeDashoffset = 289 * (1 - Math.min(1, inSince === null ? 0 : (t - inSince) / HOLD));
-          if (inSince !== null && t - inSince >= HOLD) done = { ok: true, ms: Math.round(inSince - t0) };
-        } else gc.style.display = 'none';
+      const tick = () => {
+        const t = now();
+        if (cur && t - cur.t < 250) {
+          gc0.style.display = 'block'; gc0.style.left = cur.x + 'px'; gc0.style.top = cur.y + 'px';
+          const d = Math.hypot(cur.x - z.x, cur.y - z.y);
+          const nowIn = inside ? d <= R * 1.3 : d <= R;
+          if (nowIn) { outSince = null; if (!inside) { inside = true; inSince = t; } }
+          else if (inside) { if (outSince === null) outSince = t; if (t - outSince > 150) { inside = false; inSince = null; } }
+          gc0.classList.toggle('near', cur.near);
+        } else gc0.style.display = 'none';
+        zn.classList.toggle('in', inside);
+        zp.style.strokeDashoffset = 289 * (1 - Math.min(1, inside && inSince !== null ? (t - inSince) / HOLD : 0));
+        if (inside && inSince !== null && t - inSince >= HOLD) done = { ok: true, ms: Math.round(inSince - t0) };
         if (!done && t - t0 > LIMIT) done = { ok: false, ms: null };
-        if (done) { clearInterval(id); waiters.delete(w); res2(); }
-      }, 33);
-      w.cleanup = () => clearInterval(id);
-      S.cleanup.push(() => clearInterval(id));
+        if (done) { waiters.delete(w); w.cleanup(); res2(); return; }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      S.cleanup.push(w.cleanup);
     });
     zn.classList.add(done.ok ? 'hit' : 'miss');
     res.push(done);
     await wait(350);
   }
-  return { n: res.length, hit: res.filter(r => r.ok).length, meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null };
+  S.onGaze = null;
+  return { n: res.length, hit: res.filter(r => r.ok).length, meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };
 }
 async function calibrate() {
   await brief('calibration');
   while (true) {
     const W = stage.clientWidth, H = stage.clientHeight;
     S.screenW = W; S.drift = { dx: 0, dy: 0 }; S.affine = null; S.model = null; S.gaze = null; resetEuro();
+    S.calibLog = { screen: { w: W, h: H }, targets: [] };
     const s9 = await cal9(W, H);
     const sp = await calPursuit(W, H);
     const vpts = [[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
@@ -1691,7 +1787,17 @@ async function calibrate() {
       S.gaze = null; resetEuro();
       /* 시선 이동 확인 (커서) */
       const ctl = acc.grade === 'poor' ? null : await cursorTask(shuffle(zones.slice()).slice(0, 4), W, H);
+      /* 커서 과제에서 학습한 치우침이 영역 전체에 일관되면(학습 표본 충분), 커서 없이 바라본 자료로 다시 평가해
+       * 오차가 실제로 줄어들 때만 측정용 영점에 더한다 (보정 학습 자료가 아니라 평가 자료로만 판단) */
+      if (ctl && ctl.bias.n >= 40 && Math.hypot(ctl.bias.x, ctl.bias.y) > W * 0.01) {
+        const A0 = S.affine || { x: { a: 1, b: 0 }, y: { a: 1, b: 0 } };
+        const A1 = { x: { a: A0.x.a, b: A0.x.b + ctl.bias.x * 0.5 }, y: { a: A0.y.a, b: A0.y.b + ctl.bias.y * 0.5 } };
+        const e0 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A0, p)), W, H), e1 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A1, p)), W, H);
+        if (e1.errPct !== null && e0.errPct !== null && e1.errPct < e0.errPct) { S.affine = A1; ctl.biasApplied = true; }
+      }
       acc = { ...acc, before: before.errPct, model: cands[0].key, affine: !!S.affine, control: ctl };
+      S.calibLog.model = { key: cands[0].key, quad: !!S.model.quad }; S.calibLog.affine = S.affine; S.calibLog.cursor = ctl;
+      S.calibLog.pairs = [...val, ...zc].map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length }));
       info = `<div class="calsum"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>영점 조정 후</span><b>${S.affine ? acc.errPct + '%' : '조정 불필요'}</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div></div>`;
       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다
     }
@@ -2035,7 +2141,7 @@ async function phaseStress(sec) {
   mark('stress', 'start');
   const end = now() + sec * 1000, stopT = task('MIST 암산', sec * 1000);
   let correct = 0, total = 0, limit = P.limitMs, streak = 0, minLimit = limit;
-  const levels = [0, 0, 0, 0, 0];
+  const levels = [0, 0, 0, 0, 0], log = [];
   while (now() < end) {
     const lv = 1 + Math.floor(Math.random() * 5), q = B.mistProblem(lv);
     levels[lv - 1]++;
@@ -2057,6 +2163,7 @@ async function phaseStress(sec) {
     });
     total++;
     const ok = v === q.ans; if (ok) correct++;
+    log.push([Math.round(t0 - S.phases.stress.start), lv, limit, v === null ? null : Math.round(now() - t0), q.ans, v, ok ? 1 : 0]);
     if (v !== null) { const hb = body.querySelector(`.keypad button[data-v="${v}"]`); if (hb) hb.classList.add('hit'); }
     tb.style.transition = 'none'; tb.style.width = Math.max(0, 100 - (now() - t0) / limit * 100) + '%';
     $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : `오답 · 정답 ${q.ans}`;
@@ -2067,7 +2174,7 @@ async function phaseStress(sec) {
   }
   stopT();
   mark('stress', 'end');
-  S.stressScore = { correct, total, minLimit, levels };
+  S.stressScore = { correct, total, minLimit, levels, log };
 }
 
 /* 공명 호흡 페이서: 들숨 5초 · 날숨 5초. 원(크기)·바깥 띠(단계 진행)·초 카운트·호흡 파형을 함께 보여 준다 */
@@ -2126,6 +2233,7 @@ function liveRecord() {
     frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
     stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: S.calib, checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
     stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, measuredAt: new Date().toISOString(),
+    hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
   };
 }
 /* 데모: 생리 신호는 시뮬레이션 피험자로, 직접 수행한 과제(마우스 시선·키보드 반응)는 실제 입력으로 채운다 */
@@ -2148,7 +2256,7 @@ function demoRecord() {
 function finish() {
   show('sAnalyze');
   setTimeout(() => {
-    try { finishWith(S.demo ? demoRecord() : liveRecord()); }
+    try { const rec = S.demo ? demoRecord() : liveRecord(); const res = finishWith(rec); if (!S.demo) researchSubmit(rec, res); }
     catch (e) { console.error(e); alert('분석 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
   }, 60);
 }
@@ -2161,6 +2269,7 @@ function finishWith(rec) {
   bindReport(res);
   show('sReport');
   aiSummary(res, false);
+  return res;
 }
 /* ---------- AI 종합 총평 (/rppg → Gemini) ----------
  * 허용된 구조화 지표만 보낸다(R.summaryPayload). 같은 측정의 총평은 이 기기에 캐시해 다시 열어도 호출하지 않는다. */
@@ -2206,6 +2315,48 @@ async function aiSummary(res, force) {
     if (btn) { btn.disabled = false; btn.textContent = '다시 생성'; }
   }
 }
+/* ---------- 연구 데이터 제출 (동의한 실측 세션만) ---------- */
+async function rsRpc(fn, body) {
+  const r = await fetch(`${RS_DB.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: RS_DB.key, Authorization: `Bearer ${RS_DB.key}` }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`${fn} HTTP ${r.status} ${(await r.text()).slice(0, 120)}`);
+  return r.json();
+}
+const rsList = () => { try { return JSON.parse(localStorage.getItem(RS_KEY) || '[]'); } catch (_) { return []; } };
+function rsBanner(html) {
+  const host = $('r-qc'); if (!host) return;
+  let el = $('rsBanner');
+  if (!el) { el = document.createElement('div'); el.id = 'rsBanner'; el.className = 'rs-banner'; host.appendChild(el); }
+  el.innerHTML = html;
+}
+async function researchSubmit(rec, res) {
+  if (!$('rsOpt').checked || rec.demo) return;
+  const consent = { version: NLResearch.CONSENT_VERSION, research: true, phq: $('rsPhq').checked, at: new Date().toISOString() };
+  rsBanner('연구 데이터를 정리해 보내는 중이에요…');
+  try {
+    const vt = procVideo.videoWidth ? { w: procVideo.videoWidth, h: procVideo.videoHeight } : null;
+    const pk = NLResearch.pack(rec, res, consent, { ua: navigator.userAgent, screen: { w: screen.width, h: screen.height, vw: S.screenW, vh: stage.clientHeight }, camera: vt, dpr: devicePixelRatio, tz: new Date().getTimezoneOffset(), app: 'newbiz' });
+    const enc = await NLResearch.encode(pk.payload);
+    const s0 = await rsRpc('newbiz_research_begin', { p_consent: consent, p_meta: { ...pk.meta, payloadBytes: enc.bytes, rawBytes: enc.rawBytes }, p_summary: pk.summary });
+    for (let i = 0; i < enc.chunks.length; i++) {
+      rsBanner(`연구 데이터 보내는 중… ${i + 1}/${enc.chunks.length}`);
+      await rsRpc('newbiz_research_chunk', { p_session: s0.session_id, p_token: s0.upload_token, p_idx: i, p_data: enc.chunks[i] });
+    }
+    await rsRpc('newbiz_research_finish', { p_session: s0.session_id, p_token: s0.upload_token, p_chunks: enc.chunks.length, p_bytes: enc.bytes, p_sha256: enc.sha256 });
+    const list = rsList(); list.unshift({ id: s0.session_id, code: s0.code, token: s0.upload_token, at: consent.at });
+    try { localStorage.setItem(RS_KEY, JSON.stringify(list.slice(0, 50))); } catch (_) {}
+    S.research = { code: s0.code };
+    rsBanner(`연구 데이터 제출 완료 · 참가 코드 <code>${esc(s0.code)}</code> (철회 문의 시 필요) · ${(enc.bytes / 1e6).toFixed(1)}MB <button class="sbtn" id="rsWithdraw" type="button">제출 철회</button>`);
+    $('rsWithdraw').onclick = async () => {
+      if (!confirm('이 측정의 연구 데이터를 서버에서 완전히 삭제할까요?')) return;
+      try { const ok = await rsRpc('newbiz_research_withdraw', { p_session: s0.session_id, p_token: s0.upload_token });
+        localStorage.setItem(RS_KEY, JSON.stringify(rsList().filter(x => x.id !== s0.session_id)));
+        rsBanner(ok ? '연구 데이터를 삭제했어요.' : '이미 삭제됐거나 찾을 수 없어요.'); } catch (e) { rsBanner('철회 요청이 실패했어요. 잠시 뒤 다시 시도해 주세요.'); }
+    };
+  } catch (e) {
+    console.warn('research upload failed', e);
+    rsBanner('연구 데이터 제출에 실패했어요. 검사 결과에는 영향이 없어요.');
+  }
+}
 function loadHistory() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (_) { return []; } }
 function saveHistory(r) {
   try {
@@ -2219,7 +2370,7 @@ function bindReport(r) {
   $('bioStart').addEventListener('click', runBio);
   $('printBtn').addEventListener('click', () => window.print());
   $('again').addEventListener('click', () => {
-    S.checkin = {}; phqAns = []; $('phqSkip').checked = false; phqRender(); document.querySelectorAll('.scale button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('goSetup').disabled = true;
+    S.checkin = {}; phqAns = []; $('phqSkip').checked = false; phqRender(); document.querySelectorAll('.scale button, .choice button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('goSetup').disabled = true;
     show('sIntro');
   });
   $('dl').addEventListener('click', () => {

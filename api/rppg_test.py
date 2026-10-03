@@ -49,5 +49,22 @@ class RppgPromptTests(unittest.TestCase):
             rppg.build_prompt({"domains": {}})
 
 
+class RppgOutputCheckTests(unittest.TestCase):
+    def test_numbers_must_come_from_input(self):
+        prompt = rppg.build_prompt(payload("fatigue"))
+        good = "눈꺼풀이 감긴 비율이 " + next(x for x in rppg._NUM.findall(prompt) if "." in x) + "%였어요. 2주 뒤 다시 재 보세요."
+        self.assertEqual(rppg.check_output(good, prompt), [])
+        self.assertTrue(any("수치" in p for p in rppg.check_output("반응이 늦어진 순간이 987회였어요.", prompt)))
+        self.assertTrue(any("금칙어" in p for p in rppg.check_output("우울증이 의심됩니다.", prompt)))
+
+    def test_context_in_prompt_and_fallback(self):
+        b = payload("fatigue")
+        text = rppg.build_prompt(b)
+        self.assertIn("어젯밤 수면 5~6시간", text)
+        fb = rppg.fallback_summary(b)
+        self.assertIn("각성 저하 우선형", fb)
+        self.assertEqual(rppg.check_output(fb, text), [])
+
+
 if __name__ == "__main__":
     unittest.main()

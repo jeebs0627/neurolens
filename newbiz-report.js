@@ -46,7 +46,7 @@
   const valText = i => i.value === null ? '—' : `${i.d >= 1 ? i.value.toFixed(i.d) : i.value}${i.unit ? ` <small>${esc(i.unit)}</small>` : ''}${i.ci ? `<div class="ci">95% ${fmt(i.ci[0], i.d)}~${fmt(i.ci[1], i.d)}</div>` : ''}`;
   /* 판정 칸: 상태 + NL-QC 표시(경계 · 신뢰도 낮음 · 제외) */
   const judge = i => i.excluded ? `<span class="st st-na">판정 제외</span><div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>`
-    : `${stBadge(i.status)}${i.borderline ? '<div class="qtag b">경계 · 오차 범위가 기준에 걸침</div>' : ''}${finite(i.r) && i.r < 0.8 ? `<div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>` : ''}`;
+    : `${stBadge(i.status)}${i.borderline ? '<div class="qtag b">경계 · 오차 범위가 기준에 걸침</div>' : ''}${finite(i.r) && i.r < 0.8 ? `<div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>` : ''}${i.next ? `<div class="qtag nx">${esc(i.next.text)}</div>` : ''}`;
 
   function moduleStatus(b, mod) {
     const st = MODULE_STEPS[mod].map(k => (b.steps[k] && b.steps[k].status) || 'off');
@@ -308,10 +308,29 @@
       <div class="legend">${B.DOMAIN_KEYS.map(k => `<span><i style="background:${DCOLOR[k]}"></i>${esc(B.DOMAINS[k].name)}</span>`).join('')}</div>`;
   }
 
+  /* 점수 구성: 영역 점수를 지표별 기여(점)로 나눈 막대 + 다음 단계까지의 거리 */
+  function explainBlock(d) {
+    const ex = d.explain || [];
+    if (!ex.length || d.score === null) return '';
+    const bar = ex.map(e => `<i style="width:${Math.max(0.5, e.points)}%;background:${SCOLOR[e.status]}" title="${esc(e.label)} · 비중 ${e.share}% · ${e.points}점"></i>`).join('');
+    return `<div class="xpl"><div class="xpl-h"><b>점수 구성</b><span class="muted small">${d.score}점 = 지표별 (비중 × 지표 점수)의 합 · 비중 = 핵심 2배 × 측정 신뢰도</span></div>
+      <div class="xpl-bar">${bar}<span class="xpl-lost" style="width:${Math.max(0, 100 - ex.reduce((s, e) => s + e.points, 0))}%" title="깎인 점수"></span></div>
+      <div class="xpl-rows">${ex.map(e => `<div class="xpl-r"><span class="xdot" style="background:${SCOLOR[e.status]}"></span><span class="xl">${esc(e.label)}</span><span class="xs">비중 ${e.share}%</span><span class="xp"><b>${e.points}</b>/${e.share}점</span><span class="xn">${e.next ? esc(e.next.text) : '양호 범위'}</span></div>`).join('')}</div></div>`;
+  }
+
   /* 영역 KPI 타일: 핵심 지표를 큰 숫자로 */
   function kpiTiles(list) {
     const prim = list.filter(i => i.primary);
     return `<div class="kpis">${prim.map(i => `<div class="kpi-t st-b-${i.excluded ? 'na' : i.status}"><span>${esc(i.label)}</span><b>${i.value === null ? '—' : (i.d >= 1 ? i.value.toFixed(i.d) : i.value)}<small>${esc(i.unit || '')}</small></b><em>${i.value === null ? '측정 안 됨' : i.excluded ? '판정 제외' : B.STATUS[i.status] + (i.borderline ? ' · 경계' : '')}</em></div>`).join('')}</div>`;
+  }
+
+  /* 측정 맥락: 수면 · 카페인 · 측정 시각 — 점수는 그대로 두고 해석만 돕는다 */
+  function contextCard(r, C) {
+    const c = r.checkin || {}, I = r.battery.integrated, d = r.measuredAt ? new Date(r.measuredAt) : null;
+    const chip = (label, v) => `<div class="ctx-c"><span>${label}</span><b>${esc(v || '응답 없음')}</b></div>`;
+    return `<div class="dcard-h"><h3>측정 맥락</h3><span class="muted small">점수는 바꾸지 않고, 결과가 일시적인 상태인지 해석을 돕습니다</span></div>
+      <div class="ctx">${chip('어젯밤 수면', B.CONTEXT.sleep[c.sleep])}${chip('마지막 카페인', B.CONTEXT.caffeine[c.caffeine])}${chip('측정 시각', d && !isNaN(d) ? d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }) : null)}</div>
+      ${(I.context || []).map(m => `<div class="mismatch al"><b>${esc(m.title)}</b> ${esc(m.text)}${C.cite(m.refs)}</div>`).join('') || '<p class="muted small" style="margin:8px 0 0">측정 맥락에서 해석을 바꿀 만한 요인은 없었어요.</p>'}`;
   }
 
   /* AI 총평 요청 본문: 허용된 구조화 지표만 (PHQ 응답·영상·자유 문장은 넣지 않는다) */
@@ -325,6 +344,7 @@
       pathways: I.pathways.map(p => p.key), mismatches: I.mismatches.map(m => m.key),
       checkin: { valence: c.valence ?? null, tension: c.tension ?? null, energy: c.energy ?? null, kss: c.kss ?? null },
       care: b.care.filter(t => t.domain !== 'safety').map(t => t.domain), qc: { grade: b.qc ? b.qc.grade : null, hrRef: b.qc ? b.qc.hrRef || null : null },
+      context: { sleep: c.sleep || null, caffeine: c.caffeine || null, hour: r.measuredAt && !isNaN(new Date(r.measuredAt)) ? new Date(r.measuredAt).getHours() : null, notes: (I.context || []).map(m => m.key) },
     };
   }
 
@@ -371,7 +391,7 @@
         <div class="dom-ring">${ring(d.score, { size: 96, stroke: 9, color: d.status === 'na' ? '#A3ABBD' : DCOLOR[k], track: '#E6EAF1', text: '#0E1A33', sub: B.STATUS[d.status], title: d.name })}</div></div>
       ${d.status === 'na' ? '<p class="warn-line">이 영역의 검사를 수행하지 않았거나 신호가 부족해 측정되지 않았어요.</p>'
         : `<div class="confbar"><span>측정 신뢰도</span><span class="cb"><i style="width:${Math.round(d.confidence * 100)}%"></i></span><b>${Math.round(d.confidence * 100)}%</b>${d.tentative ? '<span class="st st-watch">잠정</span>' : ''}</div>${(d.notes || []).map(n => `<p class="qnote">${esc(n)}</p>`).join('')}`}
-      ${kpiTiles(list)}${body}
+      ${kpiTiles(list)}${explainBlock(d)}${body}
       <details class="method dtl" open><summary>상세 지표 · 참고 범위 · 근거</summary>${indicatorTable(list, b.info[k], C)}</details></section>`;
   }
 
@@ -413,6 +433,10 @@
     const applied = [
       q.latency && q.latency.offset ? `기기 입력 지연 보정 −${q.latency.offset}ms (가장 빠른 10% 반응 ${q.latency.fast10}ms 기준, 경과 반응 기준 ${q.latency.lapseMs}ms)` : null,
       q.sideBalanced ? '정서 자유 보기: 좌우 균형 가중 적용 (개인의 좌우 시선 치우침 상쇄)' : null,
+      q.hidden ? `화면이 가려졌던 구간 ${q.hidden.n}회(${q.hidden.sec}초) — 겹친 시행 ${q.hidden.dropped}개를 판정에서 제외` : null,
+      q.lightJumps ? `조명 급변 ${q.lightJumps}회 — 그 전후 심박 계산 구간을 제외` : null,
+      q.breath && q.breath.clear ? `공명 호흡 순응: 카메라로 잰 호흡 분당 ${q.breath.bpm}회${q.breath.off ? ' → 안내(6회)와 달라 호흡 동조 지표 제외' : ' (안내 6회 따름)'}` : null,
+      Object.entries(q.fps || {}).some(([, v]) => v < 20) ? `카메라 프레임이 낮았던 단계: ${Object.entries(q.fps).filter(([, v]) => v < 20).map(([k, v]) => `${STEP_NAMES[k] || ({ neg: '정서 보기' }[k]) || k} ${v}fps`).join(' · ')} — 시선 지표 신뢰도를 낮춤` : null,
       q.hrRef === 'pre' ? '안정 기준선 심박이 약해 압박 과제 직전 안정 구간을 심박 비교 기준으로 사용' : null,
       q.calib && q.calib.affine ? `시선 영점 조정 적용: 보정 오차 ${q.calib.before}% → ${q.calib.errPct}% (${esc(q.calib.model)} 모델${q.calib.control ? ` · 시선 이동 ${q.calib.control.hit}/${q.calib.control.n} 성공` : ''})` : null,
       q.borderline.length ? `측정 오차 범위가 판정 경계에 걸친 지표 ${q.borderline.length}개: ${q.borderline.join(' · ')}` : null,
@@ -427,6 +451,7 @@
         <li><b>수렴 원칙</b> ‘관리 필요’는 서로 다른 지표 2개 이상이 같은 방향을 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만 내립니다.</li>
         <li><b>수행 타당도</b> 자극 전 반응이 3분당 20회를 넘는 PVT, 반응해야 할 숫자의 절반 이상을 놓친 SART, 방향을 구분하지 못한 사카드는 판정에서 뺍니다.</li>
         <li><b>개인 기준 보정</b> 심박은 본인 안정 기준선(약하면 과제 직전 안정 구간) 대비, 시선은 추적 보정·영점 조정·블록별 드리프트·개인 시선 진폭·좌우 균형으로, 반응시간은 기기 입력 지연(상한 60ms)으로 보정합니다.</li>
+        <li><b>측정 환경 감시</b> 탭 전환 등으로 화면이 가려진 구간의 시행, 조명이 급변한 구간의 심박, 카메라 프레임이 낮은 단계의 시선 지표, 안내한 호흡 속도를 따르지 않은 구간의 호흡 동조 지표를 자동으로 빼거나 신뢰도를 낮춥니다.</li>
         <li><b>다중 영역 심박</b> 이마·양 볼의 심박을 따로 구해 가장 많은 영역이 동의하는 값을 씁니다. 한 영역에만 생긴 움직임 잡음이 심박으로 잘못 잡히지 않게 합니다.</li>
       </ol>
       <div class="tbl-wrap"><table class="itbl" style="min-width:480px"><thead><tr><th>검사</th><th>신뢰도</th><th>비고</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -492,6 +517,7 @@
           <div class="feel">기분 <b>${c.valence ?? '—'}</b>/9 · 긴장 <b>${c.tension ?? '—'}</b>/5 · 에너지 <b>${c.energy ?? '—'}</b>/5 · 졸림(KSS) <b>${c.kss ?? '—'}</b>/9${C.cite(['sam', 'kss'])}</div>
           ${I.mismatches.map(m => `<div class="mismatch${m.aligned ? ' al' : ''}"><b>${esc(m.title)}</b> ${esc(m.text)}${C.cite(m.refs)}</div>`).join('')}</div>
         <div class="card dcard">${phqSection(b, C)}</div>
+        <div class="card dcard wide">${contextCard(r, C)}</div>
         ${(() => {
           const pts = [...hist.filter(x => x.scores && !x.demo === !r.demo).slice(0, 5).reverse().map(x => ({ label: new Date(x.at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }), scores: x.scores })),
             { label: '이번', scores: Object.fromEntries(B.DOMAIN_KEYS.map(k => [k, b.domains[k].score])) }];
