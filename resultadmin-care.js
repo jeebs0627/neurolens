@@ -8,8 +8,8 @@
   let run = null;
   if (runId) {
     try { run = JSON.parse(localStorage.getItem('nlAdminRun:' + runId) || 'null'); } catch (_) {}
-    if (!run || run.id !== runId || !run.checkin || !run.result) {
-      location.replace('indexadmin.html');
+    if (!run || run.id !== runId || !run.result) {
+      location.replace('index.html');
       return;
     }
   }
@@ -38,9 +38,9 @@
       document.querySelector('main p').textContent=error.message;return;
     }
   }
-  const sampleCheckin = {moods:['excited','anxious'],issue:'career',energy:4,valence1to9:7,expectation:'yes',worry:'yes'};
+  /* 성향검사는 사전 체크인 없이 진행한다 — ‘오늘의 감정 상태’는 마인드 컨디션 검사가 다룬다 */
   const result = run ? run.result : SAMPLE;
-  const checkin = run ? run.checkin : sampleCheckin;
+  const checkin = null;
   const isSample = !run || !!run.sample;
   if(run?.live || param.get('sample')==='1'){
     document.querySelector('.preview-chip').style.display='none';
@@ -51,8 +51,6 @@
   if (hasCheckin) {
     try { analysis = NLCarePreview.analyze(checkin,result); }
     catch (error) { $('careAiStatus').textContent='사전 체크인 형식을 확인해 주세요.';console.error(error);return; }
-  } else {
-    $('emotionCard').hidden = true;
   }
   /* 교차 분석 3종 — 일관성 · 적성×흥미 매트릭스 · 특성 조합 케어 (report-insights.js) */
   let insights = { consistency:null, matrix:null, care:null };
@@ -88,7 +86,7 @@
   }
   if(!run){
     document.querySelector('.quality').textContent='정보 없음';
-    document.querySelector('.hero-copy').textContent='가상 체크인과 샘플 결과로 오늘의 감정 상태 및 성향 리포트 구성을 미리 살펴보세요.';
+    document.querySelector('.hero-copy').textContent='샘플 결과로 성향 리포트 구성을 미리 살펴보세요.';
     text('sampleDay','샘플 결과');
   }
 
@@ -117,7 +115,7 @@
     keywords.forEach((el,index)=>{const item=validTraits[index];el.querySelector('small').textContent=item?'BIG FIVE '+(index+1):'REPORT';el.querySelector('b').textContent=item?`${item.name} ${item.value.toFixed(0)} 백분위`:index===0?'측정된 성향을 살펴보세요':index===1?`유형 ${r.MBTI||'정보 없음'}`:jobs[0]?`직무 후보 ${jobs[0].name}`:'제공된 항목을 확인해 주세요';});
     const intro=`${name} 님의 검사 결과에서 ${r.MBTI?`${r.MBTI} 유형`: '성격 유형 정보'}${validTraits.length?`, ${validTraits[0].name} ${validTraits[0].value.toFixed(0)} 백분위`:''}가 확인되었습니다. 이는 자기이해를 위한 참고 정보입니다.`;
     const second=jobs[0]?`직무적합도 상위 항목은 ${jobs[0].name}(${jobs[0].score.toFixed(1)}점)입니다. 흥미유형과 함께 관심이 향하는 분야를 살펴보세요.`:'직무적합도 정보가 제공되지 않았습니다.';
-    const third='오늘의 감정 상태는 검사 전 체크인과 확인된 결과를 교차해 따로 설명합니다. 성격·흥미 결과만으로 현재 감정을 단정하지 않습니다.';
+    const third='성격·흥미 결과는 비교적 안정된 기본 성향을 보여 줍니다. 오늘의 마음 컨디션은 마인드 컨디션 검사로 따로 측정할 수 있어요.';
     document.querySelector('.deep-copy .copy-preview').textContent=intro;
     const body=document.querySelector('.deep-copy .copy-body');body.replaceChildren();[intro,second,third].forEach(value=>{const p=document.createElement('p');p.textContent=value;body.appendChild(p);});
   }

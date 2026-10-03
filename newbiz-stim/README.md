@@ -86,7 +86,7 @@ newbiz.html 의 '정서 자유 보기' 검사가 쓰는 사진 세트입니다. 
 - `category`: `threat` · `dysphoric` · `positive` · `neutral`
 - `content`: `person` · `animal` · `scene` · `object`
 - `file`: 이 폴더 기준 경로 · `exclude: true` 로 임시 제외 가능
-- 검사에 필요한 최소 수량(표준 측정): 위협 12 · 슬픔 12 · 긍정 12 · 중립 48 (빠른 측정은 6 · 6 · 6 · 26)
+- 검사에 필요한 최소 수량 — 표준 측정(약 8분, 기본): 위협 4 · 슬픔 4 · 긍정 4 · 중립 18 / 정밀 측정: 위협 12 · 슬픔 12 · 긍정 12 · 중립 48
 
 ## 참고문헌
 

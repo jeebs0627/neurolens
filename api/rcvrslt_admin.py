@@ -10,7 +10,7 @@ MAX_BODY = 2 * 1024 * 1024
 
 RESULT_HTML = """<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>검사 결과 연결</title>
 <style>body{font:16px/1.7 sans-serif;background:#f5f8ff;color:#142445;display:grid;place-items:center;min-height:90vh;text-align:center}</style></head>
-<body><main><h1>검사를 완료했습니다</h1><p id="message">사전 체크인과 검사 결과를 연결하고 있습니다…</p></main>
+<body><main><h1>검사를 완료했습니다</h1><p id="message">검사 결과를 리포트로 연결하고 있습니다…</p></main>
 <script>
 const run=__RUN__, raw=__RAW__;
 try {
@@ -18,7 +18,7 @@ try {
   if (!data || typeof data!=='object' || !(data.BIG5 || data.MBTI || data['직업흥미유형'] || data['직무적합도'])) throw Error('결과 데이터가 없습니다.');
   const key='nlAdminRun:'+run;
   const saved=JSON.parse(localStorage.getItem(key)||'null');
-  if (!saved || saved.id!==run || !saved.checkin) throw Error('이 검사와 연결된 사전 체크인이 없습니다.');
+  if (!saved || saved.id!==run) throw Error('이 검사와 연결된 실행 기록이 없습니다.');
   saved.result=data; saved.resultAt=Date.now();
   localStorage.setItem(key,JSON.stringify(saved));
   if (window.parent && window.parent!==window) {
@@ -28,7 +28,7 @@ try {
     location.replace('resultadmin.html?run='+encodeURIComponent(run));
   }
 } catch(error) {
-  document.getElementById('message').textContent='결과 연결 실패: '+error.message+' 관리자 시작 페이지에서 다시 진행해 주세요.';
+  document.getElementById('message').textContent='결과 연결 실패: '+error.message+' 메인 페이지에서 다시 검사해 주세요.';
 }
 </script></body></html>"""
 

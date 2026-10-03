@@ -216,6 +216,87 @@ header.hero{position:relative;overflow:hidden;background:
 .proof .num b{background:var(--grad-hero);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .proof .lb{font-size:12px;color:var(--gray);margin-top:5px}
 @media(max-width:720px){.proof{grid-template-columns:repeat(2,1fr)}}
+nav .links a{white-space:nowrap}
+nav .cta{white-space:nowrap}
+/* ---------- 두 검사 라인업 (성향 · 컨디션) ---------- */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:920px;margin:34px auto 0;text-align:left}
+.dcard2{position:relative;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1.5px solid var(--line);border-radius:22px;padding:24px 24px 20px;box-shadow:var(--shadow-sm);transition:transform .25s,box-shadow .25s,border-color .25s;display:flex;flex-direction:column}
+.dcard2:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:var(--dc-line)}
+.dcard2 .dh{display:flex;align-items:center;gap:12px}
+.dcard2 .dic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--dc-grad);flex:none;box-shadow:0 8px 18px var(--dc-sh)}
+.dcard2 .dic svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.dcard2 .dk{font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--dc)}
+.dcard2 h3{font-size:20px;font-weight:900;letter-spacing:-.02em;margin-top:1px}
+.dcard2 .dq{font-size:15px;color:var(--ink2);margin:14px 0 10px;font-weight:700}
+.dcard2 .dchips{display:flex;flex-wrap:wrap;gap:6px}
+.dcard2 .dchips span{font-size:12.5px;font-weight:700;color:var(--dc);background:var(--dc-soft);border-radius:999px;padding:4px 10px}
+.dcard2 .dmeta{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--gray);margin:14px 0 16px}
+.dcard2 .dmeta b{color:var(--ink)}
+.dcard2 .dact{display:flex;gap:10px;align-items:center;margin-top:auto;flex-wrap:wrap}
+.dcard2 .dgo{display:inline-flex;align-items:center;gap:8px;font-size:15.5px;font-weight:800;color:#fff;background:var(--dc-grad);border:0;border-radius:14px;padding:13px 22px;cursor:pointer;text-decoration:none;box-shadow:0 10px 22px var(--dc-sh);transition:transform .2s}
+.dcard2 .dgo:hover{transform:translateY(-2px)}
+.dcard2 .dgo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.dcard2 .dsm{font-size:13.5px;font-weight:700;color:var(--dc);text-decoration:none}
+.dcard2 .dsm:hover{text-decoration:underline}
+.dcard2 .dnew{position:absolute;top:18px;right:18px;font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#fff;background:var(--dc-grad);border-radius:999px;padding:3px 9px}
+.dc-trait{--dc:#1E5AF0;--dc-soft:var(--blue-soft);--dc-line:var(--blue-line);--dc-grad:var(--grad-blue);--dc-sh:rgba(30,90,240,.28)}
+.dc-cond{--dc:#5B3FD6;--dc-soft:var(--violet-soft);--dc-line:#D7CCFA;--dc-grad:linear-gradient(135deg,#6C4CE0,#13A58A);--dc-sh:rgba(108,76,224,.28)}
+.hero .cat{font-family:var(--font-num);font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--gray2);margin-top:-18px;margin-bottom:6px}
+.pick{margin-top:16px;font-size:13.5px;color:var(--gray)}
+.pick button{font:inherit;font-weight:800;color:var(--blue);background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.picker{display:none;max-width:620px;margin:14px auto 0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;text-align:left;box-shadow:var(--shadow-sm)}
+.picker.on{display:block}
+.picker .pq{font-weight:800;font-size:14.5px;margin-bottom:8px}
+.picker .po{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.picker .po button{font:inherit;font-size:13.5px;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:8px 12px;cursor:pointer;color:var(--ink2)}
+.picker .po button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.picker .pr{font-size:14.5px;padding:12px 14px;border-radius:12px;background:var(--blue-soft);color:var(--ink)}
+.duo.hl-trait .dc-trait,.duo.hl-cond .dc-cond{border-color:var(--dc);box-shadow:0 0 0 4px var(--dc-soft),var(--shadow-md)}
+@media(max-width:820px){.duo{grid-template-columns:1fr}}
+/* 라인업 탭 */
+.ltabs{display:inline-flex;gap:6px;padding:6px;background:#F1F4FA;border:1px solid var(--line);border-radius:16px;margin:0 0 28px}
+.ltabs button{font:inherit;font-size:15px;font-weight:800;color:var(--gray);background:transparent;border:0;border-radius:11px;padding:10px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.ltabs button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+.ltabs button i{width:9px;height:9px;border-radius:50%;background:var(--tc)}
+.lpanel[hidden]{display:none!important}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin:0 0 30px;background:#fff}
+.cmp>div{padding:16px 20px;font-size:14px;color:var(--ink2);border-top:1px solid var(--line)}
+.cmp>div:nth-child(-n+2){border-top:0;font-weight:900;font-size:15.5px;color:var(--ink)}
+.cmp>div:nth-child(odd){border-right:1px solid var(--line)}
+.cmp small{display:block;font-size:11.5px;font-weight:800;color:var(--gray2);letter-spacing:.04em;margin-bottom:2px}
+.cmp .a{color:#1E5AF0}.cmp .b{color:#5B3FD6}
+@media(max-width:640px){.cmp{grid-template-columns:1fr}.cmp>div:nth-child(odd){border-right:0}}
+.cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.ccard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;border-top:4px solid var(--cc)}
+.ccard .ce{font-size:26px}
+.ccard h4{font-size:17px;margin:8px 0 2px}
+.ccard .cpro{font-size:12px;font-weight:800;color:var(--cc)}
+.ccard p{font-size:13.5px;color:var(--gray);margin-top:8px;word-break:keep-all}
+.ccard .ct{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.ccard .ct span{font-size:11.5px;font-weight:700;background:#F3F5FA;border-radius:7px;padding:2px 7px;color:var(--ink2)}
+@media(max-width:1000px){.cgrid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.cgrid{grid-template-columns:1fr}}
+.cfoot{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-top:16px}
+.cbox{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px}
+.cbox h4{font-size:16px;margin-bottom:8px}
+.cbox p,.cbox li{font-size:13.5px;color:var(--gray)}
+.cbox ul{padding-left:18px;margin:6px 0 0}
+.cbox .go{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+@media(max-width:820px){.cfoot{grid-template-columns:1fr}}
+/* In_mind 근거 · 품질 관리 */
+.ev{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+.ev .cbox h4 small{display:block;font-size:12px;font-weight:700;color:var(--gray2);margin-top:2px}
+.evt{width:100%;border-collapse:collapse;font-size:13px}
+.evt th{font-size:11.5px;color:var(--gray2);text-align:left;padding:7px 6px;border-bottom:1.5px solid var(--line)}
+.evt td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2)}
+.evt td b{color:var(--ink)}
+.qchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.qchips span{font-size:12.5px;font-weight:700;color:#5B3FD6;background:var(--violet-soft);border-radius:999px;padding:5px 11px}
+.stage-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stage-row div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--gray)}
+.stage-row b{display:block;font-size:13.5px;color:var(--ink)}
+.stage-row .done{border-color:#BFE6D6;background:var(--green-soft)}.stage-row .now{border-color:#D7CCFA;background:var(--violet-soft)}
+@media(max-width:820px){.ev{grid-template-columns:1fr}.stage-row{grid-template-columns:1fr}}
+
 
 /* ============================================================
    PROBLEM (첨부: "괜찮아요"라고 답한 아이…)
@@ -617,7 +698,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <button class="menu-btn" id="menuBtn" aria-label="메뉴 열기" aria-expanded="false" aria-controls="navLinks">
       <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
     </button>
-    <a class="cta" href="#top" onclick="document.getElementById('startBtn').focus()">검사하기</a>
+    <a class="cta" href="#duo" onclick="setTimeout(()=>document.getElementById('duo').scrollIntoView({behavior:'smooth',block:'center'}),0)">검사하기</a>
     <div class="auth-area" id="authArea"></div>
   </div>
 </nav>
@@ -626,46 +707,46 @@ footer p{font-size:12.5px;color:var(--gray)}
 <header class="hero" id="top">
 
   <div class="wrap inner">
-    <span class="badge"><span class="dot"></span>Webcam-based GAZE AI · 9천명+@ 시선행동 데이터 확보, 경기도 8개교 1,600명 실증 완료</span>
-    <h1>시선행동 AI 기반<br>정신건강 측정 및 <em>Agent 케어</em> 플랫폼</h1>
-    <p class="sub">일반 웹캠만으로 시선행동을 측정해 정신건강을 측정하고 <b>NeuroLens</b>의 7일 케어와 AI 상담이 이어집니다.</p>
+    <span class="badge"><span class="dot"></span>Webcam GAZE AI × In_mind · 9천명+@ 시선행동 데이터 · 경기도 8개교 1,600명 실증</span>
+    <h1>나를 아는 시선,<br>지금을 돌보는 <em>AI</em></h1>
+    <p class="sub">웹캠 하나로 <b>기본 성향</b>과 <b>오늘의 마음 컨디션</b>을 함께 측정하고, AI 에이전트가 맞춤 케어로 이어 드립니다.</p>
+    <p class="cat">시선 · 생체신호 AI 기반 정신건강 측정 및 Agent 케어 플랫폼</p>
 
-    <div class="hero-actions">
-      <button id="startBtn" class="btn-main">
-        <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
-        무료 검사 시작
-      </button>
-      <a class="btn-sample" href="result.html" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
-        샘플 리포트 먼저 보기
-      </a>
+    <div class="duo" id="duo">
+      <div class="dcard2 dc-trait">
+        <div class="dh"><div class="dic"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div><div><div class="dk">GAZE TRAIT TEST</div><h3>시선추적 AI 성향검사</h3></div></div>
+        <p class="dq">“나는 어떤 사람일까?”</p>
+        <div class="dchips"><span>Big5</span><span>MBTI</span><span>직업흥미</span><span>직무 적합도</span></div>
+        <div class="dmeta"><span>⏱ <b>약 5분</b></span><span>시선 + 설문</span><span>결과 즉시</span></div>
+        <div class="dact"><button id="startBtn" class="dgo" type="button"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>성향검사 시작</button><a class="dsm" href="resultadmin.html?sample=1" target="_blank" rel="noopener">샘플 리포트</a></div>
+      </div>
+      <div class="dcard2 dc-cond">
+        <span class="dnew">NEW · In_mind</span>
+        <div class="dh"><div class="dic"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div><div><div class="dk">MIND CONDITION TEST</div><h3>마인드 컨디션 검사</h3></div></div>
+        <p class="dq">“나는 지금 괜찮을까?”</p>
+        <div class="dchips"><span>또렷함</span><span>집중 조절</span><span>마음의 시선</span><span>몸의 회복력</span></div>
+        <div class="dmeta"><span>⏱ <b>약 8분</b></span><span>시선 + 얼굴 심박 + 반응</span><span>2주마다 재측정</span></div>
+        <div class="dact"><a class="dgo" href="/condition"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg>컨디션 검사 시작</a><a class="dsm" href="/condition?sim=fatigue" target="_blank" rel="noopener">샘플 리포트</a></div>
+      </div>
+    </div>
+    <p class="pick">어떤 검사가 맞을지 모르겠다면? <button type="button" id="pickBtn">30초 추천 받기</button></p>
+    <div class="picker" id="picker">
+      <div class="pq">요즘 더 궁금한 것은?</div><div class="po" data-q="0"><button type="button" data-v="t">나라는 사람의 성격·적성</button><button type="button" data-v="c">요즘 지치고 집중이 안 되는 이유</button></div>
+      <div class="pq">지금 신경 쓰이는 것은?</div><div class="po" data-q="1"><button type="button" data-v="t">진로 · 관계 · 일 스타일</button><button type="button" data-v="c">수면 · 스트레스 · 컨디션</button></div>
+      <div class="pq">지금 쓸 수 있는 시간은?</div><div class="po" data-q="2"><button type="button" data-v="t">5분</button><button type="button" data-v="c">8분 이상</button></div>
+      <div class="pr" id="pickRes">세 가지를 고르면 맞는 검사를 알려 드려요.</div>
     </div>
     <div class="meta">
       <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>로그인 없이 시작</span>
       <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>PC · 노트북 웹캠</span>
-      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>약 5분 소요</span>
-      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>결과 즉시 확인</span>
+      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>영상은 저장하지 않아요</span>
+      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>웰니스 참고 지표 · 비진단</span>
     </div>
     <p id="status"></p>
 
-    <div class="gaze-visual" aria-hidden="true">
-      <svg viewBox="0 0 620 150" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 95 C 90 30, 150 120, 220 70 S 350 40, 420 90 S 540 60, 600 80"
-              fill="none" stroke="#C9D8FF" stroke-width="2" stroke-dasharray="5 6"/>
-        <circle cx="20"  cy="95" r="7"  fill="#1E5AF0" opacity=".25" class="scan-dot"/>
-        <circle cx="122" cy="72" r="11" fill="#1E5AF0" opacity=".45" class="scan-dot" style="animation-delay:.3s"/>
-        <circle cx="220" cy="70" r="8"  fill="#6C4CE0" opacity=".4"  class="scan-dot" style="animation-delay:.6s"/>
-        <circle cx="330" cy="58" r="13" fill="#1E5AF0" opacity=".55" class="scan-dot" style="animation-delay:.9s"/>
-        <circle cx="420" cy="90" r="9"  fill="#0FA47A" opacity=".45" class="scan-dot" style="animation-delay:1.2s"/>
-        <circle cx="520" cy="68" r="12" fill="#1E5AF0" opacity=".5"  class="scan-dot" style="animation-delay:1.5s"/>
-        <circle cx="600" cy="80" r="7"  fill="#6C4CE0" opacity=".35" class="scan-dot" style="animation-delay:1.8s"/>
-        <text x="330" y="30" text-anchor="middle" font-family="Sora" font-size="10" letter-spacing="2" fill="#626E85">GAZE SCANPATH · FIXATION · SACCADE</text>
-      </svg>
-    </div>
-
     <div class="proof">
       <div class="p"><div class="num">9,200<b>명+@</b></div><div class="lb">AI 학습 데이터</div></div>
-      <div class="p"><div class="num">4,514<b>만+@</b></div><div class="lb">시선좌표 데이터</div></div>
+      <div class="p"><div class="num">7<b>종 · 19</b></div><div class="lb">In_mind 학술 표준 과제 · 판정 지표</div></div>
       <div class="p"><div class="num">1,600<b>명</b></div><div class="lb">경기도 8개교 현장 실증</div></div>
       <div class="p"><div class="num">AUC <b>0.819</b></div><div class="lb">정서적 스트레스 신호 선별(실증)</div></div>
     </div>
@@ -741,10 +822,19 @@ footer p{font-size:12.5px;color:var(--gray)}
 <!-- ================= 검사 종류 ================= -->
 <section id="tests">
   <div class="wrap">
-    <span class="eyebrow">Now · Phase 1</span>
-    <h2 class="sec">그래서 우리는 간편한 측정, 높은 정확도, 후속 케어 서비스까지<br>하나로 연계되는 <em>NeuroLens</em>를 만들었습니다</h2>
-    <p class="lead">뉴로렌즈(NeuroLens)는 학생·일반인을 대상으로 실증 중인 웹캠 시선추적 기반 AI 심리검사 서비스입니다. 설문 응답과 무의식적 시선 신호를 결합해 자기보고 편향을 보완하고, Agent가 케어합니다.</p>
+    <span class="eyebrow">Two Tests · One NeuroLens</span>
+    <h2 class="sec">기본 성향은 <em>시선추적 AI</em>로, 오늘의 컨디션은 <em>In_mind</em>로<br>측정에서 케어까지 하나로 이어집니다</h2>
+    <p class="lead">뉴로렌즈(NeuroLens)는 웹캠 하나로 두 가지를 측정합니다. <b>시선추적 AI 성향검사</b>는 설문과 무의식적 시선 신호를 결합해 자기보고 편향을 보완하고, <b>마인드 컨디션 검사</b>는 자체 엔진 In_mind로 시선·얼굴 심박·반응을 함께 읽어 오늘의 상태를 봅니다. 두 결과는 AI Agent 케어로 이어집니다.</p>
 
+    <div class="cmp">
+      <div><span class="a">● 시선추적 AI 성향검사</span></div><div><span class="b">● 마인드 컨디션 검사</span></div>
+      <div><small>답하는 질문</small>나는 어떤 사람인가 — 기본 성향</div><div><small>답하는 질문</small>나는 지금 어떤 상태인가 — 오늘의 컨디션</div>
+      <div><small>측정</small>자극 이미지 응시 시선 + 설문 · 약 5분</div><div><small>측정</small>시선 + 얼굴 심박 + 눈꺼풀 + 반응 속도 · 약 8분</div>
+      <div><small>결과</small>Big5 · MBTI · 직업흥미 · 직무 적합도 (+ 리포트 6종)</div><div><small>결과</small>또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력, 마음 날씨</div>
+      <div><small>케어</small>성향 조합 맞춤 케어 · AI 상담</div><div><small>케어</small>맞춤 케어 트랙 · 2주마다 재측정으로 변화 확인</div>
+    </div>
+    <div class="ltabs" role="tablist" aria-label="검사 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 컨디션 검사</button></div>
+    <div class="lpanel" data-panel="t">
     <div class="grid4">
       <div class="card tcard" style="--cb:#1E5AF0;--cb-soft:var(--blue-soft);--cb-grad:var(--grad-blue);--cb-sh:rgba(30,90,240,.3)">
         <div class="head">
@@ -840,6 +930,21 @@ footer p{font-size:12.5px;color:var(--gray)}
         <span>'26.3Q 표기 리포트는 2026년 3분기 출시 예정입니다.</span>
       </div>
     </div>
+    </div>
+    <div class="lpanel" data-panel="c" hidden>
+      <div class="cgrid">
+        <div class="ccard" style="--cc:#2a78d6"><div class="ce">🔋</div><h4>또렷함</h4><div class="cpro">각성 · 경계 네트워크</div><p>피곤하지 않고 깨어 있는 정도 — 모든 집중의 바탕</p><div class="ct"><span>PVT-B</span><span>PERCLOS</span></div></div>
+        <div class="ccard" style="--cc:#4a3aa7"><div class="ce">🎯</div><h4>집중 조절</h4><div class="cpro">주의 통제 · 실행 통제</div><p>충동을 멈추고 하려던 일에 집중을 붙잡는 힘</p><div class="ct"><span>안티사카드</span><span>원활 추적</span><span>SART</span></div></div>
+        <div class="ccard" style="--cc:#e87ba4"><div class="ce">👀</div><h4>마음의 시선</h4><div class="cpro">정서 주의</div><p>불편하거나 기쁜 정보에 마음이 끌리고 머무는 정도</p><div class="ct"><span>정서 자유 보기</span></div></div>
+        <div class="ccard" style="--cc:#1baf7a"><div class="ce">💓</div><h4>몸의 회복력</h4><div class="cpro">자율신경 조절</div><p>긴장할 때 심박 반응과 다시 편안해지는 힘</p><div class="ct"><span>MIST 암산</span><span>공명 호흡</span><span>얼굴 심박</span></div></div>
+      </div>
+      <div class="cfoot">
+        <div class="cbox"><h4>결과로 받는 것</h4><ul><li><b>간편 보고서</b> — 오늘의 마음 날씨 · 네 영역 카드 · 오늘 해볼 3가지</li><li><b>전문가 보고서</b> — 영역 점수 분해 · 지표 19개 · 측정 품질 · 근거 문헌</li><li><b>AI 종합 총평</b>과 맞춤 케어 트랙(피로 회복 · 집중력 · 마음 전환 · 몸 이완), 2주 뒤 재측정</li></ul>
+          <div class="go"><a class="btn-card" style="display:inline-flex;width:auto;padding:12px 20px;text-decoration:none" href="/condition">컨디션 검사 시작<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><a class="dsm" style="align-self:center;font-weight:700;color:#5B3FD6" href="/condition?sim=fatigue" target="_blank" rel="noopener">샘플 리포트 보기 →</a></div></div>
+        <div class="cbox"><h4>In_mind 엔진이 하는 일</h4><p>얼굴 심박(rPPG)·눈꺼풀·시선·반응 속도를 한 번에 측정하고, 지표마다 <b>측정 신뢰도</b>를 매겨 불안정한 값은 판정에서 뺍니다. 영상은 브라우저 밖으로 나가지 않아요.</p>
+          <div class="qchips"><span>3단계 시선 보정</span><span>다중 영역 심박</span><span>신뢰도 가중</span><span>오차 범위 표시</span><span>수렴 원칙</span><span>화면 이탈 제외</span></div></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -847,8 +952,10 @@ footer p{font-size:12.5px;color:var(--gray)}
 <section id="how" style="background:#FAFBFE;border-top:1px solid var(--line)">
   <div class="wrap">
     <span class="eyebrow">How It Works</span>
-    <h2 class="sec">카메라 하나로 완성되는 측정 파이프라인</h2>
-    <p class="lead">별도 장비 없이 브라우저에서 시작해 30초 이내에 리포트까지 자동 생성됩니다.</p>
+    <h2 class="sec">카메라 하나로 완성되는 두 가지 측정 파이프라인</h2>
+    <p class="lead">별도 장비 없이 브라우저에서 시작합니다. 성향검사는 시선행동 AI가, 컨디션 검사는 자체 엔진 In_mind가 리포트까지 자동으로 만듭니다.</p>
+    <div class="ltabs" role="tablist" aria-label="파이프라인 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 컨디션 검사 · In_mind</button></div>
+    <div class="lpanel" data-panel="t">
     <div class="flow">
       <div class="step">
         <span class="n">1</span>
@@ -871,6 +978,15 @@ footer p{font-size:12.5px;color:var(--gray)}
         <h4>리포트 · API</h4><p>프로파일을 리포트와 JSON API로 제공, 불확실성까지 함께 표기</p>
       </div>
     </div>
+    </div>
+    <div class="lpanel" data-panel="c" hidden>
+      <div class="flow">
+        <div class="step"><span class="n">1</span><div class="ic v"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div><h4>3단계 시선 보정</h4><p>9점 응시 + 움직이는 점 추적 보정 + 영점 조정, 커서로 실제 시선 이동 확인</p></div>
+        <div class="step"><span class="n">2</span><div class="ic b"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div><h4>8분 멀티모달 측정</h4><p>학술 표준 과제 7종 동안 시선 · 얼굴 심박(이마·양 볼) · 눈꺼풀 · 반응 속도를 동시에 기록</p></div>
+        <div class="step"><span class="n">3</span><div class="ic nv"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg></div><h4>In_mind 분석</h4><p>지표 19개 × 측정 신뢰도 가중 → 4개 영역 → 영역 간 연결(피로 게이팅 · 신경내장 통합) 해석</p></div>
+        <div class="step"><span class="n">4</span><div class="ic g"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-8.7-9C2.2 8.5 4.5 5.6 7.5 5.6c1.9 0 3.4 1 4.5 2.5 1.1-1.5 2.6-2.5 4.5-2.5 3 0 5.3 2.9 4.2 6.4C19 16.6 12 21 12 21z"/></svg></div><h4>보고서 · 케어</h4><p>간편·전문가 보고서와 AI 총평, 맞춤 케어 트랙 → 2주 뒤 재측정으로 변화 확인</p></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -878,7 +994,9 @@ footer p{font-size:12.5px;color:var(--gray)}
 <section id="tech">
   <div class="wrap">
     <span class="eyebrow">Validation</span>
-    <h2 class="sec">내부 검증 AUC 0.74~0.82 —<br>참고 벤치마크 대비 <em>경쟁력 있는 성능</em></h2>
+    <h2 class="sec">검사마다 근거를 투명하게 —<br>검증된 성능과 <em>근거 기반 설계</em></h2>
+    <div class="ltabs" role="tablist" aria-label="검증 근거 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사 · 내부 검증 AUC 0.74~0.82</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 컨디션 검사 · In_mind</button></div>
+    <div class="lpanel" data-panel="t">
 
     <div class="vgrid">
       <div class="vcard">
@@ -995,6 +1113,25 @@ footer p{font-size:12.5px;color:var(--gray)}
     </div>
     <div class="src-note">출처: Personnel Review · Journal of Applied Psychology · 한국심리학회지 · 학계 종합</div>
 
+    </div>
+    <div class="lpanel" data-panel="c" hidden>
+      <div class="ev">
+        <div class="cbox"><h4>근거 문헌 <small>모든 과제는 학술 표준 패러다임을 웹캠 환경에 맞춰 구현했습니다</small></h4>
+          <table class="evt"><thead><tr><th>과제</th><th>측정하는 것</th><th>근거</th></tr></thead><tbody>
+            <tr><td><b>PVT-B</b></td><td>또렷함 · 반응 지연</td><td>Basner et al., 2011</td></tr>
+            <tr><td><b>PERCLOS</b></td><td>눈꺼풀 감김 비율</td><td>Wierwille et al., 1994</td></tr>
+            <tr><td><b>프로·안티사카드</b></td><td>반사 억제(실행 통제)</td><td>Antoniades et al., 2013</td></tr>
+            <tr><td><b>원활 추적</b></td><td>주의 동기화</td><td>Lencer &amp; Trillenberg, 2008</td></tr>
+            <tr><td><b>SART</b></td><td>지속 주의 · 멈추는 힘</td><td>Robertson et al., 1997</td></tr>
+            <tr><td><b>정서 자유 보기</b></td><td>정서 주의 편향</td><td>Armstrong &amp; Olatunji, 2012</td></tr>
+            <tr><td><b>MIST · 공명 호흡</b></td><td>압박 심박 반응 · 회복</td><td>Dedovic et al., 2005 · Lehrer &amp; Gevirtz, 2014</td></tr>
+          </tbody></table></div>
+        <div class="cbox"><h4>측정 품질 관리 <small>In_mind QC — 측정이 불안정하면 판정하지 않거나 ‘잠정’으로 표시합니다</small></h4>
+          <div class="qchips"><span>지표별 신뢰도 가중</span><span>95% 오차 범위 · ‘경계’ 표시</span><span>2개 이상 지표 수렴 시에만 ‘관리 필요’</span><span>무작위 응답 · 화면 이탈 제외</span><span>촬영 시각 기준 시계열</span><span>다중 영역 심박 융합</span><span>호흡 순응 확인</span><span>AI 총평 수치 검증</span></div>
+          <div class="stage-row"><div class="done"><b>근거 문헌 · 품질 관리</b>설계 완료 · 적용 중</div><div class="now"><b>규준 수립 중</b>동의 기반 연구 데이터로 참고 범위 재설정</div><div class="now"><b>기술백서 수립 중</b>알고리즘 · 검증 절차 공개 예정</div></div>
+          <p style="font-size:12.5px;color:var(--gray2);margin-top:12px">마인드 컨디션 검사의 판정 기준은 문헌 보고 범위를 웹캠 환경에 맞춘 잠정값이며, 규준 수립 후 검증 수치를 공개합니다. 의학적 진단이 아닌 웰니스 참고 지표입니다.</p></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1400,6 +1537,29 @@ const startBtn = document.getElementById('startBtn');
 const statusEl = document.getElementById('status');
 
 startBtn.addEventListener('click', startTest);
+/* 라인업 탭 (검사 · 구동방식 · 성능검증 섹션마다 독립) */
+document.querySelectorAll('.ltabs').forEach(bar => {
+  const sec = bar.parentElement;
+  bar.querySelectorAll('button[data-tab]').forEach(b => b.addEventListener('click', () => {
+    bar.querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+    sec.querySelectorAll(':scope > .lpanel').forEach(p => { p.hidden = p.dataset.panel !== b.dataset.tab; });
+  }));
+});
+/* 30초 추천: 세 문항 중 다수결 */
+{
+  const ans = [], pr = document.getElementById('pickRes'), duo = document.getElementById('duo');
+  document.getElementById('pickBtn').addEventListener('click', () => document.getElementById('picker').classList.toggle('on'));
+  document.querySelectorAll('#picker .po').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    ans[+g.dataset.q] = b.dataset.v;
+    if (ans.filter(Boolean).length < 3) return;
+    const c = ans.filter(v => v === 'c').length, t = 3 - c;
+    duo.classList.toggle('hl-cond', c > t); duo.classList.toggle('hl-trait', t > c);
+    pr.innerHTML = c > t ? '<b>마인드 컨디션 검사</b>를 추천해요 — 지금의 또렷함·집중·마음·몸 상태를 8분 만에 확인하고 케어로 이어 갈 수 있어요.'
+      : '<b>시선추적 AI 성향검사</b>를 추천해요 — 5분이면 나의 성격·흥미·잘 맞는 일을 알 수 있어요. 컨디션이 궁금해지면 컨디션 검사도 함께 해 보세요.';
+  })));
+}
+window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'nlAdminResultReady') setStatus('검사가 완료되었습니다. 측정 창에서 결과 리포트를 확인해 주세요.'); });
 
 /* D7 재측정 진입 (report.html → index.html#test):
  * 측정은 사용자 클릭이 있어야 시작되므로, 시작 버튼으로 시선을 모아 안내한다 */
@@ -1420,11 +1580,29 @@ function setStatus(msg, isError = false) {
 let testWin = null;
 let testStartedAt = 0;
 
+/* 시선추적 AI 성향검사: 사전 체크인 없이 바로 측정 창을 연다.
+ * 결과 연결용 실행 기록(run)만 만들고, 측정 엔진 콜백(/rcvrslt-admin)이 결과를 붙인 뒤 통합 결과 리포트(resultadmin.html)로 이동한다.
+ * (오늘의 마음 상태는 마인드 컨디션 검사가 담당하므로 성향검사에서는 묻지 않는다) */
 function startTest() {
-  /* 사전 체크인 뒤 Mindgaze 검사와 통합 결과 리포트로 이어진다. */
-  location.href = '/checkin';
+  if (isMobileDevice()) {
+    setStatus('시선추적 검사는 웹캠이 있는 PC·노트북에서 진행할 수 있어요. 이 페이지 링크를 PC에서 열어 주세요.', true);
+    try { if (navigator.share) navigator.share({ title: 'NeuroLens 무료 검사', url: location.origin + '/' }); } catch (_) {}
+    return;
+  }
+  const id = crypto.randomUUID();
+  try {
+    localStorage.setItem('nlAdminRun:' + id, JSON.stringify({ id, checkin: null, createdAt: Date.now(), result: null, live: true }));
+    localStorage.setItem('nlAdminActiveRun', id);
+  } catch (_) {}
+  const tUrl = 'test.html?' + new URLSearchParams({ admin: '1', run: id, pu: '1710480232349' }).toString();
+  const tw = openTestWindow(tUrl);
+  if (!tw) {
+    setStatus('측정 창이 차단되었습니다. 주소창 오른쪽의 팝업 차단 아이콘에서 이 사이트를 허용한 뒤 다시 눌러 주세요.', true);
+    return;
+  }
+  setStatus('새 창에서 측정이 진행됩니다. 측정을 마치면 그 창에 결과 리포트가 열립니다.');
   return;
-  /* 로그인 없이 바로 검사한다. 결과 화면에서 "저장하고 7일 케어 받기"로 가입을 안내하고,
+  /* (이전 경로) 로그인 없이 바로 검사한다. 결과 화면에서 "저장하고 7일 케어 받기"로 가입을 안내하고,
    * 가입·로그인 직후 방금 결과를 계정에 저장한다 (savePendingResult). */
   if (isMobileDevice()) {
     setStatus('시선추적 검사는 웹캠이 있는 PC·노트북에서 진행할 수 있어요. 이 페이지 링크를 PC에서 열어 주세요.', true);

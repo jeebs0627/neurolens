@@ -553,8 +553,8 @@
     <nav class="rnav no-print" aria-label="리포트 목차"><a href="#r-top">요약</a><a href="#r-ai">AI 총평</a><a href="#r-dash">대시보드</a>${B.DOMAIN_KEYS.map(k => `<a href="#dom-${k}">${esc(B.DOMAINS[k].name)}</a>`).join('')}<a href="#r-care">케어</a><a href="#r-qc">품질·방법</a></nav>
 
     <section class="rhero" id="r-top">
-      <div class="rhero-top"><div><div class="kicker">NeuroLens Lab · Integrated Self-Regulation Report</div>
-        <h1>통합 자기조절 리포트</h1>
+      <div class="rhero-top"><div><div class="kicker">NeuroLens · Mind Condition Report · In_mind engine</div>
+        <h1>마인드 컨디션 리포트</h1>
         <p class="rhero-sub">또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력을 하나의 모델로 통합해 해석합니다${C.cite(['posner', 'thayerLane'])}</p></div>${source}</div>
       <div class="rhero-main">
         <div class="rhero-gauge">${ring(idx, { size: 168, stroke: 14, color: idx === null ? '#8A93A8' : idx >= 70 ? '#4FD1A1' : idx >= 40 ? '#F2B544' : '#F27C98', sub: '종합 지수', title: '종합 지수' })}
@@ -564,7 +564,7 @@
       </div>
       <div class="rdoms">${B.DOMAIN_KEYS.map(k => { const d = b.domains[k]; return `<a class="rdom" href="#dom-${k}"><div class="rdom-h"><span class="dic" style="color:${DCOLOR[k]};background:rgba(255,255,255,.1)">${icon(k, '#fff')}</span><span>${esc(d.name)}<small>${esc(d.pro)} · ${esc(d.en)}</small></span></div>
         <div class="rdom-b">${ring(d.score, { size: 74, stroke: 7, color: d.status === 'na' ? '#8A93A8' : DCOLOR[k], title: d.name })}<div><span class="st st-${d.status}">${B.STATUS[d.status]}</span>${d.tentative ? '<span class="st st-watch" style="margin-left:4px">잠정</span>' : ''}<div class="rdom-c"><span>신뢰도</span><i><b style="width:${Math.round((d.confidence || 0) * 100)}%"></b></i></div></div></div></a>`; }).join('')}</div>
-      <dl class="rmeta"><div><dt>측정 일시</dt><dd>${when ? esc(when.toLocaleString('ko-KR')) : '—'}</dd></div><div><dt>세션 ID</dt><dd>${esc(sid)}</dd></div><div><dt>측정 시간</dt><dd>${mins === null ? '—' : mins + '분'} · ${r.mode === 'quick' ? '빠른 측정' : '표준 측정'}</dd></div><div><dt>시선 보정</dt><dd>${esc(calText)}</dd></div></dl>
+      <dl class="rmeta"><div><dt>측정 일시</dt><dd>${when ? esc(when.toLocaleString('ko-KR')) : '—'}</dd></div><div><dt>세션 ID</dt><dd>${esc(sid)}</dd></div><div><dt>측정 시간</dt><dd>${mins === null ? '—' : mins + '분'} · ${r.mode === 'quick' ? '표준 측정' : '정밀 측정'}</dd></div><div><dt>시선 보정</dt><dd>${esc(calText)}</dd></div></dl>
     </section>
 
     <section class="card ai" id="r-ai">

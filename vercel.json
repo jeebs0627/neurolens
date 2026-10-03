@@ -1,28 +1,71 @@
 {
   "rewrites": [
-    { "source": "/checkin", "destination": "/indexadmin.html" },
-    { "source": "/gemini", "destination": "/api/gemini" },
-    { "source": "/rppg", "destination": "/api/rppg" },
-    { "source": "/rcvrslt", "destination": "/api/rcvrslt" },
-    { "source": "/rcvrslt-admin", "destination": "/api/rcvrslt_admin" },
-    { "source": "/engine/:endpoint", "destination": "/api/mg?endpoint=:endpoint" },
-    { "source": "/mg/:endpoint", "destination": "/api/mg?endpoint=:endpoint" }
+    {
+      "source": "/condition",
+      "destination": "/condition.html"
+    },
+    {
+      "source": "/checkin",
+      "destination": "/indexadmin.html"
+    },
+    {
+      "source": "/gemini",
+      "destination": "/api/gemini"
+    },
+    {
+      "source": "/rppg",
+      "destination": "/api/rppg"
+    },
+    {
+      "source": "/rcvrslt",
+      "destination": "/api/rcvrslt"
+    },
+    {
+      "source": "/rcvrslt-admin",
+      "destination": "/api/rcvrslt_admin"
+    },
+    {
+      "source": "/engine/:endpoint",
+      "destination": "/api/mg?endpoint=:endpoint"
+    },
+    {
+      "source": "/mg/:endpoint",
+      "destination": "/api/mg?endpoint=:endpoint"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(self \"https://mindgaze.ai\" \"https://www.mindgaze.ai\"), microphone=(), geolocation=()" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self \"https://mindgaze.ai\" \"https://www.mindgaze.ai\"), microphone=(), geolocation=()"
+        }
       ]
     },
     {
       "source": "/(admin|chat_admin|chat|indexadmin|report|result|resultadmin|test)\\.html",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
     }
   ]

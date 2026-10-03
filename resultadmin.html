@@ -218,16 +218,7 @@ footer{padding:34px 24px;background:#fff;border-top:1px solid var(--line);text-a
         </div>
       </div>
 
-      <div class="section-label"><span class="num">01</span>Primary insight</div>
-      <article class="emotion-card card" id="emotionCard">
-        <div class="summary-head emotion-head"><div class="emotion-heading"><div class="care-card-label">CHECK-IN × MEASUREMENT</div><h3>오늘 내 감정 상태</h3><span class="ai-badge" id="careAiBadge">✦ Neurolens Care</span></div><div class="emotion-index unavailable" id="emotionIndex" aria-label="오늘의 내 감정지수"><span class="emotion-index-label">오늘의 내 감정지수</span><div class="emotion-index-number"><strong id="emotionScoreValue">—</strong><span>/ 100점</span></div><small class="emotion-index-note" id="emotionScoreNote">사전 체크인 점수를 확인하고 있습니다.</small><small class="emotion-index-disclaimer">뉴로렌즈 자체 평가결과로 의료적 진단을 대체하지 않습니다.</small></div></div>
-        <div id="careCheckinFacts" class="care-fact-list" aria-label="사전 체크인 답변"></div>
-        <p class="care-ai-status" role="status" aria-live="polite"><span id="careAiStatus"></span><button id="careAiRetry" type="button" hidden>AI 해석 다시 시도</button></p>
-        <details class="emotion-detail"><summary><span id="careAiPreview" class="emotion-preview"></span><span class="emotion-toggle">감정 총평 전문 보기</span></summary><div id="careAiSummary" class="care-ai-copy"></div></details>
-        <div class="care-ai-actions"><div><small>추천하는 케어 방향</small><p id="careAiDirection"></p></div><div><small>오늘의 작은 시작</small><p id="careAiStep"></p></div></div>
-        <div id="careSupport" class="care-support" hidden></div>
-        <p class="care-boundary">사전 체크인과 제공된 검사 항목을 함께 읽는 비진단적 웰니스 안내입니다. 제공되지 않은 시선·선별 지표는 추정하지 않습니다.</p>
-      </article>
+      <div class="section-label">Summary</div>
       <article class="summary-card card">
         <div class="summary-head"><h3>나의 특징 요약</h3><span class="ai-badge" id="profileAiBadge">✦ Neurolens Summary</span></div>
         <div class="sum-tags" id="rSumTags"></div>
@@ -249,39 +240,39 @@ footer{padding:34px 24px;background:#fff;border-top:1px solid var(--line);text-a
         <p id="profileAiStatus" class="profile-ai-status" role="status" aria-live="polite"></p>
       </article>
 
-      <div class="section-label"><span class="num">02—05</span>My profile</div>
+      <div class="section-label"><span class="num">01—04</span>My profile</div>
       <div class="report-grid">
         <details class="report-disclosure primary-mobile personality-card" data-desktop-open>
-          <summary><span class="report-no">02</span><span class="report-label"><b>16 Personalities · MBTI</b><small>나의 에너지와 인식 방식</small></span></summary>
+          <summary><span class="report-no">01</span><span class="report-label"><b>16 Personalities · MBTI</b><small>나의 에너지와 인식 방식</small></span></summary>
           <div class="report-body"><div class="inner-pad"><div class="mbti-hero"><div class="mbti-chip" id="rMbtiChip">ENFP</div><div class="mbti-info"><div class="nm" id="rMbtiName">재기발랄한 활동가</div><div class="ds" id="rMbtiShort">열정과 창의력으로 새로운 가능성을 탐색하며, 사람에 대한 진심 어린 관심으로 깊은 유대감을 형성합니다.</div><div class="mbti-kw" id="rMbtiKeywords"><span>#열정</span><span>#창의력</span><span>#친화력</span><span>#호기심</span></div><div class="mbti-detail" aria-live="polite"><h4>나의 유형 자세히 보기</h4><div id="rMbtiDetail"><p>유형 해설을 불러오는 중입니다.</p></div></div></div></div></div></div>
         </details>
         <details class="report-disclosure primary-mobile bigfive-card" data-desktop-open>
-          <summary><span class="report-no">03</span><span class="report-label"><b>Big Five</b><small>다섯 가지 성격 요인 프로파일</small></span></summary>
+          <summary><span class="report-no">02</span><span class="report-label"><b>Big Five</b><small>다섯 가지 성격 요인 프로파일</small></span></summary>
           <div class="report-body"><div class="inner-pad"><div class="radar-flex"><div class="radar-box" id="rRadar"></div><div class="radar-legend" id="rBig5"></div></div><div class="bigfive-insight" id="rBig5Insight"></div></div></div>
         </details>
         <details class="report-disclosure wide" id="rHollandCard" style="display:none" data-desktop-open>
-          <summary><span class="report-no">04</span><span class="report-label"><b>Career Interest · RIASEC</b><small>관심이 자연스럽게 향하는 활동과 환경</small></span></summary>
+          <summary><span class="report-no">03</span><span class="report-label"><b>Career Interest · RIASEC</b><small>관심이 자연스럽게 향하는 활동과 환경</small></span></summary>
           <div class="report-body"><div class="inner-pad"><div class="holland-hero"><div class="holland-chip" id="rHollandChip"></div><div class="holland-info"><div class="ds" id="rHollandDesc"></div></div></div><div class="riasec-grid" id="rRiasec"></div><div class="riasec-note">Holland 직업흥미 이론에 기반한 자기이해 참고 정보입니다.</div></div></div>
         </details>
         <details class="report-disclosure wide" data-desktop-open>
-          <summary><span class="report-no">05</span><span class="report-label"><b>Career Fit</b><small>성향과 관심 패턴을 활용할 수 있는 직무</small></span></summary>
+          <summary><span class="report-no">04</span><span class="report-label"><b>Career Fit</b><small>성향과 관심 패턴을 활용할 수 있는 직무</small></span></summary>
           <div class="report-body"><div class="inner-pad"><div class="fit-top" id="rPodium"></div><div class="fit-note">적합도는 자기탐색을 위한 참고 지표이며 채용·역량 평가를 의미하지 않습니다.</div><div class="job-list" id="rJobs"></div></div></div>
         </details>
       </div>
 
-      <div class="section-label insight-label"><span class="num">06—07</span>Cross insight</div>
+      <div class="section-label insight-label"><span class="num">05—06</span>Cross insight</div>
       <div class="report-grid">
         <details class="report-disclosure wide" id="rConsistencyCard" data-desktop-open>
-          <summary><span class="report-no">06</span><span class="report-label"><b>Consistency · 세 검사 일관성</b><small>MBTI · Big5 · RIASEC · 직무가 같은 나를 가리키는지</small></span></summary>
+          <summary><span class="report-no">05</span><span class="report-label"><b>Consistency · 세 검사 일관성</b><small>MBTI · Big5 · RIASEC · 직무가 같은 나를 가리키는지</small></span></summary>
           <div class="report-body"><div class="inner-pad" id="rConsistency"></div></div>
         </details>
         <details class="report-disclosure wide" id="rMatrixCard" data-desktop-open>
-          <summary><span class="report-no">07</span><span class="report-label"><b>Career Matrix · 적성 × 흥미</b><small>잘 맞는 일과 좋아하는 일을 네 칸으로 나눠 보기</small></span></summary>
+          <summary><span class="report-no">06</span><span class="report-label"><b>Career Matrix · 적성 × 흥미</b><small>잘 맞는 일과 좋아하는 일을 네 칸으로 나눠 보기</small></span></summary>
           <div class="report-body"><div class="inner-pad" id="rMatrix"></div></div>
         </details>
       </div>
 
-      <div class="section-label insight-label care-label"><span class="num">08</span>Care plan</div>
+      <div class="section-label insight-label care-label"><span class="num">07</span>Care plan</div>
       <article class="card trait-care-card" id="rTraitCareCard">
         <div class="summary-head"><div><div class="care-card-label">BIG5 COMBINATION × CARE</div><h3>나의 성향 조합 케어 처방</h3></div><span class="ai-badge">✦ Neurolens Care</span></div>
         <p class="tc-lead">한 가지 점수가 아니라 두 성격 요인이 만나는 조합에서 자주 나타나는 일상 패턴을 찾아, 오늘 바로 해볼 수 있는 짧은 루틴을 골랐어요.</p>

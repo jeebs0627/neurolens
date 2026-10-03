@@ -214,7 +214,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0B1B3F;color:var(--in
     if (adminRun) {
       try {
         const saved = JSON.parse(localStorage.getItem('nlAdminRun:' + adminRun) || 'null');
-        if (!saved || !saved.checkin || !saved.result) throw Error('사전 체크인 또는 검사 결과가 없습니다.');
+        if (!saved || !saved.result) throw Error('검사 결과가 아직 연결되지 않았습니다.');
         location.replace('resultadmin.html?run=' + encodeURIComponent(adminRun));
       } catch (error) { showFailure(error.message); }
       return;

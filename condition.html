@@ -1,0 +1,2581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="웹캠 8분으로 오늘의 마음 컨디션 — 또렷함·집중 조절·마음의 시선·몸의 회복력을 측정하고 맞춤 케어로 이어 주는 NeuroLens 마인드 컨디션 검사 (In_mind 엔진)." />
+<title>마인드 컨디션 검사 | NeuroLens</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E1A33'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<!--
+  마인드 컨디션 검사 (운영 페이지 · /condition) — NeuroLens 의 두 번째 검사 라인. 자체 알고리즘 엔진 이름은 In_mind.
+  웹캠 영상은 브라우저 안에서만 처리하고(MediaPipe Face Landmarker), 서버로 보내거나 저장하지 않는다.
+  In_mind 엔진: 신호처리 newbiz-core.js · 채점·통합 해석·품질 관리 newbiz-battery.js · 리포트 newbiz-report.js · 연구 데이터 newbiz-research.js
+  (newbiz.html 은 이 페이지로 이동하는 이전 MVP 주소)
+  테스트: node newbiz-core.test.js && node newbiz-battery.test.js
+-->
+<style>
+:root{
+  --ink:#0E1A33;--ink-2:#2B3754;--muted:#66728A;--line:#E1E6EF;--line-2:#CDD5E3;--bg:#F3F5F9;--card:#fff;
+  --blue:#1F4FD8;--blue-2:#173FB0;--blue-soft:#EDF2FE;--violet:#6A4FD8;--care:#167A6B;--care-soft:#EAF6F3;--care-line:#C4E3DC;
+  --amber:#B87508;--amber-soft:#FFF5E2;--rose:#C93C5C;--rose-soft:#FCEEF1;
+  --stage:#E8EBF1;--stage-card:#F5F7FA;
+  --font-kr:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;--font-num:'Sora','Noto Sans KR',sans-serif;
+  --shadow:0 1px 2px rgba(14,26,51,.04),0 8px 24px rgba(14,26,51,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-kr);font-size:16px;line-height:1.65;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid rgba(31,79,216,.3);outline-offset:3px}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.9em;background:#EEF1F6;border-radius:6px;padding:1px 6px}
+/* 상단 */
+.nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}
+.nav-in{max-width:1040px;margin:auto;padding:0 24px;min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;color:var(--ink);font-family:var(--font-num);font-weight:800;font-size:17px;letter-spacing:-.01em}
+.logo .mk{width:30px;height:30px;border-radius:9px;background:var(--ink);display:grid;place-items:center}
+.logo .mk svg{width:18px;height:18px}
+.logo .sub{font-family:var(--font-kr);font-weight:600;font-size:13px;color:var(--muted);padding-left:10px;border-left:1px solid var(--line-2)}
+.nav-r{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.nav-r .pill{border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;font-weight:600}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:#0B1B3F}
+.bmark{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#1E5AF0,#6C4CE0);display:grid;place-items:center}
+.bmark svg{width:22px;height:22px}
+.bword{font-family:var(--font-num);font-weight:800;font-size:19px;letter-spacing:-.02em}.bword em{font-style:normal;color:#1E5AF0}
+.brand small{font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.06em;color:#6C4CE0;background:#F1EDFD;border-radius:6px;padding:2px 7px}
+.blinks{display:flex;gap:4px;margin-right:auto;margin-left:18px}
+.blinks a{font-size:14px;font-weight:700;color:#2A3651;text-decoration:none;padding:6px 11px;border-radius:9px}
+.blinks a.on{background:#EEF3FF;color:#1E5AF0}
+.blinks a,.nav-r,.nav-r .pill,.nr-t{white-space:nowrap}
+@media(max-width:1100px){.nr-t{display:none}}
+.nav-r a.pill{text-decoration:none;color:inherit}
+.site-foot{max-width:1040px;margin:0 auto;padding:26px 24px 40px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.site-foot a{color:inherit}
+main{max-width:1040px;margin:auto;padding:30px 24px 80px}
+section[hidden]{display:none!important}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:32px 36px;margin-bottom:16px}
+.kicker{font-family:var(--font-num);font-size:11.5px;font-weight:700;letter-spacing:.14em;color:var(--blue);text-transform:uppercase}
+h1{font-size:31px;line-height:1.32;margin:10px 0 12px;letter-spacing:-.025em;word-break:keep-all}
+h2{font-size:22px;margin:4px 0 10px;letter-spacing:-.015em;word-break:keep-all}
+h3{font-size:16px;margin:0 0 8px}
+.lead{color:var(--ink-2);font-size:15.5px;margin:0 0 20px;word-break:keep-all}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.disc{font-size:12.5px;color:var(--muted);line-height:1.75;margin-top:10px;word-break:keep-all}
+/* 사전 흐름 표시 */
+.flowbar{display:flex;gap:6px;margin:0 0 16px;flex-wrap:wrap}
+.flowbar span{font-size:12.5px;font-weight:700;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+.flowbar span.on{color:#fff;background:var(--ink);border-color:var(--ink)}
+.flowbar span.done{color:var(--care);border-color:var(--care-line);background:var(--care-soft)}
+/* 소개 */
+.hero{display:grid;grid-template-columns:1.25fr 1fr;gap:30px;align-items:start}
+.domains{display:grid;gap:8px}
+.domains>div{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:13px;background:#FAFBFD}
+.domains i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-family:var(--font-num);font-weight:800;font-size:13px;color:#fff}
+.domains b{display:block;font-size:14px}
+.domains span{font-size:12px;color:var(--muted)}
+.d1{background:#3C6FE0}.d2{background:#6A4FD8}.d3{background:#C9577A}.d4{background:#1E8A7A}
+.sec-t{display:flex;align-items:baseline;gap:10px;margin:26px 0 10px}
+.sec-t h3{margin:0}
+.btbl{width:100%;border-collapse:collapse;font-size:14px}
+.btbl th{font-size:11.5px;color:var(--muted);font-weight:700;text-align:left;padding:8px;border-bottom:1.5px solid var(--line);letter-spacing:.02em}
+.btbl td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:top;word-break:keep-all}
+.btbl td.num{font-family:var(--font-num);white-space:nowrap;font-weight:600}
+.btbl input{width:18px;height:18px;margin-top:3px;accent-color:var(--blue)}
+.btbl .dom{display:inline-block;font-size:11.5px;font-weight:700;border-radius:7px;padding:2px 8px;background:var(--blue-soft);color:#21408F;white-space:nowrap}
+.prep{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.prep div{font-size:13px;padding:11px 13px;border-radius:12px;background:#FAFBFD;border:1px solid var(--line);word-break:keep-all}
+.prep b{display:block;font-size:13.5px;margin-bottom:1px}
+.modes{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.modes label{display:flex;gap:8px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;cursor:pointer;background:#fff}
+.modes label:has(input:checked){border-color:var(--blue);background:var(--blue-soft)}
+.modes input{accent-color:var(--blue)}
+.est{font-size:13.5px;color:var(--ink-2);margin-top:10px}
+.consent{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border-radius:13px;background:#F7F9FC;border:1px solid var(--line);color:var(--ink-2);font-size:13.5px;margin-top:18px}
+.consent input{margin-top:4px;width:18px;height:18px;accent-color:var(--blue)}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.btn{border:0;border-radius:12px;padding:13px 24px;font-weight:800;font-size:15px;background:var(--blue);color:#fff;box-shadow:0 6px 16px rgba(31,79,216,.22);transition:background .15s}
+.btn:hover:not(:disabled){background:var(--blue-2)}
+.btn.ghost{background:#fff;color:var(--blue);border:1.5px solid #C7D4F7;box-shadow:none}
+.btn.ghost:hover:not(:disabled){background:var(--blue-soft)}
+.btn.care{background:var(--care);box-shadow:0 6px 16px rgba(22,122,107,.22)}
+.btn:disabled{opacity:.4;cursor:default}
+.kbd{display:inline-block;font-family:var(--font-num);font-size:11px;font-weight:700;border:1px solid rgba(255,255,255,.5);border-radius:5px;padding:0 5px;margin-left:8px;opacity:.85}
+.status{margin-top:12px;font-size:14px;color:var(--muted);min-height:22px}
+.status.err{color:var(--rose)}
+.qa{margin-top:18px;border:1px dashed var(--line-2);border-radius:14px;padding:12px 16px;background:#FAFBFD}
+.qa summary{cursor:pointer;font-weight:800;color:var(--ink-2);font-size:14px}
+.qa p{font-size:13.5px;color:var(--ink-2);margin:10px 0}
+.qa select{font:inherit;padding:9px 12px;border-radius:11px;border:1.5px solid var(--line);background:#fff}
+.qa .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* 체크인 */
+.q{margin:0 0 24px}
+.q .lbl{font-weight:700;margin-bottom:8px}
+.scale{display:grid;gap:6px}
+.scale button{aspect-ratio:1;max-height:54px;border-radius:11px;border:1.5px solid var(--line);background:#fff;font-family:var(--font-num);font-weight:700;font-size:16px;color:var(--ink-2)}
+.scale button:hover{border-color:#B8C6EC}
+.scale button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.ends{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:4px}
+.choice{display:flex;flex-wrap:wrap;gap:6px}
+.choice button{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;font-size:14px;color:var(--ink-2)}
+.choice button:hover{border-color:#B8C6EC}
+.choice button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.phq{margin-top:30px;padding-top:24px;border-top:1px solid var(--line)}
+.phq-h{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.phq-stem{font-weight:700;margin:6px 0 12px;word-break:keep-all}
+.phq-item{padding:12px 0;border-bottom:1px solid var(--line)}
+.phq-item .t{font-size:14.5px;margin-bottom:8px;word-break:keep-all}
+.phq-item .t b{font-family:var(--font-num);color:var(--muted);margin-right:6px}
+.phq-opts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.phq-opts button{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:8px 6px;font-size:12.5px;line-height:1.35;color:var(--ink-2);word-break:keep-all}
+.phq-opts button:hover{border-color:#B8C6EC}
+.phq-opts button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.phq-opts button small{display:block;font-family:var(--font-num);font-weight:700;opacity:.7}
+.phq-more{margin-top:14px;padding:12px 14px;border-radius:12px;background:#F5F7FB;border:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+.phq-skip{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:13.5px;color:var(--muted)}
+.phq-skip input{width:17px;height:17px;accent-color:var(--blue)}
+.phq-copy{font-size:11.5px;color:var(--muted);margin-top:10px}
+@media (max-width:820px){.phq-opts{grid-template-columns:1fr 1fr}}
+/* 카메라 준비 */
+.setup{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:start}
+.preview{position:relative;border-radius:16px;overflow:hidden;background:#0E1A33;aspect-ratio:4/3}
+.preview video,.preview canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.checks{list-style:none;padding:0;margin:0 0 6px}
+.checks li{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.checks li b{font-family:var(--font-num);font-weight:600}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#B9C1D3;margin-right:7px;vertical-align:1px}
+.dot.ok{background:#25A06A}.dot.warn{background:var(--amber)}.dot.bad{background:var(--rose)}
+.livehr{margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--rose-soft);color:#8C2440;display:flex;align-items:center;gap:12px}
+.livehr b{font-family:var(--font-num);font-size:30px}
+.heart{width:22px;height:22px;color:var(--rose);animation:beat 1s infinite}
+@keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.25)}30%{transform:scale(1)}}
+
+/* ---------- 측정 무대 (밝기 일정 유지: rPPG 잡음 방지) ---------- */
+.stage{position:fixed;inset:0;z-index:60;background:var(--stage);display:none;user-select:none}
+.stage.on{display:block}
+html.staging,html.staging body{overflow:hidden}
+.st-top{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;gap:14px;padding:0 16px;color:var(--muted);font-size:13px;z-index:3}
+.st-brand{font-family:var(--font-num);font-weight:800;color:#6A7489;white-space:nowrap}
+.stepper{display:flex;gap:4px;list-style:none;margin:0 auto;padding:0;overflow:hidden}
+.stepper li{display:flex;align-items:center;gap:6px;font-size:12px;color:#8C95A8;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.stepper li i{width:18px;height:18px;border-radius:50%;border:1.5px solid #B4BCCB;display:grid;place-items:center;font-style:normal;font-size:10px;font-family:var(--font-num);font-weight:700}
+.stepper li.cur{background:#DCE1EA;color:var(--ink-2);font-weight:700}
+.stepper li.cur i{border-color:var(--ink-2);background:var(--ink-2);color:#fff}
+.stepper li.done i{border-color:#5E9C88;background:#5E9C88;color:#fff}
+.stepper li.skip i{border-color:#C29AA5;color:#A06676}
+.st-act{display:flex;gap:8px;align-items:center;white-space:nowrap}
+.st-act .face{display:flex;align-items:center;font-size:12px}
+.sbtn{border:1px solid #CCD3DF;background:#EEF1F5;border-radius:9px;padding:6px 11px;font-size:12.5px;color:var(--ink-2);font-weight:700}
+.sbtn:hover{background:#E3E7EE}
+.sbtn[hidden]{display:none}
+.st-prog{position:absolute;top:54px;left:0;right:0;height:3px;background:#DADFE8}
+.st-prog i{display:block;height:100%;width:0;background:#7C88A2;transition:width .5s}
+.facewarn{position:absolute;left:50%;top:72px;transform:translateX(-50%);background:var(--rose-soft);color:#8C2440;border-radius:10px;padding:7px 14px;font-size:13.5px;display:none;z-index:4}
+.facewarn.on{display:block}
+.fswarn{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;border:1px solid var(--line-2);border-radius:12px;padding:8px 10px 8px 14px;font-size:13px;display:none;gap:10px;align-items:center;z-index:4}
+.fswarn.on{display:flex}
+/* 단계 안내 카드 */
+.brief{position:absolute;left:50%;top:calc(50% + 24px);transform:translate(-50%,-50%);width:min(860px,92vw);max-height:calc(100vh - 100px);overflow:auto;background:var(--stage-card);border:1px solid #D6DCE6;border-radius:20px;padding:30px 34px;color:var(--ink-2)}
+.brief-top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.brief .tag{font-family:var(--font-num);font-size:11.5px;font-weight:700;letter-spacing:.12em;color:#4D5A78;text-transform:uppercase}
+.brief .prev{font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 11px;background:#E1EEE9;color:#2D6B5A}
+.brief .prev.warn{background:#F7EAD2;color:#80560C}
+.brief .prev.skip{background:#EFE3E7;color:#7D4A59}
+.brief h2{font-size:26px;margin:8px 0 4px;color:var(--ink)}
+.brief .what{font-size:15px;margin:0 0 18px;word-break:keep-all}
+.brief-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:22px;align-items:start}
+.brief ol{margin:0;padding-left:0;list-style:none;counter-reset:s}
+.brief ol li{position:relative;padding:0 0 10px 34px;font-size:14.5px;word-break:keep-all;counter-increment:s}
+.brief ol li::before{content:counter(s);position:absolute;left:0;top:1px;width:23px;height:23px;border-radius:50%;background:#DDE2EB;color:var(--ink-2);font-family:var(--font-num);font-size:12px;font-weight:700;display:grid;place-items:center}
+.brief .vis{border:1px solid #D9DEE8;border-radius:14px;background:#EDF0F5;display:grid;place-items:center;min-height:150px;padding:10px}
+.brief .vis svg{width:100%;max-width:300px;height:auto}
+.facts{display:flex;flex-wrap:wrap;gap:8px 20px;margin:16px 0 0;padding-top:14px;border-top:1px solid #DDE2EA;font-size:13px}
+.facts span b{color:var(--ink);margin-left:6px}
+.brief .note{margin:12px 0 0;font-size:13px;color:#7D4A59;background:#F3E8EC;border-radius:10px;padding:8px 12px}
+.brief .ref{font-size:12px;color:#7C869B;margin:10px 0 0}
+.brief .go{display:flex;gap:10px;align-items:center;margin-top:20px;flex-wrap:wrap}
+.brief .go .muted{font-size:12.5px}
+.sumlist{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:6px}
+.sumlist li{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:9px 12px;border-radius:10px;background:#EDF0F5}
+.sumlist li span{color:var(--muted);font-size:13px}
+/* 과제 진행 막대 */
+.taskbar{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;font-size:12.5px;color:#7C869B;white-space:nowrap}
+.taskbar[hidden]{display:none}
+.taskbar .tb{width:220px;height:5px;border-radius:9px;background:#D3D9E3;overflow:hidden}
+.taskbar .tb i{display:block;height:100%;width:0;background:#7C88A2}
+.taskbar b{color:#5A6580;font-family:var(--font-num);font-weight:600}
+/* 과제 자극 */
+.cal-dot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 8px rgba(201,60,92,.15);transition:left .35s,top .35s}
+.cal-dot::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff}
+.cal-dot.val{background:var(--blue);box-shadow:0 0 0 8px rgba(31,79,216,.15)}
+.cal-dot.pulse{animation:pls 1.1s ease-in-out infinite}
+@keyframes pls{50%{transform:scale(.72)}}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;max-width:min(600px,88vw);font-size:16.5px;color:var(--ink-2);word-break:keep-all}
+.center h2{font-size:24px}
+.fix{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--font-num);font-size:44px;color:#59647D;font-weight:600}
+.cue{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);font-size:14px;color:#7C869B;text-align:center;width:90%}
+.stim{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
+.stim svg{width:min(150px,16vw);height:auto}
+.stim span{font-size:clamp(20px,2.4vw,30px);font-weight:700;color:#3A4560;letter-spacing:.02em}
+.ph{position:absolute;top:50%;transform:translate(-50%,-50%);margin:0;width:min(36vw,560px);aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#D5DAE3}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.sac-fix{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#59647D;box-shadow:0 0 0 6px rgba(89,100,125,.14)}
+.rng-mark{position:absolute;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:2px dashed #B9C1D3}
+.rng-dot{position:absolute;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:#59647D;box-shadow:0 0 0 7px rgba(89,100,125,.16)}
+.rng-dot.pop{animation:rngPop .25s ease-out}
+@keyframes rngPop{from{transform:scale(.4);opacity:.2}to{transform:scale(1);opacity:1}}
+.sac-tgt{position:absolute;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 7px rgba(201,60,92,.15)}
+.pvt{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center}
+.pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#B83A49;background:#EFF1F5}
+.pvt-msg{height:26px;margin-top:14px;font-size:15px;color:#59647D}
+.sart{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-family:var(--font-num);font-weight:700;color:#2C3650;line-height:1;min-width:220px;text-align:center}
+.sart-fb{position:absolute;left:50%;top:66%;transform:translateX(-50%);font-size:15px;color:#59647D;height:24px}
+.math{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center}
+.math .prob{font-family:var(--font-num);font-size:clamp(40px,6vw,64px);font-weight:700;color:#2C3650}
+.math .tbar{width:min(420px,70vw);height:6px;border-radius:9px;background:#D3D9E5;margin:16px auto 22px;overflow:hidden}
+.math .tbar i{display:block;height:100%;background:#7D879E}
+.math .opts{display:flex;gap:14px;justify-content:center}
+.math .opts button{min-width:110px;padding:14px 0;border-radius:14px;border:1.5px solid #C9D0DD;background:#F2F4F8;font-family:var(--font-num);font-size:26px;font-weight:700;color:#2C3650}
+.math .fb{height:24px;margin-top:14px;font-size:15px;color:#59647D}
+.math .score{margin-top:4px;font-size:13px;color:var(--muted)}
+.breath{position:absolute;left:50%;top:48%;width:min(300px,50vmin);height:min(300px,50vmin);transform:translate(-50%,-50%) scale(.55);border-radius:50%;border:3px solid #8E9AB3;transition:transform 5s ease-in-out}
+.breath.in{transform:translate(-50%,-50%) scale(1)}
+.breath-lbl{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:22px;font-weight:700;color:#3A4560}
+.selfcam{position:fixed;left:12px;bottom:12px;width:120px;height:90px;border-radius:10px;object-fit:cover;transform:scaleX(-1);opacity:.5;z-index:70;background:#000;display:none}
+.selfcam.on{display:block}
+/* 안내 카드 데모 애니메이션 */
+@keyframes swing{0%,100%{transform:translateX(-95px)}50%{transform:translateX(95px)}}
+.a-swing{animation:swing 4s ease-in-out infinite}
+@keyframes blinkin{0%,45%{opacity:0}50%,100%{opacity:1}}
+.a-blink{animation:blinkin 2.4s steps(1) infinite}
+@keyframes grow{0%,100%{transform:scale(.6)}50%{transform:scale(1)}}
+@keyframes shrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.a-shrink{transform-origin:left;transform-box:fill-box;animation:shrink 3s linear infinite}
+.a-grow{transform-origin:center;transform-box:fill-box;animation:grow 10s ease-in-out infinite}
+
+/* ---------- 리포트 ---------- */
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:700}
+.badge.demo{background:var(--amber-soft);color:#7A4E06;border:1px solid #F0D6A4}
+.badge.live{background:var(--care-soft);color:#1F5E52;border:1px solid var(--care-line)}
+.ptype{font-size:32px;font-weight:900;letter-spacing:-.025em;margin:6px 0 8px}
+.mismatch{margin-top:10px;padding:12px 15px;border-radius:12px;background:#F5F2FF;border:1px solid #DDD5FF;color:#3E2E8F;font-size:14px;word-break:keep-all}
+.group-t{font-size:12.5px;font-weight:800;color:var(--muted);letter-spacing:.06em;margin:20px 0 8px}
+.chart{width:100%;height:auto;display:block}
+.effect{margin-top:14px;padding:14px 16px;border-radius:14px;background:#fff;border:1px dashed var(--care-line);font-size:14.5px;display:none}
+.effect.on{display:block}
+.hist{font-size:13.5px;margin:0;padding-left:18px}
+.cite{font-size:10.5px;font-weight:700;color:var(--blue);margin-left:1px;white-space:nowrap}
+.rpt-head .rh-top{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.rh-t{font-size:28px;margin:6px 0 6px}
+.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 12px}
+.meta div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#FAFBFD}
+.meta dt{font-size:11.5px;color:var(--muted);font-weight:700}
+.meta dd{margin:2px 0 0;font-size:14px;font-weight:700;word-break:keep-all}
+.mchips,.steps{display:flex;flex-wrap:wrap;gap:6px}
+.mchip{font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px;background:#EEF0F5;color:#5A6580}
+.mchip.m-done{background:#E4F4EC;color:#1C6E49}.mchip.m-input{background:var(--blue-soft);color:#21408F}.mchip.m-sim{background:var(--amber-soft);color:#7A4E06}
+.mchip.m-skipped,.mchip.m-nogaze{background:var(--rose-soft);color:#8C2440}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;margin-top:4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12.5px;font-weight:800;border-radius:9px;padding:4px 10px}
+.chip.pri{background:#F0EDFF;color:#4B33B5}.chip.sec{background:var(--blue-soft);color:#21408F}
+.st{font-size:11.5px;border-radius:999px;padding:2px 9px;font-weight:800;white-space:nowrap}
+.st-ok{background:#E4F4EC;color:#1C6E49}.st-watch{background:var(--amber-soft);color:#7A4E06}.st-concern{background:var(--rose-soft);color:#A2304A}.st-na{background:#EEF0F5;color:#7A8296}
+.dbars{display:grid;gap:12px}
+.dbar-h{display:flex;align-items:center;gap:8px;font-size:14px}
+.dbar-h .en{font-size:11.5px;color:var(--muted);font-family:var(--font-num)}
+.dbar-h .sc{margin-left:auto;font-family:var(--font-num);font-size:18px}
+.dbar-t{position:relative;height:10px;border-radius:9px;margin-top:5px;background:linear-gradient(90deg,#F7DCE3 0 40%,#FBEACB 40% 70%,#D6EEE3 70% 100%)}
+.dbar-t i{position:absolute;top:-4px;width:6px;height:18px;margin-left:-3px;border-radius:4px;background:var(--ink);box-shadow:0 0 0 2px #fff}
+.dbar-n{font-size:11.5px;color:var(--muted);margin-top:3px}
+.dbar-scale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-family:var(--font-num)}
+.path{border-left:3px solid var(--violet);background:#F7F5FF;border-radius:0 12px 12px 0;padding:10px 14px;margin:8px 0}
+.path b{font-size:14px;color:#3E2E8F}
+.path p{margin:3px 0 0;font-size:13.5px;word-break:keep-all;color:var(--ink-2)}
+.feel{font-size:14px;margin-bottom:6px}
+.mismatch.al{background:#F5F7FB;border-color:var(--line);color:var(--ink-2)}
+.dom-h{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
+.dom-h h2{margin:2px 0 4px}
+.dom-h .net{font-size:13px;color:var(--muted);font-weight:600;margin-left:6px}
+.dom-score{min-width:92px;text-align:center;border-radius:16px;padding:10px 12px}
+.dom-score b{display:block;font-family:var(--font-num);font-size:30px;line-height:1.1}
+.dom-score span{font-size:12px;font-weight:800}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.itbl{width:100%;border-collapse:collapse;font-size:13.5px;min-width:620px}
+.itbl th{font-size:11.5px;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1.5px solid var(--line);white-space:nowrap}
+.itbl td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top;word-break:keep-all}
+.itbl td.num{font-family:var(--font-num);font-weight:700;font-size:15px;white-space:nowrap}
+.itbl td.num small{font-size:11px;color:var(--muted);font-weight:600}
+.itbl td.rng{font-size:12px;color:var(--ink-2);min-width:150px}
+.itbl td.refc{white-space:nowrap}
+.itbl tr.info td{color:var(--ink-2);background:#FBFCFE}
+.itbl tr.info td.num{font-size:13.5px}
+.td-d{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5}
+.core-tag{font-size:10.5px;font-weight:800;color:var(--violet);background:#F0EDFF;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.method{margin-top:12px;border:1px solid var(--line);border-radius:13px;padding:10px 14px;background:#FAFBFD}
+.method summary{cursor:pointer;font-weight:800;font-size:13.5px;color:var(--ink-2)}
+.method .mstat{font-weight:700;font-size:12px;color:var(--muted);margin-left:6px}
+.method p{font-size:13px;margin:8px 0 0;word-break:keep-all;color:var(--ink-2)}
+.warn-line{font-size:13px;color:#8C2440;background:var(--rose-soft);border-radius:10px;padding:8px 12px;margin:8px 0}
+.two{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center}
+.prof-mini b{font-size:20px}
+.prof-mini p{font-size:13.5px;color:var(--ink-2);word-break:keep-all}
+.track{border:1px solid var(--care-line);background:var(--care-soft);border-radius:16px;padding:16px 18px;margin:12px 0}
+.track-h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.track-h b{font-size:16px}
+.rank{font-size:12px;font-weight:800;color:#fff;background:var(--care);border-radius:8px;padding:3px 9px}
+.track ol{margin:4px 0 8px;padding-left:20px}
+.track li{margin:4px 0;font-size:14px;word-break:keep-all}
+.kpi{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:#1F5E52;border-top:1px dashed var(--care-line);padding-top:8px}
+.qlist{margin:0;padding-left:18px;font-size:13.5px}
+.qlist li{margin:3px 0}
+.refs ol{padding-left:22px;margin:6px 0 0}
+.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word-break:break-word}
+.fw{max-width:560px;margin:auto}
+/* 바이오피드백 */
+.bio{position:fixed;inset:0;z-index:65;background:var(--stage);display:none}
+.bio.on{display:block}
+.bio .quit{position:absolute;top:12px;right:14px}
+.bio .hrbig{position:absolute;left:50%;top:15%;transform:translateX(-50%);text-align:center}
+.bio .hrbig b{font-family:var(--font-num);font-size:56px;color:#2C3650;display:block;line-height:1.1}
+.bio .hrbig span{font-size:13.5px;color:var(--muted)}
+.bio svg.spark{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(520px,86vw);height:70px}
+.bio .cue{bottom:8%}
+/* ---------- 간편 보고서 ---------- */
+.vt{display:flex;gap:6px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:16px;margin:0 0 14px;box-shadow:var(--shadow)}
+.vt button{flex:1;border:0;background:transparent;border-radius:11px;padding:11px 10px;font-weight:800;font-size:15px;color:var(--muted)}
+.vt button[aria-selected="true"]{background:var(--ink);color:#fff}
+.sp{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;animation:fadeIn .4s ease}
+.sp>*,.sp-grid>*,.sp-two>*{min-width:0}
+.sp-todo label span{min-width:0;word-break:keep-all;overflow-wrap:anywhere}
+#sReport{min-width:0;overflow-wrap:anywhere}
+.sp-k{display:block;font-size:12.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin-bottom:6px}
+.sp-hero{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-radius:26px;padding:30px 32px;color:#0E1A33;overflow:hidden;position:relative}
+.sp-sun{background:linear-gradient(135deg,#FFF4D6,#FFE3A3 55%,#FFD27A)}
+.sp-partly{background:linear-gradient(135deg,#EAF3FF,#D7E8FF 55%,#FFE9B8)}
+.sp-cloud{background:linear-gradient(135deg,#EEF1F6,#DCE3EE)}
+.sp-rain{background:linear-gradient(135deg,#E3EAF5,#C9D6EA)}
+.sp-na{background:#EEF1F6}
+.sp-hero h2{font-size:42px;margin:2px 0 4px;letter-spacing:-.03em}
+.sp-hero p{margin:0;font-size:16px;color:#2B3754}
+.sp-score{display:flex;align-items:baseline;gap:8px;margin-top:16px}
+.sp-score b{font-family:var(--font-num);font-size:54px;line-height:1}
+.sp-score span{font-size:13px;color:#4A5672;font-weight:700}
+.sp-type{display:inline-block;margin-top:10px;background:rgba(255,255,255,.7);border-radius:999px;padding:5px 14px;font-weight:800;font-size:14px}
+.w-ico{width:min(190px,36vw);height:auto}
+.w-sun{transform-origin:80px 80px;animation:orbit 30s linear infinite}
+.w-cloud{animation:cloudBob 5s ease-in-out infinite}
+@keyframes cloudBob{50%{transform:translateY(-4px)}}
+.w-rain line{animation:rainDrop 1.1s linear infinite}
+@keyframes rainDrop{from{transform:translateY(-6px);opacity:0}50%{opacity:1}to{transform:translateY(8px);opacity:0}}
+.sp-safe{padding:14px 16px;border-radius:16px;background:#FCEEF1;border:1px solid #F2C9D3;color:#7A2238;font-size:14.5px}
+.sp-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 20px;box-shadow:var(--shadow)}
+.sp-ai p{margin:0;font-size:16px;line-height:1.8;word-break:keep-all}
+.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sp-dom{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow);border-top:5px solid var(--dc)}
+.sp-dom-h{display:flex;gap:10px;align-items:flex-start}
+.sp-emo{font-size:30px;line-height:1}
+.sp-dom-h b{display:block;font-size:18px}
+.sp-dom-h small{display:block;font-size:12px;color:var(--muted);line-height:1.45;word-break:keep-all}
+.sp-meter{display:flex;gap:5px;margin:14px 0 6px}
+.sp-meter i{flex:1;height:12px;border-radius:6px;background:#EEF1F6}
+.sp-meter i.on{background:var(--dc);animation:meterIn .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes meterIn{from{transform:scaleY(.2);opacity:0}}
+.sp-st-watch .sp-meter i.on{opacity:.85}.sp-st-concern .sp-meter i.on{opacity:.75}
+.sp-lv{display:flex;justify-content:space-between;align-items:baseline}
+.sp-lv b{font-size:17px}.sp-lv span{font-family:var(--font-num);color:var(--muted);font-weight:700}
+.sp-dom p{margin:8px 0 0;font-size:14.5px;color:var(--ink-2);word-break:keep-all}
+.sp-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sp-chips{display:flex;gap:6px;flex-wrap:wrap}
+.sp-chips span{background:#E9F6EF;color:#1C6E49;border-radius:999px;padding:7px 13px;font-weight:800;font-size:14px}
+.sp-chips.warm span{background:#FFF3DF;color:#8A5508}
+.sp-m{margin:8px 0 0;font-size:13px;color:var(--muted);word-break:keep-all}
+.sp-feel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px;font-weight:700;padding:8px 0;border-bottom:1px dashed var(--line)}
+.sp-feel i{font-style:normal;color:var(--muted)}
+.sp-todo ul{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:8px}
+.sp-todo label{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;font-size:15px;transition:background .15s,border-color .15s}
+.sp-todo input{width:22px;height:22px;accent-color:var(--care);flex:none}
+.sp-todo label:has(input:checked){background:var(--care-soft);border-color:var(--care-line)}
+.sp-todo label:has(input:checked) span{text-decoration:line-through;color:var(--muted)}
+.sp-next{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.sp-next b{font-size:22px}
+.sp-disc{text-align:center;font-size:12px;color:var(--muted);margin:4px 0 10px}
+@media (max-width:820px){.sp-hero{grid-template-columns:1fr;padding:24px 20px}.sp-hero-v{justify-self:center;order:-1}.sp-grid,.sp-two{grid-template-columns:1fr}.sp-hero h2{font-size:34px}}
+/* ---------- 리포트 대시보드 ---------- */
+#sReport{animation:fadeIn .4s ease}
+.rnav{position:sticky;top:61px;z-index:15;display:flex;gap:4px;overflow-x:auto;padding:8px;margin:0 0 14px;background:rgba(243,245,249,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;scrollbar-width:none}
+.rnav a{flex:none;font-size:13px;font-weight:700;color:var(--ink-2);text-decoration:none;padding:6px 12px;border-radius:9px}
+.rnav a:hover{background:#fff;color:var(--blue)}
+section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
+.rhero{position:relative;overflow:hidden;border-radius:24px;padding:32px 34px 26px;margin-bottom:16px;color:#fff;background:radial-gradient(1200px 400px at 85% -10%,rgba(116,149,255,.35),transparent 60%),linear-gradient(135deg,#0B1530 0%,#162B57 60%,#1D3A73 100%);box-shadow:0 18px 50px rgba(14,26,51,.2)}
+.rhero .kicker{color:#9DB6FF}
+.rhero-top{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.rhero h1{font-size:30px;margin:6px 0 4px;color:#fff}
+.rhero-sub{margin:0;color:#B8C6E8;font-size:14px}
+.rhero-sub .cite{color:#9DB6FF}
+.rhero-main{display:grid;grid-template-columns:auto 1fr;gap:30px;align-items:center;margin:24px 0 20px}
+.rhero-gauge{display:flex;flex-direction:column;align-items:center;gap:8px}
+.rhero-qc{display:flex;gap:8px;align-items:baseline;font-size:12px;color:#9FB0D6;background:rgba(255,255,255,.07);border-radius:999px;padding:4px 12px}
+.rhero-qc b{font-family:var(--font-num);font-size:16px;color:#fff}
+.rhero-qc em{font-style:normal}
+.rhero-k{font-size:12px;font-weight:800;letter-spacing:.08em;color:#9FB0D6}
+.rhero-t{font-size:32px;font-weight:900;letter-spacing:-.02em;margin:2px 0 10px}
+.rhero-type p{color:#D3DDF4;font-size:14.5px;margin:10px 0 0;word-break:keep-all}
+.rhero-type .cite{color:#9DB6FF}
+.rhero .chip.pri{background:rgba(255,255,255,.14);color:#fff}.rhero .chip.sec{background:rgba(255,255,255,.08);color:#C9D5F2}
+.rdoms{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.rdom{display:block;text-decoration:none;color:#fff;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px 14px;transition:background .2s,transform .2s}
+.rdom:hover{background:rgba(255,255,255,.11);transform:translateY(-2px)}
+.rdom-h{display:flex;gap:9px;align-items:center;font-weight:800;font-size:14px}
+.rdom-h small{display:block;font-size:10.5px;font-weight:600;color:#9FB0D6;font-family:var(--font-num)}
+.rdom-b{display:flex;gap:12px;align-items:center;margin-top:8px}
+.rdom-c{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#9FB0D6;margin-top:8px}
+.rdom-c i{display:block;width:62px;height:4px;border-radius:9px;background:rgba(255,255,255,.14);overflow:hidden}
+.rdom-c i b{display:block;height:100%;background:#9DB6FF}
+.rmeta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
+.rmeta dt{font-size:11px;color:#9FB0D6;font-weight:700}.rmeta dd{margin:2px 0 0;font-size:13px;font-weight:700}
+.dic{width:30px;height:30px;border-radius:9px;display:inline-grid;place-items:center;flex:none;vertical-align:middle}
+.dic svg{width:17px;height:17px}
+.dic.sm{width:24px;height:24px;border-radius:7px}.dic.sm svg{width:14px;height:14px}
+.ring-arc{animation:ringIn 1.1s cubic-bezier(.2,.8,.2,1)}
+@keyframes ringIn{from{stroke-dasharray:0 999}}
+.radar-a{transform-origin:170px 158px;animation:radarIn .9s cubic-bezier(.2,.8,.2,1)}
+@keyframes radarIn{from{transform:scale(.3);opacity:0}}
+/* AI 총평 */
+.card.ai{position:relative;overflow:hidden;border:1px solid #D9E1F7;background:linear-gradient(180deg,#FBFCFF,#fff)}
+.card.ai::before{content:'';position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,#2a78d6,#4a3aa7,#e87ba4,#1baf7a)}
+.ai-h{display:flex;gap:14px;align-items:center}
+.ai-h h2{margin:2px 0 0;font-size:20px}
+.ai-ico{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:20px;color:#fff;background:linear-gradient(135deg,#2a78d6,#4a3aa7);flex:none}
+.ai-badge{margin-left:auto;font-size:11.5px;font-weight:800;color:#4a3aa7;background:#F0EDFF;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.ai-body{margin:16px 0 4px;font-size:15.5px;line-height:1.85;color:var(--ink-2);word-break:keep-all;min-height:120px}
+.ai-body p{margin:0 0 12px}
+.ai-body p:first-child{font-size:16.5px;color:var(--ink);font-weight:500}
+.ai-body .err{color:var(--muted);font-size:14px}
+.sk{height:14px;border-radius:7px;margin:12px 0;background:linear-gradient(90deg,#EEF1F6 25%,#E2E7EF 50%,#EEF1F6 75%);background-size:200% 100%;animation:skel 1.3s linear infinite}
+.sk.s2{width:62%}
+@keyframes skel{to{background-position:-200% 0}}
+.ai-f{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px;font-size:12px;color:var(--muted)}
+.ai-safe{margin-top:14px;padding:12px 15px;border-radius:12px;background:#FCEEF1;border:1px solid #F2C9D3;color:#7A2238;font-size:14px}
+/* 대시보드 격자 */
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.dgrid .card{margin:0}
+.dcard.wide{grid-column:span 2}
+.dcard-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.dcard-h h3{margin:0;font-size:16px}
+.radar{max-width:440px;margin:auto}
+.split{display:grid;grid-template-columns:1.05fr 1fr;gap:26px;align-items:center}
+.dlist{display:grid;gap:10px}
+.dl-r{display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#FAFBFD;transition:border-color .15s,transform .15s}
+.dl-r:hover{border-color:#B8C6EC;transform:translateX(2px)}
+.dl-m{flex:1;min-width:0}
+.dl-h{display:flex;gap:8px;align-items:center;font-size:14px}
+.dl-s{margin-left:auto;font-family:var(--font-num);font-size:18px}
+.dl-t{height:6px;border-radius:9px;background:#EEF1F6;margin:6px 0 4px;overflow:hidden}
+.dl-t i{display:block;height:100%;border-radius:9px;animation:barIn .9s cubic-bezier(.2,.8,.2,1)}
+.dl-n{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.radar-a{transform-origin:220px 160px}
+.svm{display:grid;gap:12px;margin:6px 0 4px}
+.svm-r{display:grid;grid-template-columns:118px 1fr 40px;gap:12px;align-items:center}
+.svm-l b{display:block;font-size:13.5px}
+.svm-l span{display:block;font-size:11px;color:var(--muted);line-height:1.3}
+.svm-t{position:relative;height:8px;border-radius:9px;background:#EEF1F6}
+.svm-t i{position:absolute;top:50%;transform:translate(-50%,-50%)}
+.svm-gap{height:4px;background:#A3ABBD;border-radius:2px;transform:translateY(-50%)!important}
+.svm-s{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #4a3aa7;box-sizing:border-box}
+.svm-m{width:16px;height:16px;border-radius:50%;background:#2a78d6;box-shadow:0 0 0 2px #fff}
+.svm-v{font-family:var(--font-num);font-weight:700;font-size:13px;color:#647089;text-align:right}
+.svm-v.big{color:#8C2440}
+.svm-ax{display:flex;justify-content:space-between;margin-left:130px;margin-right:52px;font-size:10.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.legend i.dash{border-top:2px dashed #8A93A8;height:0;border-radius:0;width:16px}
+.legend i.hollow{border:2.5px solid #4a3aa7;border-radius:50%;background:#fff;width:11px;height:11px}
+.imap{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
+.imap-h{display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:4px}
+.imap-r{display:grid;grid-template-columns:150px 1fr 82px;gap:10px;align-items:center;padding:4px 0;font-size:12.5px}
+.imap-l{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imap-l em{font-style:normal;font-size:9.5px;font-weight:800;color:#4a3aa7;background:#F0EDFF;border-radius:4px;padding:0 4px;margin-left:4px}
+.imap-t{height:8px;border-radius:9px;background:#EEF1F6;overflow:hidden;position:relative}
+.imap-t i{display:block;height:100%;border-radius:9px;animation:barIn .9s cubic-bezier(.2,.8,.2,1)}
+@keyframes barIn{from{width:0}}
+.imap-v{font-size:11.5px;font-weight:700;color:var(--ink-2);text-align:right;white-space:nowrap}
+/* 영역 섹션 */
+.card.dom{border-top:3px solid var(--dc,var(--line))}
+.dom-ring{flex:none}
+.dom-h .kicker{display:flex;align-items:center;gap:7px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:4px 0 14px}
+.kpi-t{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#FAFBFD;border-left:4px solid #A3ABBD}
+.kpi-t span{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.kpi-t b{display:block;font-family:var(--font-num);font-size:26px;line-height:1.2;margin-top:2px;color:var(--ink)}
+.kpi-t b small{font-size:12px;color:var(--muted);margin-left:3px;font-weight:600}
+.kpi-t em{font-style:normal;font-size:11.5px;font-weight:800;color:var(--ink-2)}
+.st-b-ok{border-left-color:#2F9E6A}.st-b-watch{border-left-color:#C98A12}.st-b-concern{border-left-color:#D2486A}
+.dtl{margin-top:16px}
+.qtag.nx{color:#1F5E52}
+.xpl{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 14px;background:#FCFDFE}
+.xpl-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:13.5px}
+.xpl-bar{display:flex;height:12px;border-radius:9px;overflow:hidden;background:#EEF1F6;margin:8px 0 10px;gap:2px}
+.xpl-bar i{display:block;height:100%}
+.xpl-lost{display:block;height:100%;background:repeating-linear-gradient(135deg,#EEF1F6 0 4px,#E1E6EE 4px 8px)}
+.xpl-rows{display:grid;gap:4px}
+.xpl-r{display:grid;grid-template-columns:10px 1.4fr 70px 76px 1.3fr;gap:10px;align-items:center;font-size:12.5px}
+.xdot{width:10px;height:10px;border-radius:3px}
+.xl{color:var(--ink-2)}.xs{color:var(--muted)}.xp{font-family:var(--font-num);color:var(--muted)}.xp b{color:var(--ink)}
+.xn{color:#1F5E52;font-size:12px}
+.ctx{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ctx-c{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#FAFBFD}
+.ctx-c span{display:block;font-size:11.5px;color:var(--muted);font-weight:700}.ctx-c b{font-size:14px}
+@media (max-width:820px){.xpl-r{grid-template-columns:10px 1fr 64px;}.xpl-r .xs,.xpl-r .xn{display:none}.ctx{grid-template-columns:1fr}}
+/* 케어 */
+.tracks{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.tracks .track{margin:0}
+.track.safe{background:#FCEEF1;border-color:#F2C9D3}
+.track.safe .rank{background:#B23A57}
+.rsopt{margin-top:10px;border:1px solid #CFE4DD;background:#F3FAF7;border-radius:13px;padding:12px 16px;font-size:13.5px;color:var(--ink-2)}
+.rsopt summary{cursor:pointer;list-style:none}
+.rsopt summary::-webkit-details-marker{display:none}
+.rsopt input{width:17px;height:17px;accent-color:var(--care);vertical-align:-3px}
+.rs-d p{margin:8px 0;font-size:13px;word-break:keep-all}
+.rs-phq{display:block;margin-top:6px;font-size:13px}
+.rs-banner{margin-top:12px;padding:12px 15px;border-radius:12px;background:var(--care-soft);border:1px solid var(--care-line);font-size:13.5px;color:#1F5E52;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rs-banner code{font-size:13px;background:#fff}
+.ai-opt{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:13px;background:#F5F3FF;border:1px solid #DDD5FF;color:var(--ink-2);font-size:13.5px;margin-top:10px}
+.ai-opt input{margin-top:4px;width:18px;height:18px;accent-color:#4a3aa7}
+@media (max-width:820px){
+  .rhero{padding:24px 20px}.rhero-main{grid-template-columns:1fr;justify-items:center;text-align:center}.rhero-t{font-size:26px}
+  .rdoms,.rmeta{grid-template-columns:1fr 1fr}.dgrid,.imap,.split{grid-template-columns:1fr}.dcard.wide{grid-column:auto}
+  .imap-r{grid-template-columns:118px 1fr 64px}
+}
+@media print{.rhero{box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rnav,.ai-f button{display:none!important}.dgrid{display:block}.dgrid .card{margin-bottom:12px}}
+/* ---------- 첫 화면 ---------- */
+.lp-hero{position:relative;overflow:hidden;border-radius:24px;background:linear-gradient(135deg,#0E1A33 0%,#1B2F5E 55%,#24407A 100%);color:#fff;padding:44px 44px 40px;margin-bottom:16px;box-shadow:0 18px 50px rgba(14,26,51,.18)}
+.lp-hero::after{content:'';position:absolute;right:-120px;top:-120px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(116,149,255,.28),transparent 65%)}
+.lp-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:center}
+.lp-hero .kicker{color:#9DB6FF}
+.lp-name{display:inline-block;margin-top:12px;font-size:14px;font-weight:800;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:4px 14px}
+.lp-hero h1{font-size:36px;line-height:1.28;margin:12px 0 14px;color:#fff}
+.lp-hero h1 em{font-style:normal;background:linear-gradient(90deg,#9DB6FF,#7FE0C8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lp-hero .lead{color:#C9D5F2;font-size:16px}
+.lp-stats{display:flex;gap:26px;flex-wrap:wrap;margin:22px 0 26px}
+.lp-stats div b{display:block;font-family:var(--font-num);font-size:26px;color:#fff;line-height:1.1}
+.lp-stats div span{font-size:12.5px;color:#9FB0D6}
+.lp-cta{display:flex;gap:10px;flex-wrap:wrap}
+.lp-cta .btn{background:#fff;color:var(--ink);box-shadow:none}
+.lp-cta .btn:hover{background:#E9EEFB}
+.lp-cta .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.lp-cta .btn.ghost:hover{background:rgba(255,255,255,.08)}
+.lp-vis{position:relative;aspect-ratio:1;max-width:340px;justify-self:center;width:100%}
+.lp-vis svg{width:100%;height:100%}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.lp-orbit{transform-origin:170px 170px;animation:orbit 40s linear infinite}
+@keyframes dashflow{to{stroke-dashoffset:-240}}
+.lp-ecg{stroke-dasharray:120 120;animation:dashflow 3s linear infinite}
+@keyframes gazeScan{0%,100%{transform:translate(-26px,-6px)}25%{transform:translate(18px,-10px)}50%{transform:translate(24px,8px)}75%{transform:translate(-14px,10px)}}
+.lp-iris{animation:gazeScan 7s ease-in-out infinite}
+@keyframes softPulse{0%,100%{opacity:.35}50%{opacity:1}}
+.lp-node{animation:softPulse 3.2s ease-in-out infinite}
+.sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:34px 4px 14px;flex-wrap:wrap}
+.sec-h h2{margin:6px 0 0;font-size:24px}
+.sec-h p{margin:0;color:var(--muted);font-size:14px;max-width:480px;word-break:keep-all}
+.gets{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.get{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 20px 18px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s}
+.get:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(14,26,51,.04),0 14px 30px rgba(14,26,51,.09)}
+.get .gi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px}
+.get .gi svg{width:22px;height:22px}
+.get h3{font-size:16px;margin:0 0 6px}
+.get p{font-size:13.5px;color:var(--ink-2);margin:0;word-break:keep-all}
+.get .eg{margin-top:10px;font-size:12px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+.gets .get.wide{grid-column:span 3;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center}
+.carewrap{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:10px}
+.caremap{display:grid;gap:8px}
+.cm-row{display:grid;grid-template-columns:200px 28px 1fr 220px;gap:10px;align-items:center;padding:12px 14px;border-radius:14px;background:#FAFBFD;border:1px solid var(--line)}
+.cm-row .cm-d{display:flex;gap:10px;align-items:center}
+.cm-row .cm-d i{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-family:var(--font-num);font-weight:800;font-size:12px;color:#fff;flex:none}
+.cm-row .cm-d b{font-size:14px;display:block}
+.cm-row .cm-d span{font-size:11.5px;color:var(--muted)}
+.cm-row .arr{color:#A3ABBD;font-size:18px;text-align:center}
+.cm-row .cm-t b{font-size:14.5px;color:var(--care)}
+.cm-row .cm-t p{margin:2px 0 0;font-size:12.5px;color:var(--ink-2);word-break:keep-all}
+.cm-row .cm-k{font-size:12px;color:#1F5E52;background:var(--care-soft);border:1px solid var(--care-line);border-radius:10px;padding:7px 10px;word-break:keep-all}
+.cm-row.safe{background:#FCF3F5;border-color:#F2C9D3}
+.cm-row.safe .cm-t b{color:#A2304A}
+.loop{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.loop div{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 12px;text-align:center;font-size:12.5px;color:var(--ink-2);word-break:keep-all}
+.loop div b{display:block;font-size:14px;color:var(--ink);margin:4px 0 2px}
+.loop div em{font-style:normal;font-family:var(--font-num);font-size:11px;font-weight:700;color:var(--blue)}
+.loop div:not(:last-child)::after{content:'›';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:#A3ABBD;font-size:18px;z-index:1}
+/* 리포트 · 품질 표시 */
+.ci{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:1px}
+.qtag{font-size:10.5px;color:#7A8296;margin-top:3px;white-space:nowrap}
+.qtag.b{color:#8A5508}
+.confbar{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);margin:-4px 0 12px}
+.confbar .cb{width:140px;height:6px;border-radius:9px;background:#E6EAF1;overflow:hidden}
+.confbar .cb i{display:block;height:100%;background:linear-gradient(90deg,#7C9BEA,#2F9E6A)}
+.confbar b{font-family:var(--font-num);color:var(--ink-2)}
+.qnote{font-size:12.5px;color:#6B5A1E;background:#FFF8E9;border-radius:9px;padding:6px 10px;margin:0 0 8px}
+.qcgrade{display:flex;align-items:center;gap:12px;margin:4px 0 10px}
+.qcgrade b{font-family:var(--font-num);font-size:22px}
+.qprin li{margin:6px 0}
+.roadmap{list-style:none;padding:0;margin:6px 0 4px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.roadmap li{background:#fff;border:1px solid var(--care-line);border-radius:14px;padding:12px 12px 10px;position:relative}
+.roadmap .rm-n{position:absolute;right:10px;top:8px;font-family:var(--font-num);font-weight:800;font-size:20px;color:#D5EBE5}
+.roadmap b{font-size:14px;color:var(--care)}
+.roadmap p{margin:4px 0 0;font-size:12.5px;color:var(--ink-2);word-break:keep-all}
+/* 카메라 준비: 기준선 안내 */
+.preview .guide-msg{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(14,26,51,.72);color:#fff;font-size:12.5px;font-weight:700;border-radius:999px;padding:5px 12px;white-space:nowrap;z-index:2}
+.preview .guide-msg.ok{background:rgba(31,122,90,.85)}
+
+/* ---------- 측정 무대 고도화 ---------- */
+@keyframes cardIn{from{opacity:0;transform:translate(-50%,calc(-50% + 14px))}to{opacity:1;transform:translate(-50%,-50%)}}
+.brief{animation:cardIn .35s cubic-bezier(.2,.8,.2,1);box-shadow:0 20px 60px rgba(14,26,51,.10)}
+.brief .dstrip{position:absolute;left:0;top:22px;bottom:22px;width:4px;border-radius:0 4px 4px 0}
+.brief .orig{margin:12px 0 0;font-size:13px;color:#2B4A7E;background:#E8EEF8;border-radius:10px;padding:8px 12px;word-break:keep-all}
+.brief .orig b{color:#1D3A6E}
+.st-top{background:rgba(232,235,241,.92)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fade{animation:fadeIn .4s ease}
+.cd{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:150px;height:150px;display:grid;place-items:center}
+.cd svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.cd b{font-family:var(--font-num);font-size:58px;font-weight:700;color:#3A4560}
+.cd span{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:14px;color:#7C869B}
+@keyframes cdPop{from{transform:scale(1.25);opacity:0}to{transform:scale(1);opacity:1}}
+.cd b.pop{animation:cdPop .35s ease}
+/* 응답 확인 표시 (정오와 무관) */
+.ack{position:absolute;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid #A9B2C5;transition:background .08s,border-color .08s,transform .08s}
+.ack.on{background:#5D6E94;border-color:#5D6E94;transform:scale(1.25)}
+.ack-l{position:absolute;left:50%;transform:translateX(-50%);font-size:12px;color:#8E97AA;white-space:nowrap}
+/* SART 연습 피드백 */
+.sart-fb{display:flex;gap:8px;align-items:center;justify-content:center;width:90%;font-weight:700}
+.sart-fb .ok{color:#2F7D5C}.sart-fb .ng{color:#B23A57}
+.sart-meta{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-size:13px;color:#7C869B;display:flex;gap:16px;white-space:nowrap}
+.sart-meta b{color:#4C5774}
+/* PVT */
+.pvt-box{box-shadow:inset 0 2px 6px rgba(14,26,51,.06)}
+.pvt-hint{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-size:13px;color:#7C869B;white-space:nowrap}
+/* MIST */
+.mist{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(680px,92vw);text-align:center}
+.mist-top{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:#7C869B;margin-bottom:6px}
+.mist-lv{display:flex;gap:3px;align-items:center}
+.mist-lv i{width:16px;height:6px;border-radius:3px;background:#D3D9E5}
+.mist-lv i.on{background:#7D879E}
+.mist .prob{font-family:var(--font-num);font-size:clamp(34px,5vw,54px);font-weight:700;color:#2C3650;letter-spacing:.01em;margin:6px 0 0}
+.mist .prob .q{color:#9AA3B6}
+.mist .tbar{width:100%;height:6px;border-radius:9px;background:#D3D9E5;margin:16px auto 18px;overflow:hidden}
+.mist .tbar i{display:block;height:100%;background:#7D879E}
+.keypad{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.keypad button{padding:12px 0;border-radius:12px;border:1.5px solid #C9D0DD;background:#F2F4F8;font-family:var(--font-num);font-size:22px;font-weight:700;color:#2C3650;transition:transform .08s,border-color .1s}
+.keypad button:hover{border-color:#9AA6BF}
+.keypad button.hit{transform:scale(.94);border-color:#5D6E94}
+.mist .fb{height:24px;margin-top:12px;font-size:15px;font-weight:700;color:#59647D}
+.perf{margin:14px auto 0;width:100%;text-align:left}
+.perf-h{display:flex;justify-content:space-between;font-size:12px;color:#7C869B;margin-bottom:5px}
+.perf-t{position:relative;height:10px;border-radius:9px;background:#D9DEE7}
+.perf-t i{position:absolute;left:0;top:0;bottom:0;border-radius:9px;background:#7D879E;transition:width .3s}
+.perf-t em{position:absolute;top:-4px;bottom:-4px;width:2px;background:#3A4560}
+.perf-t em::after{content:'목표';position:absolute;top:-17px;white-space:nowrap;left:50%;transform:translateX(-50%);font-size:10.5px;font-style:normal;color:#3A4560;font-weight:700}
+/* 시선 커서 과제 */
+.zone{position:absolute;transform:translate(-50%,-50%);border-radius:50%;background:rgba(124,136,162,.08);transition:background .15s}
+.zone svg{width:100%;height:100%;display:block}
+.zone.in{background:rgba(47,158,106,.12)}
+.zone.hit{background:rgba(47,158,106,.22)}
+.zone.miss{background:rgba(201,60,92,.10)}
+.zone-a{position:absolute;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(47,158,106,.07),transparent 70%);pointer-events:none}
+.gcur.near{background:rgba(47,158,106,.9);box-shadow:0 0 0 6px rgba(47,158,106,.2)}
+.gcur{transition:background .2s;position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(31,79,216,.85);box-shadow:0 0 0 6px rgba(31,79,216,.18);display:none;pointer-events:none}
+.calsum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
+.calsum div{background:#EDF0F5;border-radius:10px;padding:8px 10px}
+.calsum span{display:block;font-size:11.5px;color:var(--muted)}
+.calsum b{font-family:var(--font-num);font-size:15px;color:var(--ink)}
+/* 기준선 풍경 */
+.calm{position:absolute;inset:57px 0 0 0;overflow:hidden}
+.calm svg{width:100%;height:100%;display:block}
+.calm-ph{width:100%;height:100%;object-fit:cover;display:block;animation:kenburns linear forwards}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.05)}}
+@keyframes drift{from{transform:translateX(-30%)}to{transform:translateX(130%)}}
+.cloud{animation:drift linear infinite}
+@keyframes wave{0%,100%{transform:translateX(0)}50%{transform:translateX(-40px)}}
+.wv{animation:wave 9s ease-in-out infinite}
+@keyframes shimmer{0%,100%{opacity:.25}50%{opacity:.6}}
+.shim{animation:shimmer 6s ease-in-out infinite}
+.calm-dot{position:absolute;left:50%;top:calc(50% + 28px);width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#7C88A2;box-shadow:0 0 0 6px rgba(124,136,162,.18)}
+.calm-cue{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);font-size:14px;color:#5E6A84;background:rgba(245,247,250,.75);border-radius:999px;padding:6px 16px;white-space:nowrap}
+/* 공명 호흡 페이서 */
+.pacer{position:absolute;left:50%;top:calc(50% + 10px);transform:translate(-50%,-50%);width:min(760px,94vw);text-align:center}
+.pacer-ring{position:relative;width:min(300px,42vmin);height:min(300px,42vmin);margin:0 auto}
+.pacer-ring svg{position:absolute;inset:0;width:100%;height:100%}
+.pacer-lbl{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:2px}
+.pacer-lbl b{font-size:24px;color:#2C3650}
+.pacer-lbl span{font-family:var(--font-num);font-size:34px;font-weight:700;color:#4C5774;line-height:1}
+.pacer-meta{display:flex;justify-content:center;gap:22px;margin-top:16px;font-size:13px;color:#7C869B}
+.pacer-meta b{color:#3A4560;font-family:var(--font-num)}
+.pacer-wave{width:100%;height:70px;margin-top:14px;display:block}
+.bio .pacer{top:56%}
+@media (max-width:820px){
+  .card{padding:24px 20px}
+  .lp-hero{padding:30px 22px}
+  .lp-grid,.gets{grid-template-columns:1fr}
+  .gets .get.wide{grid-column:auto;grid-template-columns:1fr}
+  .lp-hero h1{font-size:27px}
+  .lp-vis{max-width:220px}
+  .cm-row{grid-template-columns:1fr}
+  .cm-row .arr{display:none}
+  .loop{grid-template-columns:1fr 1fr}
+  .loop div::after{display:none}
+  .roadmap{grid-template-columns:1fr 1fr}
+  .keypad{grid-template-columns:repeat(5,1fr)}
+  .hero,.setup,.sum-grid,.two,.brief-grid{grid-template-columns:1fr}
+  .prep,.meta{grid-template-columns:1fr 1fr}
+  h1{font-size:25px}
+  .nav-r .pill{display:none}
+  .logo .sub{display:none}
+  .blinks{display:none}
+  .btbl th:nth-child(4),.btbl td:nth-child(4){display:none}
+  .stepper{display:none}
+  .st-top{justify-content:space-between}
+  .brief{padding:22px 20px;top:calc(50% + 27px)}
+  .brief h2{font-size:21px}
+}
+@media print{.nav,.btns,.no-print,.qa{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid-page}.method{break-inside:avoid}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <a class="brand" href="/" aria-label="NeuroLens 홈"><span class="bmark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14.5" cy="17.5" r="7.5" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="14.5" cy="17.5" r="2.9" fill="#fff"/><path d="M20.5 8.2A11.2 11.2 0 0 1 25.8 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/><circle cx="26.2" cy="7.6" r="1.9" fill="#fff"/></svg></span><span class="bword">Neuro<em>Lens</em></span><small>In_mind</small></a>
+  <div class="blinks"><a href="/#tests">시선추적 AI 성향검사</a><a class="on" href="/condition">마인드 컨디션 검사</a></div>
+  <div class="nav-r"><span class="nr-t">웰니스 참고 지표 · 영상 비저장</span><a class="pill" href="/">← 메인</a></div>
+</div></nav>
+
+<main>
+<!-- 1. 소개 -->
+<section id="sIntro">
+  <div class="lp-hero">
+    <div class="lp-grid">
+      <div>
+        <div class="kicker">Mind Condition Test · Powered by In_mind</div>
+        <div class="lp-name">마인드 컨디션 검사</div>
+        <h1>웹캠 8분으로<br><em>지친 건지, 흔들린 건지,<br>긴장한 건지</em> 구분해 드립니다</h1>
+        <p class="lead">자체 엔진 <b style="color:#fff">In_mind</b>가 눈꺼풀 · 시선 · 반응 속도 · 얼굴 심박을 학술 표준 과제 7종으로 측정해 <b style="color:#fff">또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력</b> 네 영역을 하나의 모델로 해석하고, 가장 먼저 다룰 영역에 맞춘 케어와 재측정 목표까지 정해 드려요.</p>
+        <div class="lp-stats">
+          <div><b>4</b><span>자기조절 영역</span></div>
+          <div><b>7</b><span>검증된 검사 패러다임</span></div>
+          <div><b>19</b><span>판정 지표 · 근거 문헌 연결</span></div>
+          <div><b>0</b><span>서버로 보내는 영상</span></div>
+        </div>
+        <div class="lp-cta">
+          <button class="btn" type="button" id="toSetup">검사 구성하고 시작하기 ↓</button>
+          <button class="btn ghost" type="button" id="toSample">예시 리포트 보기</button>
+        </div>
+      </div>
+      <div class="lp-vis" aria-hidden="true">
+        <svg viewBox="0 0 340 340">
+          <defs><radialGradient id="lpg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#3D5FA8" stop-opacity=".55"/><stop offset="1" stop-color="#3D5FA8" stop-opacity="0"/></radialGradient></defs>
+          <circle cx="170" cy="170" r="160" fill="url(#lpg)"/>
+          <circle cx="170" cy="170" r="128" fill="none" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 6"/>
+          <g class="lp-orbit">
+            <circle cx="170" cy="42" r="15" fill="#3C6FE0"/><text x="170" y="47" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">01</text>
+            <circle cx="298" cy="170" r="15" fill="#6A4FD8"/><text x="298" y="175" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">02</text>
+            <circle cx="170" cy="298" r="15" fill="#C9577A"/><text x="170" y="303" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">03</text>
+            <circle cx="42" cy="170" r="15" fill="#1E8A7A"/><text x="42" y="175" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">04</text>
+          </g>
+          <path d="M100 166 Q170 108 240 166 Q170 224 100 166Z" fill="rgba(255,255,255,.08)" stroke="#fff" stroke-width="3"/>
+          <g class="lp-iris"><circle cx="170" cy="166" r="22" fill="#9DB6FF"/><circle cx="170" cy="166" r="9" fill="#0E1A33"/><circle cx="176" cy="160" r="3.5" fill="#fff"/></g>
+          <path class="lp-ecg" d="M78 236 H130 L140 222 L150 252 L160 214 L170 236 H262" fill="none" stroke="#7FE0C8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle class="lp-node" cx="96" cy="92" r="4" fill="#9DB6FF"/><circle class="lp-node" cx="250" cy="96" r="4" fill="#7FE0C8" style="animation-delay:1s"/><circle class="lp-node" cx="252" cy="250" r="4" fill="#F0A3B8" style="animation-delay:2s"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-h"><div><div class="kicker">What you get</div><h2>이 검사로 얻는 것</h2></div><p>“요즘 왜 이렇게 집중이 안 되지?”에 대한 답을, 느낌이 아니라 측정으로 드립니다.</p></div>
+  <div class="gets">
+    <div class="get"><div class="gi" style="background:#EDF2FE"><svg viewBox="0 0 24 24" fill="none" stroke="#1F4FD8" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></div>
+      <h3>네 영역 점수와 통합 유형</h3><p>또렷함(각성) · 집중 조절(주의 통제) · 마음의 시선(정서 주의) · 몸의 회복력(자율신경 조절)을 0–100점으로 환산하고, ‘피로 회복 우선형’ ‘집중 흔들림형’ 같은 하나의 유형으로 요약해요.</p><div class="eg">예) 또렷함 52 · 집중 조절 61 → 피로 회복 우선형</div></div>
+    <div class="get"><div class="gi" style="background:#F0EDFF"><svg viewBox="0 0 24 24" fill="none" stroke="#6A4FD8" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 11 16.7 6M7.3 13l9.4 5"/></svg></div>
+      <h3>왜 그런지 — 영역 간 연결</h3><p>피로가 주의를 끌어내리는지, 걱정이 몸의 긴장을 늘리는지 등 영역 사이의 원인 경로를 학술 모델로 해석해요.</p><div class="eg">피로 게이팅 · 주의 통제 이론 · 신경내장 통합 · 지속 인지 가설</div></div>
+    <div class="get"><div class="gi" style="background:#FCEEF1"><svg viewBox="0 0 24 24" fill="none" stroke="#C93C5C" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M5 8l-3 4 3 4M19 8l3 4-3 4"/></svg></div>
+      <h3>느끼는 나 vs 측정된 나</h3><p>스스로 느끼는 졸림·긴장·최근 2주 기분(PHQ)과 실제 측정의 차이를 보여 줘요. 자각보다 먼저 나타나는 신호를 잡아냅니다.</p><div class="eg">예) “안 졸린데요” → 경과 반응 9회 · PERCLOS 14%</div></div>
+    <div class="get"><div class="gi" style="background:var(--care-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#167A6B" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-4.4-9-9C1.5 8.3 3.6 5 7 5c2 0 3.6 1.2 5 3 1.4-1.8 3-3 5-3 3.4 0 5.5 3.3 4 7-2 4.6-9 9-9 9z"/></svg></div>
+      <h3>우선순위 케어 플랜</h3><p>가장 먼저 다룰 1·2순위 영역에 근거 기반 루틴 3가지씩을 배정하고, 목표 지표(KPI)를 숫자로 정해요.</p><div class="eg">수면 규칙화 · 주의 훈련 · 주의 전환 · 공명 호흡</div></div>
+    <div class="get"><div class="gi" style="background:var(--amber-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#B87508" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></div>
+      <h3>재측정으로 효과 확인</h3><p>같은 검사로 2주·4주 뒤 다시 재서 ‘평소의 나’ 대비 변화를 확인해요. 결과지 안에서 1분 호흡 케어의 즉시 효과도 잴 수 있어요.</p><div class="eg">개인 기준선 · 측정–케어–재측정 폐루프</div></div>
+    <div class="get"><div class="gi" style="background:#EEF1F6"><svg viewBox="0 0 24 24" fill="none" stroke="#2B3754" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
+      <h3>믿을 수 있는 정도까지</h3><p>지표마다 신호 품질과 오차 범위를 함께 보여 줘요. 측정이 불안정하면 판정하지 않거나 ‘잠정’으로 표시하는 In_mind 자체 품질 관리 원칙(In_mind QC)을 적용해요.</p><div class="eg">신뢰도 가중 · 오차 띠 · 수렴 원칙 · 타당도 검사</div></div>
+  </div>
+
+  <div class="sec-h"><div><div class="kicker">From result to care</div><h2>결과는 이렇게 케어로 이어집니다</h2></div><p>저하된 영역이 곧 케어의 출발점입니다. 각성이 떨어졌다면 다른 영역보다 각성을 먼저 다뤄요(피로 게이팅).</p></div>
+  <div class="carewrap"><div class="caremap" id="careMap"></div></div>
+  <div class="loop">
+    <div><em>01 · 1분</em><b>자기보고</b>지금 상태 4문항 + 최근 2주 기분(선택)</div>
+    <div><em>02 · 1분</em><b>카메라 확인</b>얼굴 위치·조명·심박 신호 점검</div>
+    <div><em>03 · 약 8분</em><b>측정 9단계</b>단계마다 안내를 읽고 직접 시작</div>
+    <div><em>04 · 즉시</em><b>통합 리포트</b>영역 점수 · 원인 경로 · 품질</div>
+    <div><em>05 · 2~4주</em><b>케어 · 재측정</b>루틴 실천 후 같은 검사로 비교</div>
+  </div>
+
+  <div class="card" id="setupCard" style="margin-top:22px">
+    <div class="kicker">Configure</div>
+    <h2 style="margin-bottom:4px">검사 구성과 동의</h2>
+    <div class="prep" style="margin-top:14px">
+      <div><b>조명</b>얼굴 정면이 밝고 균일하게</div>
+      <div><b>거리</b>화면에서 50~70cm, 정면 자세</div>
+      <div><b>환경</b>방해 없는 곳에서 약 10분 (측정 8분)</div>
+      <div><b>입력</b>키보드 스페이스바 · 숫자 키</div>
+      <div><b>안경</b>반사가 심하면 화면 밝기 낮추기</div>
+      <div><b>브라우저</b>PC 크롬 · 엣지 권장</div>
+    </div>
+    <div class="sec-t"><h3>검사 구성</h3><span class="small muted">포함할 모듈을 고르세요 · 시선 보정과 기준선은 항상 포함</span></div>
+    <table class="btbl">
+      <thead><tr><th></th><th>모듈 · 검사</th><th>평가 영역</th><th>학술 근거</th><th>시간</th></tr></thead>
+      <tbody id="modTable"></tbody>
+    </table>
+    <div class="modes" role="radiogroup" aria-label="측정 길이">
+      <label><input type="radio" name="mode" value="quick" checked> 표준 측정 (약 8분)</label>
+      <label><input type="radio" name="mode" value="full"> 정밀 측정 (시행 수 확대)</label>
+    </div>
+    <div class="est" id="estTime"></div>
+    <label class="consent"><input type="checkbox" id="agree">
+      <span>카메라 영상은 <b>이 브라우저 안에서만</b> 처리되며 서버로 전송·저장되지 않습니다. 결과는 이 기기에 남고, 아래에서 AI 총평을 선택하면 영역 점수와 판정 지표 수치만 AI 서버로 보내 해설을 받습니다(저장하지 않음). 이 평가는 의학적 진단이 아닌 <b>웰니스 참고 지표</b>이며, 판정 기준은 문헌 보고 범위를 웹캠 환경에 맞춘 잠정값입니다. 정서 검사에는 일부 불쾌감을 줄 수 있는 사진이 포함되며 언제든 건너뛸 수 있습니다. 체크인의 최근 2주 기분 문항(PHQ)은 건강 관련 민감정보로, 이 기기 밖으로 전송되지 않으며 답하지 않아도 됩니다. 위 내용을 확인했습니다.</span>
+    </label>
+    <label class="ai-opt"><input type="checkbox" id="aiOpt" checked>
+      <span><b>AI 종합 총평 받기</b> — 리포트 첫머리에 결과를 쉬운 말로 풀어 주는 해설을 붙여요. 보내는 것은 영역 점수·판정 지표 수치·지금 상태 4문항뿐이며, 영상과 최근 2주 기분(PHQ) 응답은 보내지 않아요.</span></label>
+    <details class="rsopt" id="rsBox">
+      <summary><label onclick="event.stopPropagation()"><input type="checkbox" id="rsOpt"> <b>연구 데이터 제공에 동의 (선택)</b></label> <span class="small muted">— 검사 정확도를 높이는 연구에 측정 데이터를 보탭니다 · 자세히</span></summary>
+      <div class="rs-d">
+        <p><b>목적</b> 웹캠 기반 시선·심박·반응 측정 알고리즘의 고도화, 규준(참고 범위) 수립, 기계학습 모델 학습</p>
+        <p><b>보내는 것</b> 영역 점수·지표·측정 품질, 지금 상태와 측정 맥락 응답, 그리고 측정 신호 원자료 — 프레임별 피부색 평균값·얼굴 위치·눈 열림·시선 특징, 눈과 홍채의 <b>좌표</b>(이미지 아님), 시행별 시선 좌표와 반응 시간. 화면 크기·카메라 해상도·브라우저 종류.</p>
+        <p><b>보내지 않는 것</b> 카메라 영상·사진, 이름·연락처·계정. 최근 2주 기분(PHQ) 응답은 아래에서 따로 동의한 경우에만.</p>
+        <p><b>보관과 철회</b> 연구 목적으로만 쓰고 5년 보관 후 파기합니다. 제출 후 리포트에 나오는 <b>참가 코드</b>로 언제든 철회할 수 있고, 이 기기에서는 ‘제출 철회’ 버튼으로 즉시 삭제됩니다. 동의하지 않아도 검사와 결과에는 아무 영향이 없습니다.</p>
+        <label class="rs-phq"><input type="checkbox" id="rsPhq" disabled> 최근 2주 기분(PHQ) 응답도 연구에 포함 (선택)</label>
+      </div>
+    </details>
+    <div class="btns">
+      <button class="btn" id="goCheckin" disabled>평가 시작</button>
+      <button class="btn ghost" id="goDemo" disabled>카메라 없이 데모 진행</button>
+    </div>
+    <details class="qa" id="qaBox" hidden>
+      <summary>검증 도구 — 피험자가 되지 않고 단계·리포트 확인하기</summary>
+      <p><b>단계 건너뛰기</b> 측정 화면 오른쪽 위 <b>‘이 단계 건너뛰기’</b>로 안내 화면이나 과제 중 어디서든 다음 단계로 넘어갈 수 있어요. 데모 모드에서 건너뛴 단계는 아래 시뮬레이션 피험자의 데이터로 채워지고, 실측에서 건너뛴 단계는 ‘건너뜀’으로 표시되어 판정에서 빠집니다.</p>
+      <p><b>시뮬레이션 리포트</b> 카메라·과제 없이, 선택한 피험자 유형의 합성 생리 신호와 과제 반응으로 전체 분석을 돌려 리포트를 바로 엽니다. 주소 끝에 <code>?sim=fatigue</code>처럼 붙여도 됩니다.</p>
+      <div class="row">
+        <select id="simPersona" aria-label="시뮬레이션 피험자 유형"></select>
+        <button class="btn ghost" id="simReport" type="button">시뮬레이션 리포트 바로 보기</button>
+      </div>
+      <p class="small muted" id="stimInfo" style="margin-bottom:0"></p>
+    </details>
+  </div>
+</section>
+
+<!-- 2. 체크인 -->
+<section id="sCheckin" hidden>
+  <div class="flowbar"><span class="done">개요</span><span class="on">1 · 자기보고</span><span>2 · 카메라 준비</span><span>3 · 측정</span><span>4 · 리포트</span></div>
+  <div class="card">
+    <div class="kicker">Self-Report · 자기보고</div>
+    <h2>지금 스스로 느끼는 상태를 알려 주세요</h2>
+    <p class="lead">측정 결과와 비교해 ‘느끼는 나’와 ‘몸·시선·수행이 보여 주는 나’의 차이를 찾아 드려요. 정답은 없으니 지금 이 순간의 느낌대로 골라 주세요.</p>
+    <div class="q"><div class="lbl">지금 기분은 어떤가요? <span class="small muted" style="font-weight:500">(자기평가 마네킹 정서가 척도)</span></div>
+      <div class="scale" id="qValence" style="grid-template-columns:repeat(9,1fr)"></div>
+      <div class="ends"><span>매우 나쁨</span><span>매우 좋음</span></div></div>
+    <div class="q"><div class="lbl">지금 얼마나 긴장되거나 스트레스를 느끼나요?</div>
+      <div class="scale" id="qTension" style="grid-template-columns:repeat(5,1fr);max-width:360px"></div>
+      <div class="ends" style="max-width:360px"><span>전혀 없음</span><span>매우 큼</span></div></div>
+    <div class="q"><div class="lbl">에너지는 어느 정도인가요?</div>
+      <div class="scale" id="qEnergy" style="grid-template-columns:repeat(5,1fr);max-width:360px"></div>
+      <div class="ends" style="max-width:360px"><span>방전</span><span>충만</span></div></div>
+    <div class="q"><div class="lbl">지금 얼마나 졸린가요? <span class="small muted" style="font-weight:500">(카롤린스카 졸림 척도)</span></div>
+      <div class="scale" id="qKss" style="grid-template-columns:repeat(9,1fr)"></div>
+      <div class="ends"><span>매우 또렷함</span><span>중간</span><span>매우 졸림 · 버티기 힘듦</span></div></div>
+    <div class="q"><div class="lbl">어젯밤 몇 시간 잤나요? <span class="small muted" style="font-weight:500">(각성 결과를 해석하는 맥락)</span></div>
+      <div class="choice" id="qSleep" data-key="sleep"></div></div>
+    <div class="q"><div class="lbl">커피·에너지음료 등 카페인을 마지막으로 마신 때는?</div>
+      <div class="choice" id="qCaf" data-key="caffeine"></div></div>
+    <div class="phq" id="phq">
+      <div class="phq-h"><h3 style="margin:0">최근 2주 · 환자 건강 질문지 (PHQ)</h3><span class="small muted">약 30초 · 응답에 따라 6문항이 추가될 수 있어요</span></div>
+      <p class="small muted" style="margin:6px 0 0">지금의 상태(위)와 함께 최근 2주의 흐름을 보면, 오늘 측정이 일시적인 컨디션인지 지속되는 패턴인지 구분할 수 있어요. 응답은 이 기기에만 남습니다.</p>
+      <div class="phq-stem" id="phqStem"></div>
+      <div id="phqItems"></div>
+      <div class="phq-more" id="phqMore" hidden>최근 2주 동안 기분 부담이 있었던 것 같아요. 조금 더 정확히 살펴보기 위해 <b>6문항</b>을 더 여쭐게요.</div>
+      <div id="phqItems2"></div>
+      <label class="phq-skip"><input type="checkbox" id="phqSkip"> 이 문항들에는 답하지 않을래요 (측정은 그대로 진행돼요)</label>
+      <div class="phq-copy" id="phqCopy"></div>
+    </div>
+    <div class="btns">
+      <button class="btn" id="goSetup" disabled>다음 · 카메라 준비</button>
+      <button class="btn ghost" data-back="sIntro">이전</button>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 카메라 준비 -->
+<section id="sSetup" hidden>
+  <div class="flowbar"><span class="done">개요</span><span class="done">1 · 자기보고</span><span class="on">2 · 카메라 준비</span><span>3 · 측정</span><span>4 · 리포트</span></div>
+  <div class="card">
+    <div class="kicker">Signal Check · 측정 환경 확인</div>
+    <h2>얼굴이 화면 가운데에 오도록 앉아 주세요</h2>
+    <p class="lead">다섯 가지 항목이 모두 초록색이 되면 측정 품질이 가장 좋아요. 측정은 전체 화면으로 진행되며, 단계마다 안내를 읽고 직접 시작합니다.</p>
+    <div class="setup">
+      <div>
+        <div class="preview"><video id="camPreview" playsinline muted></video><canvas id="overlay"></canvas><div class="guide-msg" id="guideMsg" hidden></div></div>
+        <p class="small muted" style="margin:8px 2px 0">가로·세로 기준선이 만나는 곳에 코끝을, 점선 타원 안에 얼굴을 맞춰 주세요 · 초록 점: 홍채 · 분홍 상자: 심박을 읽는 피부 영역</p>
+      </div>
+      <div>
+        <ul class="checks">
+          <li><span><i class="dot" id="dFace"></i>얼굴 인식</span><b id="vFace">—</b></li>
+          <li><span><i class="dot" id="dPos"></i>위치 · 거리</span><b id="vPos">—</b></li>
+          <li><span><i class="dot" id="dLight"></i>조명 밝기</span><b id="vLight">—</b></li>
+          <li><span><i class="dot" id="dFps"></i>카메라 프레임</span><b id="vFps">—</b></li>
+          <li><span><i class="dot" id="dStill"></i>머리 안정</span><b id="vStill">—</b></li>
+        </ul>
+        <div class="livehr"><svg class="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.4 5c2 0 3.3 1 4 2.1h3.2C14.3 6 15.6 5 17.6 5 21 5 23.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>
+          <div><b id="vLiveHr">--</b> <span class="small">bpm</span><div class="small" id="vLiveQ">얼굴을 10초 정도 비추면 카메라만으로 심박이 잡혀요</div></div></div>
+        <div class="status" id="setupStatus"></div>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="btn" id="camStart">카메라 켜기</button>
+      <button class="btn" id="goRun" disabled>측정 시작 (전체 화면)</button>
+      <button class="btn ghost" data-back="sCheckin">이전</button>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 분석 중 -->
+<section id="sAnalyze" hidden>
+  <div class="card" style="text-align:center;padding:64px 30px">
+    <div class="kicker">Analyzing</div>
+    <h2>In_mind 엔진이 검사별 지표를 계산하고 하나의 모델로 통합하고 있어요</h2>
+    <p class="muted">원격 심박(POS) · 눈꺼풀(PERCLOS) · 사카드·추적 · 반응시간 → 영역 점수 → 영역 간 연결 해석 → 케어 정렬</p>
+  </div>
+</section>
+
+<!-- 5. 리포트 -->
+<section id="sReport" hidden></section>
+</main>
+
+<footer class="site-foot"><span>NeuroLens · 마인드 컨디션 검사 · In_mind engine — 웰니스 참고 지표이며 의학적 진단이 아닙니다</span><span><a href="/">메인</a> · <a href="/#tests">시선추적 AI 성향검사</a> · 정신건강 위기상담 109</span></footer>
+<!-- 측정 무대 -->
+<div class="stage" id="stage" aria-live="polite">
+  <div class="st-top">
+    <span class="st-brand">NeuroLens</span>
+    <ol class="stepper" id="stepper"></ol>
+    <div class="st-act">
+      <span class="face"><i class="dot" id="hudFace"></i><span id="hudFaceT">얼굴</span></span>
+      <button class="sbtn" id="skip" hidden>이 단계 건너뛰기 ⏭</button>
+      <button class="sbtn" id="quit">그만하기</button>
+    </div>
+  </div>
+  <div class="st-prog"><i id="hudBar"></i></div>
+  <div class="facewarn" id="faceWarn">얼굴이 보이지 않아요. 화면 정면을 봐 주세요.</div>
+  <div id="stageBody"></div>
+  <div class="taskbar" id="taskbar" hidden><span id="taskName"></span><span class="tb"><i id="taskBar"></i></span><b id="taskLeft"></b></div>
+  <div class="fswarn" id="hideWarn" style="bottom:64px">다른 창을 보던 구간은 판정에서 빼고 계산해요. 화면을 계속 봐 주세요.</div>
+  <div class="fswarn" id="fsWarn">전체 화면이 해제됐어요. 시선 측정 정확도를 위해 다시 켜 주세요. <button class="sbtn" id="fsBack">전체 화면</button></div>
+</div>
+<!-- 바이오피드백 -->
+<div class="bio" id="bio">
+  <button class="sbtn quit" id="bioQuit">닫기</button>
+  <div class="hrbig"><b id="bioHr">--</b><span id="bioQ">심박 측정 준비 중…</span></div>
+  <div id="bioPacer"></div>
+  <svg class="spark" id="bioSpark" viewBox="0 0 520 70" preserveAspectRatio="none"></svg>
+  <div class="cue" id="bioMsg">원이 커지고 바깥 띠가 차오를 때 5초 들이쉬고, 작아질 때 5초 내쉬어요 (분당 6회)</div>
+</div>
+<video id="camProc" class="selfcam" playsinline muted></video>
+
+<script src="newbiz-core.js"></script>
+<script src="newbiz-battery.js"></script>
+<script src="newbiz-report.js"></script>
+<script src="newbiz-research.js"></script>
+<script type="module">
+const N = window.NLNewbiz, B = window.NLBattery, R = window.NLReport;
+const MP_VER = '0.10.14';
+const MP_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`;
+const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+const STORE_KEY = 'nlNewbiz:v2';
+const STIM_URL = 'newbiz-stim/manifest.json';
+/* 연구 데이터 저장소 (Supabase · RLS + newbiz_research_* RPC 만 허용, publishable 키) */
+const RS_DB = { url: 'https://qonoakggniupuxwvzmmw.supabase.co', key: 'sb_publishable_hl6-Y_kMQelu2DByu4bE4g_V9Ru3jNo' };
+const RS_KEY = 'nlNewbiz:research';
+/* 연구용 눈·홍채 랜드마크 (이미지가 아니라 좌표만): 홍채 10 · 양쪽 눈꺼풀 윤곽 32 · 머리 자세 기준 5 */
+const LM_IDX = [468, 469, 470, 471, 472, 473, 474, 475, 476, 477,
+  33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246,
+  362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398,
+  1, 10, 152, 234, 454];
+const $ = id => document.getElementById(id);
+const now = () => performance.now();
+const esc = R.esc;
+
+const S = {
+  demo: false, mode: 'full', persona: 'balanced', mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {},
+  stream: null, landmarker: null, buf: [], frames: [], recording: false, bioFrames: [], bioRecording: false,
+  phases: {}, steps: {}, stepPhases: [], plan: [], cur: null, stepIdx: 0, stepTotal: 0, cleanup: [],
+  trials: [], pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, curTrial: null,
+  model: null, affine: null, gaze: null, view: null, euro: null, rawG: null, drift: { dx: 0, dy: 0 }, feat: null, lastLm: null, rois: null, lastFace: 0, lastTs: 0, fpsTimes: [],
+  onFeature: null, onResp: null, onKey: null, onGo: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
+  stim: null, stimMode: 'schematic',
+  aiText: null, hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
+};
+const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
+/* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */
+const resetEuro = () => { S.euro = { x: N.oneEuro({ minCutoff: 0.6, beta: 0.004 }), y: N.oneEuro({ minCutoff: 0.6, beta: 0.004 }) }; S.view = null; };
+resetEuro();
+const GAZE_STEPS = ['pursuit', 'saccade', 'freeview'];
+const FIX_MS = 700;
+const trialMs = () => (S.stimMode === 'photo' ? 4000 : 3500);
+
+/* ---------- 화면 전환 ---------- */
+function show(id) { ['sIntro', 'sCheckin', 'sSetup', 'sAnalyze', 'sReport'].forEach(s => { $(s).hidden = s !== id; }); window.scrollTo(0, 0); }
+document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => show(b.dataset.back)));
+const modeVal = () => document.querySelector('input[name=mode]:checked').value;
+
+/* ---------- 정서 사진 세트 (newbiz-stim/manifest.json) — 부족하면 도식 자극으로 대체 ---------- */
+const STIM_CATS = ['threat', 'dysphoric', 'positive', 'neutral'];
+function stimNeed(mode) {
+  const f = B.DUR[mode].fv;
+  return { threat: f.neg / 2, dysphoric: f.neg / 2, positive: f.pos, neutral: f.neu * 2 + f.neg + f.pos };
+}
+async function loadStimuli() {
+  try {
+    const res = await fetch(STIM_URL, { cache: 'no-cache' });
+    if (!res.ok) return;
+    const m = await res.json(), set = {};
+    STIM_CATS.forEach(c => { set[c] = (m.images || []).filter(x => x && x.category === c && typeof x.file === 'string' && !x.exclude); });
+    S.stim = { set, form: m.form || 'A', base: STIM_URL.replace(/[^/]+$/, ''), baseline: Array.isArray(m.baseline) ? m.baseline.filter(x => typeof x === 'string') : [] };
+  } catch (_) { S.stim = null; }
+}
+function stimReady(mode) {
+  if (!S.stim) return false;
+  const need = stimNeed(mode);
+  return STIM_CATS.every(c => S.stim.set[c].length >= need[c]);
+}
+function stimInfoText() {
+  const mode = modeVal();
+  if (stimReady(mode)) return `정서 자유 보기: 정서 사진 세트 ${S.stim.form} 사용 (위협 ${S.stim.set.threat.length} · 슬픔 ${S.stim.set.dysphoric.length} · 긍정 ${S.stim.set.positive.length} · 중립 ${S.stim.set.neutral.length}장)`;
+  const need = stimNeed(mode), have = S.stim ? S.stim.set : null;
+  return `정서 자유 보기: 사진 세트가 준비되지 않아 도식 자극(얼굴 그림·단어)을 씁니다. 필요 사진 수 — 위협 ${need.threat} · 슬픔 ${need.dysphoric} · 긍정 ${need.positive} · 중립 ${need.neutral}장${have ? ` (현재 ${STIM_CATS.map(c => have[c].length).join('/')})` : ''}`;
+}
+
+/* ---------- 소개: 배터리 구성표 · 모듈 선택 · 예상 시간 ---------- */
+const refShort = keys => keys.map(k => {
+  const t = B.REFS[k] || '', authors = t.split('.')[0], year = (t.match(/\b(19|20)\d{2}\b/) || [''])[0];
+  return `${authors.split(/[ ,]/)[0]}${/,/.test(authors) ? ' 외' : ''} ${year}`;
+}).join(' · ');
+const DOM_LABEL = { alert: '또렷함', control: '집중 조절', 'emotion · autonomic': '마음의 시선 · 몸의 회복력' };
+$('modTable').innerHTML = MOD_ORDER.map(k => {
+  const m = B.MODULES[k];
+  return `<tr><td><input type="checkbox" data-mod="${k}" checked aria-label="${esc(m.title)} 포함"></td>
+    <td><b>${esc(m.title)}</b><div class="small muted">${esc(m.tests)}</div></td>
+    <td><span class="dom">${esc(DOM_LABEL[m.domain] || m.domain)}</span></td>
+    <td class="small muted">${esc(refShort(m.refs.slice(0, 3)))}</td><td class="num" data-min="${k}"></td></tr>`;
+}).join('');
+function fvTrials(d) { return S.stimMode === 'photo' || stimReady(S.mode) ? d.fv.neu + d.fv.neg + d.fv.pos : 3 * d.trials; }
+function stepEstimateSec(key, d) {
+  return {
+    /* 측정 시간만 (단계 안내를 읽는 시간 제외) */
+    calibration: 55, baseline: d.baseline + 3, pursuit: d.pursuit + 3, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,
+    freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 2, pvt: d.pvt + d.pvtPractice * 3.5 + 6, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 6,
+    stress: d.stress + 3, recovery: d.recovery + 3,
+  }[key] || 0;
+}
+const MOD_STEPS = { alert: ['pvt'], oculo: ['pursuit', 'saccade'], sustain: ['sart'], core: ['freeview', 'stress', 'recovery'] };
+function refreshIntro() {
+  const d = B.DUR[modeVal()];
+  document.querySelectorAll('[data-mod]').forEach(cb => { S.mods[cb.dataset.mod] = cb.checked; });
+  let total = stepEstimateSec('calibration', d) + stepEstimateSec('baseline', d);
+  MOD_ORDER.forEach(k => {
+    const sec = MOD_STEPS[k].reduce((s, st) => s + stepEstimateSec(st, d), 0);
+    document.querySelector(`[data-min="${k}"]`).textContent = `${Math.round(sec / 6) / 10}분`;
+    if (S.mods[k]) total += sec;
+  });
+  const any = MOD_ORDER.some(k => S.mods[k]);
+  $('estTime').innerHTML = any ? `측정 약 <b>${Math.round(total / 60)}분</b> · 단계 안내를 읽는 시간은 별도 · 각 단계는 직접 시작하며 건너뛸 수 있어요` : '<span style="color:var(--rose)">모듈을 하나 이상 선택해 주세요</span>';
+  $('goCheckin').disabled = $('goDemo').disabled = !($('agree').checked && any);
+  $('simReport').disabled = !any;
+  $('stimInfo').textContent = stimInfoText();
+}
+document.querySelectorAll('[data-mod], input[name=mode]').forEach(el => el.addEventListener('change', refreshIntro));
+$('agree').addEventListener('change', refreshIntro);
+$('simPersona').innerHTML = Object.keys(B.PERSONAS).map(k => `<option value="${k}">${esc(B.PERSONAS[k].label)}</option>`).join('');
+refreshIntro();
+loadStimuli().then(refreshIntro);
+/* 결과 → 케어 연결 지도 (리포트의 케어 플랜과 같은 정의를 씀) */
+{
+  const short = t => { const x = t.split(/ — | \(/)[0]; return x.length > 34 ? x.slice(0, 33) + '…' : x; };
+  const row = (cls, ico, n, name, sub, title, items, kpi) => `<div class="cm-row ${cls}"><div class="cm-d"><i class="${ico}">${n}</i><div><b>${esc(name)}</b><span>${esc(sub)}</span></div></div><div class="arr">→</div><div class="cm-t"><b>${esc(title)}</b><p>${esc(items)}</p></div><div class="cm-k"><b>목표</b> ${esc(kpi)}</div></div>`;
+  $('careMap').innerHTML = [['alert', 'd1', '01'], ['control', 'd2', '02'], ['emotion', 'd3', '03'], ['autonomic', 'd4', '04']].map(([k, ico, n]) => {
+    const D = B.DOMAINS[k], T = B.CARE_PLAN[k];
+    return row('', ico, n, `${D.name} 저하`, D.network, T.title, T.items.map(i => short(i.text)).join(' · '), T.kpi);
+  }).join('')
+    + row('safe', '', '!', '최근 2주 기분 부담 높음', 'PHQ-8 10점 이상', '전문가 상담 연결 (최우선)', '정신건강복지센터·정신건강의학과 안내 · 위기상담 109 · 루틴 병행', '2~4주 후 같은 문항으로 재확인').replace('<i class="">', '<i style="background:#C93C5C">')
+    + row('', '', '✓', '모든 영역 양호', '개인 기준선', B.CARE_PLAN.balanced.title, B.CARE_PLAN.balanced.items.map(i => short(i.text)).join(' · '), B.CARE_PLAN.balanced.kpi).replace('<i class="">', '<i style="background:#7C88A2">');
+}
+$('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+$('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full'); });
+$('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) $('rsPhq').checked = false; });
+$('goCheckin').addEventListener('click', () => { S.demo = false; S.mode = modeVal(); show('sCheckin'); });
+$('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
+$('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
+function openSimReport(persona, mode) {
+  S.demo = true; S.mode = mode; S.persona = persona;
+  show('sAnalyze');
+  setTimeout(() => finishWith(B.simulate(persona, { mode, include: { ...S.mods }, seed: Date.now() % 100000 })), 60);
+}
+
+/* ---------- 체크인 ---------- */
+function scale(el, n, key) {
+  for (let i = 1; i <= n; i++) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => {
+      el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      S.checkin[key] = i;
+      checkinReady();
+    });
+    el.appendChild(b);
+  }
+}
+function choice(el, map) {
+  el.innerHTML = Object.entries(map).map(([k, v]) => `<button type="button" data-v="${k}" aria-pressed="false">${esc(v)}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    S.checkin[el.dataset.key] = b.dataset.v;
+    checkinReady();
+  }));
+}
+choice($('qSleep'), B.CONTEXT.sleep); choice($('qCaf'), B.CONTEXT.caffeine);
+scale($('qValence'), 9, 'valence'); scale($('qTension'), 5, 'tension'); scale($('qEnergy'), 5, 'energy'); scale($('qKss'), 9, 'kss');
+
+/* 최근 2주 자기보고: PHQ-2 → 3점 이상이면 3~8번 문항 추가 (PHQ-8, 9번 자해 문항 제외) */
+const PQ = B.PHQ;
+let phqAns = [];
+$('phqStem').textContent = PQ.stem;
+$('phqCopy').textContent = PQ.copyright;
+function phqRow(i) {
+  return `<div class="phq-item" data-q="${i}"><div class="t"><b>${i + 1}</b>${esc(PQ.items[i])}</div><div class="phq-opts" role="radiogroup" aria-label="${i + 1}번 문항">${PQ.options.map((o, v) => `<button type="button" data-v="${v}" aria-pressed="false">${esc(o)}<small>${v}</small></button>`).join('')}</div></div>`;
+}
+function phqRender() {
+  $('phqItems').innerHTML = [0, 1].map(phqRow).join('');
+  const more = phqAns[0] + phqAns[1] >= PQ.screenCut;
+  $('phqMore').hidden = !more;
+  $('phqItems2').innerHTML = more ? [2, 3, 4, 5, 6, 7].map(phqRow).join('') : '';
+  document.querySelectorAll('.phq-item').forEach(row => {
+    const q = +row.dataset.q;
+    row.querySelectorAll('button').forEach(b => {
+      b.setAttribute('aria-pressed', String(phqAns[q] === +b.dataset.v));
+      b.addEventListener('click', () => {
+        const wasMore = phqAns[0] + phqAns[1] >= PQ.screenCut;
+        phqAns[q] = +b.dataset.v;
+        const isMore = phqAns[0] + phqAns[1] >= PQ.screenCut;
+        if (q < 2 && wasMore !== isMore) { if (!isMore) phqAns = phqAns.slice(0, 2); phqRender(); }
+        else row.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        checkinReady();
+      });
+    });
+  });
+}
+function phqDone() {
+  if ($('phqSkip').checked) return true;
+  if (!Number.isFinite(phqAns[0]) || !Number.isFinite(phqAns[1])) return false;
+  return phqAns[0] + phqAns[1] < PQ.screenCut || [2, 3, 4, 5, 6, 7].every(i => Number.isFinite(phqAns[i]));
+}
+function checkinReady() {
+  const base = S.checkin.valence && S.checkin.tension && S.checkin.energy && S.checkin.kss && S.checkin.sleep && S.checkin.caffeine;
+  S.checkin.phq = $('phqSkip').checked || !Number.isFinite(phqAns[1]) ? null : phqAns.slice(0, phqAns[0] + phqAns[1] >= PQ.screenCut ? 8 : 2);
+  $('goSetup').disabled = !(base && phqDone());
+}
+$('phqSkip').addEventListener('change', e => { $('phqItems').style.opacity = $('phqItems2').style.opacity = e.target.checked ? 0.4 : 1; checkinReady(); });
+phqRender();
+$('goSetup').addEventListener('click', () => {
+  if (S.demo) { runSession(); return; }
+  show('sSetup');
+});
+
+/* ---------- 카메라 + MediaPipe ---------- */
+const procVideo = $('camProc'), prevVideo = $('camPreview');
+const roiCanvas = document.createElement('canvas');
+const roiCtx = roiCanvas.getContext('2d', { willReadFrequently: true });
+
+async function loadLandmarker() {
+  const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);
+  const vision = await FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
+  const opts = d => ({ baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true });
+  try { return await FaceLandmarker.createFromOptions(vision, opts('GPU')); }
+  catch (_) { return await FaceLandmarker.createFromOptions(vision, opts('CPU')); }
+}
+
+$('camStart').addEventListener('click', async () => {
+  const st = $('setupStatus');
+  st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';
+  $('camStart').disabled = true;
+  try {
+    S.stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false });
+    procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;
+    procVideo.classList.add('on');
+    await Promise.all([procVideo.play(), prevVideo.play()]);
+    S.landmarker = await loadLandmarker();
+    st.textContent = '준비됐어요. 체크 항목이 초록색이 되면 측정을 시작하세요.';
+    startLoop(); drawOverlay(); setupTicker();
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = e && e.name === 'NotAllowedError' ? '카메라 권한이 거부됐어요. 주소창의 카메라 아이콘에서 허용해 주세요.' : '카메라 또는 모델을 불러오지 못했어요: ' + (e && e.message || e);
+    $('camStart').disabled = false;
+  }
+});
+
+/* 피부 영역(이마·양 볼)의 평균 RGB — 피부 범위를 벗어난 픽셀(눈썹·머리카락·반사)은 제외 */
+function sampleRoi(lm) {
+  const vw = procVideo.videoWidth, vh = procVideo.videoHeight;
+  if (!vw) return null;
+  const cw = 320, ch = Math.round(320 * vh / vw);
+  if (roiCanvas.width !== cw) { roiCanvas.width = cw; roiCanvas.height = ch; }
+  roiCtx.drawImage(procVideo, 0, 0, cw, ch);
+  const P = i => ({ x: lm[i].x * cw, y: lm[i].y * ch });
+  const fw = Math.hypot(P(454).x - P(234).x, P(454).y - P(234).y);
+  const boxes = [
+    { c: P(151), w: fw * 0.30, h: fw * 0.11 },
+    { c: P(50), w: fw * 0.13, h: fw * 0.13 },
+    { c: P(280), w: fw * 0.13, h: fw * 0.13 },
+  ];
+  let r = 0, g = 0, b = 0, n = 0;
+  const rois = [], per = [];
+  for (const bx of boxes) {
+    const x = Math.max(0, Math.round(bx.c.x - bx.w / 2)), y = Math.max(0, Math.round(bx.c.y - bx.h / 2));
+    const w = Math.min(cw - x, Math.round(bx.w)), h = Math.min(ch - y, Math.round(bx.h));
+    if (w < 3 || h < 3) { per.push(null); continue; }
+    rois.push({ x: x / cw, y: y / ch, w: w / cw, h: h / ch });
+    const d = roiCtx.getImageData(x, y, w, h).data;
+    let rk = 0, gk = 0, bk = 0, nk = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const R = d[i], G = d[i + 1], B = d[i + 2];
+      if (R > 45 && R < 250 && R > G && R > B && G > 20) { rk += R; gk += G; bk += B; nk++; }
+    }
+    r += rk; g += gk; b += bk; n += nk;
+    per.push(nk >= 12 ? [rk / nk, gk / nk, bk / nk] : null);
+  }
+  if (n < 30) return { n, rois };
+  r /= n; g /= n; b /= n;
+  /* 영역별 평균색 (rPPG 다중 영역 융합용). 픽셀이 부족한 영역은 전체 평균으로 채워 채널이 끊기지 않게 한다 */
+  const rr = per.map(v => v || [r, g, b]);
+  return { r, g, b, n, rr, lum: 0.299 * r + 0.587 * g + 0.114 * b, rois };
+}
+
+function blendMap(res) {
+  const cats = res.faceBlendshapes && res.faceBlendshapes[0] && res.faceBlendshapes[0].categories;
+  const m = {};
+  (cats || []).forEach(c => { m[c.categoryName] = c.score; });
+  return m;
+}
+
+/* 프레임 시각 = 카메라가 실제로 찍은 시각(requestVideoFrameCallback 의 captureTime). 처리 시각을 쓰면 얼굴 인식에 걸린
+ * 15~40ms(기기마다 다름)가 섞여 심박 파형과 사카드 잠복기가 흔들린다. 없거나 이상하면 처리 시각으로 대신한다 */
+function processFrame(meta) {
+  const tp = now();
+  let t = meta && Number.isFinite(meta.captureTime) && meta.captureTime <= tp && tp - meta.captureTime < 400 ? meta.captureTime : tp;
+  if (t <= S.lastTs) t = S.lastTs + 0.01;
+  S.lastTs = t;
+  let res;
+  try { res = S.landmarker.detectForVideo(procVideo, t); } catch (_) { return; }
+  const lm = res.faceLandmarks && res.faceLandmarks[0];
+  const fr = { t, ok: false };
+  S.lastLm = lm || null;
+  if (lm) {
+    const f = N.faceFeatures(lm), roi = sampleRoi(lm);
+    if (f && roi) {
+      if (S.onFeature && roi.n < 30) S.onFeature(t, f);                // 피부 영역이 어두워도 시선 보정 표본은 받는다
+      S.rois = roi.rois;
+      const bs = blendMap(res);
+      Object.assign(fr, {
+        ok: roi.n >= 30, r: roi.r, g: roi.g, b: roi.b, rr: roi.rr, lum: roi.lum, cx: f.cx, cy: f.cy, fw: f.fw, open: f.open,
+        blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,
+        frown: ((bs.mouthFrownLeft || 0) + (bs.mouthFrownRight || 0) + (bs.browDownLeft || 0) + (bs.browDownRight || 0)) / 4,
+        smile: ((bs.mouthSmileLeft || 0) + (bs.mouthSmileRight || 0)) / 2,
+        u: f.u, v: f.v, yaw: f.yaw, pitch: f.pitch, lag: Math.round(now() - t),
+      });
+      /* 연구용 눈·홍채 랜드마크: 시선 보정·시선 과제 동안만, 영상 좌표 ×10000 정수 */
+      if (S.lmRec && S.landmarks) { const row = [t]; for (const i of LM_IDX) row.push(Math.round(lm[i].x * 1e4), Math.round(lm[i].y * 1e4)); S.landmarks.rows.push(row); }
+      S.feat = f; S.lastFace = t;
+      if (S.onFeature && roi.n >= 30) S.onFeature(t, f);
+      if (S.model) {
+        const g0 = N.applyAffine(S.affine, N.predictGaze(S.model, f));      // 회귀 모델 → 영점 조정(축별 1차 보정)
+        const bl = fr.blink >= 0.5;
+        S.rawG = { t, x: g0.x, y: g0.y, bl };
+        const g = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy };          // 과제 직전 가운데 응시로 잰 치우침(drift) 보정
+        S.gaze = S.gaze ? { x: S.gaze.x + 0.4 * (g.x - S.gaze.x), y: S.gaze.y + 0.4 * (g.y - S.gaze.y) } : g;
+        if (!bl) S.view = { x: S.euro.x(g.x, t), y: S.euro.y(g.y, t), t };   // 화면 표시용 시선 커서: One Euro 평활 (깜빡임 프레임은 건너뜀)
+        if (!bl && S.onGaze) S.onGaze(g, t);
+        /* 분석용은 원시값(rx). 시선 표본은 피부색 영역(rPPG)과 무관하게 얼굴만 잡히면 모두 기록하고, 깜빡임(bl)은 분석에서 뺀다 */
+        if (S.curTrial) S.curTrial.samples.push({ t, x: S.gaze.x, y: S.gaze.y, rx: g.x, ry: g.y, bl });
+      }
+    }
+  }
+  pushFrame(fr);
+}
+function pushFrame(fr) {
+  S.buf.push(fr);
+  while (S.buf.length && S.buf[0].t < fr.t - 20000) S.buf.shift();
+  if (S.recording) S.frames.push(fr);
+  if (S.bioRecording) S.bioFrames.push(fr);
+  S.fpsTimes.push(fr.t);
+  while (S.fpsTimes.length && S.fpsTimes[0] < fr.t - 2000) S.fpsTimes.shift();
+}
+function startLoop() {
+  if (procVideo.requestVideoFrameCallback) {
+    const cb = (_, meta) => { processFrame(meta); procVideo.requestVideoFrameCallback(cb); };
+    procVideo.requestVideoFrameCallback(cb);
+  } else {
+    let lastT = -1;
+    const loop = () => { if (procVideo.currentTime !== lastT) { lastT = procVideo.currentTime; processFrame(); } requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+}
+
+/* 준비 화면: 랜드마크·피부 영역 오버레이 */
+function drawOverlay() {
+  const cv = $('overlay'), ctx = cv.getContext('2d');
+  const draw = () => {
+    if ($('sSetup').hidden) { requestAnimationFrame(draw); return; }
+    const W = cv.clientWidth, H = cv.clientHeight;
+    if (cv.width !== W) { cv.width = W; cv.height = H; }
+    ctx.clearRect(0, 0, W, H);
+    /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭) */
+    const pos = posCheck(), okc = pos && pos.ok;
+    ctx.save();
+    ctx.setLineDash([7, 6]); ctx.lineWidth = 1.5; ctx.strokeStyle = okc ? 'rgba(59,227,138,.85)' : 'rgba(255,255,255,.6)';
+    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.moveTo(0, H * POS.cy); ctx.lineTo(W, H * POS.cy); ctx.stroke();
+    ctx.setLineDash([4, 6]); ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(W / 2, H * POS.cy, W * POS.rx, H * POS.ry, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (S.feat && now() - S.lastFace < 500) {
+      const fx = S.feat.cx * W, fy = S.feat.cy * H;
+      ctx.strokeStyle = okc ? '#3BE38A' : '#FFC24A'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(fx - 9, fy); ctx.lineTo(fx + 9, fy); ctx.moveTo(fx, fy - 9); ctx.lineTo(fx, fy + 9); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(W / 2, H * POS.cy); ctx.globalAlpha = 0.5; ctx.stroke();
+    }
+    ctx.restore();
+    const lm = S.lastLm;
+    if (lm) {
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      for (let i = 0; i < 468; i += 3) ctx.fillRect(lm[i].x * W - 1, lm[i].y * H - 1, 2, 2);
+      ctx.fillStyle = '#3BE38A';
+      [468, 473].forEach(i => { ctx.beginPath(); ctx.arc(lm[i].x * W, lm[i].y * H, 4, 0, 7); ctx.fill(); });
+      ctx.strokeStyle = '#FF7A99'; ctx.lineWidth = 2;
+      (S.rois || []).forEach(r => ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H));
+    }
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+}
+/* 얼굴 위치·거리 판정: 화면은 거울처럼 보이므로 안내 방향도 거울 기준 */
+const POS = { cy: 0.48, rx: 0.17, ry: 0.32, tol: 0.08, fwMin: 0.17, fwMax: 0.38 };
+function posCheck() {
+  const f = S.feat;
+  if (!f || now() - S.lastFace > 500) return null;
+  const dx = (1 - f.cx) - 0.5, dy = f.cy - POS.cy;
+  let msg = null;
+  if (f.fw < POS.fwMin) msg = '조금 더 가까이 앉아 주세요';
+  else if (f.fw > POS.fwMax) msg = '조금 뒤로 물러나 주세요';
+  else if (Math.abs(dx) > POS.tol) msg = dx > 0 ? '← 왼쪽으로 조금 이동' : '오른쪽으로 조금 이동 →';
+  else if (Math.abs(dy) > POS.tol) msg = dy > 0 ? '↑ 얼굴을 조금 위로 (또는 화면을 아래로)' : '↓ 얼굴을 조금 아래로';
+  else if (Math.abs(f.yaw) > 0.09) msg = '고개를 돌리지 말고 정면을 봐 주세요';
+  return { ok: !msg, msg: msg || '좋아요 · 이 자세를 유지하세요' };
+}
+function setDot(id, state) { $(id).className = 'dot ' + (state || ''); }
+function setupTicker() {
+  setInterval(() => {
+    if ($('sSetup').hidden) return;
+    const t = now(), faceOk = t - S.lastFace < 500;
+    const recent = S.buf.filter(f => f.ok && f.t > t - 2000);
+    const lum = N.mean(recent.map(f => f.lum));
+    const fps = S.fpsTimes.length / 2;
+    const motion = N.motionIndex(S.buf.filter(f => f.ok), t - 5000, t);
+    setDot('dFace', faceOk ? 'ok' : 'bad'); $('vFace').textContent = faceOk ? '인식됨' : '찾는 중';
+    const pos = posCheck(), gm = $('guideMsg');
+    setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';
+    gm.hidden = !pos; if (pos) { gm.textContent = pos.msg; gm.className = 'guide-msg' + (pos.ok ? ' ok' : ''); }
+    const lightOk = lum >= 70 && lum <= 215;
+    setDot('dLight', !Number.isFinite(lum) ? '' : lightOk ? 'ok' : 'warn');
+    $('vLight').textContent = !Number.isFinite(lum) ? '—' : lum < 70 ? '어두움' : lum > 215 ? '너무 밝음' : '적정';
+    setDot('dFps', fps >= 24 ? 'ok' : fps >= 15 ? 'warn' : 'bad'); $('vFps').textContent = Math.round(fps) + ' fps';
+    setDot('dStill', motion === null ? '' : motion < 3 ? 'ok' : 'warn'); $('vStill').textContent = motion === null ? '—' : motion < 3 ? '안정' : '움직임 많음';
+    const live = N.liveHr(S.buf);
+    if (live && S.buf.length && S.buf[S.buf.length - 1].t - S.buf[0].t > 9000) {
+      $('vLiveHr').textContent = live.quality === 'poor' ? '--' : live.bpm;
+      $('vLiveQ').textContent = live.quality === 'good' ? '카메라만으로 심박이 안정적으로 잡히고 있어요' : live.quality === 'fair' ? '심박 신호를 읽는 중이에요. 움직임을 줄여 주세요' : '신호가 약해요. 조명을 밝게 하고 정면을 봐 주세요';
+    }
+    $('goRun').disabled = !(faceOk && fps >= 12);
+  }, 1000);
+}
+$('goRun').addEventListener('click', () => runSession());
+
+
+/* ---------- 측정 무대: 중단·건너뛰기 가능한 대기 ----------
+ * 모든 대기(wait·respond·go·choice)를 waiters 에 등록해 두고, 건너뛰기/그만하기 때 한꺼번에 끊는다. */
+const stage = $('stage'), body = $('stageBody');
+const Abort = new Error('abort'), Skip = new Error('skip');
+const waiters = new Set();
+function wait(ms) {
+  return new Promise((res, rej) => {
+    if (S.abort) { rej(Abort); return; }
+    const w = { rej };
+    w.to = setTimeout(() => { waiters.delete(w); res(); }, ms);
+    waiters.add(w);
+  });
+}
+/* 스페이스바·화면 터치 1회 응답 (없으면 null) — 시각은 이벤트 timeStamp (performance.now 와 같은 시계) */
+function respond(ms) {
+  return new Promise((res, rej) => {
+    if (S.abort) { rej(Abort); return; }
+    const w = { rej, cleanup: () => { S.onResp = null; } };
+    w.to = setTimeout(() => { waiters.delete(w); S.onResp = null; res(null); }, ms);
+    S.onResp = e => { clearTimeout(w.to); waiters.delete(w); S.onResp = null; res({ t: e.timeStamp }); };
+    waiters.add(w);
+  });
+}
+/* 사용자가 직접 진행: 버튼 클릭 또는 Enter */
+function go(btnId) {
+  return new Promise((res, rej) => {
+    if (S.abort) { rej(Abort); return; }
+    const w = { rej, to: null, cleanup: () => { S.onGo = null; } };
+    const done = v => { waiters.delete(w); S.onGo = null; res(v); };
+    waiters.add(w);
+    S.onGo = () => done(0);
+    const b = $(btnId);
+    if (b) { b.addEventListener('click', () => done(0)); setTimeout(() => b.focus({ preventScroll: true }), 50); }
+    body.querySelectorAll('button[data-alt]').forEach(x => x.addEventListener('click', () => done(+x.dataset.alt)));
+  });
+}
+function interrupt(err) {
+  const ws = [...waiters];
+  waiters.clear();
+  ws.forEach(w => { clearTimeout(w.to); if (w.cleanup) w.cleanup(); w.rej(err); });
+}
+function every(ms, fn) { const id = setInterval(fn, ms); const stop = () => clearInterval(id); S.cleanup.push(stop); return stop; }
+const nextFrame = () => new Promise(r => requestAnimationFrame(r));
+function mark(name, edge) { (S.phases[name] = S.phases[name] || {})[edge] = now(); if (edge === 'start') S.stepPhases.push(name); }
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+window.addEventListener('keydown', e => {
+  if (!stage.classList.contains('on')) return;
+  if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); if (!e.repeat && S.onResp) S.onResp(e); return; }
+  if (e.key === 'Enter' && S.onGo) { e.preventDefault(); S.onGo(); return; }
+  if (S.onKey) S.onKey(e);
+});
+stage.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; if (S.onResp) S.onResp(e); });
+$('skip').addEventListener('click', e => { e.currentTarget.blur(); if (S.cur && !S.abort) interrupt(Skip); });
+$('quit').addEventListener('click', () => { S.abort = true; interrupt(Abort); });
+$('fsBack').addEventListener('click', () => { document.documentElement.requestFullscreen().catch(() => {}); });
+document.addEventListener('fullscreenchange', () => {
+  const off = stage.classList.contains('on') && !document.fullscreenElement && !S.demo;
+  $('fsWarn').classList.toggle('on', off);
+  if (off && S.model) S.resized = true;
+});
+/* 화면 이탈(탭 전환·다른 창으로 포커스 이동) 구간 기록 → 그 구간과 겹친 시행·심박은 판정에서 자동 제외 */
+function hideBegin() { if (stage.classList.contains('on') && S.recording && S.hideStart === null) S.hideStart = now(); }
+function hideEnd() {
+  if (S.hideStart === null) return;
+  const h = { start: S.hideStart, end: now() };
+  S.hideStart = null;
+  if (h.end - h.start >= 200) { S.hidden.push(h); $('hideWarn').classList.add('on'); setTimeout(() => $('hideWarn').classList.remove('on'), 4000); }
+}
+document.addEventListener('visibilitychange', () => (document.hidden ? hideBegin() : hideEnd()));
+window.addEventListener('blur', hideBegin);
+window.addEventListener('focus', hideEnd);
+window.addEventListener('mousemove', e => { S.mouse = { x: e.clientX, y: e.clientY }; });
+window.addEventListener('resize', () => { if (S.recording && S.model) S.resized = true; });
+
+/* ---------- 상단 단계 표시 · 진행 막대 ---------- */
+const STEP_SHORT = { calibration: '시선 보정', baseline: '기준선', pursuit: '원활 추적', saccade: '사카드', freeview: '정서 보기', pvt: 'PVT', sart: 'SART', stress: '압박 과제', recovery: '회복 호흡' };
+function renderStepper() {
+  $('stepper').innerHTML = S.plan.map(([k], i) => {
+    const st = S.steps[k] && S.steps[k].status, cls = k === S.cur ? 'cur' : st === 'skipped' || st === 'nogaze' ? 'skip' : st && st !== 'running' ? 'done' : '';
+    return `<li class="${cls}"><i>${cls === 'done' ? '✓' : i + 1}</i>${STEP_SHORT[k]}</li>`;
+  }).join('');
+}
+let hudTimer = null, plannedMs = 1, runStart = 0;
+function startHud() {
+  runStart = now();
+  hudTimer = setInterval(() => {
+    $('hudBar').style.width = Math.min(100, (now() - runStart) / plannedMs * 100) + '%';
+    const faceOk = S.demo || now() - S.lastFace < 1500;
+    setDot('hudFace', faceOk ? 'ok' : 'bad'); $('hudFaceT').textContent = S.demo ? '데모' : faceOk ? '얼굴 인식' : '얼굴 없음';
+    $('faceWarn').classList.toggle('on', !faceOk && S.recording);
+  }, 300);
+}
+/* 과제 진행 막대: 시간 기반(task(label, ms)) 또는 시행 기반(taskSet(i, n)) */
+function task(label, ms) {
+  $('taskbar').hidden = false; $('taskName').textContent = label;
+  const t0 = now();
+  const upd = () => { const f = Math.min(1, (now() - t0) / ms); $('taskBar').style.width = f * 100 + '%'; $('taskLeft').textContent = `${Math.max(0, Math.ceil((ms - (now() - t0)) / 1000))}초 남음`; };
+  upd(); const stop = every(250, upd);
+  return () => { stop(); $('taskbar').hidden = true; };
+}
+function taskSet(label, i, n) { $('taskbar').hidden = false; $('taskName').textContent = label; $('taskBar').style.width = (i / n * 100) + '%'; $('taskLeft').textContent = `${i} / ${n}`; }
+function taskHide() { $('taskbar').hidden = true; }
+function endStage() {
+  stage.classList.remove('on'); document.documentElement.classList.remove('staging'); clearInterval(hudTimer);
+  S.recording = false; S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null;
+  $('skip').hidden = true; $('fsWarn').classList.remove('on'); taskHide();
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+function centerMsg(html) { body.innerHTML = `<div class="center">${html}</div>`; }
+const demoCue = text => S.demo ? `<div class="cue">데모 모드 · ${text}</div>` : '';
+
+/* ---------- 단계 안내 카드: 충분히 읽고 직접 시작 ---------- */
+const DCOL = { calibration: '#7C88A2', baseline: '#7C88A2', pvt: '#3C6FE0', pursuit: '#6A4FD8', saccade: '#6A4FD8', sart: '#6A4FD8', freeview: '#C9577A', stress: '#1E8A7A', recovery: '#1E8A7A' };
+const V = {
+  cal: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/>' + [0, 1, 2].map(r => [0, 1, 2].map(c => `<circle cx="${30 + c * 120}" cy="${26 + r * 59}" r="7" fill="${r === 1 && c === 1 ? '#C93C5C' : '#B7BFCD'}"/>`).join('')).join('') + '</svg>',
+  fix: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><text x="150" y="102" text-anchor="middle" font-size="48" fill="#59647D" font-family="Sora">+</text></svg>',
+  pursuit: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><line x1="40" y1="85" x2="260" y2="85" stroke="#C5CCD8" stroke-dasharray="5 5"/><circle class="a-swing" cx="150" cy="85" r="11" fill="#1F4FD8"/></svg>',
+  pro: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><circle cx="150" cy="85" r="7" fill="#59647D"/><circle class="a-blink" cx="252" cy="85" r="11" fill="#C93C5C"/><path d="M162 85 H232" stroke="#1F4FD8" stroke-width="3.5" marker-end="url(#ah1)"/><defs><marker id="ah1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1F4FD8"/></marker></defs><text x="252" y="122" text-anchor="middle" font-size="13" fill="#1F4FD8" font-weight="700">점을 보기</text></svg>',
+  anti: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><circle cx="150" cy="85" r="7" fill="#59647D"/><circle class="a-blink" cx="252" cy="85" r="11" fill="#C93C5C"/><circle cx="48" cy="85" r="11" fill="none" stroke="#1F4FD8" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M138 85 H68" stroke="#1F4FD8" stroke-width="3.5" marker-end="url(#ah2)"/><defs><marker id="ah2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1F4FD8"/></marker></defs><text x="48" y="122" text-anchor="middle" font-size="13" fill="#1F4FD8" font-weight="700">반대쪽 보기</text></svg>',
+  fv: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><rect x="24" y="44" width="110" height="82" rx="6" fill="#C9CFDA"/><rect x="166" y="44" width="110" height="82" rx="6" fill="#C9CFDA"/><circle cx="79" cy="78" r="16" fill="#AEB6C6"/><path d="M58 112 Q79 96 100 112" fill="#AEB6C6"/><path d="M186 112 L210 82 L232 104 L246 92 L262 112z" fill="#AEB6C6"/></svg>',
+  pvt: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><rect x="90" y="50" width="120" height="66" rx="12" fill="#EFF1F5" stroke="#A9B2C5" stroke-width="2"/><text class="a-blink" x="150" y="96" text-anchor="middle" font-size="30" font-weight="700" fill="#B83A49" font-family="Sora">247</text><text x="150" y="146" text-anchor="middle" font-size="12" fill="#66728A">숫자가 보이면 바로 스페이스바</text></svg>',
+  sart: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/>' + [['7', 60, 1, 34], ['2', 120, 1, 24], ['3', 180, 0, 40], ['9', 240, 1, 28]].map(([d, x, k, fz]) => `<text x="${x}" y="92" text-anchor="middle" font-size="${fz}" font-weight="700" fill="#2C3650" font-family="Sora">${d}</text><text x="${x}" y="128" text-anchor="middle" font-size="12" font-weight="700" fill="${k ? '#1F4FD8' : '#C93C5C'}">${k ? '누름' : '멈춤'}</text>`).join('') + '</svg>',
+  math: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><text x="150" y="58" text-anchor="middle" font-size="24" font-weight="700" fill="#2C3650" font-family="Sora">47 − 39 + 1 = ?</text><rect x="24" y="72" width="252" height="5" rx="2.5" fill="#D3D9E5"/><rect class="a-shrink" x="24" y="72" width="252" height="5" rx="2.5" fill="#7D879E"/>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((v, i) => `<rect x="${24 + i * 25.4}" y="92" width="21" height="30" rx="6" fill="${v === 1 ? '#DCE1EA' : '#F2F4F8'}" stroke="${v === 1 ? '#5D6E94' : '#C9D0DD'}"/><text x="${34.5 + i * 25.4}" y="113" text-anchor="middle" font-size="13" font-weight="700" fill="#2C3650" font-family="Sora">${v}</text>`).join('') + '<rect x="24" y="138" width="252" height="7" rx="3.5" fill="#D9DEE7"/><rect x="24" y="138" width="150" height="7" rx="3.5" fill="#7D879E"/><rect x="224" y="134" width="2" height="15" fill="#3A4560"/><text x="225" y="160" text-anchor="middle" font-size="10" fill="#3A4560" font-weight="700">목표 80%</text></svg>',
+  breath: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><circle cx="110" cy="85" r="58" fill="none" stroke="#D3D9E5" stroke-width="5"/><circle class="a-grow" cx="110" cy="85" r="46" fill="rgba(127,163,184,.2)" stroke="#7FA3B8" stroke-width="3"/><text x="110" y="90" text-anchor="middle" font-size="14" font-weight="700" fill="#3A4560">들숨 5초</text><path d="M188 110 C204 110 210 60 226 60 S248 110 264 110" fill="none" stroke="#7FA3B8" stroke-width="2.5"/><text x="226" y="138" text-anchor="middle" font-size="11" fill="#66728A">분당 6회 · 0.1Hz</text></svg>',
+  calm: '<svg viewBox="0 0 300 170"><defs><linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9E2EC"/><stop offset="1" stop-color="#EEF1F5"/></linearGradient></defs><rect x="6" y="6" width="288" height="158" rx="10" fill="url(#cg1)"/><path d="M6 104 L60 70 L100 92 L150 58 L206 96 L246 74 L294 100 V112 H6Z" fill="#CBD5E1"/><rect x="6" y="110" width="288" height="54" fill="#DCE4EC"/><path class="a-swing" d="M60 130 q20 -6 40 0 t40 0" fill="none" stroke="#EEF2F6" stroke-width="3" style="animation-duration:9s"/><circle cx="150" cy="96" r="4" fill="#7C88A2"/></svg>',
+};
+function stepInfo(key) {
+  const d = B.DUR[S.mode], P = B.PROTOCOL;
+  const I = {
+    calibration: { tag: '측정 준비 · Gaze calibration', title: '시선 보정 · 영점 조정', vis: V.cal, time: '약 1분 10초', resp: '눈으로 바라보기 · 따라가기',
+      what: '눈과 머리 자세를 화면 좌표에 맞춰, 화면의 어느 곳을 보고 있는지 추정할 수 있게 합니다. 이후 모든 시선 검사의 정확도를 좌우하는 단계라 세 가지 방법을 겹쳐 씁니다.',
+      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면을 천천히 돌아다니는 파란 점을 12초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 원 가까이 가면 커서가 원 쪽으로 끌려 들어가 떨림 없이 멈출 수 있어요'],
+      orig: '응시 보정만 쓰면 점 9개 사이의 공간이 부정확해지기 쉬워요. 움직이는 점을 따라가는 <b>추적 보정</b>으로 화면 전체의 자료를 더하고, 두 모델 중 검증 오차가 작은 쪽을 고른 뒤, 축별 <b>영점 조정</b>으로 남은 치우침을 없앱니다. 커서는 떨림과 지연을 함께 줄이는 One Euro 필터로 표시해요.',
+      ref: 'Semmelmann & Weigelt, 2018 · Pfeuffer et al., 2013 (추적 보정) · Casiez et al., 2012 (One Euro 필터)' },
+    baseline: { tag: '측정 준비 · Resting baseline', title: '안정 기준선', vis: V.calm, time: `${d.baseline}초`, resp: '편안히 바라보기',
+      what: '과제 없이 잔잔한 풍경(사진 또는 그림)을 보는 동안의 심박과 눈꺼풀 상태를 재서, 이후 모든 반응을 비교할 <b>나만의 기준</b>으로 씁니다.',
+      how: ['잔잔한 호수 풍경이 펼쳐져요. 가운데 작은 점 근처를 <b>편안히</b> 바라봐 주세요', '말하거나 움직이지 않고 평소처럼 호흡해요 (호흡을 조절하지 않아도 돼요)', '끝나면 자동으로 다음 안내가 나와요'],
+      orig: '빈 화면을 응시하는 휴식보다 잔잔한 풍경 영상을 보는 <b>‘바닐라 기준선’</b>이 지루함·잡념이 섞이지 않은 더 안정된 심박 기준선을 준다고 보고됐어요. 풍경의 밝기는 측정 화면과 같게 맞춰 카메라 심박에 영향을 주지 않아요.',
+      ref: 'Jennings et al., 1992 · Piferi et al., 2000 · 원격 심박 POS: Wang et al., 2017' },
+    pursuit: { tag: 'Domain 2 · 주의 통제', title: '원활 추적', vis: V.pursuit, time: `${d.pursuit}초`, resp: '눈으로 따라가기',
+      what: '움직이는 표적을 눈으로 부드럽게 따라가는 능력은 주의 유지와 예측적 시선 조절을 반영합니다. 추적이 흔들리는 정도를 주의 동기화 지표로 봅니다.',
+      how: ['먼저 가운데 점을 1초 바라보며 시선을 재정렬해요', '파란 점이 좌우로 천천히 움직여요', '머리는 고정하고 <b>눈으로만</b> 점의 가운데를 계속 따라가세요'], ref: 'Lencer & Trillenberg, 2008 · Maruta et al., 2010' },
+    saccade: { tag: 'Domain 2 · 주의 통제', title: '프로 · 안티사카드', vis: V.anti, time: `약 ${Math.round(((d.pro + d.anti + d.practice) * 3.2 + 10) / 6) / 10}분`, resp: '눈으로 바라보기', trials: `프로 ${d.pro} · 연습 ${d.practice} · 안티 ${d.anti}`,
+      what: '갑자기 나타난 자극으로 향하려는 반사적 시선을 억제하고 반대쪽을 보는 능력(안티사카드)은 전전두엽 실행 통제의 대표 지표입니다.',
+      how: ['먼저 좌 · 중 · 우 점을 차례로 보며 <b>개인 시선 범위</b>를 재요', '프로사카드: 빨간 점이 나타나면 <b>그 점을</b> 봐요', '안티사카드: 빨간 점의 <b>반대쪽 같은 거리</b>를 봐요 (시작 전에 다시 안내해요)'], ref: 'Hallett, 1978 · Munoz & Everling, 2004 · Antoniades et al., 2013' },
+    freeview: { tag: 'Domain 3 · 정서 주의', title: '정서 자유 보기', vis: V.fv, time: `약 ${Math.round(fvTrials(d) * (trialMs() + FIX_MS) / 6000) / 10}분`, resp: '자유롭게 보기', trials: `${fvTrials(d)}쌍`,
+      what: '정서 자극과 중립 자극이 함께 있을 때 시선이 어디로 먼저 가고 얼마나 머무는지로, 정서 정보에 대한 주의 편향을 봅니다.',
+      how: ['먼저 가운데 점을 1초 바라보며 시선을 재정렬해요', `양쪽에 ${S.stimMode === 'photo' ? '사진' : '얼굴 그림과 단어'} 두 개가 ${trialMs() / 1000}초 동안 나타나요`, '정답은 없어요. <b>보고 싶은 쪽을 편하게</b> 보세요 · 사이사이 + 가 나오면 + 를 봐요'],
+      note: S.stimMode === 'photo' ? '일부 사진은 불쾌감을 줄 수 있어요. 불편하면 언제든 ‘이 단계 건너뛰기’를 누르세요.' : null, ref: 'Armstrong & Olatunji, 2012 · 자유 보기 체류 시간' },
+    pvt: { tag: 'Domain 1 · 각성', title: '정신운동 경계 과제 (PVT-B)', vis: V.pvt, time: `연습 후 ${d.pvt}초`, resp: '스페이스바 · 화면 터치', trials: `연습 ${d.pvtPractice}회`,
+      what: '예측할 수 없는 간격으로 나타나는 자극에 얼마나 빨리, 빠짐없이 반응하는지로 기본 각성 수준을 봅니다. 수면 부족에 가장 민감한 검사이며, 같은 시간 동안 눈꺼풀 감김(PERCLOS)도 함께 잽니다.',
+      how: ['상자에 빨간 숫자가 올라가기 시작하면 <b>스페이스바를 바로</b> 누르세요', '누르면 내 반응시간(ms)이 바로 표시돼요 · 숫자가 나오기 전에는 누르지 마세요', `연습 ${d.pvtPractice}회 후 본 검사 ${d.pvt}초 · 남은 시간이 아래에 표시돼요`],
+      orig: `<b>원판 그대로</b> PVT-B는 ${d.pvt === 180 ? '3분' : '정해진 시간'} 동안 한 가지 과제를 이어 가도록 표준화된 검사예요. 단조로운 과제를 지속할수록 반응이 늦어지는 정도 자체가 각성 지표라, 다른 과제를 섞으면 수면 부족에 대한 민감도가 떨어져요. 짧게 하려면 첫 화면에서 ‘빠른 측정(90초)’을 고르세요.`,
+      ref: 'Basner, Mollicone & Dinges, 2011 · PVT-B' },
+    sart: { tag: 'Domain 2 · 주의 통제', title: '지속 주의 반응 과제 (SART)', vis: V.sart, time: `약 ${Math.round(((d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8) / 6) / 10}분`, resp: '스페이스바 · 화면 터치', trials: `연습 ${d.sartPractice} + 본 검사 ${d.sart}개`,
+      what: '빠르게 지나가는 숫자에 습관적으로 반응하다가 특정 숫자에서 멈추는 능력으로 지속 주의와 반응 억제를 봅니다. 수행 중 머리 움직임도 함께 기록합니다.',
+      how: ['숫자 1~9가 <b>잠깐 나타났다 사라지고</b>, 1.15초마다 다음 숫자가 나와요 (크기는 매번 달라져요)', '<b>3을 뺀 모든 숫자</b>에 스페이스바 · <b>3이 나오면 누르지 않아요</b>', `연습 ${d.sartPractice}개는 매번 정답 여부를 알려 주고, 본 검사 ${d.sart}개는 누를 때마다 <b>입력 확인 점</b>만 켜져요`],
+      orig: '<b>원판 그대로</b> 1.15초 간격의 빠른 속도, 다섯 가지 숫자 크기, 본 검사 중 정답을 알려 주지 않는 것은 Robertson 등(1997)의 원판 설정이에요. 원판은 숫자 뒤에 원 안의 × 모양 가림 화면이 나오는데, ‘틀렸다’는 표시로 오인되기 쉬워 빈 화면으로 바꿨어요. 빠른 리듬에 맞춰 습관적으로 누르다가 3에서 멈출 수 있는지가 측정의 핵심이라, 정오를 알려 주면 다른 검사가 돼요. 속도와 정확성을 똑같이 중요하게 생각해 주세요.',
+      ref: 'Robertson et al., 1997 · SART' },
+    stress: { tag: 'Domain 4 · 자율신경 조절', title: '압박 과제 (MIST 암산)', vis: V.math, time: `${d.stress}초`, resp: '숫자 키 0~9 · 클릭',
+      what: '수행에 맞춰 점점 짧아지는 제한 시간 안에 암산하는 압박 상황에서 심박이 얼마나 오르는지로 스트레스 반응성을 봅니다.',
+      how: ['난이도 1~5의 <b>덧셈·뺄셈</b> 문제가 무작위로 나와요 · 답은 항상 <b>0~9 한 자리</b>', '키보드 숫자 키 또는 화면의 숫자 버튼으로 답해요', '3문제 연속 맞히면 제한 시간이 10% 줄어요 — 일부러 어렵게 만든 과제이니 틀려도 괜찮아요'],
+      orig: '<b>원판 구성</b> 몬트리올 영상 스트레스 과제(MIST)처럼 난이도 무작위 혼합(한 자리 2항 → 두 자리 3항), 적응형 제한 시간, 목표 대비 성적 막대를 씁니다. 곱셈·나눗셈은 빼서 계산 실력보다 시간 압박이 반응을 만들게 했어요. 원판의 ‘가짜 평균 비교’ 대신 실제 목표 정답률 80%를 보여 줘요. 압박 반응을 비교하려면 과제 종류를 고정하는 것이 표준이라 다른 과제는 섞지 않았어요.',
+      ref: 'Dedovic et al., 2005 · MIST' },
+    recovery: { tag: 'Domain 4 · 자율신경 조절', title: '공명 호흡 회복', vis: V.breath, time: `${d.recovery}초`, resp: '호흡 따라 하기',
+      what: '분당 6회 호흡을 따라 하는 동안, 압박으로 오른 심박이 얼마나 되돌아오고 호흡에 맞춰 출렁이는지로 회복력과 자율신경 조절을 봅니다.',
+      how: ['원이 커지고 바깥 띠가 차오를 때 <b>5초 들이쉬고</b>, 작아질 때 <b>5초 내쉬어요</b>', '코로 천천히, 편안한 깊이로 — 억지로 깊게 쉬지 않아도 돼요', '아래 파형의 점이 올라가면 들숨, 내려가면 날숨이에요'],
+      orig: '분당 6회(0.1Hz)는 성인 대부분의 <b>공명 주파수</b> 근처로, 호흡에 맞춰 심박이 가장 크게 출렁이는 속도예요. 이 출렁임의 폭이 미주신경성 조절의 대리 지표가 됩니다.',
+      ref: 'Lehrer & Gevirtz, 2014 · Shaffer & Meehan, 2020' },
+  };
+  return I[key];
+}
+/* 직전 단계의 측정 품질 요약 (다음 안내 카드 위에 표시) */
+function stepSummary(key) {
+  const st = S.steps[key] && S.steps[key].status;
+  if (!st) return null;
+  const name = STEP_SHORT[key];
+  if (st === 'skipped') return { cls: 'skip', text: `${name} 건너뜀` };
+  if (st === 'nogaze') return { cls: 'skip', text: `${name} 제외 (시선 보정 없음)` };
+  const W = S.screenW;
+  try {
+    if (key === 'calibration') return S.calib && S.calib.errPct != null ? { cls: S.calib.grade === 'good' ? '' : 'warn', text: `시선 보정 완료 · 오차 ${S.calib.errPct}%` } : { cls: 'warn', text: '시선 보정 생략 · 시선 지표 제외' };
+    if (key === 'baseline') {
+      const ph = S.phases.baseline, fr = S.frames.filter(f => ph && f.t >= ph.start && f.t <= ph.end);
+      const q = S.demo ? 'good' : (N.liveHr(fr, 20) || {}).quality;
+      return { cls: q === 'good' ? '' : 'warn', text: `기준선 완료 · 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함' }[q] || '부족'}` };
+    }
+    if (key === 'pursuit' && S.pursuit) { const n = S.pursuit.samples.length, e = S.pursuit.dur / 1000 * 25; return { cls: n / e >= 0.5 ? '' : 'warn', text: `원활 추적 완료 · 시선 표본 ${Math.min(100, Math.round(n / e * 100))}%` }; }
+    if (key === 'saccade') {
+      const T = S.saccade.filter(t => !t.practice), qa = B.saccadeQuick(T.filter(t => t.type === 'anti'), W, S.sacCal), qp = B.saccadeQuick(T.filter(t => t.type === 'pro'), W, S.sacCal);
+      return { cls: qa.validRate >= 0.6 ? '' : 'warn', text: `사카드 완료 · 유효 프로 ${qp.valid}/${qp.n} · 안티 ${qa.valid}/${qa.n}` };
+    }
+    if (key === 'freeview') { const v = S.trials.filter(t => N.trialStats(t, W).valid).length; return { cls: v >= S.trials.length * 0.6 ? '' : 'warn', text: `정서 보기 완료 · 유효 ${v}/${S.trials.length}쌍` }; }
+    if (key === 'pvt' && S.pvt) { const r = S.pvt.trials.filter(t => t.rt !== null).length; return { cls: '', text: `PVT 완료 · 반응 ${r}/${S.pvt.trials.length}회` }; }
+    if (key === 'sart' && S.sart) return { cls: '', text: `SART 완료 · ${S.sart.trials.length}개` };
+    if (key === 'stress' && S.stressScore) return { cls: '', text: `압박 과제 완료 · 정답 ${S.stressScore.correct}/${S.stressScore.total}` };
+    if (key === 'recovery') return { cls: '', text: '회복 호흡 완료' };
+  } catch (_) {}
+  return { cls: '', text: `${name} 완료` };
+}
+async function brief(key, opt = {}) {
+  const m = { ...stepInfo(key), ...opt };
+  const idx = S.plan.findIndex(p => p[0] === key), prevKey = idx > 0 ? S.plan[idx - 1][0] : null, prev = !opt.noPrev && prevKey ? stepSummary(prevKey) : null;
+  body.innerHTML = `<div class="brief" role="dialog" aria-labelledby="bT"><span class="dstrip" style="background:${DCOL[key] || '#7C88A2'}"></span>
+    <div class="brief-top"><span class="tag">Step ${S.stepIdx} / ${S.stepTotal} · ${esc(m.tag)}</span>${prev ? `<span class="prev ${prev.cls}">${prev.cls === 'skip' ? '—' : prev.cls === 'warn' ? '!' : '✓'} ${esc(prev.text)}</span>` : ''}</div>
+    <h2 id="bT">${esc(m.title)}</h2>
+    <p class="what">${m.what}</p>
+    <div class="brief-grid"><ol>${m.how.map(h => `<li>${h}</li>`).join('')}</ol><div class="vis">${m.vis}</div></div>
+    <div class="facts"><span>소요<b>${esc(m.time)}</b></span>${m.trials ? `<span>구성<b>${esc(m.trials)}</b></span>` : ''}<span>응답<b>${esc(m.resp)}</b></span></div>
+    ${m.orig ? `<p class="orig">${m.orig}</p>` : ''}
+    ${m.note ? `<p class="note">${esc(m.note)}</p>` : ''}
+    ${S.demo && GAZE_STEPS.includes(key) ? '<p class="note" style="background:#E7ECF7;color:#2B3D6E">데모 모드: 마우스 위치가 시선 역할을 해요.</p>' : ''}
+    <p class="ref">근거 · ${esc(m.ref)}</p>
+    <div class="go"><button class="btn" id="bGo">${esc(m.cta || '준비됐어요 · 시작')}<span class="kbd">Enter</span></button>${m.alt ? m.alt.map((a, i) => `<button class="btn ghost" data-alt="${i + 1}">${esc(a)}</button>`).join('') : ''}<span class="muted">${esc(m.hint || '읽을 시간이 충분해요. 준비되면 시작하세요.')}</span></div>
+  </div>`;
+  return go('bGo');
+}
+/* 짧은 확인 화면 (단계 안의 블록 전환 등) */
+async function pauseCard(title, html, cta = '계속', alt) {
+  body.innerHTML = `<div class="brief" style="width:min(640px,92vw)"><h2>${esc(title)}</h2><div class="what">${html}</div>
+    <div class="go"><button class="btn" id="pGo">${esc(cta)}<span class="kbd">Enter</span></button>${alt ? alt.map((a, i) => `<button class="btn ghost" data-alt="${i + 1}">${esc(a)}</button>`).join('') : ''}</div></div>`;
+  return go('pGo');
+}
+
+/* 3·2·1 카운트다운 (과제 시작 직전, 응답 입력은 받지 않음) */
+async function countdown(label = '곧 시작해요', n = 3) {
+  const C = 2 * Math.PI * 66;
+  body.innerHTML = `<div class="cd fade"><svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="66" fill="none" stroke="#D3D9E5" stroke-width="6"/><circle id="cdR" cx="75" cy="75" r="66" fill="none" stroke="#7C88A2" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0" style="transition:stroke-dashoffset .95s linear"/></svg><b id="cdN">${n}</b><span>${esc(label)}</span></div>`;
+  for (let i = n; i > 0; i--) {
+    const el = $('cdN'); el.textContent = i; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    $('cdR').style.strokeDashoffset = C * (1 - (i - 1) / n);
+    await wait(1000);
+  }
+}
+
+/* ---------- 단계 실행기 ---------- */
+const DISCARD = {
+  calibration: () => { S.model = null; S.affine = null; S.gaze = null; S.calib = { grade: 'none', errPct: null, skipped: true }; },
+  freeview: () => { S.trials = []; }, pursuit: () => { S.pursuit = null; }, saccade: () => { S.saccade = []; S.sacCal = null; },
+  pvt: () => { S.pvt = null; }, sart: () => { S.sart = null; }, stress: () => { S.stressScore = null; },
+};
+async function runStep(key, fn) {
+  const st = S.steps[key] = { status: 'running' };
+  S.cur = key; S.stepPhases = [];
+  S.lmRec = !S.demo && (key === 'calibration' || GAZE_STEPS.includes(key));
+  renderStepper();
+  $('skip').hidden = false;
+  try { await fn(); st.status = S.demo ? 'input' : 'done'; }
+  catch (e) {
+    if (e !== Skip) throw e;
+    st.status = 'skipped';
+    S.stepPhases.forEach(p => { delete S.phases[p]; });
+    if (DISCARD[key]) DISCARD[key]();
+  } finally {
+    S.cleanup.forEach(f => f()); S.cleanup = [];
+    S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null; S.onGaze = null; S.cur = null; S.lmRec = false;
+    $('skip').hidden = true; taskHide();
+    renderStepper();
+  }
+}
+async function runSession() {
+  Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null });
+  Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 } });
+  S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';
+  if (S.demo) S.calib = { grade: 'good', errPct: null, mouse: true };
+  const d = B.DUR[S.mode], m = S.mods, plan = [];
+  if (!S.demo) plan.push(['calibration', () => calibrate()]);
+  plan.push(['baseline', () => phaseBaseline(d.baseline)]);
+  if (m.oculo) plan.push(['pursuit', () => phasePursuit(d.pursuit)], ['saccade', () => phaseSaccade(d)]);
+  if (m.core) plan.push(['freeview', () => phaseFreeview(d)]);
+  if (m.alert) plan.push(['pvt', () => phasePvt(d)]);
+  if (m.sustain) plan.push(['sart', () => phaseSart(d)]);
+  if (m.core) plan.push(['stress', () => phaseStress(d.stress)], ['recovery', () => phaseRecovery(d.recovery)]);
+  ['pursuit', 'saccade', 'freeview', 'pvt', 'sart', 'stress', 'recovery'].forEach(k => { if (!plan.some(p => p[0] === k)) S.steps[k] = { status: 'off' }; });
+  S.plan = plan;
+  plannedMs = plan.reduce((s, [k]) => s + stepEstimateSec(k, d), 0) * 1000;
+  stage.classList.add('on'); document.documentElement.classList.add('staging');
+  try { await document.documentElement.requestFullscreen(); } catch (_) {}
+  startHud();
+  try {
+    await wait(500);
+    S.screenW = stage.clientWidth;
+    for (let i = 0; i < plan.length; i++) {
+      const [key, fn] = plan[i];
+      S.stepIdx = i + 1; S.stepTotal = plan.length;
+      if (GAZE_STEPS.includes(key) && !S.demo && !S.model) { S.steps[key] = { status: 'nogaze' }; renderStepper(); continue; }
+      if (key === 'baseline') S.recording = true;
+      await runStep(key, fn);
+    }
+    S.recording = false;
+    const rows = plan.map(([k]) => stepSummary(k)).filter(Boolean);
+    body.innerHTML = `<div class="brief" style="width:min(640px,92vw)"><span class="tag">Complete</span><h2>모든 단계를 마쳤어요</h2>
+      <p class="what">수고하셨어요. 아래 측정 품질을 확인한 뒤 결과를 분석합니다.</p>
+      <ul class="sumlist">${rows.map(r => `<li>${esc(r.text)}<span>${r.cls === 'skip' ? '판정 제외' : r.cls === 'warn' ? '품질 낮음 · 참고' : '양호'}</span></li>`).join('')}</ul>
+      <div class="go"><button class="btn" id="fGo">결과 분석하기<span class="kbd">Enter</span></button></div></div>`;
+    S.cur = 'done';
+    await go('fGo');
+    endStage();
+    finish();
+  } catch (e) {
+    endStage();
+    if (e === Abort) { show(S.demo ? 'sCheckin' : 'sSetup'); return; }
+    console.error(e); alert('측정 중 오류가 발생했어요: ' + e.message); show('sIntro');
+  }
+}
+
+/* 가운데 점 응시로 현재 시선의 치우침(drift)을 재서 보정 (과제마다 시작 직전) */
+async function driftCheck() {
+  if (S.demo || !S.model) return;
+  const H = stage.clientHeight, W = stage.clientWidth;
+  body.innerHTML = `<div class="sac-fix" style="width:20px;height:20px;margin:-10px 0 0 -10px"></div><div class="cue">가운데 점을 바라봐 주세요 · 시선 영점 맞추기</div>`;
+  await wait(450);
+  const xs = [], ys = [];
+  const stop = every(33, () => { if (S.rawG && now() - S.rawG.t < 100 && !S.rawG.bl) { xs.push(S.rawG.x); ys.push(S.rawG.y); } });
+  await wait(900);
+  stop();
+  if (xs.length >= 8) {
+    const dx = N.median(xs) - W / 2, dy = N.median(ys) - H / 2;
+    if (Math.abs(dx) < W * 0.25 && Math.abs(dy) < H * 0.3) { S.drift = { dx, dy }; S.gaze = null; }
+  }
+}
+
+/* 시선 보정: ① 9점 응시 → ② 움직이는 점 따라가기(추적 보정, Pfeuffer et al., 2013) → ③ 4점 검증으로 더 정확한 모델 선택
+ *          → ④ 5개 영역 영점 조정(축별 1차 보정) → ⑤ 시선 커서로 영역 맞히기(실제로 시선을 움직여 좌표를 옮길 수 있는지 확인) */
+function featSampler(t0, from, to, target, out, w = 1) {
+  return (t, f) => { const dt = t - t0; if (dt > from && dt < to) { const tg = target(t); out.push({ x: tg.x, y: tg.y, f, w }); } };
+}
+async function cal9(W, H) {
+  const pts = [], samples = [];
+  for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) pts.push([fx * W, fy * H]);
+  body.innerHTML = '<div class="cal-dot" id="calDot"></div><div class="cue">빨간 점의 가운데를 눈으로만 바라봐 주세요 · 1단계 응시 보정</div>';
+  const dot = $('calDot');
+  for (const [x, y] of pts) {
+    dot.style.left = x + 'px'; dot.style.top = y + 'px';
+    if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });
+    S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), samples);
+    await wait(1700);
+  }
+  S.onFeature = null;
+  return samples;
+}
+/* 추적 보정: 리사주 경로(가로 0.12Hz · 세로 0.08Hz)로 천천히 움직이는 점. 시선은 표적보다 약 120ms 늦으므로 그만큼 앞선 표적 위치와 짝짓는다 */
+async function calPursuit(W, H, sec = 12.5) {
+  const out = [], LAG = 120;
+  const pos = t => ({ x: W * (0.5 + 0.38 * Math.sin(2 * Math.PI * 0.12 * t / 1000)), y: H * (0.5 + 0.34 * Math.sin(2 * Math.PI * 0.08 * t / 1000 + Math.PI / 2)) });
+  body.innerHTML = `<div class="cal-dot val" id="pcDot" style="transition:none"></div><div class="cue">파란 점을 눈으로 부드럽게 따라가 주세요 · 2단계 추적 보정</div>`;
+  const dot = $('pcDot');
+  let p0 = pos(0); dot.style.left = p0.x + 'px'; dot.style.top = p0.y + 'px';
+  await wait(900);
+  const t0 = await nextFrame();
+  let raf = 0;
+  const anim = ts => { const q = pos(ts - t0); dot.style.left = q.x + 'px'; dot.style.top = q.y + 'px'; raf = requestAnimationFrame(anim); };
+  raf = requestAnimationFrame(anim);
+  S.cleanup.push(() => cancelAnimationFrame(raf));
+  S.onFeature = featSampler(t0, 1000, sec * 1000, t => pos(t - t0 - LAG), out, 0.5);
+  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, path: 'x=W*(0.5+0.38*sin(2pi*0.12*t)), y=H*(0.5+0.34*sin(2pi*0.08*t+pi/2)), t in s from t0' };
+  const stopT = task('추적 보정', sec * 1000);
+  await wait(sec * 1000);
+  stopT(); cancelAnimationFrame(raf); S.onFeature = null;
+  return out;
+}
+/* 검증점에서 특징만 모아 두면, 후보 모델들을 같은 자료로 비교할 수 있다 */
+async function calCollect(points, label) {
+  body.innerHTML = `<div class="cal-dot val" id="vDot"></div><div class="cue">${esc(label)}</div>`;
+  const dot = $('vDot'), out = [];
+  for (const p of points) {
+    dot.style.left = p.x + 'px'; dot.style.top = p.y + 'px';
+    if (S.calibLog) S.calibLog.targets.push({ t: now(), x: p.x, y: p.y, kind: label.includes('영점') ? 'zone' : 'val' });
+    const fs = [];
+    S.onFeature = (t, f) => fs.push(f);
+    await wait(500); fs.length = 0;
+    await wait(800);
+    S.onFeature = null;
+    out.push({ ...p, fs: fs.slice() });
+  }
+  return out;
+}
+const predAt = (model, A, pt) => {
+  const g = pt.fs.map(f => N.applyAffine(A, N.predictGaze(model, f))).filter(Boolean);
+  return g.length >= 4 ? { ...pt, gx: N.median(g.map(q => q.x)), gy: N.median(g.map(q => q.y)) } : { ...pt, gx: null, gy: null };
+};
+/* 영점 조정 오차는 한 점을 빼고 맞춘 보정으로 그 점을 예측하는 방식(leave-one-out)으로 정직하게 잰다 */
+function looAffineErr(pairs, W, H) {
+  const ok = pairs.filter(p => Number.isFinite(p.gx));
+  if (ok.length < 5) return null;
+  const pred = ok.map((p, i) => {
+    const A = N.fitAffine(ok.filter((_, j) => j !== i));
+    const g = N.applyAffine(A, { x: p.gx, y: p.gy });
+    return { x: p.x, y: p.y, gx: g.x, gy: g.y };
+  });
+  return N.gazeAccuracy(pred, W, H);
+}
+/* 시선 커서 과제: 영역(원) 안에 커서를 0.6초 머물게 하기.
+ * 커서 = N.gazeCursor: 치우침 학습 + 강한 One Euro 평활 + 속도 제한 + 표적 근처 자석 보조 → 떨림이 적고 원하는 곳에 멈추기 쉽다.
+ * 머무름 판정은 들어올 때 반경 R, 나갈 때 1.3R (경계에서 깜빡이지 않게), 150ms 미만 이탈은 무시 */
+async function cursorTask(zones, W, H) {
+  const R = Math.max(52, W * 0.065), HOLD = 600, LIMIT = 7000, res = [];
+  const gc = N.gazeCursor({ W, H });
+  for (let i = 0; i < zones.length; i++) {
+    const z = zones[i];
+    body.innerHTML = `<div class="zone-a" style="left:${z.x}px;top:${z.y}px;width:${W * 0.28}px;height:${W * 0.28}px"></div><div class="zone" id="zn" style="left:${z.x}px;top:${z.y}px;width:${2 * R}px;height:${2 * R}px"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#D3D9E5" stroke-width="5"/><circle id="znP" cx="50" cy="50" r="46" fill="none" stroke="#2F9E6A" stroke-width="5" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 50 50)"/></svg></div>
+      <div class="gcur" id="gc"></div><div class="cue">원 쪽을 편하게 바라보세요 — 가까이 가면 커서(●)가 원 안으로 끌려 들어가요 · 영역 ${i + 1}/${zones.length} · 3단계 시선 이동 확인</div>`;
+    const zn = $('zn'), gc0 = $('gc'), zp = $('znP');
+    const t0 = now();
+    let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0;
+    S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; };
+    await new Promise((res2, rej) => {
+      const w = { rej, cleanup: () => { cancelAnimationFrame(raf); S.onGaze = null; } };
+      waiters.add(w);
+      const tick = () => {
+        const t = now();
+        if (cur && t - cur.t < 250) {
+          gc0.style.display = 'block'; gc0.style.left = cur.x + 'px'; gc0.style.top = cur.y + 'px';
+          const d = Math.hypot(cur.x - z.x, cur.y - z.y);
+          const nowIn = inside ? d <= R * 1.3 : d <= R;
+          if (nowIn) { outSince = null; if (!inside) { inside = true; inSince = t; } }
+          else if (inside) { if (outSince === null) outSince = t; if (t - outSince > 150) { inside = false; inSince = null; } }
+          gc0.classList.toggle('near', cur.near);
+        } else gc0.style.display = 'none';
+        zn.classList.toggle('in', inside);
+        zp.style.strokeDashoffset = 289 * (1 - Math.min(1, inside && inSince !== null ? (t - inSince) / HOLD : 0));
+        if (inside && inSince !== null && t - inSince >= HOLD) done = { ok: true, ms: Math.round(inSince - t0) };
+        if (!done && t - t0 > LIMIT) done = { ok: false, ms: null };
+        if (done) { waiters.delete(w); w.cleanup(); res2(); return; }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      S.cleanup.push(w.cleanup);
+    });
+    zn.classList.add(done.ok ? 'hit' : 'miss');
+    res.push(done);
+    await wait(350);
+  }
+  S.onGaze = null;
+  return { n: res.length, hit: res.filter(r => r.ok).length, meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };
+}
+async function calibrate() {
+  await brief('calibration');
+  while (true) {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    S.screenW = W; S.drift = { dx: 0, dy: 0 }; S.affine = null; S.model = null; S.gaze = null; resetEuro();
+    S.calibLog = { screen: { w: W, h: H }, targets: [] };
+    const s9 = await cal9(W, H);
+    const sp = await calPursuit(W, H);
+    const vpts = [[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
+    const val = await calCollect(vpts, '파란 점을 바라봐 주세요 · 정확도 확인');
+    /* 후보 모델: 9점만 / 9점 + 추적 — 검증점 오차가 작은 쪽을 쓴다 */
+    const cands = [{ key: '9점', m: N.fitGaze(s9) }, { key: '9점+추적', m: sp.length >= 60 ? N.fitGaze([...s9, ...sp]) : null }]
+      .filter(c => c.m).map(c => ({ ...c, acc: N.gazeAccuracy(val.map(p => predAt(c.m, null, p)), W, H) }))
+      .filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);
+    let acc = { grade: 'poor', errPct: null }, info = '';
+    if (cands.length) {
+      S.model = cands[0].m;
+      const before = cands[0].acc;
+      /* 영점 조정: 화면 다섯 영역(가운데·네 모서리 안쪽)을 커서 없이 바라본 자료 + 검증점으로 축별 보정 */
+      const zones = [[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
+      const zc = await calCollect(zones, '파란 점을 바라봐 주세요 · 영점 조정');
+      const pairs = [...val, ...zc].map(p => predAt(S.model, null, p));
+      const A = N.fitAffine(pairs), after = looAffineErr(pairs, W, H);
+      if (A && after && after.errPct !== null && after.errPct < before.errPct) { S.affine = A; acc = after; } else acc = before;
+      S.gaze = null; resetEuro();
+      /* 시선 이동 확인 (커서) */
+      const ctl = acc.grade === 'poor' ? null : await cursorTask(shuffle(zones.slice()).slice(0, 4), W, H);
+      /* 커서 과제에서 학습한 치우침이 영역 전체에 일관되면(학습 표본 충분), 커서 없이 바라본 자료로 다시 평가해
+       * 오차가 실제로 줄어들 때만 측정용 영점에 더한다 (보정 학습 자료가 아니라 평가 자료로만 판단) */
+      if (ctl && ctl.bias.n >= 40 && Math.hypot(ctl.bias.x, ctl.bias.y) > W * 0.01) {
+        const A0 = S.affine || { x: { a: 1, b: 0 }, y: { a: 1, b: 0 } };
+        const A1 = { x: { a: A0.x.a, b: A0.x.b + ctl.bias.x * 0.5 }, y: { a: A0.y.a, b: A0.y.b + ctl.bias.y * 0.5 } };
+        const e0 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A0, p)), W, H), e1 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A1, p)), W, H);
+        if (e1.errPct !== null && e0.errPct !== null && e1.errPct < e0.errPct) { S.affine = A1; ctl.biasApplied = true; }
+      }
+      acc = { ...acc, before: before.errPct, model: cands[0].key, affine: !!S.affine, control: ctl };
+      S.calibLog.model = { key: cands[0].key, quad: !!S.model.quad }; S.calibLog.affine = S.affine; S.calibLog.cursor = ctl;
+      S.calibLog.pairs = [...val, ...zc].map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length }));
+      info = `<div class="calsum"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>영점 조정 후</span><b>${S.affine ? acc.errPct + '%' : '조정 불필요'}</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div></div>`;
+      if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다
+    }
+    S.calib = { ...acc, samples: s9.length + sp.length };
+    if (acc.grade !== 'poor') {
+      const c = await pauseCard('보정 완료', `${info}<p style="margin:12px 0 0">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);
+      if (c === 1) continue;
+      return;
+    }
+    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style="margin:12px 0 0">오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);
+    if (c === 1) { S.model = null; S.affine = null; return; }
+  }
+}
+
+/* 바닐라 기준선용 풍경: 밝기는 측정 무대(#E8EBF1)와 비슷하게, 움직임은 느리고 대비는 낮게 */
+function calmScene() {
+  const cloud = (y, s, dur, delay, op) => `<g class="cloud" style="animation-duration:${dur}s;animation-delay:-${delay}s;opacity:${op}"><g transform="translate(0 ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="120" ry="34" fill="#F6F8FA"/><ellipse cx="-60" cy="10" rx="80" ry="26" fill="#F6F8FA"/><ellipse cx="70" cy="12" rx="90" ry="24" fill="#F6F8FA"/></g></g>`;
+  const wave = (y, d, w) => `<path class="wv" style="animation-delay:-${d}s" d="M-100 ${y} q ${w / 4} -7 ${w / 2} 0${` t ${w / 2} 0`.repeat(Math.ceil(1900 / (w / 2)))}" fill="none" stroke="#EEF2F6" stroke-width="3" stroke-linecap="round" opacity=".9"/>`;
+  return `<div class="calm fade"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D7E0EA"/><stop offset="1" stop-color="#EEF1F5"/></linearGradient>
+      <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DCE4EC"/><stop offset="1" stop-color="#E6EBF0"/></linearGradient>
+      <radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFF8EC"/><stop offset="1" stop-color="#FFF8EC" stop-opacity="0"/></radialGradient></defs>
+    <rect width="1600" height="900" fill="url(#sky)"/>
+    <circle class="shim" cx="1180" cy="360" r="190" fill="url(#sun)"/>
+    ${cloud(150, 1, 150, 20, 0.85)}${cloud(250, 0.7, 190, 90, 0.7)}${cloud(110, 0.55, 230, 160, 0.6)}
+    <path d="M0 560 L140 470 L260 520 L420 420 L560 500 L700 450 L860 520 L1010 430 L1160 500 L1300 455 L1460 515 L1600 470 V600 H0Z" fill="#D2DAE4"/>
+    <path d="M0 590 L180 520 L330 565 L480 515 L640 570 L820 530 L980 575 L1150 525 L1320 570 L1480 540 L1600 560 V620 H0Z" fill="#C7D1DC"/>
+    <rect y="600" width="1600" height="300" fill="url(#lake)"/>
+    <ellipse class="shim" cx="1180" cy="640" rx="220" ry="16" fill="#F5F0E6" opacity=".5"/>
+    ${wave(660, 0, 160)}${wave(720, 3, 200)}${wave(790, 6, 240)}${wave(860, 2, 280)}
+    <path d="M0 900 L0 820 Q120 800 220 840 L300 900Z" fill="#CBD5DF"/><path d="M1600 900 L1600 800 Q1470 790 1380 845 L1300 900Z" fill="#CBD5DF"/>
+  </svg></div><div class="calm-dot"></div><div class="calm-cue">편안히 바라보세요 · 말하거나 움직이지 않기</div>`;
+}
+/* 기준선 풍경 사진 (선택): manifest.json 의 "baseline": ["calm/xxx.jpg", ...] 중 하나를 무작위로.
+ * 사진 평균 밝기를 재서 측정 무대와 비슷한 밝기(목표 185/255)로 맞추고 채도를 조금 낮춘다 — 화면 밝기 변화가 카메라 심박에 섞이지 않게.
+ * 불러오지 못하면 그림 풍경(SVG)으로 대신한다 */
+function photoLum(img) {
+  try {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 48;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, 64, 48);
+    const d = x.getImageData(0, 0, 64, 48).data; let s = 0;
+    for (let i = 0; i < d.length; i += 4) s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    return s / (d.length / 4);
+  } catch (_) { return null; }
+}
+async function calmPhoto(sec) {
+  const list = S.stim && S.stim.baseline;
+  if (!list || !list.length) return null;
+  const src = S.stim.base + list[Math.floor(Math.random() * list.length)];
+  const img = await new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; setTimeout(() => res(null), 5000); });
+  if (!img) return null;
+  const lum = photoLum(img), k = lum ? Math.min(1.6, Math.max(0.7, 185 / lum)) : 1;
+  return `<div class="calm fade"><img class="calm-ph" src="${esc(src)}" alt="" style="filter:brightness(${k.toFixed(2)}) saturate(.85) contrast(.92);animation-duration:${sec + 4}s"></div><div class="calm-dot"></div><div class="calm-cue">편안히 바라보세요 · 말하거나 움직이지 않기</div>`;
+}
+async function phaseBaseline(sec) {
+  await brief('baseline');
+  body.innerHTML = (await calmPhoto(sec)) || calmScene();
+  await wait(1500);                                   // 화면 전환 직후 1.5초는 적응 구간 (기준선에 넣지 않음)
+  const stop = task('안정 기준선', sec * 1000);
+  mark('baseline', 'start'); await wait(sec * 1000); mark('baseline', 'end');
+  stop();
+}
+
+/* 원활 추적: 수평 정현파 표적 (Lencer & Trillenberg, 2008) */
+async function phasePursuit(sec) {
+  const P = B.PROTOCOL.pursuit;
+  await brief('pursuit');
+  await driftCheck();
+  const W = stage.clientWidth, H = stage.clientHeight, amp = P.amp * W, cx = W / 2;
+  body.innerHTML = `<div class="cal-dot val" id="pDot" style="transition:none;left:${cx}px;top:${H / 2}px"></div>${demoCue('마우스로 점을 따라가세요')}`;
+  const dot = $('pDot');
+  await wait(700);
+  const tr = { samples: [] }, dur = sec * 1000;
+  const t0 = await nextFrame();
+  S.pursuit = { t0, cx, amp, freq: P.freq, dur, samples: tr.samples };
+  mark('pursuit', 'start');
+  S.curTrial = tr;
+  if (S.demo) every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y }));
+  let raf = 0;
+  const anim = ts => { dot.style.left = (cx + amp * Math.sin(2 * Math.PI * P.freq * (ts - t0) / 1000)) + 'px'; raf = requestAnimationFrame(anim); };
+  raf = requestAnimationFrame(anim);
+  S.cleanup.push(() => cancelAnimationFrame(raf));
+  const stop = task('원활 추적', dur);
+  await wait(dur);
+  stop();
+  S.curTrial = null;
+  mark('pursuit', 'end');
+}
+
+/* 프로·안티사카드: 단계 패러다임 (Hallett, 1978; Antoniades et al., 2013) + 개인 시선 범위 보정 */
+async function sacCalibrate() {
+  const W = stage.clientWidth, H = stage.clientHeight, ecc = B.PROTOCOL.saccade.ecc;
+  const seq = [['C', 0], ['R', 1], ['C', 0], ['L', -1], ['C', 0]], got = { L: [], C: [], R: [] };
+  /* 사카드 과제와 같은 모양(회색 응시점 · 표적 고리)으로, 점이 미끄러지지 않고 제자리에 나타난다 — 원활 추적과 구분 */
+  body.innerHTML = `<div class="rng-mark" style="left:${W / 2 - ecc * W}px"></div><div class="rng-mark" style="left:${W / 2}px"></div><div class="rng-mark" style="left:${W / 2 + ecc * W}px"></div>
+    <div class="rng-dot" id="sDot" style="left:${W / 2}px"></div><div class="cue">시선 범위 맞추기 · 고리가 켜지는 곳을 눈으로만 바라봐 주세요 (점이 움직이는 과제가 아니에요)</div>`;
+  const dot = $('sDot');
+  for (const [k, s] of seq) {
+    dot.classList.remove('pop'); void dot.offsetWidth;
+    dot.style.left = (W / 2 + s * ecc * W) + 'px'; dot.classList.add('pop');
+    await wait(450);
+    const stop = every(33, () => {
+      if (S.demo) got[k].push(S.mouse.x);
+      else if (S.rawG && now() - S.rawG.t < 100 && !S.rawG.bl) got[k].push(S.rawG.x - S.drift.dx);
+    });
+    await wait(750);
+    stop();
+  }
+  const md = a => a.length >= 5 ? N.median(a) : null;
+  const cal = { xL: md(got.L), xC: md(got.C), xR: md(got.R) };
+  return cal.xL !== null && cal.xC !== null && cal.xR !== null && cal.xR - cal.xL > W * 0.04 ? cal : null;
+}
+async function sacBlock(type, n, practice) {
+  const P = B.PROTOCOL.saccade;
+  const sides = shuffle(Array.from({ length: n }, (_, i) => (i % 2 ? 'L' : 'R')));
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    if (!practice) taskSet(type === 'pro' ? '프로사카드' : '안티사카드', i, n);
+    body.innerHTML = `<div class="sac-fix"></div>${practice ? '<div class="cue">연습 시행 — 점의 반대쪽을 보세요</div>' : demoCue('마우스를 가운데에 두었다가 움직이세요')}`;
+    const tr = { type, side: sides[i], practice, onset: null, end: null, samples: [], cal: S.sacCal || null };
+    S.curTrial = tr;
+    const stop = S.demo ? every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y })) : null;
+    await wait(P.fixMin + Math.random() * (P.fixMax - P.fixMin));
+    body.innerHTML = `<div class="sac-tgt" style="left:${50 + (sides[i] === 'R' ? 1 : -1) * P.ecc * 100}%"></div>`;
+    tr.onset = await nextFrame();
+    await wait(P.targetMs);
+    tr.end = now(); S.curTrial = null; if (stop) stop();
+    out.push(tr);
+    body.innerHTML = '';
+    await wait(P.gapMs);
+  }
+  if (!practice) taskSet(type === 'pro' ? '프로사카드' : '안티사카드', n, n);
+  return out;
+}
+async function phaseSaccade(d) {
+  S.saccade = [];
+  await brief('saccade');
+  mark('saccade', 'start');
+  let pro = [];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await driftCheck();
+    S.sacCal = await sacCalibrate();
+    if (!S.sacCal && !S.demo && attempt === 0) {
+      const c = await pauseCard('시선 범위를 충분히 구분하지 못했어요', '좌우 점을 볼 때 시선 변화가 작게 잡혔어요. 머리는 고정하고 <b>눈만</b> 크게 움직여 점을 바라봐 주세요.', '다시 측정', ['그대로 진행']);
+      if (c === 0) continue;
+    }
+    await pauseCard('프로사카드', `가운데 회색 점을 보고 있다가, 빨간 점이 나타나면 <b>최대한 빨리 그 점을</b> 바라보세요. 총 ${d.pro}회 · 머리는 움직이지 마세요.${V.pro}`, '시작');
+    pro = await sacBlock('pro', d.pro, false);
+    const q = B.saccadeQuick(pro, S.screenW, S.sacCal);
+    if (S.demo || attempt === 1 || q.validRate >= 0.5) break;
+    const c = await pauseCard('시선 신호가 약했어요', `유효 시행이 ${q.valid}/${q.n}회예요. 조명을 밝게 하고 머리를 고정한 채 다시 해 보면 정확도가 올라가요.`, '보정 후 다시 하기', ['이대로 계속']);
+    if (c === 1) break;
+  }
+  S.saccade.push(...pro);
+  await pauseCard('이번에는 반대쪽을 보세요', `빨간 점이 나타나면 <b>점을 보지 말고, 반대쪽 같은 거리</b>를 최대한 빨리 바라보세요. 점에 눈이 먼저 가도 괜찮아요 — 바로 반대쪽으로 옮기면 돼요.${V.anti}<br>연습 ${d.practice}회 후 본 시행 ${d.anti}회가 이어져요.`, '연습 시작');
+  if (d.practice) S.saccade.push(...await sacBlock('anti', d.practice, true));
+  await pauseCard('연습 끝 · 본 시행', `이제 안티사카드 ${d.anti}회를 진행해요. 빨간 점의 <b>반대쪽</b>을 보세요. 시작 전에 가운데·좌우 점으로 시선을 한 번 더 맞춰요.`, '시작');
+  /* 안내를 읽는 동안 머리가 움직이고 시선이 흘러가므로, 안티 블록 직전에 영점과 개인 시선 범위를 다시 잰다 */
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await driftCheck();
+    const cal2 = await sacCalibrate();
+    if (cal2) S.sacCal = cal2;
+    const anti = await sacBlock('anti', d.anti, false);
+    const q = B.saccadeQuick(anti, S.screenW, S.sacCal);
+    if (S.demo || attempt === 1 || q.validRate >= 0.5) { S.saccade.push(...anti); break; }
+    const why = Object.entries(q.reasons).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${{ nofix: '응시 표본 부족', offcenter: '가운데를 보지 않음', noresp: '시선 이동이 작음', anticip: '표적 전 이동' }[k] || k} ${n}`).join(' · ');
+    const c = await pauseCard('시선 신호가 약했어요', `유효 시행이 ${q.valid}/${q.n}회예요${why ? ` (${esc(why)})` : ''}. 머리는 고정하고 <b>눈을 크게</b> 반대쪽으로 옮겨 주세요. 한 번 더 할까요?`, '다시 하기', ['이대로 계속']);
+    if (c === 1) { S.saccade.push(...anti); break; }
+  }
+  mark('saccade', 'end');
+}
+
+/* 정서 자유 보기: 중립-중립 / 부정(위협·슬픔) / 긍정 블록 — 정서 사진 세트가 있으면 사진, 없으면 밝기를 맞춘 도식 자극 */
+const WORDS = {
+  neg: ['실패', '거절', '외로움', '비난', '불안', '상실', '후회', '무시'],
+  neu: ['의자', '연필', '계단', '창문', '우산', '서랍', '달력', '접시', '선반', '봉투', '책상', '가방', '시계', '컵', '종이', '문'],
+  pos: ['웃음', '칭찬', '희망', '감사', '여유', '환영', '사랑', '평온'],
+};
+function faceSvg(kind) {
+  const stroke = '#4A5672';
+  const mouth = kind === 'neg' ? 'M38 80 Q60 64 82 80' : kind === 'pos' ? 'M38 70 Q60 90 82 70' : 'M40 76 L80 76';
+  const brows = kind === 'neg' ? 'M32 40 L50 32 M88 40 L70 32' : kind === 'pos' ? 'M33 36 Q41 30 50 34 M70 34 Q79 30 87 36' : 'M33 35 L50 35 M70 35 L87 35';
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="#F1F3F7" stroke="${stroke}" stroke-width="4"/><circle cx="44" cy="52" r="5" fill="${stroke}"/><circle cx="76" cy="52" r="5" fill="${stroke}"/><path d="${brows}" stroke="${stroke}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="${mouth}" stroke="${stroke}" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+}
+/* 사진 시행 구성: 정서 사진마다 내용 유형(content)이 같은 중립 사진을 짝지어 내용 차이가 시선을 끌지 않게 한다 */
+function buildPhotoTrials(d) {
+  const set = S.stim.set, f = d.fv, pool = shuffle([...set.neutral]), used = new Set();
+  /* 짝 고르기 우선순위: manifest 의 쌍둥이(twin) → 같은 content → 아무 중립 사진 */
+  const take = (content, twin) => {
+    let i = twin ? pool.findIndex(x => !used.has(x.file) && x.id === twin) : -1;
+    if (i < 0) i = pool.findIndex(x => !used.has(x.file) && content && x.content === content);
+    if (i < 0) i = pool.findIndex(x => !used.has(x.file));
+    const x = pool[i]; used.add(x.file); return x;
+  };
+  const emo = (cat, n) => shuffle([...set[cat]]).slice(0, n);
+  const neg = shuffle([...emo('threat', f.neg / 2).map(x => ({ x, sub: 'threat' })), ...emo('dysphoric', f.neg / 2).map(x => ({ x, sub: 'dysphoric' }))]);
+  const pos = emo('positive', f.pos).map(x => ({ x }));
+  const neu = Array.from({ length: f.neu }, () => ({ x: take(null) }));
+  const pair = (kind, list) => list.map(({ x, sub }) => ({ kind, sub, emo: x, other: take(x.content, x.twin) }));
+  return { neu: pair('neu', neu), neg: pair('neg', neg), pos: pair('pos', pos) };
+}
+/* 미리 불러오기: 하나라도 실패하면 깨진 사진을 보여 주지 않도록 false */
+function preload(files) {
+  return Promise.all(files.map(f => new Promise(res => {
+    const im = new Image(); let done = false;
+    const fin = ok => { if (!done) { done = true; res(ok); } };
+    im.onload = () => fin(im.naturalWidth > 0); im.onerror = () => fin(false); im.src = f;
+    setTimeout(() => fin(im.complete && im.naturalWidth > 0), 6000);
+  }))).then(r => r.every(Boolean));
+}
+async function phaseFreeview(d) {
+  let photo = S.stimMode === 'photo', blocks;
+  if (photo) {
+    blocks = buildPhotoTrials(d);
+    const base = S.stim.base, files = [];
+    ['neu', 'neg', 'pos'].forEach(k => blocks[k].forEach(t => files.push(base + t.emo.file, base + t.other.file)));
+    const ready = preload(files);
+    await brief('freeview');
+    centerMsg('<p>사진을 불러오고 있어요…</p>');
+    if (!(await ready)) {                       // 사진을 못 불러오면 도식 자극으로 전환 (검사는 계속)
+      photo = false; S.stimMode = 'schematic';
+      await pauseCard('사진을 불러오지 못했어요', '네트워크 문제로 일부 정서 사진을 불러오지 못해, 같은 방식의 <b>도식 자극</b>(얼굴 그림·단어)으로 진행할게요.', '계속');
+    }
+  } else await brief('freeview');
+  await driftCheck();
+  const n = d.trials, total = photo ? d.fv.neu + d.fv.neg + d.fv.pos : 3 * n;
+  const neuWords = shuffle([...WORDS.neu]);
+  let wi = 0, done = 0;
+  for (const kind of ['neu', 'neg', 'pos']) {
+    const list = photo ? blocks[kind] : Array.from({ length: n }, () => ({ kind }));
+    const sides = shuffle(Array.from({ length: list.length }, (_, i) => (i % 2 ? 'L' : 'R')));
+    const emoWords = shuffle([...(kind === 'neu' ? WORDS.neu.slice(8) : WORDS[kind])]);
+    mark(kind, 'start');
+    for (let i = 0; i < list.length; i++) {
+      taskSet('정서 자유 보기', done, total);
+      body.innerHTML = '<div class="fix">+</div>';
+      await wait(FIX_MS);
+      const emoSide = sides[i], L = emoSide === 'L' ? 25 : 75, Rr = emoSide === 'L' ? 75 : 25;
+      if (photo) {
+        const t = list[i], base = S.stim.base;
+        body.innerHTML = `<figure class="ph" style="left:${L}%"><img src="${esc(base + t.emo.file)}" alt=""></figure><figure class="ph" style="left:${Rr}%"><img src="${esc(base + t.other.file)}" alt=""></figure>`;
+      } else {
+        body.innerHTML = `<div class="stim" style="left:${L}%">${faceSvg(kind)}<span>${emoWords[i % emoWords.length]}</span></div><div class="stim" style="left:${Rr}%">${faceSvg('neu')}<span>${neuWords[wi++ % neuWords.length]}</span></div>${demoCue('마우스가 시선 역할을 해요')}`;
+      }
+      const tr = { kind, emoSide, onset: await nextFrame(), end: null, samples: [], ...(photo ? { sub: list[i].sub, emoId: list[i].emo.id || list[i].emo.file, neuId: list[i].other.id || list[i].other.file } : {}) };
+      S.curTrial = tr;
+      const stop = S.demo ? every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y })) : null;
+      await wait(trialMs());
+      if (stop) stop();
+      tr.end = now(); S.curTrial = null; S.trials.push(tr);
+      done++;
+    }
+    mark(kind, 'end');
+  }
+  taskSet('정서 자유 보기', total, total);
+}
+
+/* PVT-B: 1~4초 무작위 간격의 카운터에 반응 (Basner et al., 2011). 같은 구간의 눈꺼풀로 PERCLOS 를 잰다 */
+async function pvtTrial(P, box, msg) {
+  box.textContent = ''; msg.textContent = '';
+  const early = await respond(P.isiMin + Math.random() * (P.isiMax - P.isiMin));
+  if (early) { msg.textContent = '너무 빨라요 — 숫자가 나온 뒤 눌러 주세요'; await wait(1000); return { early: true }; }
+  box.textContent = '0';
+  const onset = await nextFrame();
+  let raf = 0;
+  const tick = ts => { box.textContent = String(Math.max(0, Math.round(ts - onset))); raf = requestAnimationFrame(tick); };
+  raf = requestAnimationFrame(tick);
+  S.cleanup.push(() => cancelAnimationFrame(raf));
+  const r = await respond(P.timeoutMs);
+  cancelAnimationFrame(raf);
+  const rt = r ? r.t - onset : null;
+  box.textContent = rt === null ? '—' : String(Math.max(0, Math.round(rt)));
+  msg.textContent = rt === null ? '시간 초과' : rt < P.falseMs ? '너무 빨라요' : '';
+  await wait(700);
+  return { onset, rt };
+}
+async function phasePvt(d) {
+  const P = B.PROTOCOL.pvt, sec = d.pvt;
+  await brief('pvt');
+  if (document.activeElement) document.activeElement.blur();
+  await countdown('연습 시작');
+  body.innerHTML = '<div class="pvt-hint">연습 · 숫자가 나타나면 바로 스페이스바</div><div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
+  for (let i = 0; i < d.pvtPractice; i++) { taskSet('PVT 연습', i, d.pvtPractice); await pvtTrial(P, $('pvtBox'), $('pvtMsg')); }
+  taskHide();
+  await pauseCard('연습 끝 · 본 검사', `이제 ${sec}초 동안 같은 과제가 이어져요. 지루하게 느껴지는 것도 검사의 일부예요 — 끝까지 숫자가 나타나는 순간에 집중해 바로 스페이스바를 누르세요. 남은 시간이 아래에 표시돼요.`, '본 검사 시작');
+  if (document.activeElement) document.activeElement.blur();
+  await countdown('본 검사 시작');
+  body.innerHTML = '<div class="pvt-hint">숫자가 나타나면 바로 스페이스바</div><div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
+  const box = $('pvtBox'), msg = $('pvtMsg');
+  const data = { trials: [], falseStarts: 0, durationMs: 0 };
+  S.pvt = data;
+  mark('pvt', 'start');
+  const tStart = now(), end = tStart + sec * 1000, stop = task('PVT 본 검사', sec * 1000);
+  while (now() < end - 1500) {
+    const r = await pvtTrial(P, box, msg);
+    if (r.early) data.falseStarts++; else data.trials.push({ onset: r.onset, rt: r.rt });
+  }
+  stop();
+  data.durationMs = now() - tStart;
+  mark('pvt', 'end');
+}
+
+/* SART: 3을 제외한 숫자에 반응 (Robertson et al., 1997). 원판대로 본 검사에는 정오 피드백이 없고, 정오와 무관한 입력 확인 점만 켠다.
+ * 연습에서는 시행마다 정오를 알려 준다 (원판 18시행 연습) */
+function sartScreen(practice, n) {
+  body.innerHTML = `<div class="sart-meta"><span><b>${practice ? '연습' : '본 검사'}</b> · ${n}개</span><span>3을 뺀 숫자 → 스페이스바</span><span><b>3</b> → 누르지 않기</span></div>
+    <div class="sart"><span id="sartD"></span></div>
+    <div class="ack" id="sAck" style="top:64%"></div><div class="ack-l" style="top:calc(64% + 20px)">입력 확인</div>
+    <div class="sart-fb" id="sartFb" style="top:76%"></div>`;
+}
+async function sartRun(seq, P, practice, onEach) {
+  const el = $('sartD'), fb = $('sartFb'), ack = $('sAck'), out = [];
+  let ackT = 0;
+  const flash = () => { ack.classList.add('on'); clearTimeout(ackT); ackT = setTimeout(() => ack.classList.remove('on'), 160); };
+  for (let i = 0; i < seq.length; i++) {
+    const tr = { digit: seq[i], onset: null, rt: null };
+    el.style.fontSize = P.sizes[Math.floor(Math.random() * P.sizes.length)] + 'px';
+    el.textContent = seq[i];
+    tr.onset = await nextFrame();
+    S.onResp = e => { if (tr.rt === null) { tr.rt = e.timeStamp - tr.onset; flash(); } };
+    await wait(P.digitMs);
+    el.textContent = P.mask ? '⊗' : '';                 // 원판 마스크(⊗)는 ‘틀림’ 표시로 오인돼 빈 화면으로 바꿈 — 간격(1.15초)은 그대로
+    await wait(P.maskMs);
+    S.onResp = null;
+    out.push(tr);
+    if (practice) {                                  // 연습: 시행마다 바로 정오를 보여 주고 지운 뒤 다음 숫자
+      const nogo = tr.digit === P.nogo, pressed = tr.rt !== null;
+      const ok = nogo ? !pressed : pressed;
+      fb.innerHTML = `<span class="${ok ? 'ok' : 'ng'}">${ok ? '✓' : '✗'} ${nogo ? (pressed ? '3에서는 누르지 않아요' : '좋아요 · 3에서 멈췄어요') : (pressed ? '좋아요' : '놓쳤어요 · 3이 아니면 누르세요')}</span>`;
+      el.textContent = '';
+      await wait(800);
+      fb.textContent = '';
+    }
+    if (onEach) onEach(i + 1);
+  }
+  return out;
+}
+async function phaseSart(d) {
+  const P = B.PROTOCOL.sart, n = d.sart;
+  await brief('sart');
+  const practiceSeq = d.sartPractice > 9 ? [...shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]), ...shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9])].slice(0, d.sartPractice) : shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, d.sartPractice);
+  if (document.activeElement) document.activeElement.blur();
+  await countdown('연습 시작 · 3에서만 멈추기');
+  sartScreen(true, practiceSeq.length);
+  const prac = await sartRun(practiceSeq, P, true, i => taskSet('SART 연습', i, practiceSeq.length));
+  taskHide();
+  const pOk = prac.filter(t => (t.digit === P.nogo) === (t.rt === null)).length;
+  await pauseCard('연습 끝 · 본 검사', `연습 정확도 <b>${pOk}/${prac.length}</b>. 이제 숫자 <b>${n}개</b>(약 ${Math.round(n * 1.15 / 6) / 10}분)가 같은 속도로 이어지고, 원판처럼 <b>정답 여부는 표시되지 않아요</b>. 누를 때마다 숫자 아래 <b>입력 확인 점</b>이 잠깐 켜져요. 3을 뺀 모든 숫자에 스페이스바를 누르세요.`, '본 검사 시작');
+  if (document.activeElement) document.activeElement.blur();
+  await countdown('본 검사 시작');
+  sartScreen(false, n);
+  S.sart = { trials: [] };
+  mark('sart', 'start');
+  S.sart.trials = await sartRun(B.sartSequence(n), P, false, i => taskSet('SART 본 검사', i, n));
+  mark('sart', 'end');
+}
+
+/* 압박 과제: MIST (Dedovic et al., 2005) — 난이도 1~5 무작위 덧셈·뺄셈, 답 0~9, 적응형 제한 시간, 목표 대비 성적 막대.
+ * 피드백은 화면 밝기를 바꾸지 않도록 글자로만 */
+async function phaseStress(sec) {
+  const P = B.PROTOCOL.stress;
+  await brief('stress');
+  if (document.activeElement) document.activeElement.blur();
+  await countdown('암산 과제가 곧 시작돼요');
+  mark('stress', 'start');
+  const end = now() + sec * 1000, stopT = task('MIST 암산', sec * 1000);
+  let correct = 0, total = 0, limit = P.limitMs, streak = 0, minLimit = limit;
+  const levels = [0, 0, 0, 0, 0], log = [];
+  while (now() < end) {
+    const lv = 1 + Math.floor(Math.random() * 5), q = B.mistProblem(lv);
+    levels[lv - 1]++;
+    const pct = total ? Math.round(correct / total * 100) : 0;
+    body.innerHTML = `<div class="mist"><div class="mist-top"><span class="mist-lv">난이도&nbsp;${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lv ? 'on' : ''}"></i>`).join('')}</span><span>제한 시간 ${(limit / 1000).toFixed(1)}초</span></div>
+      <div class="prob">${esc(q.text)} = <span class="q">?</span></div><div class="tbar"><i id="tb" style="width:100%"></i></div>
+      <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(v => `<button type="button" data-v="${v}">${v}</button>`).join('')}</div>
+      <div class="fb" id="fb"></div>
+      <div class="perf"><div class="perf-h"><span>내 정답률 <b>${pct}%</b> · ${correct}/${total}</span><span>목표 ${Math.round(P.target * 100)}%</span></div><div class="perf-t"><i style="width:${pct}%"></i><em style="left:${P.target * 100}%"></em></div></div></div>`;
+    const t0 = now(), tb = $('tb');
+    requestAnimationFrame(() => { tb.style.transition = `width ${limit}ms linear`; tb.style.width = '0%'; });
+    const v = await new Promise((res, rej) => {
+      const w = { rej, cleanup: () => { S.onKey = null; } };
+      const done = x => { clearTimeout(w.to); waiters.delete(w); S.onKey = null; res(x); };
+      w.to = setTimeout(() => done(null), limit);
+      waiters.add(w);
+      S.onKey = e => { if (/^[0-9]$/.test(e.key)) { e.preventDefault(); done(+e.key); } };
+      body.querySelectorAll('.keypad button').forEach(b => b.addEventListener('click', () => done(+b.dataset.v)));
+    });
+    total++;
+    const ok = v === q.ans; if (ok) correct++;
+    log.push([Math.round(t0 - S.phases.stress.start), lv, limit, v === null ? null : Math.round(now() - t0), q.ans, v, ok ? 1 : 0]);
+    if (v !== null) { const hb = body.querySelector(`.keypad button[data-v="${v}"]`); if (hb) hb.classList.add('hit'); }
+    tb.style.transition = 'none'; tb.style.width = Math.max(0, 100 - (now() - t0) / limit * 100) + '%';
+    $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : `오답 · 정답 ${q.ans}`;
+    streak = ok ? Math.max(0, streak) + 1 : Math.min(0, streak) - 1;
+    ({ limit, streak } = B.mistNext(limit, streak));
+    minLimit = Math.min(minLimit, limit);
+    await wait(ok ? 450 : 750);
+  }
+  stopT();
+  mark('stress', 'end');
+  S.stressScore = { correct, total, minLimit, levels, log };
+}
+
+/* 공명 호흡 페이서: 들숨 5초 · 날숨 5초. 원(크기)·바깥 띠(단계 진행)·초 카운트·호흡 파형을 함께 보여 준다 */
+const BREATH_T = 10000;
+function pacerHtml(id, opt = {}) {
+  const C = 2 * Math.PI * 140;
+  return `<div class="pacer fade" id="${id}"><div class="pacer-ring"><svg viewBox="0 0 300 300" aria-hidden="true">
+      <circle cx="150" cy="150" r="140" fill="none" stroke="#D3D9E5" stroke-width="6"/>
+      <circle id="${id}P" cx="150" cy="150" r="140" fill="none" stroke="#7FA3B8" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" transform="rotate(-90 150 150)"/>
+      <circle cx="150" cy="150" r="118" fill="none" stroke="#DCE2EA" stroke-width="1.5" stroke-dasharray="2 6"/>
+      <circle id="${id}C" cx="150" cy="150" r="112" fill="rgba(127,163,184,.16)" stroke="#7FA3B8" stroke-width="3" style="transform-origin:150px 150px"/>
+    </svg><div class="pacer-lbl"><b id="${id}L">준비</b><span id="${id}S"></span></div></div>
+    ${opt.meta === false ? '' : `<div class="pacer-meta"><span>호흡 <b id="${id}N">0</b>${opt.cycles ? ` / ${opt.cycles}` : ''}</span><span>속도 <b>분당 6회</b></span><span>들숨 <b>5초</b> · 날숨 <b>5초</b></span></div>`}
+    ${opt.wave === false ? '' : `<svg class="pacer-wave" id="${id}W" viewBox="0 0 760 70" preserveAspectRatio="none" aria-hidden="true"></svg>`}</div>`;
+}
+function startPacer(id, t0) {
+  const C = 2 * Math.PI * 140, P = $(id + 'P'), Cc = $(id + 'C'), L = $(id + 'L'), Sx = $(id + 'S'), Nn = $(id + 'N'), Wv = $(id + 'W');
+  const ease = x => 0.5 - 0.5 * Math.cos(Math.PI * x);
+  const WIN = 30000, Wd = 760, yOf = t => 35 + 26 * Math.cos(2 * Math.PI * t / BREATH_T);   // 들숨 동안 위로 (y 감소)
+  if (Wv) {
+    let d = '';
+    for (let x = 0; x <= Wd; x += 4) d += (x ? 'L' : 'M') + x + ' ' + yOf(x / Wd * WIN).toFixed(1) + ' ';
+    Wv.innerHTML = `<path d="${d}" fill="none" stroke="#B8C8D4" stroke-width="2.5"/><circle id="${id}D" r="7" fill="#5F8AA3" stroke="#fff" stroke-width="2"/>`;
+  }
+  const dot = $(id + 'D');
+  let raf = 0, last = '';
+  const tick = () => {
+    const el = Math.max(0, now() - t0), tt = el % BREATH_T, inhale = tt < BREATH_T / 2, ph = (inhale ? tt : tt - BREATH_T / 2) / (BREATH_T / 2);
+    Cc.style.transform = `scale(${(inhale ? 0.55 + 0.45 * ease(ph) : 1 - 0.45 * ease(ph)).toFixed(4)})`;
+    P.style.strokeDashoffset = (C * (1 - ph)).toFixed(1);
+    const lbl = inhale ? '들이쉬기' : '내쉬기', sec = String(Math.max(1, Math.ceil(5 - ph * 5)));
+    if (lbl + sec !== last) { L.textContent = lbl; Sx.textContent = sec; last = lbl + sec; }
+    if (Nn) Nn.textContent = Math.floor(el / BREATH_T) + 1;
+    if (dot) { const x = (el % WIN) / WIN * Wd; dot.setAttribute('cx', x.toFixed(1)); dot.setAttribute('cy', yOf(el % WIN).toFixed(1)); }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(raf);
+}
+async function phaseRecovery(sec) {
+  await brief('recovery');
+  await countdown('천천히 호흡을 준비하세요');
+  body.innerHTML = pacerHtml('rp', { cycles: Math.round(sec * 1000 / BREATH_T) });
+  mark('recovery', 'start');
+  const stopP = startPacer('rp', now());
+  S.cleanup.push(stopP);
+  const stopT = task('공명 호흡', sec * 1000);
+  await wait(sec * 1000);
+  stopT(); stopP();
+  mark('recovery', 'end');
+}
+
+/* ---------- 분석 · 리포트 ---------- */
+function liveRecord() {
+  return {
+    frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
+    stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: S.calib, checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
+    stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, measuredAt: new Date().toISOString(),
+    hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
+  };
+}
+/* 데모: 생리 신호는 시뮬레이션 피험자로, 직접 수행한 과제(마우스 시선·키보드 반응)는 실제 입력으로 채운다 */
+function demoRecord() {
+  const rec = B.simulate(S.persona, { mode: S.mode, include: { ...S.mods }, W: S.screenW || 1440, seed: Date.now() % 100000 });
+  const done = k => S.steps[k] && S.steps[k].status === 'input';
+  if (done('freeview')) rec.trials = S.trials;
+  if (done('pursuit')) rec.pursuit = S.pursuit;
+  if (done('saccade')) { rec.saccade = S.saccade; rec.saccadeCal = S.sacCal; }
+  if (done('pvt')) rec.pvt = S.pvt;
+  if (done('sart')) rec.sart = S.sart;
+  if (done('stress')) rec.stressScore = S.stressScore;
+  const behavioral = ['freeview', 'pursuit', 'saccade', 'pvt', 'sart', 'stress'];
+  Object.keys(rec.steps).forEach(k => {
+    if (rec.steps[k].status !== 'off') rec.steps[k] = { status: behavioral.includes(k) && done(k) ? 'input' : 'sim' };
+  });
+  Object.assign(rec, { checkin: { ...S.checkin }, calibration: { grade: 'good', errPct: null, mouse: true }, resized: S.resized, stimMode: done('freeview') ? S.stimMode : 'schematic' });
+  return rec;
+}
+function finish() {
+  show('sAnalyze');
+  setTimeout(() => {
+    try { const rec = S.demo ? demoRecord() : liveRecord(); const res = finishWith(rec); if (!S.demo) researchSubmit(rec, res); }
+    catch (e) { console.error(e); alert('분석 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
+  }, 60);
+}
+function finishWith(rec) {
+  const res = B.run(rec);
+  S.result = res;
+  const hist = loadHistory();
+  saveHistory(res);
+  S.aiText = null;
+  $('sReport').innerHTML = `<div class="vt no-print" role="tablist" aria-label="보고서 보기 방식"><button type="button" role="tab" id="vtSimple" aria-selected="false">🌤 간편 보고서</button><button type="button" role="tab" id="vtFull" aria-selected="true">📊 전문가 보고서</button></div>
+    <div id="rptSimple" hidden></div><div id="rptFull">${R.render(res, { history: hist.slice(0, 5) })}</div>`;
+  renderSimpleView(res);
+  $('vtSimple').onclick = () => setView('simple'); $('vtFull').onclick = () => setView('full');
+  bindReport(res);
+  show('sReport');
+  aiSummary(res, false);
+  return res;
+}
+/* ---------- AI 종합 총평 (/rppg → Gemini) ----------
+ * 허용된 구조화 지표만 보낸다(R.summaryPayload). 같은 측정의 총평은 이 기기에 캐시해 다시 열어도 호출하지 않는다. */
+const AI_KEY = 'nlNewbiz:ai:';
+function aiRender(text, model, animate) {
+  const el = $('aiBody'); if (!el) return;
+  const paras = String(text).split(/\n\s*\n|\n/).map(t => t.trim()).filter(Boolean);
+  $('aiModel').textContent = model ? `AI 해설 · ${model}` : 'AI 해설';
+  const html = paras.map(t => `<p>${esc(t)}</p>`).join('');
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!animate || reduce) { el.innerHTML = html; return; }
+  /* 타자 효과: 1.6초 안에 전체가 드러나도록 글자 단위 진행 */
+  const full = paras.join('\n'), step = Math.max(3, Math.ceil(full.length / 90));
+  let n = 0;
+  const id = setInterval(() => {
+    n = Math.min(full.length, n + step);
+    el.innerHTML = full.slice(0, n).split('\n').map((t, i, a) => `<p${i === a.length - 1 && n < full.length ? ' class="ai-cursor"' : ''}>${esc(t)}</p>`).join('');
+    if (n >= full.length) { clearInterval(id); el.innerHTML = html; }
+  }, 18);
+}
+async function aiSummary(res, force) {
+  const el = $('aiBody'), btn = $('aiRetry');
+  if (!el) return;
+  const key = AI_KEY + (res.measuredAt || '') + (res.battery.sim ? ':' + res.battery.sim.persona : '');
+  if (btn) btn.onclick = () => aiSummary(res, true);
+  if (!force) {
+    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.text) { aiRender(c.text, c.model, false); S.aiText = c.text; renderSimpleView(res); return; } } catch (_) {}
+    if (!$('aiOpt').checked) { el.innerHTML = '<p class="err">AI 총평을 받지 않도록 선택했어요. ‘다시 생성’을 누르면 지금 만들 수 있어요.</p>'; if (btn) btn.textContent = 'AI 총평 만들기'; return; }
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '작성 중…'; }
+  el.innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk s2"></div>';
+  try {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
+    const r = await fetch('/rppg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(R.summaryPayload(res)), signal: ctl.signal });
+    clearTimeout(to);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.text) throw new Error(j.error || `HTTP ${r.status}`);
+    try { localStorage.setItem(key, JSON.stringify({ text: j.text, model: j.model || null })); } catch (_) {}
+    aiRender(j.text, j.model, true);
+    S.aiText = j.text; renderSimpleView(res);
+  } catch (e) {
+    el.innerHTML = `<p class="err">AI 총평을 불러오지 못했어요 (${esc(e.name === 'AbortError' ? '시간 초과' : e.message || '연결 오류')}). 아래 대시보드와 영역별 결과는 그대로 확인할 수 있어요. 잠시 뒤 ‘다시 생성’을 눌러 주세요.</p>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '다시 생성'; }
+  }
+}
+/* ---------- 연구 데이터 제출 (동의한 실측 세션만) ---------- */
+async function rsRpc(fn, body) {
+  const r = await fetch(`${RS_DB.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: RS_DB.key, Authorization: `Bearer ${RS_DB.key}` }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`${fn} HTTP ${r.status} ${(await r.text()).slice(0, 120)}`);
+  return r.json();
+}
+const rsList = () => { try { return JSON.parse(localStorage.getItem(RS_KEY) || '[]'); } catch (_) { return []; } };
+function rsBanner(html) {
+  const host = $('r-qc'); if (!host) return;
+  let el = $('rsBanner');
+  if (!el) { el = document.createElement('div'); el.id = 'rsBanner'; el.className = 'rs-banner'; host.appendChild(el); }
+  el.innerHTML = html;
+}
+async function researchSubmit(rec, res) {
+  if (!$('rsOpt').checked || rec.demo) return;
+  const consent = { version: NLResearch.CONSENT_VERSION, research: true, phq: $('rsPhq').checked, at: new Date().toISOString() };
+  rsBanner('연구 데이터를 정리해 보내는 중이에요…');
+  try {
+    const vt = procVideo.videoWidth ? { w: procVideo.videoWidth, h: procVideo.videoHeight } : null;
+    const pk = NLResearch.pack(rec, res, consent, { ua: navigator.userAgent, screen: { w: screen.width, h: screen.height, vw: S.screenW, vh: stage.clientHeight }, camera: vt, dpr: devicePixelRatio, tz: new Date().getTimezoneOffset(), app: 'newbiz' });
+    const enc = await NLResearch.encode(pk.payload);
+    const s0 = await rsRpc('newbiz_research_begin', { p_consent: consent, p_meta: { ...pk.meta, payloadBytes: enc.bytes, rawBytes: enc.rawBytes }, p_summary: pk.summary });
+    for (let i = 0; i < enc.chunks.length; i++) {
+      rsBanner(`연구 데이터 보내는 중… ${i + 1}/${enc.chunks.length}`);
+      await rsRpc('newbiz_research_chunk', { p_session: s0.session_id, p_token: s0.upload_token, p_idx: i, p_data: enc.chunks[i] });
+    }
+    await rsRpc('newbiz_research_finish', { p_session: s0.session_id, p_token: s0.upload_token, p_chunks: enc.chunks.length, p_bytes: enc.bytes, p_sha256: enc.sha256 });
+    const list = rsList(); list.unshift({ id: s0.session_id, code: s0.code, token: s0.upload_token, at: consent.at });
+    try { localStorage.setItem(RS_KEY, JSON.stringify(list.slice(0, 50))); } catch (_) {}
+    S.research = { code: s0.code };
+    rsBanner(`연구 데이터 제출 완료 · 참가 코드 <code>${esc(s0.code)}</code> (철회 문의 시 필요) · ${(enc.bytes / 1e6).toFixed(1)}MB <button class="sbtn" id="rsWithdraw" type="button">제출 철회</button>`);
+    $('rsWithdraw').onclick = async () => {
+      if (!confirm('이 측정의 연구 데이터를 서버에서 완전히 삭제할까요?')) return;
+      try { const ok = await rsRpc('newbiz_research_withdraw', { p_session: s0.session_id, p_token: s0.upload_token });
+        localStorage.setItem(RS_KEY, JSON.stringify(rsList().filter(x => x.id !== s0.session_id)));
+        rsBanner(ok ? '연구 데이터를 삭제했어요.' : '이미 삭제됐거나 찾을 수 없어요.'); } catch (e) { rsBanner('철회 요청이 실패했어요. 잠시 뒤 다시 시도해 주세요.'); }
+    };
+  } catch (e) {
+    console.warn('research upload failed', e);
+    rsBanner('연구 데이터 제출에 실패했어요. 검사 결과에는 영향이 없어요.');
+  }
+}
+function loadHistory() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (_) { return []; } }
+function saveHistory(r) {
+  try {
+    const list = loadHistory(), b = r.battery, scores = {};
+    B.DOMAIN_KEYS.forEach(k => { scores[k] = b.domains[k].score; });
+    list.unshift({ at: r.measuredAt, demo: r.demo, code: b.integrated.code, title: b.integrated.title, scores, phq2: b.phq ? b.phq.phq2 : null, phq8: b.phq ? b.phq.phq8 : null });
+    localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0, 20)));
+  } catch (_) {}
+}
+/* 간편 보고서: 쉬운 말·날씨 비유·카드. AI 총평이 오면 첫 문단을 ‘AI가 정리한 한마디’로 함께 보여 준다 */
+const TODO_KEY = 'nlNewbiz:todo:';
+function renderSimpleView(res) {
+  const el = $('rptSimple'); if (!el) return;
+  let first = S.aiText ? String(S.aiText).split(/\n\s*\n|\n/).map(t => t.trim()).filter(Boolean)[0] || null : null;
+  if (first) first = first.split(/(?<=[.!?])\s+/).filter((x, i) => !(i === 0 && /시뮬레이션|예시 데이터/.test(x))).join(' ') || null;
+  el.innerHTML = R.renderSimple(res, { ai: first });
+  const key = TODO_KEY + (res.measuredAt || '');
+  let done = {}; try { done = JSON.parse(localStorage.getItem(key) || '{}'); } catch (_) {}
+  el.querySelectorAll('[data-todo]').forEach(cb => {
+    cb.checked = !!done[cb.dataset.todo];
+    cb.addEventListener('change', () => { done[cb.dataset.todo] = cb.checked; try { localStorage.setItem(key, JSON.stringify(done)); } catch (_) {} });
+  });
+  const bio = $('spBio'); if (bio) bio.addEventListener('click', runBio);
+}
+function setView(v) {
+  $('rptSimple').hidden = v !== 'simple'; $('rptFull').hidden = v === 'simple';
+  $('vtSimple').setAttribute('aria-selected', String(v === 'simple')); $('vtFull').setAttribute('aria-selected', String(v !== 'simple'));
+  if (v === 'simple') {                                   // 종합 점수 카운트업
+    const b = document.querySelector('#rptSimple [data-count]'), to = b ? +b.dataset.count : NaN;
+    if (b && Number.isFinite(to)) { const t0 = performance.now(); const step = ts => { const k = Math.min(1, (ts - t0) / 900); b.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function bindReport(r) {
+  $('bioStart').addEventListener('click', runBio);
+  $('printBtn').addEventListener('click', () => window.print());
+  $('again').addEventListener('click', () => {
+    S.checkin = {}; phqAns = []; $('phqSkip').checked = false; phqRender(); document.querySelectorAll('.scale button, .choice button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('goSetup').disabled = true;
+    show('sIntro');
+  });
+  $('dl').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify({ ...r, bio: S.bio || null }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `neurolens-battery-${Date.now()}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+}
+
+/* ---------- 1분 호흡 바이오피드백 (케어 + 재측정) ---------- */
+async function runBio() {
+  const SEC = 60;
+  const bio = $('bio');
+  const fmt = (v, d = 0, sign = false) => v === null || v === undefined || !Number.isFinite(v) ? '—' : (sign && v > 0 ? '+' : '') + v.toFixed(d);
+  const synthetic = S.demo || !S.stream;
+  S.bioFrames = []; bio.classList.add('on');
+  const hist = [];
+  const t0 = now();
+  const demoFn = t => 79 - Math.min(7, (t - t0) / 7000) + 3.5 * Math.sin(2 * Math.PI * 0.1 * (t - t0) / 1000 - Math.PI / 2);
+  if (!synthetic) S.bioRecording = true;
+  let closed = false;
+  $('bioQuit').onclick = () => { closed = true; };
+  $('bioPacer').innerHTML = pacerHtml('bp', { cycles: SEC * 1000 / BREATH_T, wave: false });
+  const stopPacer = startPacer('bp', t0);
+  while (now() - t0 < SEC * 1000 && !closed) {
+    await new Promise(r => setTimeout(r, 1000));
+    const frames = synthetic ? N.synthFrames(now() - 10000, now(), demoFn, { seed: Math.floor(now()) % 997, noise: 0.35 }) : S.bioFrames;
+    const live = now() - t0 > 9000 ? N.liveHr(frames) : null;
+    if (live && live.quality !== 'poor') { $('bioHr').textContent = live.bpm; hist.push(live.bpm); }
+    $('bioQ').textContent = live ? `실시간 심박 · ${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함' }[live.quality]}${synthetic ? ' · 시뮬레이션' : ''}` : '심박 측정 준비 중… (약 10초)';
+    if (hist.length > 1) {
+      const lo = Math.min(...hist) - 3, hi = Math.max(...hist) + 3;
+      const pts = hist.map((v, i) => `${(i / Math.max(1, SEC - 10)) * 520},${70 - (v - lo) / (hi - lo) * 66 - 2}`).join(' ');
+      $('bioSpark').innerHTML = `<polyline points="${pts}" fill="none" stroke="#D94B6A" stroke-width="2.5"/>`;
+    }
+  }
+  stopPacer();
+  S.bioRecording = false;
+  bio.classList.remove('on');
+  if (closed && now() - t0 < 30000) return;
+  const t1 = now();
+  const frames = synthetic ? N.synthFrames(t0, t1, demoFn, { seed: 31, noise: 0.35 }) : S.bioFrames;
+  const sig = N.buildBvp(frames), wins = N.hrWindows(sig);
+  const pre = N.phaseHr(wins, t0, t0 + 20000), post = N.phaseHr(wins, t1 - 20000, t1);
+  const all = N.phaseHr(wins, t0, t1);
+  const coup = sig && all.bpm ? N.breathingCoupling(N.ibis(N.beats(sig, t0, t1, all.bpm))) : null;
+  S.bio = { pre, post, coupling: coup, demo: synthetic };
+  const el = $('effect');
+  el.classList.add('on');
+  if (pre.bpm !== null && post.bpm !== null && pre.quality !== 'poor' && post.quality !== 'poor') {
+    const d = post.bpm - pre.bpm;
+    el.innerHTML = `<b>케어 효과 (같은 카메라로 재측정)${synthetic ? ' · 시뮬레이션' : ''}</b><br>호흡 시작 직후 심박 <b>${fmt(pre.bpm)}</b> → 마무리 <b>${fmt(post.bpm)}</b> bpm (${fmt(d, 1, true)})${coup ? ` · 호흡 동조 폭 ${fmt(coup.ampBpm, 1)} bpm` : ''}<br><span class="muted small">${d <= -2 ? '몸이 이완 방향으로 반응했어요. 하루 2~3회 반복하면 기준선 변화도 확인할 수 있어요.' : '이번에는 뚜렷한 변화가 없었어요. 조금 더 길게(3분) 해 보세요.'}</span>`;
+  } else {
+    el.innerHTML = '<b>케어 효과</b><br><span class="muted small">심박 신호가 충분하지 않아 전후 비교를 하지 못했어요. 조명을 밝게 하고 다시 시도해 보세요.</span>';
+  }
+}
+
+
+/* 검증용: ?debug=1 이면 내부 상태와 일부 단계 함수를 노출 (E2E 테스트용) */
+if (new URLSearchParams(location.search).get('debug') === '1') window.__nl = { S, cursorTask, calPursuit, stage, resetEuro };
+
+if (new URLSearchParams(location.search).get('qa') === '1') $('qaBox').hidden = false;
+/* 주소로 바로 열기: ?sim=balanced|fatigue|control|overload [&mode=quick] */
+{
+  const qp = new URLSearchParams(location.search), sim = qp.get('sim');
+  if (sim && B.PERSONAS[sim]) { $('simPersona').value = sim; openSimReport(sim, qp.get('mode') === 'quick' ? 'quick' : 'full'); }
+}
+</script>
+</body>
+</html>
