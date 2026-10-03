@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/checkin", "destination": "/indexadmin.html" },
     { "source": "/gemini", "destination": "/api/gemini" },
+    { "source": "/rppg", "destination": "/api/rppg" },
     { "source": "/rcvrslt", "destination": "/api/rcvrslt" },
     { "source": "/rcvrslt-admin", "destination": "/api/rcvrslt_admin" },
     { "source": "/engine/:endpoint", "destination": "/api/mg?endpoint=:endpoint" },

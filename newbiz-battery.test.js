@@ -199,7 +199,7 @@ for (const [p, e] of Object.entries(expect)) {
   assert.equal(r.battery.care[0].domain, 'safety');
   const html = checkReport(r, 'phq');
   assert.ok(html.includes('PHQ-8') && html.includes('상담 권장'));
-  assert.ok(!/우울증/.test(html.split('<div class="card refs">')[0]));      // 본문에 진단명 없음 (참고문헌 제목은 예외)
+  assert.ok(!/우울증/.test(html.split('<section class="card refs">')[0]));      // 본문에 진단명 없음 (참고문헌 제목은 예외)
   const none = B.simulate('balanced'); none.checkin.phq = null;
   assert.ok(checkReport(B.run(none), 'phq-skip').includes('응답하지 않았어요'));
 }

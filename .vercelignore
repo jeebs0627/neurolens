@@ -11,3 +11,4 @@ gemini.key
 /.bkit/
 /.claude/
 /__pycache__/
+/api/*_test.py
