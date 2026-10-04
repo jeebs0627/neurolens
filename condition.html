@@ -1020,6 +1020,8 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
         <p><b>보내지 않는 것</b> 카메라 영상·사진, 이름·연락처·계정. 최근 2주 기분(PHQ) 응답은 아래에서 따로 동의한 경우에만.</p>
         <p><b>보관과 철회</b> 연구 목적으로만 쓰고 5년 보관 후 파기합니다. 제출 후 리포트에 나오는 <b>참가 코드</b>로 언제든 철회할 수 있고, 이 기기에서는 ‘제출 철회’ 버튼으로 즉시 삭제됩니다. 동의하지 않아도 검사와 결과에는 아무 영향이 없습니다.</p>
         <label class="rs-phq"><input type="checkbox" id="rsPhq"> 최근 2주 기분(PHQ) 응답도 연구에 포함 (선택)</label>
+        <p>동의한 검사의 완료·중단·오류와 측정 품질을 연구 기록에 함께 남기고, 보정 검토 과제를 자동 생성합니다. 전송 실패 시 이 기기에서 최대 7일간 재시도합니다. <a href="dataset.html#local">내 전송 대기·철회 기록</a></p>
+        <details><summary>기준 장비 동시 측정 (연구용 선택)</summary><p>Bluetooth Heart Rate Service 지원 장비를 연결하면 검사 중 심박을 함께 기록합니다. 수신 시각으로 비교하므로 장비 지연을 검증하기 전에는 탐색적 비교로 표시합니다. 장비가 없어도 검사는 그대로 진행됩니다.</p><button type="button" class="sbtn" id="refConnect">기준 심박 장비 연결</button> <button type="button" class="sbtn" id="refDisconnect">연결 해제</button> <span id="refStatus" role="status">연결 안 됨</span></details>
       </div>
     </details>
     <div class="btns">
@@ -1164,6 +1166,9 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 <script src="newbiz-battery.js"></script>
 <script src="newbiz-report.js"></script>
 <script src="newbiz-research.js"></script>
+<script src="condition-dataset.js"></script>
+<script src="condition-reference.js"></script>
+<script src="condition-research-store.js"></script>
 <script type="module">
 const N = window.NLNewbiz, B = window.NLBattery, R = window.NLReport;
 const MP_VER = '0.10.14';
@@ -1193,6 +1198,11 @@ const S = {
   stim: null, stimAll: null, stimMeta: null, stimMode: 'schematic',
   hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
 };
+const referenceCollector=new NLReference.Collector(message=>{$('refStatus').textContent=message;});
+$('refConnect').onclick=async()=>{if(!$('rsOpt').checked){$('refStatus').textContent='연구 데이터 제공 동의 후 연결할 수 있어요.';return;}try{await referenceCollector.connect();}catch(e){$('refStatus').textContent=e.message;}};
+$('refDisconnect').onclick=()=>{referenceCollector.disconnect();$('refStatus').textContent='연결 해제됨';};
+window.addEventListener('online',()=>NLResearchStore.flush().catch(()=>{}));
+NLResearchStore.flush().catch(()=>{});
 const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
 /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */
 const resetEuro = () => { S.euro = { x: N.oneEuro({ minCutoff: 0.6, beta: 0.004 }), y: N.oneEuro({ minCutoff: 0.6, beta: 0.004 }) }; S.view = null; };
@@ -1296,7 +1306,7 @@ refreshIntro();
 loadStimuli().then(refreshIntro);
 $('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full', { seed: 7, all: true }); });
-$('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) $('rsPhq').checked = false; });
+$('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) { $('rsPhq').checked = false; referenceCollector.disconnect(); $('refStatus').textContent='연결 해제됨'; } });
 $('goCheckin').addEventListener('click', () => { S.demo = false; S.mode = modeVal(); show('sCheckin'); });
 $('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
 $('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
@@ -1480,6 +1490,7 @@ function processResult(fr, packet, context) {
   }
 }
 function pushFrame(fr) {
+  if(S.cur==='calibration'&&S.telemetry)S.telemetry.calibrationFrames.push(fr);
   S.buf.push(fr);
   while (S.buf.length && S.buf[0].t < fr.t - 20000) S.buf.shift();
   if (S.recording) S.frames.push(fr);
@@ -1488,7 +1499,7 @@ function pushFrame(fr) {
   while (S.fpsTimes.length && S.fpsTimes[0] < fr.t - 2000) S.fpsTimes.shift();
 }
 function startLoop() { S.camera.start(); }
-window.addEventListener('pagehide', () => { S.supportWorker?.terminate(); S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });
+window.addEventListener('pagehide', () => { if(S.datasetTimer)datasetCheckpoint().catch(()=>{});referenceCollector.disconnect();S.supportWorker?.terminate(); S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });
 
 function drawOverlay() {
   const cv = $('overlay'), ctx = cv.getContext('2d');
@@ -1610,17 +1621,19 @@ function interrupt(err) {
   ws.forEach(w => { clearTimeout(w.to); if (w.cleanup) w.cleanup(); w.rej(err); });
 }
 function every(ms, fn) { const id = setInterval(fn, ms); const stop = () => clearInterval(id); S.cleanup.push(stop); return stop; }
-const nextFrame = () => new Promise(r => requestAnimationFrame(r));
+// rAF is a pre-paint onset estimate, not a photodiode measurement of physical display latency.
+const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(onset=>{S.telemetry?.stimuli.push({key:S.cur,requested,onset});r(onset);})); };
+function recordInput(e){const t=e.timeStamp,dispatch=now()-t;S.telemetry?.inputs.push({key:S.cur,t,dispatchMs:dispatch>=0&&dispatch<60000?dispatch:null,type:e.type});}
 function mark(name, edge) { (S.phases[name] = S.phases[name] || {})[edge] = now(); if (edge === 'start') S.stepPhases.push(name); }
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 window.addEventListener('keydown', e => {
   if (!stage.classList.contains('on')) return;
-  if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); if (!e.repeat && S.onResp) S.onResp(e); return; }
+  if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); if (!e.repeat && S.onResp) { recordInput(e); S.onResp(e); } return; }
   if (e.key === 'Enter' && S.onGo) { e.preventDefault(); S.onGo(); return; }
-  if (S.onKey) S.onKey(e);
+  if (S.onKey) { recordInput(e); S.onKey(e); }
 });
-stage.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; if (S.onResp) S.onResp(e); });
+stage.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; if (S.onResp) { recordInput(e); S.onResp(e); } });
 $('skip').addEventListener('click', e => { e.currentTarget.blur(); if (S.cur && !S.abort) interrupt(Skip); });
 $('quit').addEventListener('click', () => { S.abort = true; interrupt(Abort); });
 $('fsBack').addEventListener('click', () => { document.documentElement.requestFullscreen().catch(() => {}); });
@@ -1697,6 +1710,7 @@ function task(label, ms) {
 function taskSet(label, i, n) { $('taskbar').hidden = false; $('taskName').textContent = label; $('taskBar').style.width = (i / n * 100) + '%'; $('taskLeft').textContent = `${i} / ${n}`; }
 function taskHide() { $('taskbar').hidden = true; }
 function endStage() {
+  clearInterval(S.datasetTimer);S.datasetTimer=null;S.endedAt=now();referenceCollector.stop();hideEnd();
   stage.classList.remove('on'); document.documentElement.classList.remove('staging'); clearInterval(hudTimer);
   S.recording = false; S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null;
   $('skip').hidden = true; $('fsWarn').classList.remove('on'); taskHide();
@@ -1838,17 +1852,19 @@ const DISCARD = {
 };
 async function runStep(key, fn) {
   const st = S.steps[key] = { status: 'running' };
+  if(S.telemetry)S.telemetry.steps[key]={start:now()};
   S.cur = key; S.stepPhases = [];
   S.lmRec = !S.demo && (key === 'calibration' || GAZE_STEPS.includes(key));
   renderStepper();
   $('skip').hidden = false;
   try { await fn(); st.status = S.demo ? 'input' : 'done'; }
   catch (e) {
-    if (e !== Skip) throw e;
+    if (e !== Skip) { st.status=e===Abort?'aborted':'error';throw e; }
     st.status = 'skipped';
     S.stepPhases.forEach(p => { delete S.phases[p]; });
     if (DISCARD[key]) DISCARD[key]();
   } finally {
+    if(S.telemetry?.steps[key])S.telemetry.steps[key].end=now();
     S.cleanup.forEach(f => f()); S.cleanup = [];
     S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null; S.onGaze = null; S.cur = null; S.lmRec = false;
     $('skip').hidden = true; taskHide();
@@ -1858,6 +1874,10 @@ async function runStep(key, fn) {
 async function runSession() {
   Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null, phaseEvidence: {} });
   Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 } });
+  S.attemptId=crypto.randomUUID();S.startedAt=now();S.endedAt=null;S.outcome='recording';S.errorCode=null;
+  S.researchConsent=!S.demo&&$('rsOpt').checked?{version:NLResearch.CONSENT_VERSION,research:true,phq:$('rsPhq').checked,at:new Date().toISOString()}:null;
+  S.telemetry={clock:{timeOrigin:performance.timeOrigin,start:S.startedAt,onset:'requestAnimationFrame-before-paint'},steps:{},stimuli:[],inputs:[],drift:[],calibrationFrames:[]};
+  if(S.researchConsent){referenceCollector.start();datasetCheckpoint().catch(console.warn);S.datasetTimer=setInterval(()=>datasetCheckpoint().catch(console.warn),20000);}
   chooseForm(S.mode);
   S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';
   if (S.stimMode === 'photo' && !S.demo) { try { localStorage.setItem(FORM_KEY, S.stim.form); } catch (_) {} }
@@ -1895,9 +1915,12 @@ async function runSession() {
     S.cur = 'done';
     await go('fGo');
     endStage();
+    S.outcome='complete';
     finish();
   } catch (e) {
     endStage();
+    S.outcome=e===Abort?'aborted':'measurement-error';S.errorCode=e===Abort?'user-aborted':String(e.name||'measurement-exception');
+    if(!S.demo)researchSubmit(liveRecord(),null);
     if (e === Abort) { show(S.demo ? 'sCheckin' : 'sSetup'); return; }
     console.error(e); alert('측정 중 오류가 발생했어요: ' + e.message); show('sIntro');
   }
@@ -1916,7 +1939,11 @@ async function driftCheck() {
   stop();
   if (xs.length >= 8) {
     const dx = N.median(xs) - W / 2, dy = N.median(ys) - H / 2;
-    if (Math.abs(dx) < W * 0.25 && Math.abs(dy) < H * 0.3) { S.drift = { dx, dy }; S.gaze = null; }
+    const applied=Math.abs(dx) < W * 0.25 && Math.abs(dy) < H * 0.3;
+    S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,dx,dy,applied,source:'instructed-center-fixation'});
+    if (applied) { S.drift = { dx, dy }; S.gaze = null; }
+  } else {
+    S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,dx:null,dy:null,applied:false,source:'insufficient-observations'});
   }
 }
 
@@ -2072,6 +2099,10 @@ async function calibrate() {
       acc = { ...acc, before: before.errPct, model: cands[0].key, affine: !!S.affine, control: ctl };
       S.calibLog.model = { key: cands[0].key, quad: !!S.model.quad, coefficients: S.model }; S.calibLog.affine = S.affine; S.calibLog.cursor = ctl;
       S.calibLog.pairs = [...val, ...zc].map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length }));
+      S.calibLog.evaluation={kind:'internal-model-selection',before,after,affineApplied:!!S.affine,
+        candidates:cands.map(c=>({name:c.key,accuracy:c.acc})),
+        points:pairs.map(p=>({x:p.x,y:p.y,gx:p.gx,gy:p.gy,n:p.fs.length})),
+        eyes:Object.fromEntries(Object.entries(S.model.eyes||{}).map(([side,m])=>[side,m?.validation||null]))};
       info = `<div class="calsum"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>영점 조정 후</span><b>${S.affine ? acc.errPct + '%' : '조정 불필요'}</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div></div>`;
       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다
     }
@@ -2563,6 +2594,7 @@ async function phaseRecovery(sec) {
 /* ---------- 분석 · 리포트 ---------- */
 function liveRecord() {
   return {
+    attemptId:S.attemptId,startedAt:S.startedAt,endedAt:S.endedAt||now(),outcome:S.outcome,errorCode:S.errorCode,telemetry:S.telemetry,reference:S.researchConsent?referenceCollector.snapshot():null,researchConsent:S.researchConsent,
     frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
     stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: S.calib, checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
     stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null, measuredAt: new Date().toISOString(),
@@ -2594,7 +2626,7 @@ function finish() {
       const server = S.demo ? [] : await serverHistory();
       const res = finishWith(rec, server);
       if (!S.demo) { researchSubmit(rec, res); accountSave(res); }
-    } catch (e) { console.error(e); alert('분석 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
+    } catch (e) { console.error(e); if(!S.demo){S.outcome='analysis-error';S.errorCode=String(e.name||'analysis-exception');researchSubmit(liveRecord(),null);} alert('분석 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
   }, 60);
 }
 /* 비교용 기록: 이 기기 기록 + (로그인 시) 계정 기록을 합쳐 최신순으로. 측정마다 체크해 둔 실천 항목도 붙인다 */
@@ -2715,33 +2747,33 @@ function rsBanner(html) {
   el.innerHTML = html;
 }
 async function researchSubmit(rec, res) {
-  if (!$('rsOpt').checked || rec.demo) return;
-  const consent = { version: NLResearch.CONSENT_VERSION, research: true, phq: $('rsPhq').checked, at: new Date().toISOString() };
+  if (!rec.researchConsent?.research || rec.demo) return;
+  const consent = rec.researchConsent;
   rsBanner('연구 데이터를 정리해 보내는 중이에요…');
   try {
-    const vt = procVideo.videoWidth ? { w: procVideo.videoWidth, h: procVideo.videoHeight } : null;
-    const pk = NLResearch.pack(rec, res, consent, { ua: navigator.userAgent, screen: { w: screen.width, h: screen.height, vw: S.screenW, vh: stage.clientHeight }, camera: vt, dpr: devicePixelRatio, tz: new Date().getTimezoneOffset(), app: 'newbiz' });
-    const enc = await NLResearch.encode(pk.payload);
-    const s0 = await rsRpc('newbiz_research_begin', { p_consent: consent, p_meta: { ...pk.meta, payloadBytes: enc.bytes, rawBytes: enc.rawBytes }, p_summary: pk.summary });
-    for (let i = 0; i < enc.chunks.length; i++) {
-      rsBanner(`연구 데이터 보내는 중… ${i + 1}/${enc.chunks.length}`);
-      await rsRpc('newbiz_research_chunk', { p_session: s0.session_id, p_token: s0.upload_token, p_idx: i, p_data: enc.chunks[i] });
-    }
-    await rsRpc('newbiz_research_finish', { p_session: s0.session_id, p_token: s0.upload_token, p_chunks: enc.chunks.length, p_bytes: enc.bytes, p_sha256: enc.sha256 });
-    const list = rsList(); list.unshift({ id: s0.session_id, code: s0.code, token: s0.upload_token, at: consent.at });
-    try { localStorage.setItem(RS_KEY, JSON.stringify(list.slice(0, 50))); } catch (_) {}
-    S.research = { code: s0.code };
-    rsBanner(`연구 데이터 제출 완료 · 참가 코드 <code>${esc(s0.code)}</code> (철회 문의 시 필요) · ${(enc.bytes / 1e6).toFixed(1)}MB <button class="sbtn" id="rsWithdraw" type="button">제출 철회</button>`);
+    await NLResearchStore.save(researchPackage(rec,res),consent);
+    await NLResearchStore.flush();
+    const receipt=await NLResearchStore.get(rec.attemptId);
+    if(receipt?.status!=='sent')throw Error('upload-pending');
+    if(S.attemptId!==rec.attemptId)return;
+    S.research = { code: receipt.code };
+    rsBanner(`연구·dataset 기록 완료 · 참가 코드 <code>${esc(receipt.code)}</code> <button class="sbtn" id="rsWithdraw" type="button">제출 철회</button> · <a href="dataset.html#local">내 제출 관리</a>`);
     $('rsWithdraw').onclick = async () => {
       if (!confirm('이 측정의 연구 데이터를 서버에서 완전히 삭제할까요?')) return;
-      try { const ok = await rsRpc('newbiz_research_withdraw', { p_session: s0.session_id, p_token: s0.upload_token });
-        localStorage.setItem(RS_KEY, JSON.stringify(rsList().filter(x => x.id !== s0.session_id)));
-        rsBanner(ok ? '연구 데이터를 삭제했어요.' : '이미 삭제됐거나 찾을 수 없어요.'); } catch (e) { rsBanner('철회 요청이 실패했어요. 잠시 뒤 다시 시도해 주세요.'); }
+      try { await NLResearchStore.withdraw(rec.attemptId);rsBanner('연구 데이터와 연결된 dataset 조치 이력을 삭제했어요.'); } catch (e) { rsBanner('철회 요청이 실패했어요. 잠시 뒤 다시 시도해 주세요.'); }
     };
   } catch (e) {
     console.warn('research upload failed', e);
-    rsBanner('연구 데이터 제출에 실패했어요. 검사 결과에는 영향이 없어요.');
+    rsBanner('연구 기록 전송을 완료하지 못했어요. <a href="dataset.html#local">내 대기 기록에서 저장 상태 확인·재시도</a> · 검사 결과에는 영향이 없어요.');
   }
+}
+function researchPackage(rec,res){
+  const vt=procVideo.videoWidth?{w:procVideo.videoWidth,h:procVideo.videoHeight}:null;
+  return NLResearch.pack(rec,res,rec.researchConsent,{ua:navigator.userAgent,screen:{w:screen.width,h:screen.height,vw:S.screenW,vh:stage.clientHeight},camera:vt,dpr:devicePixelRatio,tz:new Date().getTimezoneOffset(),app:'condition'});
+}
+async function datasetCheckpoint(){
+  if(!S.researchConsent?.research||S.demo)return;
+  const rec=liveRecord();await NLResearchStore.save(researchPackage(rec,null),rec.researchConsent,{draft:true});
 }
 function loadHistory() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (_) { return []; } }
 function saveHistory(r) {

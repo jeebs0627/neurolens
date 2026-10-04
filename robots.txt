@@ -4,6 +4,7 @@ Allow: /index.html
 
 # 개인 결과 · 상담 · 관리자 화면은 색인하지 않는다
 Disallow: /admin.html
+Disallow: /dataset
 Disallow: /chat_admin.html
 Disallow: /chat.html
 Disallow: /report.html

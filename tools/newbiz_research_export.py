@@ -40,7 +40,7 @@ def decode_frames(frames):
     arrs["rr"] = [[value(v, 100) for v in ([None] * 9 if row is None else row)] for row in frames["rr"]]
     if "rq" in frames:
         arrs["rq"] = [[value(v, 1e3) for v in ([None] * 3 if row is None else row)] for row in frames["rq"]]
-    for key in ("source", "reason"):
+    for key in ("source", "reason", "clockSource"):
         if key in frames:
             arrs[key] = [v or "" for v in frames[key]]
     return arrs
@@ -83,7 +83,7 @@ def main():
             import numpy as np  # noqa: PLC0415
             (out / "frames").mkdir(exist_ok=True)
             F = payload["frames"]
-            arrs = {k: np.array(v, dtype=str if k in ("source", "reason") else np.int64 if k == "t_ms" else np.float32)
+            arrs = {k: np.array(v, dtype=str if k in ("source", "reason", "clockSource") else np.int64 if k == "t_ms" else np.float32)
                     for k, v in decode_frames(F).items()}
             arrs["rr"] = arrs["rr"].reshape(-1, 9)
             if "rq" in arrs:

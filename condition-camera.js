@@ -6,7 +6,7 @@
     constructor(video,opt){
       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;
       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});
-      this.info={version:'condition-camera-1',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
+      this.info={version:'condition-camera-2',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
     }
     async init(){
       if(typeof Worker==='function' && typeof createImageBitmap==='function' && typeof OffscreenCanvas==='function'){
@@ -53,7 +53,9 @@
     capture(meta){
       if(this.stopped||!this.video.videoWidth)return;
       const tp=performance.now();
-      let t=Number.isFinite(meta?.captureTime)&&meta.captureTime<=tp&&tp-meta.captureTime<400?meta.captureTime:tp;
+      const captured=Number.isFinite(meta?.captureTime)&&meta.captureTime<=tp&&tp-meta.captureTime<400;
+      let t=captured?meta.captureTime:tp;
+      const intervalMs=this.lastT?t-this.lastT:null;
       t=Math.max(t,this.lastT+.01);this.lastT=t;
       const w=320,h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
       if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}
@@ -61,7 +63,10 @@
       const age=this.geometry?t-this.geometry.t:Infinity;
       const skin=NLSignal.sampleSkin(this.ctx,age<=180?this.geometry.lm:null);
       const fr={t,ok:skin.n>=12,ppgOk:skin.n>=12,skinOk:skin.n>=12,faceOk:false,eyeOk:false,gazeOk:false,
-        ...skin,skinQ:skin.q*(age<=80?1:.6),roiAge:Number.isFinite(age)?age:null,source:'tracked-roi'};
+        ...skin,skinQ:skin.q*(age<=80?1:.6),roiAge:Number.isFinite(age)?age:null,source:'tracked-roi',
+        clockSource:captured?'capture':'callback',intervalMs,captureDelayMs:captured?tp-meta.captureTime:null,
+        callbackLateMs:Number.isFinite(meta?.expectedDisplayTime)?Math.max(0,tp-meta.expectedDisplayTime):null,
+        mediaTimeMs:Number.isFinite(meta?.mediaTime)?meta.mediaTime*1000:null,presentedFrames:meta?.presentedFrames??null};
       this.info.captured++;const context=this.opt.onFrame(fr);
       if(this.busy||this.info.backend==='loading-fallback'||this.info.backend==='unavailable'){this.info.skipped++;return;}
       if(this.worker){

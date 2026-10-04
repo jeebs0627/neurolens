@@ -1,0 +1,22 @@
+{
+  "schema": "condition-engine-log-1",
+  "entries": [
+    {
+      "date": "2026-10-04",
+      "version": "condition-dataset-1 / condition-camera-2",
+      "status": "구현·로컬 검증",
+      "change": "실측 근거·자동 검토 과제·조치 이력, 기준 장비 수신·CSV 정렬·동일 구간 비교, 촬영·시선·반응시간 오차 계측",
+      "evidence": "단위·브라우저·독립 PostgreSQL 테스트. 사람 대상 정확도 및 실물 Bluetooth 장비는 아직 검증하지 않음.",
+      "next": "운영 DB 적용·연구 관리자 등록 후 다양한 기기·조명에서 기준 장비 동시 측정. 후속 품질 모델의 학습·평가 참가자 분리."
+    },
+    {
+      "date": "2026-10-04",
+      "version": "In_mind core 0.6 / condition-fusion-1",
+      "status": "합성·브라우저 검증",
+      "change": "POS·CHROM·녹색 채널과 피부 영역 융합, 짧은 유효 구간 누적, 중복 시간 제거",
+      "evidence": "합성 45조건 비교. 반복 끊김 조건에서 활용 시간이 증가했으나 일부 약한 신호는 활용량이 감소. 실사용 정확도 개선 수치는 아님.",
+      "commit": "3df0a657cff15ebe000a8fa9321617626313a807",
+      "next": "기준 센서 오차·시간 정렬을 확인하고 조건별 예상 오차와 융합 가중치 보정"
+    }
+  ]
+}

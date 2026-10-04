@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/dataset",
+      "destination": "/dataset.html"
+    },
+    {
       "source": "/condition",
       "destination": "/condition.html"
     },
@@ -56,7 +60,7 @@
       ]
     },
     {
-      "source": "/(admin|chat_admin|chat|indexadmin|report|result|resultadmin|test)\\.html",
+      "source": "/(dataset|admin|chat_admin|chat|indexadmin|report|result|resultadmin|test)\\.html",
       "headers": [
         {
           "key": "X-Robots-Tag",

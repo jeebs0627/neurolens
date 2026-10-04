@@ -37,6 +37,8 @@ async function main(){
     const result=await page.evaluate(()=>({info:{...__condition.S.camera.info},frames:__condition.S.buf,enabled:!document.querySelector('#goRun').disabled}));
     assert.equal(result.info.backend,'worker');assert.ok(result.info.captured>result.info.inferred*1.5);
     assert.ok(result.frames.some(f=>f.ppgOk&&f.r<45));assert.ok(result.frames.some(f=>f.faceOk&&f.exposureGain>1));
+    assert.ok(result.frames.every(f=>['capture','callback'].includes(f.clockSource)));
+    assert.ok(result.frames.filter(f=>f.clockSource==='callback').every(f=>f.captureDelayMs===null),'callback time must not masquerade as measured camera delay');
     assert.ok(result.enabled,'slow inference must not block starting the whole test');
     console.log('PASS worker capture/inference separation, dim RGB retention, enhanced landmarks, casual setup entry',result.info);
     const partial=await page.evaluate(lm=>{

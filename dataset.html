@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Dataset · NeuroLens 알고리즘 연구</title><link rel="stylesheet" href="dataset.css"></head>
+<body>
+<header><a class="brand" href="index.html">Neuro<span>Lens</span><small>ALGORITHM LAB</small></a><nav><a href="condition.html">컨디션 검사</a><a href="admin.html">관리자</a><button id="logout" hidden>로그아웃</button></nav></header>
+<main>
+<div class="intro"><div><p class="eyebrow">MEASUREMENT → EVIDENCE → IMPROVEMENT</p><h1>측정 근거와 개선 기록</h1><p>각 검사의 실측값, 보정 근거, 조치와 후속 과제를 연결합니다.<br>기준 측정이 없는 결과는 정확도 미검증으로 남깁니다.</p></div><span class="pill">Dataset · v1</span></div>
+<section class="panel" id="gate"><h2>연구 데이터 연결</h2><p id="accessStatus" role="status">연구자 권한을 확인하고 있습니다.</p><form id="loginForm" hidden><label>이메일<input id="email" type="email" autocomplete="username" required></label><label>비밀번호<input id="password" type="password" autocomplete="current-password" required></label><button class="primary">로그인</button></form><p class="muted">서버 기록은 등록된 연구 관리자만 열 수 있습니다. 계정 권한은 서버에서 확인합니다.</p></section>
+<section class="panel toolbar"><div><h2>연구 기록</h2><p class="muted" id="sourceLabel">아직 불러온 기록이 없습니다.</p></div><div class="tools"><button id="refresh">서버 새로고침</button><label class="file">연구 JSON 가져오기<input id="import" type="file" accept=".json,application/json" multiple></label><button id="export">현재 기록 내보내기</button></div></section>
+<p class="notice" id="message" role="status" aria-live="polite">동의한 실측 시도만 집계합니다. 자동 과제는 검토 후보이며 진단이나 적용 완료를 뜻하지 않습니다.</p>
+<div class="metrics" id="metrics"></div>
+<details class="panel"><summary>엔진 개발 이력과 후속 검증</summary><div id="engineLog"></div></details>
+<section class="panel"><div class="filters"><label>검사<select id="testFilter"><option value="">전체 검사</option></select></label><label>완료 상태<select id="outcomeFilter"><option value="">전체 상태</option><option value="complete">완료</option><option value="incomplete">중단·실패</option></select></label><label>엔진 버전<select id="versionFilter"><option value="">전체 버전</option></select></label><label>참가 코드<input id="search" type="search" placeholder="코드 검색"></label></div><div class="table-wrap"><table><thead><tr><th>측정 기록</th><th>상태</th><th>획득 FPS</th><th>기준 비교</th><th>자동 검토 후보</th><th>엔진</th></tr></thead><tbody id="sessions"></tbody></table></div><button id="more" hidden>이전 50건 더 보기</button></section>
+<section class="panel" id="detail" hidden></section>
+<section class="panel"><h2>축적 지표의 해석</h2><p>완료율은 불러온 동의 세션의 완료 비율입니다. 정확도는 기준 장비·동기화 근거를 확인한 세션에서만 별도로 계산합니다. 서로 겹치는 분석 창을 독립 표본으로 세지 않으며, 아래 비교는 심박 측정 오차입니다. 피로·스트레스 등 해석의 진단 정확도는 별도 검증이 필요합니다.</p><p class="muted">서버 연결이 안 되면 기록이 없다는 의미가 아닙니다. 내보낸 연구 JSON으로 로컬 검토를 계속할 수 있습니다. 로컬 가져오기·검토 결과는 서버에 자동 업로드하지 않습니다.</p></section>
+<section class="panel" id="local"><div class="toolbar"><div><h2>이 기기의 전송·철회 관리</h2><p class="muted">다른 참가자의 서버 데이터는 표시되지 않습니다. 대기 원자료는 최대 7일간 보관하고 연결 시 재시도합니다.</p></div><button id="retryLocal">전송 재시도</button></div><div id="localRows"></div></section>
+</main><footer>NeuroLens · 알고리즘 연구 기록 · 영상과 사진은 수집하지 않습니다.</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="supabase-config.js"></script><script src="auth.js"></script><script src="condition-dataset.js"></script><script src="newbiz-research.js"></script><script src="condition-research-store.js"></script><script src="dataset.js"></script>
+</body></html>

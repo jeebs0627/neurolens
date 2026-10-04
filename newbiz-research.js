@@ -16,7 +16,7 @@
   'use strict';
 
   const SCHEMA = 'nl-research-2';
-  const CONSENT_VERSION = 'newbiz-research-2026-10-03';
+  const CONSENT_VERSION = 'condition-research-2026-10-04';
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const q = (v, k) => (finite(v) ? Math.round(v * k) : null);           // 정수 양자화 (k = 배율)
 
@@ -27,6 +27,8 @@
     Object.entries(FRAME_COLS).forEach(([k, s]) => { out[k] = F.map(f => (typeof f[k] === 'boolean' ? (f[k] ? 1 : 0) : q(f[k], s))); });
     out.rr = F.map(f => (Array.isArray(f.rr) ? [0,1,2].flatMap(k => [0,1,2].map(c => q(f.rr[k]?.[c],100))) : null));   // [이마 r,g,b, 왼뺨 r,g,b, 오른뺨 r,g,b]
     out.rq = F.map(f=>f.rq ? f.rq.map(v=>q(v,1e3)) : null);
+    for(const [key,scale] of Object.entries({intervalMs:100,captureDelayMs:100,callbackLateMs:100,mediaTimeMs:100,presentedFrames:1})){out.scale[key]=scale;out[key]=F.map(f=>q(f[key],scale));}
+    out.clockSource = F.map(f=>f.clockSource||null);
     out.source = F.map(f=>f.source||null);
     out.reason = F.map(f=>f.reason||null);
     return out;
@@ -44,37 +46,43 @@
 
   /* rec = liveRecord(), res = NLBattery.run(rec), env = {ua, screen, camera, dpr, tz, extra} */
   function pack(rec, res, consent, env = {}) {
-    const b = res.battery, t0 = rec.frames && rec.frames.length ? rec.frames[0].t : 0;
+    const b = res?.battery, t0 = rec.frames && rec.frames.length ? rec.frames[0].t : (rec.startedAt||0);
     const fps = (() => { const F = rec.frames || []; return F.length > 1 ? Math.round((F.length - 1) / ((F[F.length - 1].t - F[0].t) / 1000) * 10) / 10 : null; })();
     const meta = {
       schema: SCHEMA, consentVersion: CONSENT_VERSION,
-      versions: { fusion: res.evidence?.version || null, core: res.version, battery: b.version, qc: b.qc ? b.qc.version : null, app: env.app || null },
-      capture: rec.capture || null, mode: rec.mode, modules: Object.fromEntries(Object.entries(b.steps || {}).map(([k, v]) => [k, v.status])),
+      attemptId:rec.attemptId||null,outcome:rec.outcome||'complete',demo:!!rec.demo,
+      versions: { fusion: res?.evidence?.version || null, core: res?.version||null, battery: b?.version||null, qc: b?.qc ? b.qc.version : null, app: env.app || null },
+      capture: rec.capture || null, mode: rec.mode, modules: Object.fromEntries(Object.entries(b?.steps || rec.steps || {}).map(([k, v]) => [k, v.status])),
       screen: env.screen || null, dpr: env.dpr || null, camera: env.camera || null, fps,
       client: browserFamily(env.ua), tzOffsetMin: env.tz ?? null, localHour: rec.measuredAt ? new Date(rec.measuredAt).getHours() : null,
       stim: { mode: rec.stimMode || null, form: rec.stimForm || null }, measuredAt: rec.measuredAt || null,
     };
     const ck = { ...(rec.checkin || {}) };
     if (!consent.phq) delete ck.phq;
-    const summary = {
+    const summary = b ? {
       checkin: ck, integrated: { code: b.integrated.code, primary: b.integrated.primary, secondary: b.integrated.secondary, pathways: b.integrated.pathways.map(p => p.key), mismatches: b.integrated.mismatches.map(m => m.key), context: (b.integrated.context || []).map(c => c.key) },
       domains: Object.fromEntries(Object.entries(b.domains).map(([k, d]) => [k, { score: d.score, status: d.status, confidence: d.confidence, tentative: !!d.tentative }])),
       indicators: b.indicators.map(i => ({ key: i.key, value: i.value, score: i.score, status: i.status, r: i.r, borderline: !!i.borderline, excluded: !!i.excluded })),
       qc: b.qc || null, pulseEvidence: res.evidence?.phases || null, calibration: rec.calibration ? { grade: rec.calibration.grade, errPct: rec.calibration.errPct, before: rec.calibration.before ?? null, model: rec.calibration.model || null, affine: !!rec.calibration.affine, control: rec.calibration.control || null } : null,
       hr: { baseline: res.hr && res.hr.baseline, stressDelta: res.stressDelta, recovery: res.recovery, recoveryResid: res.recoveryResid, ref: res.hrRef || null, resp: res.resp || null },
       phq: consent.phq && b.phq ? { phq2: b.phq.phq2, phq8: b.phq.phq8 } : null,
-    };
+    } : {checkin:ck};
+    const dataset=typeof module==='object'&&module.exports ? require('./condition-dataset.js') : globalThis.NLDataset;
+    if(dataset)summary.dataset=dataset.build(rec,res);
     const payload = {
       schema: SCHEMA, t0, sampleColumns: ['t','x','y','rx','ry','blink','quality_x1000','eyeMode','inferenceLagMs'],
       phases: Object.fromEntries(Object.entries(rec.phases || {}).map(([k, v]) => [k, [rel(v.start, t0), rel(v.end, t0)]])),
       hidden: (rec.hidden || []).map(h => [rel(h.start, t0), rel(h.end, t0)]),
       frames: packFrames(rec.frames),
-      pulseEvidence: res.evidence ? {version:res.evidence.version,windows:res.evidence.windows.map(w=>({...w,start:rel(w.start,t0),end:rel(w.end,t0),t:rel(w.t,t0)}))} : null,
+      pulseEvidence: res?.evidence ? {version:res.evidence.version,windows:res.evidence.windows.map(w=>({...w,start:rel(w.start,t0),end:rel(w.end,t0),t:rel(w.t,t0)}))} : null,
+      telemetry:rec.telemetry ? {clock:rec.telemetry.clock,calibrationFrames:packFrames(rec.telemetry.calibrationFrames),steps:Object.fromEntries(Object.entries(rec.telemetry.steps||{}).map(([k,v])=>[k,{...v,start:rel(v.start,t0),end:rel(v.end,t0)}])),
+        stimuli:(rec.telemetry.stimuli||[]).map(v=>({...v,requested:rel(v.requested,t0),onset:rel(v.onset,t0)})),inputs:(rec.telemetry.inputs||[]).map(v=>({...v,t:rel(v.t,t0)})),drift:(rec.telemetry.drift||[]).map(v=>({...v,t:rel(v.t,t0)}))} : null,
+      reference:rec.reference ? {...rec.reference,samples:rec.reference.samples.map(v=>({...v,t:rel(v.t,t0)})),events:(rec.reference.events||[]).map(v=>({...v,t:rel(v.t,t0)}))} : null,
       landmarks: rec.landmarks ? { idx: rec.landmarks.idx, scale: 1e4, rows: rec.landmarks.rows.map(r => [rel(r[0], t0), ...r.slice(1)]) } : null,
       calibration: rec.calibLog ? {
         screen: rec.calibLog.screen, targets: (rec.calibLog.targets || []).map(x => [rel(x.t, t0), q(x.x, 1), q(x.y, 1), x.kind]),
         pursuit: rec.calibLog.pursuit ? { ...rec.calibLog.pursuit, t0: rel(rec.calibLog.pursuit.t0, t0) } : null,
-        model: rec.calibLog.model || null, affine: rec.calibLog.affine || null, cursor: rec.calibLog.cursor || null,
+        model: rec.calibLog.model || null, affine: rec.calibLog.affine || null, cursor: rec.calibLog.cursor || null, evaluation:rec.calibLog.evaluation||null,
       } : null,
       freeview: (rec.trials || []).map(tr => ({ kind: tr.kind, sub: tr.sub || null, emoSide: tr.emoSide, emoId: tr.emoId || null, neuId: tr.neuId || null, onset: rel(tr.onset, t0), end: rel(tr.end, t0), s: packSamples(tr.samples, t0) })),
       saccade: (rec.saccade || []).map(tr => ({ type: tr.type, side: tr.side, practice: !!tr.practice, onset: rel(tr.onset, t0), end: rel(tr.end, t0), cal: tr.cal || null, s: packSamples(tr.samples, t0) })),
