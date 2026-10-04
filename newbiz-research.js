@@ -15,21 +15,24 @@
 })(typeof window !== 'undefined' ? window : null, function () {
   'use strict';
 
-  const SCHEMA = 'nl-research-1';
+  const SCHEMA = 'nl-research-2';
   const CONSENT_VERSION = 'newbiz-research-2026-10-03';
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const q = (v, k) => (finite(v) ? Math.round(v * k) : null);           // 정수 양자화 (k = 배율)
 
   /* 프레임: 열 단위 배열. t 는 첫 프레임 기준 ms. 배율은 SCALE 에 기록해 복원 가능하게 */
-  const FRAME_COLS = { ok: 1, r: 100, g: 100, b: 100, lum: 10, cx: 1e4, cy: 1e4, fw: 1e4, open: 1e4, blink: 1e3, frown: 1e3, smile: 1e3, u: 1e4, v: 1e4, yaw: 1e4, pitch: 1e4, lag: 1 };
+  const FRAME_COLS = { faceOk: 1, eyeOk: 1, skinOk: 1, ppgOk: 1, gazeOk: 1, skinQ: 1e3, eyeQ: 1e3, qLeft: 1e3, qRight: 1e3, uLeft: 1e4, vLeft: 1e4, uRight: 1e4, vRight: 1e4, roiAge: 1, exposureGain: 100, ok: 1, r: 100, g: 100, b: 100, lum: 10, cx: 1e4, cy: 1e4, fw: 1e4, open: 1e4, blink: 1e3, frown: 1e3, smile: 1e3, u: 1e4, v: 1e4, yaw: 1e4, pitch: 1e4, lag: 1 };
   function packFrames(frames) {
-    const F = frames || [], t0 = F.length ? F[0].t : 0, out = { t0, t: F.map(f => Math.round(f.t - t0)) };
-    Object.entries(FRAME_COLS).forEach(([k, s]) => { out[k] = F.map(f => (k === 'ok' ? (f.ok ? 1 : 0) : q(f[k], s))); });
-    out.rr = F.map(f => (Array.isArray(f.rr) ? f.rr.flat().map(v => q(v, 100)) : null));   // [이마 r,g,b, 왼뺨 r,g,b, 오른뺨 r,g,b]
+    const F = frames || [], t0 = F.length ? F[0].t : 0, out = { t0, scale: {...FRAME_COLS,rr:100,rq:1e3}, t: F.map(f => Math.round(f.t - t0)) };
+    Object.entries(FRAME_COLS).forEach(([k, s]) => { out[k] = F.map(f => (typeof f[k] === 'boolean' ? (f[k] ? 1 : 0) : q(f[k], s))); });
+    out.rr = F.map(f => (Array.isArray(f.rr) ? [0,1,2].flatMap(k => [0,1,2].map(c => q(f.rr[k]?.[c],100))) : null));   // [이마 r,g,b, 왼뺨 r,g,b, 오른뺨 r,g,b]
+    out.rq = F.map(f=>f.rq ? f.rq.map(v=>q(v,1e3)) : null);
+    out.source = F.map(f=>f.source||null);
+    out.reason = F.map(f=>f.reason||null);
     return out;
   }
   const rel = (t, t0) => (finite(t) ? Math.round(t - t0) : null);
-  const packSamples = (S, t0) => (S || []).map(p => [rel(p.t, t0), q(p.x, 1), q(p.y, 1), q(finite(p.rx) ? p.rx : p.x, 1), q(finite(p.ry) ? p.ry : p.y, 1), p.bl ? 1 : 0]);
+  const packSamples = (S, t0) => (S || []).map(p => [rel(p.t, t0), q(p.x, 1), q(p.y, 1), q(finite(p.rx) ? p.rx : p.x, 1), q(finite(p.ry) ? p.ry : p.y, 1), p.bl ? 1 : 0, q(p.q,1e3), p.mode || null, q(p.lag,1)]);
 
   function browserFamily(ua) {
     ua = String(ua || '');
@@ -46,7 +49,7 @@
     const meta = {
       schema: SCHEMA, consentVersion: CONSENT_VERSION,
       versions: { core: res.version, battery: b.version, qc: b.qc ? b.qc.version : null, app: env.app || null },
-      mode: rec.mode, modules: Object.fromEntries(Object.entries(b.steps || {}).map(([k, v]) => [k, v.status])),
+      capture: rec.capture || null, mode: rec.mode, modules: Object.fromEntries(Object.entries(b.steps || {}).map(([k, v]) => [k, v.status])),
       screen: env.screen || null, dpr: env.dpr || null, camera: env.camera || null, fps,
       client: browserFamily(env.ua), tzOffsetMin: env.tz ?? null, localHour: rec.measuredAt ? new Date(rec.measuredAt).getHours() : null,
       stim: { mode: rec.stimMode || null, form: rec.stimForm || null }, measuredAt: rec.measuredAt || null,
@@ -62,7 +65,7 @@
       phq: consent.phq && b.phq ? { phq2: b.phq.phq2, phq8: b.phq.phq8 } : null,
     };
     const payload = {
-      schema: SCHEMA, t0,
+      schema: SCHEMA, t0, sampleColumns: ['t','x','y','rx','ry','blink','quality_x1000','eyeMode','inferenceLagMs'],
       phases: Object.fromEntries(Object.entries(rec.phases || {}).map(([k, v]) => [k, [rel(v.start, t0), rel(v.end, t0)]])),
       hidden: (rec.hidden || []).map(h => [rel(h.start, t0), rel(h.end, t0)]),
       frames: packFrames(rec.frames),
@@ -75,7 +78,7 @@
       freeview: (rec.trials || []).map(tr => ({ kind: tr.kind, sub: tr.sub || null, emoSide: tr.emoSide, emoId: tr.emoId || null, neuId: tr.neuId || null, onset: rel(tr.onset, t0), end: rel(tr.end, t0), s: packSamples(tr.samples, t0) })),
       saccade: (rec.saccade || []).map(tr => ({ type: tr.type, side: tr.side, practice: !!tr.practice, onset: rel(tr.onset, t0), end: rel(tr.end, t0), cal: tr.cal || null, s: packSamples(tr.samples, t0) })),
       saccadeCal: rec.saccadeCal || null,
-      pursuit: rec.pursuit ? { t0: rel(rec.pursuit.t0, t0), cx: rec.pursuit.cx, amp: rec.pursuit.amp, freq: rec.pursuit.freq, dur: rec.pursuit.dur, s: packSamples(rec.pursuit.samples, t0) } : null,
+      pursuit: rec.pursuit ? { t0: rel(rec.pursuit.t0, t0), cx: rec.pursuit.cx, amp: rec.pursuit.amp, freq: rec.pursuit.freq, dur: rec.pursuit.dur, s: packSamples(rec.pursuit.samples, t0), circle: rec.pursuit.circle ? { ...rec.pursuit.circle, samples: undefined, t0: rel(rec.pursuit.circle.t0,t0), s: packSamples(rec.pursuit.circle.samples,t0) } : null } : null,
       pvt: rec.pvt ? { falseStarts: rec.pvt.falseStarts, durationMs: rec.pvt.durationMs, trials: rec.pvt.trials.map(x => [rel(x.onset, t0), finite(x.rt) ? Math.round(x.rt) : null]) } : null,
       sart: rec.sart ? { trials: rec.sart.trials.map(x => [x.digit, rel(x.onset, t0), finite(x.rt) ? Math.round(x.rt) : null]) } : null,
       stress: rec.stressScore || null,

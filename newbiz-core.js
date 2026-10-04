@@ -5,13 +5,14 @@
  * 모든 판정 기준은 파일럿 전 잠정값이며, 비진단 참고 지표다.
  * 브라우저: window.NLNewbiz · Node 테스트: module.exports */
 (function (root, factory) {
-  const api = factory();
+  const signal = typeof module === 'object' && module.exports ? require('./condition-signal.js') : root && root.NLSignal;
+  const api = factory(signal);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.NLNewbiz = api;
-})(typeof window !== 'undefined' ? window : null, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal) {
   'use strict';
 
-  const VERSION = 'In_mind core 0.4';
+  const VERSION = 'In_mind core 0.5';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -179,19 +180,50 @@
   /* 다중 피부 영역: 프레임에 영역별 평균색(rr = [[r,g,b] 이마, 왼뺨, 오른뺨])이 있으면 영역마다 POS 파형을 따로 만든다.
    * 움직임·조명 그림자는 영역마다 다르게 들어오므로, 창마다 가장 깨끗한 영역을 고르면 신호 손실이 크게 준다 */
   function buildBvp(frames, fs = 30) {
-    const ok = frames.filter(f => f.ok && finite(f.r) && finite(f.g) && finite(f.b));
-    if (ok.length < fs * 5) return null;
-    const ts = ok.map(f => f.t);
-    const rs = resample(ts, [ok.map(f => f.r), ok.map(f => f.g), ok.map(f => f.b)], fs);
-    const raw = pos(rs.data[0], rs.data[1], rs.data[2], fs);
-    const chans = [];
-    const nR = ok.every(f => Array.isArray(f.rr)) ? Math.min(...ok.map(f => f.rr.length)) : 0;
-    for (let k = 0; k < nR; k++) {
-      if (!ok.every(f => f.rr[k] && finite(f.rr[k][0]) && f.rr[k][0] > 0)) continue;
-      const rk = resample(ts, [0, 1, 2].map(c => ok.map(f => f.rr[k][c])), fs);
-      chans.push(bandpass(pos(rk.data[0], rk.data[1], rk.data[2], fs), fs));
-    }
-    return { t0: rs.t0, fs, bvp: bandpass(raw, fs), chans, coverage: ok.length / Math.max(1, frames.length) };
+    const ok = frames.filter(f => (f.ppgOk ?? f.ok) && [f.t,f.r,f.g,f.b].every(finite)).sort((a,b)=>a.t-b.t);
+    if (ok.length < 40 || ok.at(-1).t-ok[0].t < 5000) return null;
+    const t0=ok[0].t, length=Math.floor((ok.at(-1).t-t0)*fs/1000)+1;
+    const channel = pick => {
+      const rows=ok.map(f=>({t:f.t,v:pick(f)})).filter(p=>p.v && p.v.every(finite));
+      const dt=median(rows.slice(1).map((p,i)=>p.t-rows[i].t).filter(v=>v>0));
+      const bvp=new Float64Array(length).fill(NaN), repaired=new Uint8Array(length);
+      if(rows.length<40 || !(dt<=150))return {bvp,repaired};
+      // Only isolated RGB impulses with matching neighbours are removed. Raw rows are untouched.
+      const clean=rows.filter((p,i)=>{
+        const a=rows[i-1],b=rows[i+1];
+        if(!a||!b||b.t-a.t>150)return true;
+        const near=Math.max(...a.v.map((v,k)=>Math.abs(v-b.v[k])))<2;
+        return !(near && Math.max(...p.v.map((v,k)=>Math.abs(v-(a.v[k]+b.v[k])/2)))>8);
+      });
+      const rgb=[0,1,2].map(()=>new Float64Array(length).fill(NaN));
+      let j=0;
+      for(let i=0;i<length;i++){
+        const t=t0+i*1000/fs;
+        while(j+1<clean.length&&clean[j+1].t<t)j++;
+        const a=clean[j],b=clean[j+1];
+        if(!a || t<a.t-.001)continue;
+        if(Math.abs(t-a.t)<.001){for(let k=0;k<3;k++)rgb[k][i]=a.v[k];continue;}
+        if(!b||b.t-a.t>200||b.t<=a.t)continue;
+        const q=(t-a.t)/(b.t-a.t);
+        for(let k=0;k<3;k++)rgb[k][i]=a.v[k]+(b.v[k]-a.v[k])*q;
+        if(b.t-a.t>dt*1.6)repaired[i]=1;
+      }
+      // Filtering is restarted at every long gap; no pulse is synthesized across absence.
+      for(let a=0;a<length;){
+        while(a<length&&!finite(rgb[0][a]))a++;
+        let b=a;while(b<length&&finite(rgb[0][b]))b++;
+        if(b-a>=fs*5){const wave=bandpass(pos(...rgb.map(x=>x.subarray(a,b)),fs),fs);bvp.set(wave,a);}
+        a=b+1;
+      }
+      return {bvp,repaired};
+    };
+    const aggregate=channel(f=>[f.r,f.g,f.b]);
+    const regions=[0,1,2].map(k=>channel(f=>f.rr?.[k]));
+    const usable=regions.filter(c=>c.bvp.some(finite));
+    const observed=aggregate.bvp.reduce((n,v)=>n+(finite(v)?1:0),0);
+    return {t0,fs,bvp:aggregate.bvp,chans:usable.map(c=>c.bvp),repaired:aggregate.repaired,
+      channelRepairs:usable.map(c=>c.repaired),coverage:Signal.timeCoverage(ok,frames[0]?.t??t0,frames.at(-1)?.t??ok.at(-1).t),
+      recoveredFraction:observed?aggregate.repaired.reduce((n,v,i)=>n+(finite(aggregate.bvp[i])?v:0),0)/observed:0};
   }
 
   /* 10초 창·1초 간격으로 심박 시계열 */
@@ -201,9 +233,9 @@
   function hrWindows(sig, winSec = 10, stepSec = 1) {
     if (!sig) return [];
     const { bvp, fs, t0 } = sig, wl = Math.round(winSec * fs), st = Math.round(stepSec * fs), out = [];
-    const chans = [{ x: bvp, w: (sig.chans || []).length ? 0.5 : 1 }, ...(sig.chans || []).map(x => ({ x, w: 1 }))];
+    const chans = [{ x: bvp, repairs: sig.repaired, w: (sig.chans || []).length ? 0.5 : 1 }, ...(sig.chans || []).map((x,i) => ({ x, repairs: sig.channelRepairs?.[i], w: 1 }))];
     for (let s = 0; s + wl <= bvp.length; s += st) {
-      const pks = chans.map(c => { const p = spectralPeak(c.x.subarray(s, s + wl), fs); return p ? { ...p, w: c.w } : null; }).filter(Boolean);
+      const pks = chans.map(c => { const seg=c.x.subarray(s,s+wl); if(!seg.every(finite))return null; const recovered=c.repairs ? c.repairs.subarray(s,s+wl).reduce((a,b)=>a+b,0)/wl : 0; if(recovered>.25)return null; const p = spectralPeak(seg, fs); return p ? { ...p, recovered, w: c.w*(1-recovered) } : null; }).filter(Boolean);
       if (!pks.length) continue;
       let best = null;
       pks.forEach(c => {
@@ -212,7 +244,7 @@
         if (!best || score > best.score) best = { score, cl };
       });
       const votes = best.cl.reduce((a, p) => a + p.w, 0), snr = Math.max(...best.cl.map(p => p.snrDb));
-      out.push({ t: t0 + (s + wl / 2) * 1000 / fs, bpm: median(best.cl.map(p => p.bpm)), snr: votes >= 1.5 || pks.length === 1 ? snr : snr - 1.5, n: best.cl.length });
+      out.push({ t: t0 + (s + wl / 2) * 1000 / fs, bpm: median(best.cl.map(p => p.bpm)), snr: votes >= 1.5 || pks.length === 1 ? snr : snr - 1.5, n: best.cl.length, recovered: mean(best.cl.map(p=>p.recovered)) });
     }
     return out;
   }
@@ -224,7 +256,7 @@
     const usable = inside.filter(w => w.snr >= SNR_FAIR);
     const use = usable.length >= Math.max(2, inside.length * 0.3) ? usable : inside;
     const snr = median(inside.map(w => w.snr));
-    return { bpm: round(median(use.map(w => w.bpm)), 1), snr: round(snr, 1), quality: quality(snr), n: inside.length };
+    return { bpm: round(median(use.map(w => w.bpm)), 1), snr: round(snr, 1), quality: quality(snr), n: inside.length, recovered: round(mean(use.map(w=>w.recovered||0)),3) };
   }
 
   /* ---------- 박동 검출 → 박동 간격(IBI) ---------- */
@@ -233,11 +265,13 @@
     const { bvp, fs, t0 } = sig;
     const i0 = Math.max(1, Math.floor((start - t0) * fs / 1000)), i1 = Math.min(bvp.length - 2, Math.ceil((end - t0) * fs / 1000));
     const minGap = 0.6 * 60 / hrBpm * fs;
-    const seg = Array.from(bvp.subarray(i0, i1 + 1));
+    const seg = Array.from(bvp.subarray(i0, i1 + 1)).filter(finite);
     const thr = quantile(seg, 0.5);
     const out = [];
     let last = -Infinity;
     for (let i = i0; i <= i1; i++) {
+      const lo=Math.max(0,i-Math.ceil(fs*.75)), hi=Math.min(bvp.length,i+Math.ceil(fs*.75));
+      if(!bvp.subarray(lo,hi).every(finite) || sig.repaired?.subarray(lo,hi).some(Boolean))continue;
       if (bvp[i] > bvp[i - 1] && bvp[i] >= bvp[i + 1] && bvp[i] > thr) {
         const a = bvp[i - 1], b = bvp[i], c = bvp[i + 1], den = a - 2 * b + c;
         const idx = i + (den !== 0 ? clamp(0.5 * (a - c) / den, -0.5, 0.5) : 0);
@@ -345,27 +379,31 @@
     icx /= 5; icy /= 5;
     const ix = icx - ax, iy = icy - ay;
     const u = (ix * dx + iy * dy) / L2;                       // 눈꼬리→눈머리 축 위치 (0~1)
-    const midY = (lm[top].y + lm[bot].y) / 2;
-    const v = (icy - midY) / L;                        // 눈 높이 대비 홍채 상하 위치
+    const midX = (lm[top].x + lm[bot].x) / 2, midY = (lm[top].y + lm[bot].y) / 2;
+    const v = (-(icx-midX)*dy + (icy-midY)*dx) / L2; // Eye-local perpendicular axis compensates head roll.
     const open = Math.hypot(lm[bot].x - lm[top].x, lm[bot].y - lm[top].y) / L;
     return { u, v, open };
   }
   function faceFeatures(lm) {
-    if (!lm || lm.length < 478) return null;
+    if (!lm || lm.length < 478 || lm.some(p=>!p || !finite(p.x) || !finite(p.y))) return null;
     const imgLeftFirst = (a, b) => lm[a].x <= lm[b].x ? [a, b] : [b, a];
     const [ra, rb] = imgLeftFirst(LM.rOuter, LM.rInner);
     const [la, lb] = imgLeftFirst(LM.lInner, LM.lOuter);
     const R = eyeUV(lm, ra, rb, LM.rTop, LM.rBot, LM.rIris);
     const Lf = eyeUV(lm, la, lb, LM.lTop, LM.lBot, LM.lIris);
+    const validEye = e => [e.u,e.v,e.open].every(finite) && e.u>-.25 && e.u<1.25 && Math.abs(e.v)<.5;
+    const usable = [R,Lf].filter(validEye);
+    if(!usable.length)return null;
     const fl = lm[LM.faceL], fr = lm[LM.faceR], tp = lm[LM.top], ch = lm[LM.chin], ns = lm[LM.nose];
     const fw = Math.hypot(fr.x - fl.x, fr.y - fl.y);
     const fh = Math.hypot(ch.x - tp.x, ch.y - tp.y);
     return {
-      u: (R.u + Lf.u) / 2, v: (R.v + Lf.v) / 2,
+      u: mean(usable.map(e=>e.u)), v: mean(usable.map(e=>e.v)),
       yaw: (ns.x - fl.x) / (fr.x - fl.x) - 0.5,
       pitch: (ns.y - tp.y) / (ch.y - tp.y) - 0.5,
       cx: (fl.x + fr.x) / 2, cy: (tp.y + ch.y) / 2, fw, fh,
-      open: (R.open + Lf.open) / 2,
+      open: mean(usable.map(e=>e.open)),
+      eyes: {left:{...Lf,q:validEye(Lf)?clamp((Lf.open-.025)/.12,0,1):0},right:{...R,q:validEye(R)?clamp((R.open-.025)/.12,0,1):0}},
     };
   }
   const GAZE_KEYS = ['u', 'v', 'yaw', 'pitch', 'cx', 'cy'];
@@ -408,10 +446,34 @@
       return solve(XtX, Xty);
     };
     const wx = fit('x'), wy = fit('y');
-    return wx && wy ? { mu, sd, wx, wy, quad } : null;
+    if(!wx || !wy)return null;
+    const model={mu,sd,wx,wy,quad};
+    if(!opt.singleEye){
+      model.eyes={};
+      for(const side of ['left','right']){
+        const rows=S.filter(s=>s.f.eyes?.[side]?.q>.035).map(s=>({...s,f:{...s.f,u:s.f.eyes[side].u,v:s.f.eyes[side].v},w:(s.w??1)*s.f.eyes[side].q}));
+        // A one-eye model needs spatially distributed calibration, not just many centre samples.
+        if(rows.length>=20 && std(rows.map(s=>s.x))>std(S.map(s=>s.x))*.5 && std(rows.map(s=>s.y))>std(S.map(s=>s.y))*.5)
+          model.eyes[side]=fitGaze(rows,lambda,{...opt,singleEye:true});
+      }
+    }
+    if(model.eyes && !Object.values(model.eyes).some(Boolean))delete model.eyes;
+    return model;
   }
   function predictGaze(model, f) {
     if (!model || !f) return null;
+    if(model.eyes && f.eyes){
+      const predictions=['left','right'].map(side=>{
+        const eye=f.eyes[side],m=model.eyes[side];
+        if(!m||!eye||eye.q<=.035)return null;
+        return {...predictGaze(m,{...f,u:eye.u,v:eye.v}),w:eye.q*eye.q,side};
+      }).filter(Boolean);
+      if(predictions.length===1 && ['poor','none'].includes(model.eyes[predictions[0].side].validation?.grade))return null;
+      const total=predictions.reduce((s,p)=>s+p.w,0);
+      if(total>0)return {x:predictions.reduce((s,p)=>s+p.x*p.w,0)/total,y:predictions.reduce((s,p)=>s+p.y*p.w,0)/total,
+        mode:predictions.length===2?'binocular':predictions[0].side};
+      return null;
+    }
     const v = gazeVec(f, model.mu, model.sd, model.quad);
     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);
     return { x: dot(model.wx), y: dot(model.wy) };
@@ -498,9 +560,20 @@
     const e = median(errs) / W * 100;
     return { errPct: round(e, 1), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(points.map(p => Math.abs(p.gx - p.x))) / W * 100, 1) };
   }
+  function validateGazeEyes(model, points, W, H) {
+    if(!model?.eyes)return;
+    for(const side of ['left','right']){
+      const m=model.eyes[side];if(!m)continue;
+      const pairs=points.map(p=>{
+        const gs=p.fs.filter(f=>f.eyes?.[side]?.q>.035).map(f=>predictGaze(m,{...f,u:f.eyes[side].u,v:f.eyes[side].v}));
+        return gs.length>=4?{x:p.x,y:p.y,gx:median(gs.map(g=>g.x)),gy:median(gs.map(g=>g.y))}:null;
+      }).filter(Boolean);
+      m.validation=pairs.length>=3?{...gazeAccuracy(pairs,W,H),points:pairs.length}:{grade:'none',errPct:null,points:pairs.length};
+    }
+  }
 
   /* ---------- 정서 자유 보기 지표 ---------- */
-  const SIDE_GAP = 0.06, ONSET_SKIP = 150, MAX_DT = 120;
+  const SIDE_GAP = 0.06, ONSET_SKIP = 150;
   const sideOf = (x, W) => !finite(x) ? null : x < W * (0.5 - SIDE_GAP) ? 'L' : x > W * (0.5 + SIDE_GAP) ? 'R' : null;
   /* trial: {kind:'neg'|'pos'|'neu', emoSide:'L'|'R', onset, end, samples:[{t,x}]} */
   /* 자유 보기 시행 1개: 전체 체류 비율 + 시간 흐름(1초 구간) + 유지 주의(1.5초 이후) + 시선 전환 횟수
@@ -511,10 +584,10 @@
     let emo = 0, other = 0, first = null, firstVisit = null, visitStart = null, lapse = 0, lapseStart = null;
     let lateEmo = 0, lateAll = 0, switches = 0, lastSide = null, latency = null;
     const bins = [[0, 0], [0, 0], [0, 0], [0, 0]];
-    const s = tr.samples.filter(p => p.t >= tr.onset && p.t <= tr.end);
+    const s = Signal.cleanGaze(tr.samples,{task:'dwell',W}).filter(p => p.t >= tr.onset && p.t <= tr.end);
     for (let i = 0; i < s.length; i++) {
       const side = sideOf(s[i].x, W);
-      const dt = i + 1 < s.length ? Math.min(MAX_DT, s[i + 1].t - s[i].t) : 0;
+      const dt = i + 1 < s.length ? (!s[i + 1].breakBefore && (s[i + 1].t - s[i].t)<=200 ? (s[i + 1].t - s[i].t) * (s[i].recovered ? .5 : 1) : 0) : 0;
       if (side === tr.emoSide) emo += dt; else if (side) other += dt;
       if (side) {
         const rel = s[i].t - tr.onset, b = Math.min(3, Math.floor(rel / BIN_MS));
@@ -522,9 +595,9 @@
         if (rel >= LATE_MS) { lateAll += dt; if (side === tr.emoSide) lateEmo += dt; }
         if (lastSide && side !== lastSide) switches++;
         lastSide = side;
-        if (latency === null && side === tr.emoSide && rel >= ONSET_SKIP) latency = rel;
+        if (latency === null && !s[i].recovered && side === tr.emoSide && rel >= ONSET_SKIP) latency = rel;
       }
-      if (!first && side && s[i].t - tr.onset >= ONSET_SKIP) first = side === tr.emoSide ? 'emo' : 'other';
+      if (!first && !s[i].recovered && side && s[i].t - tr.onset >= ONSET_SKIP) first = side === tr.emoSide ? 'emo' : 'other';
       if (firstVisit === null) {                       // 감정 자극에 처음 머문 시간 (100ms 미만 이탈은 무시)
         if (side === tr.emoSide) { if (visitStart === null) visitStart = s[i].t; lapse = 0; lapseStart = null; }
         else if (visitStart !== null) {
@@ -622,7 +695,7 @@
     /* 화면이 가려진 구간(탭 전환 등)의 프레임은 쓰지 않는다 */
     const hidden = (rec.hidden || []).filter(h => finite(h.start) && finite(h.end));
     const inHidden = t => hidden.some(h => t >= h.start - 500 && t <= h.end + 1500);
-    if (hidden.length) rec = { ...rec, frames: rec.frames.map(f => (f.ok && inHidden(f.t) ? { ...f, ok: false } : f)) };
+    if (hidden.length) rec = { ...rec, frames: rec.frames.map(f => (inHidden(f.t) ? { ...f, ok: false, ppgOk: false, faceOk: false, eyeOk: false } : f)) };
     const sig = buildBvp(rec.frames);
     const jumps = lumJumps(rec.frames);
     /* 10초 창이 조명 급변 시각을 포함하면 그 창은 버린다 */
@@ -676,7 +749,7 @@
 
     const fr = rec.frames;
     const all = [fr.length ? fr[0].t : 0, fr.length ? fr[fr.length - 1].t : 0];
-    const face = rec.frames.filter(f => f.ok);
+    const face = rec.frames.filter(f => f.faceOk ?? f.ok);
     const blink = { baseline: blinkRate(face, ...span('baseline')), stress: blinkRate(face, ...span('stress')), all: blinkRate(face, ...all) };
     const motion = { baseline: motionIndex(face, ...span('baseline')), all: motionIndex(face, ...all) };
     const expr = { neu: expression(face, ...span('neu')), neg: expression(face, ...span('neg')), pos: expression(face, ...span('pos')) };
@@ -697,10 +770,10 @@
       else mismatch = { kind: 'aligned', text: '느끼는 긴장도와 몸의 반응이 대체로 일치했어요.' };
     }
 
-    const coverage = sig ? round(sig.coverage * 100, 0) : 0;
+    const coverage = round(Signal.timeCoverage(face,...all)*100,0);
     return {
       version: VERSION, demo: !!rec.demo, measuredAt: rec.measuredAt || null, checkin: rec.checkin || null,
-      quality: { faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },
+      quality: { skinCoverage: sig ? round(sig.coverage*100,0) : 0, recoveredFraction: sig ? round(sig.recoveredFraction,3) : 0, faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },
       hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),
       gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate,
         lateNeg: blocks.neg.lateShare, binsNeg: blocks.neg.bins, binsPos: blocks.pos.bins, switches: blocks.neg.switches, latencyNeg: blocks.neg.latencyMs, halfGapNeg: blocks.neg.halfGap },
@@ -718,8 +791,8 @@
     const recent = frames.filter(f => f.t >= end - winSec * 1000);
     const sig = buildBvp(recent);
     if (!sig) return null;
-    const pk = spectralPeak(sig.bvp, sig.fs);
-    return pk ? { bpm: round(pk.bpm, 0), snr: round(pk.snrDb, 1), quality: quality(pk.snrDb) } : null;
+    const pk = hrWindows(sig,8,1).at(-1);
+    return pk && end-pk.t<5000 ? { bpm: round(pk.bpm, 0), snr: round(pk.snr, 1), quality: quality(pk.snr) } : null;
   }
 
   /* ---------- 시뮬레이션 (카메라 없는 데모·테스트용) ----------
@@ -754,10 +827,10 @@
   }
 
   return {
-    VERSION, THRESH, LM, PROFILES, CARE,
+    VERSION, THRESH, LM, PROFILES, CARE, Signal,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, beats, ibis, rmssd, breathingCoupling,
-    faceFeatures, fitGaze, predictGaze, gazeAccuracy, fitAffine, applyAffine, oneEuro, gazeCursor,
+    faceFeatures, fitGaze, predictGaze, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, synthFrames,
   };
 });

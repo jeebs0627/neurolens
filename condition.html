@@ -1157,6 +1157,8 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
+<script src="condition-signal.js"></script>
+<script src="condition-camera.js"></script>
 <script src="newbiz-core.js"></script>
 <script src="newbiz-battery.js"></script>
 <script src="newbiz-report.js"></script>
@@ -1182,10 +1184,10 @@ const esc = R.esc;
 
 const S = {
   demo: false, mode: 'full', persona: 'balanced', mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {},
-  stream: null, landmarker: null, buf: [], frames: [], recording: false, bioFrames: [], bioRecording: false,
+  stream: null, camera: null, buf: [], frames: [], recording: false, bioFrames: [], bioRecording: false,
   phases: {}, steps: {}, stepPhases: [], plan: [], cur: null, stepIdx: 0, stepTotal: 0, cleanup: [],
   trials: [], pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, curTrial: null,
-  model: null, affine: null, gaze: null, view: null, euro: null, rawG: null, drift: { dx: 0, dy: 0 }, feat: null, lastLm: null, rois: null, lastFace: 0, lastTs: 0, fpsTimes: [],
+  model: null, affine: null, gaze: null, view: null, euro: null, rawG: null, drift: { dx: 0, dy: 0 }, feat: null, lastLm: null, rois: null, lastFace: 0, fpsTimes: [],
   onFeature: null, onResp: null, onKey: null, onGo: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
   stim: null, stimAll: null, stimMeta: null, stimMode: 'schematic',
   hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
@@ -1392,8 +1394,6 @@ $('goSetup').addEventListener('click', () => {
 
 /* ---------- 카메라 + MediaPipe ---------- */
 const procVideo = $('camProc'), prevVideo = $('camPreview');
-const roiCanvas = document.createElement('canvas');
-const roiCtx = roiCanvas.getContext('2d', { willReadFrequently: true });
 
 async function loadLandmarker() {
   const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);
@@ -1408,56 +1408,30 @@ $('camStart').addEventListener('click', async () => {
   st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';
   $('camStart').disabled = true; $('camStart').hidden = true;
   try {
+    S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop());
     S.stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false });
     procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;
     procVideo.classList.add('on');
     await Promise.all([procVideo.play(), prevVideo.play()]);
-    S.landmarker = await loadLandmarker();
-    st.textContent = '준비됐어요. 체크 항목이 초록색이 되면 측정을 시작하세요.';
-    startLoop(); drawOverlay(); setupTicker();
+    S.camera = new NLCamera(procVideo, {
+      base: MP_BASE, model: MODEL_URL, loadFallback: loadLandmarker,
+      onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },
+      onResult: processResult,
+      onError(e) {
+        st.className = 'status err'; st.textContent = '얼굴 인식 연결을 확인해 주세요. 카메라를 다시 켤 수 있어요.';
+        if (S.camera?.info.backend === 'unavailable') { $('camStart').disabled = false; $('camStart').hidden = false; }
+      }
+    });
+    await S.camera.init();
+    st.textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';
+    startLoop(); if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }
   } catch (e) {
+    S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); S.stream = null;
     st.className = 'status err';
     st.textContent = e && e.name === 'NotAllowedError' ? '카메라 권한이 거부됐어요. 주소창의 카메라 아이콘에서 허용해 주세요.' : '카메라 또는 모델을 불러오지 못했어요: ' + (e && e.message || e);
     $('camStart').disabled = false; $('camStart').hidden = false; $('camStart').textContent = '카메라 다시 켜기';
   }
 });
-
-/* 피부 영역(이마·양 볼)의 평균 RGB — 피부 범위를 벗어난 픽셀(눈썹·머리카락·반사)은 제외 */
-function sampleRoi(lm) {
-  const vw = procVideo.videoWidth, vh = procVideo.videoHeight;
-  if (!vw) return null;
-  const cw = 320, ch = Math.round(320 * vh / vw);
-  if (roiCanvas.width !== cw) { roiCanvas.width = cw; roiCanvas.height = ch; }
-  roiCtx.drawImage(procVideo, 0, 0, cw, ch);
-  const P = i => ({ x: lm[i].x * cw, y: lm[i].y * ch });
-  const fw = Math.hypot(P(454).x - P(234).x, P(454).y - P(234).y);
-  const boxes = [
-    { c: P(151), w: fw * 0.30, h: fw * 0.11 },
-    { c: P(50), w: fw * 0.13, h: fw * 0.13 },
-    { c: P(280), w: fw * 0.13, h: fw * 0.13 },
-  ];
-  let r = 0, g = 0, b = 0, n = 0;
-  const rois = [], per = [];
-  for (const bx of boxes) {
-    const x = Math.max(0, Math.round(bx.c.x - bx.w / 2)), y = Math.max(0, Math.round(bx.c.y - bx.h / 2));
-    const w = Math.min(cw - x, Math.round(bx.w)), h = Math.min(ch - y, Math.round(bx.h));
-    if (w < 3 || h < 3) { per.push(null); continue; }
-    rois.push({ x: x / cw, y: y / ch, w: w / cw, h: h / ch });
-    const d = roiCtx.getImageData(x, y, w, h).data;
-    let rk = 0, gk = 0, bk = 0, nk = 0;
-    for (let i = 0; i < d.length; i += 4) {
-      const R = d[i], G = d[i + 1], B = d[i + 2];
-      if (R > 45 && R < 250 && R > G && R > B && G > 20) { rk += R; gk += G; bk += B; nk++; }
-    }
-    r += rk; g += gk; b += bk; n += nk;
-    per.push(nk >= 12 ? [rk / nk, gk / nk, bk / nk] : null);
-  }
-  if (n < 30) return { n, rois };
-  r /= n; g /= n; b /= n;
-  /* 영역별 평균색 (rPPG 다중 영역 융합용). 픽셀이 부족한 영역은 전체 평균으로 채워 채널이 끊기지 않게 한다 */
-  const rr = per.map(v => v || [r, g, b]);
-  return { r, g, b, n, rr, lum: 0.299 * r + 0.587 * g + 0.114 * b, rois };
-}
 
 function blendMap(res) {
   const cats = res.faceBlendshapes && res.faceBlendshapes[0] && res.faceBlendshapes[0].categories;
@@ -1468,47 +1442,41 @@ function blendMap(res) {
 
 /* 프레임 시각 = 카메라가 실제로 찍은 시각(requestVideoFrameCallback 의 captureTime). 처리 시각을 쓰면 얼굴 인식에 걸린
  * 15~40ms(기기마다 다름)가 섞여 심박 파형과 사카드 잠복기가 흔들린다. 없거나 이상하면 처리 시각으로 대신한다 */
-function processFrame(meta) {
-  const tp = now();
-  let t = meta && Number.isFinite(meta.captureTime) && meta.captureTime <= tp && tp - meta.captureTime < 400 ? meta.captureTime : tp;
-  if (t <= S.lastTs) t = S.lastTs + 0.01;
-  S.lastTs = t;
-  let res;
-  try { res = S.landmarker.detectForVideo(procVideo, t); } catch (_) { return; }
+function processResult(fr, packet, context) {
+  const { result: res, skin: roi, eyes, gain } = packet, t = fr.t;
   const lm = res.faceLandmarks && res.faceLandmarks[0];
-  const fr = { t, ok: false };
   S.lastLm = lm || null;
-  if (lm) {
-    const f = N.faceFeatures(lm), roi = sampleRoi(lm);
-    if (f && roi) {
-      if (S.onFeature && roi.n < 30) S.onFeature(t, f);                // 피부 영역이 어두워도 시선 보정 표본은 받는다
-      S.rois = roi.rois;
-      const bs = blendMap(res);
-      Object.assign(fr, {
-        ok: roi.n >= 30, r: roi.r, g: roi.g, b: roi.b, rr: roi.rr, lum: roi.lum, cx: f.cx, cy: f.cy, fw: f.fw, open: f.open,
-        blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,
-        frown: ((bs.mouthFrownLeft || 0) + (bs.mouthFrownRight || 0) + (bs.browDownLeft || 0) + (bs.browDownRight || 0)) / 4,
-        smile: ((bs.mouthSmileLeft || 0) + (bs.mouthSmileRight || 0)) / 2,
-        u: f.u, v: f.v, yaw: f.yaw, pitch: f.pitch, lag: Math.round(now() - t),
-      });
-      /* 연구용 눈·홍채 랜드마크: 시선 보정·시선 과제 동안만, 영상 좌표 ×10000 정수 */
-      if (S.lmRec && S.landmarks) { const row = [t]; for (const i of LM_IDX) row.push(Math.round(lm[i].x * 1e4), Math.round(lm[i].y * 1e4)); S.landmarks.rows.push(row); }
-      S.feat = f; S.lastFace = t;
-      if (S.onFeature && roi.n >= 30) S.onFeature(t, f);
-      if (S.model) {
-        const g0 = N.applyAffine(S.affine, N.predictGaze(S.model, f));      // 회귀 모델 → 영점 조정(축별 1차 보정)
-        const bl = fr.blink >= 0.5;
-        S.rawG = { t, x: g0.x, y: g0.y, bl };
-        const g = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy };          // 과제 직전 가운데 응시로 잰 치우침(drift) 보정
-        S.gaze = S.gaze ? { x: S.gaze.x + 0.4 * (g.x - S.gaze.x), y: S.gaze.y + 0.4 * (g.y - S.gaze.y) } : g;
-        if (!bl) S.view = { x: S.euro.x(g.x, t), y: S.euro.y(g.y, t), t };   // 화면 표시용 시선 커서: One Euro 평활 (깜빡임 프레임은 건너뜀)
-        if (!bl && S.onGaze) S.onGaze(g, t);
-        /* 분석용은 원시값(rx). 시선 표본은 피부색 영역(rPPG)과 무관하게 얼굴만 잡히면 모두 기록하고, 깜빡임(bl)은 분석에서 뺀다 */
-        if (S.curTrial) S.curTrial.samples.push({ t, x: S.gaze.x, y: S.gaze.y, rx: g.x, ry: g.y, bl });
-      }
-    }
+  if (!lm) { Object.assign(fr, { ok: false, ppgOk: false, skinOk: false, reason: 'face-missing' }); return; }
+  const f = N.faceFeatures(lm);
+  if (!f) return;
+  const bs = blendMap(res);
+  f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));
+  f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));
+  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q);
+  Object.assign(fr, roi, {
+    ok: roi.n >= 12, ppgOk: roi.n >= 12, skinOk: roi.n >= 12, faceOk: true,
+    eyeOk: Math.max(eyes?.left ?? 1,eyes?.right ?? 1) > .035, gazeOk: eyeQ > .035, skinQ: roi.q, eyeQ, qLeft: f.eyes.left.q, qRight: f.eyes.right.q,
+    uLeft: f.eyes.left.u, vLeft: f.eyes.left.v, uRight: f.eyes.right.u, vRight: f.eyes.right.v,
+    source: 'observed', roiAge: 0, exposureGain: gain, cx: f.cx, cy: f.cy, fw: f.fw, open: f.open,
+    blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,
+    frown: ((bs.mouthFrownLeft || 0) + (bs.mouthFrownRight || 0) + (bs.browDownLeft || 0) + (bs.browDownRight || 0)) / 4,
+    smile: ((bs.mouthSmileLeft || 0) + (bs.mouthSmileRight || 0)) / 2,
+    u: f.u, v: f.v, yaw: f.yaw, pitch: f.pitch, lag: Math.round(now() - t)
+  });
+  S.rois = roi.rois; S.feat = f; S.lastFace = t;
+  if (S.lmRec && S.landmarks) { const row = [t]; for (const i of LM_IDX) row.push(Math.round(lm[i].x * 1e4), Math.round(lm[i].y * 1e4)); S.landmarks.rows.push(row); }
+  if (fr.gazeOk && context.feature && context.feature === S.onFeature) S.onFeature(t, f);
+  if (S.model) {
+    const pred = N.predictGaze(S.model, f), g0 = N.applyAffine(S.affine, pred);
+    if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) return;
+    const bl = !fr.gazeOk;
+    S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };
+    const g = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy };
+    S.gaze = g; // Display filtering cannot change measured latency or dwell.
+    if (!bl) S.view = { x: S.euro.x(g.x, t), y: S.euro.y(g.y, t), t };
+    if (!bl && S.onGaze) S.onGaze(g, t);
+    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:g.x,y:g.y,rx:g.x,ry:g.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});
   }
-  pushFrame(fr);
 }
 function pushFrame(fr) {
   S.buf.push(fr);
@@ -1518,18 +1486,9 @@ function pushFrame(fr) {
   S.fpsTimes.push(fr.t);
   while (S.fpsTimes.length && S.fpsTimes[0] < fr.t - 2000) S.fpsTimes.shift();
 }
-function startLoop() {
-  if (procVideo.requestVideoFrameCallback) {
-    const cb = (_, meta) => { processFrame(meta); procVideo.requestVideoFrameCallback(cb); };
-    procVideo.requestVideoFrameCallback(cb);
-  } else {
-    let lastT = -1;
-    const loop = () => { if (procVideo.currentTime !== lastT) { lastT = procVideo.currentTime; processFrame(); } requestAnimationFrame(loop); };
-    requestAnimationFrame(loop);
-  }
-}
+function startLoop() { S.camera.start(); }
+window.addEventListener('pagehide', () => { S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });
 
-/* 준비 화면: 랜드마크·피부 영역 오버레이 */
 function drawOverlay() {
   const cv = $('overlay'), ctx = cv.getContext('2d');
   const draw = () => {
@@ -1587,7 +1546,7 @@ function setupTicker() {
     const recent = S.buf.filter(f => f.ok && f.t > t - 2000);
     const lum = N.mean(recent.map(f => f.lum));
     const fps = S.fpsTimes.length / 2;
-    const motion = N.motionIndex(S.buf.filter(f => f.ok), t - 5000, t);
+    const motion = N.motionIndex(S.buf.filter(f => f.faceOk ?? f.ok), t - 5000, t);
     setDot('dFace', faceOk ? 'ok' : 'bad'); $('vFace').textContent = faceOk ? '인식됨' : '찾는 중';
     const pos = posCheck(), gm = $('guideMsg');
     setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';
@@ -1602,7 +1561,7 @@ function setupTicker() {
       $('vLiveHr').textContent = live.quality === 'poor' ? '--' : live.bpm;
       $('vLiveQ').textContent = live.quality === 'good' ? '카메라만으로 심박이 안정적으로 잡히고 있어요' : live.quality === 'fair' ? '심박 신호를 읽는 중이에요. 움직임을 줄여 주세요' : '신호가 약해요. 조명을 밝게 하고 정면을 봐 주세요';
     }
-    $('goRun').disabled = !(faceOk && fps >= 12);
+    $('goRun').disabled = !faceOk;
   }, 1000);
 }
 $('goRun').addEventListener('click', () => runSession());
@@ -1924,7 +1883,8 @@ async function driftCheck() {
   body.innerHTML = `<div class="sac-fix" style="width:20px;height:20px;margin:-10px 0 0 -10px"></div><div class="cue">가운데 점을 바라봐 주세요 · 시선 영점 맞추기</div>`;
   await wait(450);
   const xs = [], ys = [];
-  const stop = every(33, () => { if (S.rawG && now() - S.rawG.t < 100 && !S.rawG.bl) { xs.push(S.rawG.x); ys.push(S.rawG.y); } });
+  let lastSample = -1;
+  const stop = every(33, () => { if (S.rawG && S.rawG.t > lastSample && now() - S.rawG.t < 200 && !S.rawG.bl) { lastSample = S.rawG.t; xs.push(S.rawG.x); ys.push(S.rawG.y); } });
   await wait(900);
   stop();
   if (xs.length >= 8) {
@@ -2059,7 +2019,7 @@ async function calibrate() {
     const val = await calCollect(vpts, '파란 점을 바라봐 주세요 · 정확도 확인');
     /* 후보 모델: 9점만 / 9점 + 추적 — 검증점 오차가 작은 쪽을 쓴다 */
     const cands = [{ key: '9점', m: N.fitGaze(s9) }, { key: '9점+추적', m: sp.length >= 60 ? N.fitGaze([...s9, ...sp]) : null }]
-      .filter(c => c.m).map(c => ({ ...c, acc: N.gazeAccuracy(val.map(p => predAt(c.m, null, p)), W, H) }))
+      .filter(c => c.m).map(c => { N.validateGazeEyes(c.m,val,W,H); return { ...c, acc: N.gazeAccuracy(val.map(p => predAt(c.m, null, p)), W, H) }; })
       .filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);
     let acc = { grade: 'poor', errPct: null }, info = '';
     if (cands.length) {
@@ -2083,7 +2043,7 @@ async function calibrate() {
         if (e1.errPct !== null && e0.errPct !== null && e1.errPct < e0.errPct) { S.affine = A1; ctl.biasApplied = true; }
       }
       acc = { ...acc, before: before.errPct, model: cands[0].key, affine: !!S.affine, control: ctl };
-      S.calibLog.model = { key: cands[0].key, quad: !!S.model.quad }; S.calibLog.affine = S.affine; S.calibLog.cursor = ctl;
+      S.calibLog.model = { key: cands[0].key, quad: !!S.model.quad, coefficients: S.model }; S.calibLog.affine = S.affine; S.calibLog.cursor = ctl;
       S.calibLog.pairs = [...val, ...zc].map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length }));
       info = `<div class="calsum"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>영점 조정 후</span><b>${S.affine ? acc.errPct + '%' : '조정 불필요'}</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div></div>`;
       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다
@@ -2206,9 +2166,10 @@ async function sacCalibrate() {
     dot.classList.remove('pop'); void dot.offsetWidth;
     dot.style.left = (W / 2 + s * ecc * W) + 'px'; dot.classList.add('pop');
     await wait(450);
+    let lastSample = -1;
     const stop = every(33, () => {
       if (S.demo) got[k].push(S.mouse.x);
-      else if (S.rawG && now() - S.rawG.t < 100 && !S.rawG.bl) got[k].push(S.rawG.x - S.drift.dx);
+      else if (S.rawG && S.rawG.t > lastSample && now() - S.rawG.t < 200 && !S.rawG.bl) { lastSample = S.rawG.t; got[k].push(S.rawG.x - S.drift.dx); }
     });
     await wait(750);
     stop();
@@ -2575,7 +2536,7 @@ function liveRecord() {
     frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
     stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: S.calib, checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
     stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null, measuredAt: new Date().toISOString(),
-    hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
+    capture: S.camera ? { ...S.camera.info } : null, hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
   };
 }
 /* 데모: 생리 신호는 시뮬레이션 피험자로, 직접 수행한 과제(마우스 시선·키보드 반응)는 실제 입력으로 채운다 */

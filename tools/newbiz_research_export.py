@@ -24,7 +24,26 @@ import urllib.parse
 import urllib.request
 
 FRAME_SCALE = {"ok": 1, "r": 100, "g": 100, "b": 100, "lum": 10, "cx": 1e4, "cy": 1e4, "fw": 1e4, "open": 1e4, "blink": 1e3,
-               "frown": 1e3, "smile": 1e3, "u": 1e4, "v": 1e4, "yaw": 1e4, "pitch": 1e4, "lag": 1}
+               "frown": 1e3, "smile": 1e3, "u": 1e4, "v": 1e4, "yaw": 1e4, "pitch": 1e4, "lag": 1,
+               "faceOk": 1, "eyeOk": 1, "skinOk": 1, "ppgOk": 1, "gazeOk": 1, "skinQ": 1e3, "eyeQ": 1e3,
+               "qLeft": 1e3, "qRight": 1e3, "uLeft": 1e4, "vLeft": 1e4, "uRight": 1e4, "vRight": 1e4,
+               "roiAge": 1, "exposureGain": 100}
+
+
+def decode_frames(frames):
+    """Decode both schemas; missing ROI components retain their positions as NaN."""
+    scales = frames.get("scale", FRAME_SCALE)
+    value = lambda v, scale: float("nan") if v is None else v / scale
+    arrs = {k: [value(v, scale) for v in frames[k]]
+            for k, scale in scales.items() if k in frames and k not in ("rr", "rq")}
+    arrs["t_ms"] = frames["t"]
+    arrs["rr"] = [[value(v, 100) for v in ([None] * 9 if row is None else row)] for row in frames["rr"]]
+    if "rq" in frames:
+        arrs["rq"] = [[value(v, 1e3) for v in ([None] * 3 if row is None else row)] for row in frames["rq"]]
+    for key in ("source", "reason"):
+        if key in frames:
+            arrs[key] = [v or "" for v in frames[key]]
+    return arrs
 
 
 def rest(url, key, path, params):
@@ -64,10 +83,12 @@ def main():
             import numpy as np  # noqa: PLC0415
             (out / "frames").mkdir(exist_ok=True)
             F = payload["frames"]
-            arrs = {k: np.array([np.nan if v is None else v / FRAME_SCALE[k] for v in F[k]], dtype=np.float32) for k in FRAME_SCALE if k in F}
-            arrs["t_ms"] = np.array(F["t"], dtype=np.int64)
-            arrs["rr"] = np.array([[np.nan] * 9 if v is None else [x / 100 for x in v] for v in F["rr"]], dtype=np.float32)
-            if payload.get("landmarks"):
+            arrs = {k: np.array(v, dtype=str if k in ("source", "reason") else np.int64 if k == "t_ms" else np.float32)
+                    for k, v in decode_frames(F).items()}
+            arrs["rr"] = arrs["rr"].reshape(-1, 9)
+            if "rq" in arrs:
+                arrs["rq"] = arrs["rq"].reshape(-1, 3)
+            if payload.get("landmarks") and payload["landmarks"].get("rows"):
                 L = payload["landmarks"]
                 arrs["lm_t_ms"] = np.array([r[0] for r in L["rows"]], dtype=np.int64)
                 arrs["lm_xy"] = np.array([r[1:] for r in L["rows"]], dtype=np.float32).reshape(len(L["rows"]), -1, 2) / L["scale"]

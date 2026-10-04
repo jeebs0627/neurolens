@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 0.8';
+  const VERSION = 'In_mind battery 0.9';
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -118,7 +118,7 @@
    * 3) 수렴 원칙: ‘관리 필요’는 서로 다른 지표 2개 이상이 저하를 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만. 아니면 ‘주의’로 낮춘다
    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다
    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */
-  const QC = { version: 'In_mind QC 1.2', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
+  const QC = { version: 'In_mind QC 1.3', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
     full:  { baseline: 60, pursuit: 24, circle: 15, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
@@ -242,16 +242,6 @@
   }
 
   /* ---------- 검사별 분석 ---------- */
-  const xOf = p => finite(p.rx) ? p.rx : p.x;
-  function med3(samples) {                       // 3점 중앙값: 웹캠 시선의 단발성 튐 제거
-    const s = samples.filter(p => finite(xOf(p)));
-    return s.map((p, i) => {
-      if (i === 0 || i === s.length - 1) return { t: p.t, x: xOf(p) };
-      const a = [xOf(s[i - 1]), xOf(p), xOf(s[i + 1])].sort((u, v) => u - v);
-      return { t: p.t, x: a[1] };
-    });
-  }
-
   /* PVT-B: trials [{onset, rt|null}] + falseStarts(자극 전 반응 수) + durationMs
    * 기기 지연 보정(NL-QC 5): 가장 빠른 10% 반응이 기준(210ms)보다 느린 만큼(상한 60ms)을 키보드·화면 지연으로 보고
    * 중앙값에서 빼고 경과 반응 기준(355ms)에 더한다. 시행이 10개 미만이면 보정하지 않는다. */
@@ -281,18 +271,20 @@
   /* 눈꺼풀: 개인별 눈 열림 범위(상위 10% = 뜬 눈, 하위 2% = 감은 눈)로 정규화한 닫힘 정도로 PERCLOS(P80)·깜빡임 지속 */
   function eyeStats(frames, start, end) {
     if (!(end - start >= 20000)) return null;
-    const all = (frames || []).filter(f => f.ok && finite(f.open));
-    if (all.length < 300) return null;
+    const all = (frames || []).filter(f => (f.eyeOk ?? f.ok) && finite(f.open));
+    if (all.length < 100) return null;
     const opens = all.map(f => f.open);
     const openRef = quantile(opens, 0.9), closedRef = Math.min(quantile(opens, 0.02), openRef * 0.45);
     if (!(openRef > closedRef)) return null;
     const s = all.filter(f => f.t >= start && f.t <= end);
-    if (s.length < 200) return null;
+    if (s.length < 60) return null;
     const cl = f => clamp((openRef - f.open) / (openRef - closedRef), 0, 1);
     let closedT = 0, tot = 0, on = null, longN = 0;
     const blinks = [];
     for (let i = 0; i < s.length; i++) {
-      const dt = i + 1 < s.length ? Math.min(100, s[i + 1].t - s[i].t) : 0, c = cl(s[i]);
+      const gap=i+1<s.length?s[i+1].t-s[i].t:0;
+      if(i>0 && s[i].t-s[i-1].t>200)on=null;
+      const dt=gap<=200?gap:0, c=cl(s[i]);
       tot += dt;
       if (c >= PROTOCOL.perclos.closure) closedT += dt;
       if (c >= PROTOCOL.perclos.blink) { if (on === null) on = s[i].t; }
@@ -300,7 +292,7 @@
     }
     const min = tot / 60000;
     if (!(min > 0)) return null;
-    return { coverage: round(Math.min(1, s.length / ((end - start) / 1000 * 24)), 2), perclos: round(closedT / tot * 100, 1), blinkMs: blinks.length >= 3 ? round(mean(blinks)) : null, blinkRate: round(blinks.length / min, 1), longPerMin: round(longN / min, 1), minutes: round(min, 1) };
+    return { coverage: round(N.Signal.timeCoverage(s,start,end), 2), perclos: round(closedT / tot * 100, 1), blinkMs: blinks.length >= 3 ? round(mean(blinks)) : null, blinkRate: round(blinks.length / min, 1), longPerMin: round(longN / min, 1), minutes: round(min, 1) };
   }
 
   /* 사카드 1시행: 응시점 기준선 대비 첫 이탈의 방향·잠복기.
@@ -312,7 +304,7 @@
     return clamp(3 * sd, W * 0.06 * frac / 0.4, W * 0.18);
   }
   /* 웹캠 시선 정리: 깜빡임 제외 → 3점 중앙값(단발 튐 제거). 평균 필터는 사카드 계단을 흐려 잠복기를 앞당기므로 쓰지 않는다 */
-  function cleanGaze(samples) { return med3((samples || []).filter(p => !p.bl)); }
+  function cleanGaze(samples) { return N.Signal.cleanGaze(samples,{task:'saccade'}); }
   /* 응시 기준점: 표적 직전 400ms(부족하면 700ms) 중앙값 */
   function preFix(tr) {
     if (!finite(tr.onset)) return null;
@@ -418,8 +410,8 @@
     if (!p || !Array.isArray(p.samples) || !finite(p.t0)) return null;
     const { t0, cx, amp, freq, dur, W } = p, skip = PROTOCOL.pursuit.skipMs;
     const tgt = t => cx + amp * Math.sin(2 * Math.PI * freq * (t - t0) / 1000);
-    const s = med3(p.samples).filter(z => z.t >= t0 + skip && z.t <= t0 + dur);
-    const expected = Math.max(1, (dur - skip) / 1000 * 25), coverage = round(Math.min(1, s.length / expected), 2);
+    const s = N.Signal.cleanGaze(p.samples,{task:'pursuit',W}).filter(z => z.t >= t0 + skip && z.t <= t0 + dur);
+    const coverage = round(N.Signal.timeCoverage(s,t0+skip,t0+dur),2);
     if (s.length < 60) return { ok: false, reason: '시선 표본이 부족해요', coverage };
     const g = s.map(z => z.x);
     let best = null;
@@ -448,8 +440,8 @@
     if (!c || !Array.isArray(c.samples) || !finite(c.t0)) return null;
     const { t0, cx, cy, r, freq, dur } = c, skip = PROTOCOL.circle.skipMs;
     const tgt = t => { const a = 2 * Math.PI * freq * (t - t0) / 1000 - Math.PI / 2; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
-    const s = c.samples.filter(z => z.t >= t0 + skip && z.t <= t0 + dur && finite(finite(z.rx) ? z.rx : z.x) && finite(finite(z.ry) ? z.ry : z.y)).map(z => ({ t: z.t, x: finite(z.rx) ? z.rx : z.x, y: finite(z.ry) ? z.ry : z.y }));
-    const expected = Math.max(1, (dur - skip) / 1000 * 25), coverage = round(Math.min(1, s.length / expected), 2);
+    const s = N.Signal.cleanGaze(c.samples,{task:'pursuit',W}).filter(z => z.t >= t0 + skip && z.t <= t0 + dur && finite(z.x) && finite(z.y));
+    const coverage = round(N.Signal.timeCoverage(s,t0+skip,t0+dur),2);
     if (s.length < 50) return { ok: false, reason: '시선 표본이 부족해요', coverage };
     const gx = s.map(z => z.x), gy = s.map(z => z.y);
     let best = null;
@@ -776,14 +768,14 @@
     if (hidden.length) {
       const keep = arr => (arr || []).filter(t => { const bad = hid(t.onset); if (bad) dropped++; return !bad; });
       const overlap = (a, b) => hidden.reduce((s, h) => s + Math.max(0, Math.min(b, h.end) - Math.max(a, h.start)), 0);
-      rec = { ...rec, trials: keep(rec.trials), saccade: rec.saccade ? keep(rec.saccade) : rec.saccade, sart: rec.sart ? { ...rec.sart, trials: keep(rec.sart.trials) } : rec.sart };
+      rec = { ...rec, frames: (rec.frames||[]).map(f=>hid(f.t)?{...f,ok:false,ppgOk:false,eyeOk:false,faceOk:false}:f), trials: keep(rec.trials), saccade: rec.saccade ? keep(rec.saccade) : rec.saccade, sart: rec.sart ? { ...rec.sart, trials: keep(rec.sart.trials) } : rec.sart };
       if (rec.pvt && rec.phases && rec.phases.pvt) rec.pvt = { ...rec.pvt, trials: keep(rec.pvt.trials), durationMs: Math.max(0, rec.pvt.durationMs - overlap(rec.phases.pvt.start, rec.phases.pvt.end)) };
       if (rec.pursuit) rec.pursuit = { ...rec.pursuit, samples: rec.pursuit.samples.filter(z => !hid(z.t)), ...(rec.pursuit.circle ? { circle: { ...rec.pursuit.circle, samples: rec.pursuit.circle.samples.filter(z => !hid(z.t)) } } : {}) };
     }
     const base = N.analyze(rec);
     const ph = rec.phases || {};
     const span = k => ph[k] && finite(ph[k].start) && finite(ph[k].end) ? [ph[k].start, ph[k].end] : null;
-    const frames = rec.frames || [], face = frames.filter(f => f.ok), W = rec.screenW;
+    const frames = rec.frames || [], face = frames.filter(f => f.faceOk ?? f.ok), W = rec.screenW;
     const cal = rec.calibration, calOk = !!cal && (cal.grade === 'good' || cal.grade === 'fair');
 
     const pvt = pvtStats(rec.pvt);
@@ -804,10 +796,10 @@
     const posSt = (rec.trials || []).filter(t => t.kind === 'pos').map(t => N.trialStats(t, W)).filter(x => x.valid);
     const posN = (rec.trials || []).filter(t => t.kind === 'pos').length;
     /* NL-QC 7) 단계별 카메라 프레임 수: 시선·사카드 지표는 24fps 이상에서 온전히, 10fps 에서 0.3배로 */
-    const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };
-    const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp((v - 10) / 14, 0.3, 1); };
-    const sartFrames = span('sart') ? face.filter(f => f.t >= span('sart')[0] && f.t <= span('sart')[1]).length / Math.max(1, (span('sart')[1] - span('sart')[0]) / 1000 * 24) : 0;
-    const hq = q => QC.hrQ[q && q.quality] ?? 0;
+    const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => (f.faceOk ?? f.ok) && f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };
+    const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp(v / (k === 'saccade' ? 24 : 15), 0.25, 1); };
+    const sartFrames = span('sart') ? N.Signal.timeCoverage(face,...span('sart')) : 0;
+    const hq = q => (QC.hrQ[q && q.quality] ?? 0) * (1-(q?.recovered||0));
     const refHr = base.hrRef === 'pre' ? base.hr.pre : base.hr.baseline;
     /* NL-QC 8) 공명 호흡 순응: 카메라로 잰 호흡 리듬이 뚜렷한데 분당 6회(0.1Hz)에서 벗어나 있으면 호흡 동조 지표를 판정하지 않는다
      * (따라 하지 않은 사람의 ‘동조 약함’을 조절력 부족으로 오해하지 않기 위해) */
@@ -879,7 +871,7 @@
     const overall = measuredD.length ? round(mean(measuredD.map(k => domains[k].confidence)), 2) : 0;
     const stepQ = (key, label, r, note) => ({ key, label, r: finite(r) ? round(r, 2) : null, note: note || null });
     const qc = {
-      version: QC.version, confidence: overall, grade: overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D',
+      version: QC.version, acquisition: rec.capture || null, signals: { captured: frames.length, face: face.length, eyes: frames.filter(f=>f.eyeOk??f.ok).length, skin: frames.filter(f=>f.ppgOk??f.ok).length, monocular: [...(rec.saccade||[]),...(rec.trials||[]),...(rec.pursuit?[rec.pursuit]:[])].flatMap(t=>t.samples||[]).filter(p=>p.mode==='left'||p.mode==='right').length }, confidence: overall, grade: overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D',
       steps: [
         stepQ('baseline', '안정 기준선 · 심박', hq(base.hr.baseline), base.hr.baseline.quality === 'poor' ? '심박 신호가 약해 기준선 비교가 제한돼요' : null),
         rec.pvt ? stepQ('pvt', 'PVT-B · PERCLOS', Math.min(rOf.pvt(), eye ? rOf.eye() : 1), pvt && pvt.invalid) : null,

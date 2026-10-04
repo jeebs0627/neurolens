@@ -766,7 +766,8 @@
         <div class="steps" style="margin-top:6px">${Object.keys(STEP_NAMES).filter(k => b.steps[k]).map(k => `<span class="mchip m-${b.steps[k].status}">${STEP_NAMES[k]} · ${STEP_LABEL[b.steps[k].status] || esc(b.steps[k].status)}</span>`).join('') || '<span class="muted small">—</span>'}</div>
         <div class="group-t">신호 품질</div>
         <ul class="qlist">
-          <li>얼굴 인식 프레임 ${r.quality.faceCoverage}% · 영상은 브라우저 안에서만 처리${C.cite(['mediapipe'])}</li>
+          <li>얼굴 관측 시간 ${r.quality.faceCoverage}% · 영상은 브라우저 안에서만 처리${C.cite(['mediapipe'])}</li>
+          ${r.quality.skinCoverage !== undefined ? `<li>피부 신호 활용 시간 ${r.quality.skinCoverage}% · 맥파 처리 구간 중 짧은 손실 보간 ${Math.round((r.quality.recoveredFraction || 0)*100)}%. 피부·눈 신호를 각각 활용하며, 긴 손실 구간은 결과에서 제외합니다.</li>` : ''}
           <li>원격 심박: 이마·양 볼 다중 영역 융합, 10초 창 신호 대 잡음비로 품질 판정 — 기준선 ${{ good: '양호', fair: '보통', poor: '약함', none: '측정 안 됨' }[r.hr.baseline.quality]}${C.cite(['pos'])}</li>
           <li>시선: 9점 응시 + 추적 보정 · ${esc(calText)}${C.cite(['pfeuffer', 'casiez'])}${r.resized ? ' · 측정 중 화면 크기 변경으로 정확도 저하 가능' : ''}${C.cite(['webcamET'])}</li>
         </ul>
