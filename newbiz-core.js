@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 0.8';
+  const VERSION = 'In_mind core 0.9';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -813,7 +813,8 @@
     const [rs, re] = span('recovery');
     hr.recoveryLate = summarizePhase((rs + re) / 2, re);
 
-    const usableHr = q => q && q.bpm !== null && q.quality !== 'poor' && q.quality !== 'none';
+    /* 약한 신호(weak-signal)라도 창 3개 이상이 일관되면 비교에 쓴다 — 신뢰도(hq)가 낮게 매겨져 점수 가중이 작아진다 */
+    const usableHr = q => q && q.bpm !== null && q.quality !== 'none' && (q.quality !== 'poor' || (q.status === 'weak-signal' && q.n >= 3));
     const QR = { good: 2, fair: 1, poor: 0, none: -1 };
     const ref = usableHr(hr.baseline) && (!usableHr(hr.pre) || QR[hr.baseline.quality] >= QR[hr.pre.quality]) ? { ...hr.baseline, src: 'baseline' }
       : usableHr(hr.pre) ? { ...hr.pre, src: 'pre' } : null;

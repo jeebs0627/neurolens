@@ -5,7 +5,7 @@
   if(root)root.NLFusionFactory=factory;
 })(typeof globalThis!=='undefined'?globalThis:null,function(N){
   'use strict';
-  const VERSION='condition-fusion-2',finite=Number.isFinite;
+  const VERSION='condition-fusion-3',finite=Number.isFinite;
   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
   function weightedQuantile(rows,key,q=.5){
     const sorted=rows.filter(r=>finite(r[key])&&r.weight>0).slice().sort((a,b)=>a[key]-b[key]);
@@ -117,7 +117,7 @@
     }
     // Weak support must recur at a distinct time, or have strong spatial/period evidence.
     // This changes acceptance, never the measured BPM or an actual rapid transition.
-    return out.map(w=>{
+    return track(out.map(w=>{
       if(!w.usable){
         const nearby=out.filter(v=>Math.abs(v.t-w.t)<=16000);
         const matches=(v,bpm)=>v.alternatives.filter(p=>p.roi!=='aggregate'&&p.snr>=-7&&p.period>=.2&&Math.abs(p.bpm-bpm)<=5);
@@ -141,7 +141,35 @@
       if(!w.usable||w.snr>=3||(w.n>=3&&w.period>=.7))return w;
       const supported=out.some(v=>v!==w&&v.usable&&Math.abs(v.t-w.t)>=1800&&Math.abs(v.t-w.t)<=12000&&Math.abs(v.bpm-w.bpm)<=8);
       return supported?w:{...w,usable:false,quality:'poor',status:'uncertain',confidence:Math.min(w.confidence,.29),reason:'unconfirmed-weak-window'};
-    }).sort((a,b)=>a.t-b.t);
+    }).sort((a,b)=>a.t-b.t));
+  }
+  /* 시간 연속성 추적(tracked): 심박은 몇 초 사이에 크게 뛰지 않는다는 생리적 연속성을 이용한다.
+   * 채택 기준에 못 미친 창이라도, 그 창 안에서 실제로 관측된 색차 기반(POS·CHROM) 후보 주파수 가운데
+   * ① 앞뒤 20초 안 확실한 창들의 흐름(시간 가중 중앙값)에서 6bpm 이내인 것이 있으면, 또는
+   * ② 확실한 창이 없을 때는 앞뒤 8초 안 이웃 창 3개 이상이 5bpm 안에서 일치하고 두 피부 영역 이상이 같은 후보를 지지하면
+   * 그 후보로 받아들인다. 값을 새로 만들지 않고, 관측된 후보 중 하나를 고를 뿐이다. 원래 값(rawBpm)과 보정 근거를 남긴다 */
+  function track(rows){
+    const sure=rows.filter(w=>w.usable&&finite(w.bpm));
+    const wmed=list=>{const s=list.slice().sort((a,b)=>a.bpm-b.bpm),tot=s.reduce((a,v)=>a+v.weight,0);let acc=0;for(const v of s){acc+=v.weight;if(acc>=tot/2)return v.bpm;}return null;};
+    return rows.map(w=>{
+      if(w.usable||!finite(w.bpm))return w;
+      const near=sure.filter(v=>Math.abs(v.t-w.t)<=20000);
+      let ref=null,anchored=false;
+      if(near.length>=2){ref=wmed(near.map(v=>({bpm:v.bpm,weight:1/(1+Math.abs(v.t-w.t)/5000)})));anchored=true;}
+      else{
+        const agree=rows.filter(v=>v!==w&&finite(v.bpm)&&Math.abs(v.t-w.t)<=8000&&Math.abs(v.bpm-w.bpm)<=5);
+        if(agree.length>=3)ref=N.median([w.bpm,...agree.map(v=>v.bpm)]);
+      }
+      if(ref===null)return w;
+      const cands=(w.alternatives||[]).filter(p=>p.method!=='green'&&finite(p.bpm)&&p.snr>=-8&&p.period>=.15);
+      const pick=cands.slice().sort((a,b)=>Math.abs(a.bpm-ref)-Math.abs(b.bpm-ref))[0];
+      if(!pick||Math.abs(pick.bpm-ref)>6)return w;
+      const rois=new Set(cands.filter(p=>Math.abs(p.bpm-pick.bpm)<=5&&p.roi!=='aggregate').map(p=>p.roi)).size;
+      if(!anchored&&rois<2)return w;
+      const confidence=clamp(.3+.05*rois+.015*(pick.snr+8),.3,.55);
+      return {...w,bpm:pick.bpm,rawBpm:w.bpm,usable:true,quality:'fair',status:'tracked',confidence,reason:'temporal-continuity',
+        correction:{kind:'temporal-continuity',reference:Math.round(ref*10)/10,anchored,differenceBpm:Math.round((pick.bpm-ref)*10)/10,regions:rois,method:pick.method}};
+    });
   }
   // Integrate support on unique time intervals. Overlapping windows add no extra seconds.
   function support(rows,start,end){

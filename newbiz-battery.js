@@ -119,7 +119,8 @@
    * 3) 수렴 원칙: ‘관리 필요’는 서로 다른 지표 2개 이상이 저하를 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만. 아니면 ‘주의’로 낮춘다
    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다
    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */
-  const QC = { version: 'In_mind QC 1.4', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
+  /* minR: 이 신뢰도 아래만 판정에서 뺀다. 0.3 → 0.2로 낮춰, 약하지만 근거가 있는 지표는 버리지 않고 낮은 가중으로 반영한다(점수 기여 = 가중 × 신뢰도) */
+  const QC = { version: 'In_mind QC 1.5', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
     full:  { baseline: 60, pursuit: 24, circle: 15, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
@@ -437,7 +438,7 @@
     let reason = null;
     if (!calOk) reason = '시선 보정이 불안정해 추적 지표를 판정하지 않았어요';
     else if (coverage < 0.5) reason = '얼굴·시선 인식 구간이 부족해요';
-    else if (best.r < 0.5) reason = `시선이 표적과 거의 함께 움직이지 않았어요 (r=${best.r.toFixed(2)})`;
+    else if (best.r < 0.35) reason = `시선이 표적과 거의 함께 움직이지 않았어요 (r=${best.r.toFixed(2)})`;
     return { ok: !reason, reason, gain: round(gain, 2), lagMs: best.L, r: round(best.r, 2), errPct: round(errPct, 1), coverage, trace };
   }
 
@@ -473,7 +474,7 @@
     let reason = null;
     if (!calOk) reason = '시선 보정이 불안정해 원형 추적 지표를 판정하지 않았어요';
     else if (coverage < 0.5) reason = '얼굴·시선 인식 구간이 부족해요';
-    else if (best.rx < 0.5 || best.ry < 0.25) reason = `시선이 원을 따라 움직이지 않았어요 (가로 r=${best.rx.toFixed(2)} · 세로 r=${best.ry.toFixed(2)})`;
+    else if (best.rx < 0.35 || best.ry < 0.15) reason = `시선이 원을 따라 움직이지 않았어요 (가로 r=${best.rx.toFixed(2)} · 세로 r=${best.ry.toFixed(2)})`;
     return { ok: !reason, reason, gainX: round(fx.k, 2), gainY: round(fy.k, 2), lagMs: best.L, rx: round(best.rx, 2), ry: round(best.ry, 2), errPct: round(errPct, 1), coverage, trace };
   }
 
@@ -825,8 +826,8 @@
       eye: () => eye ? clamp((eye.coverage - 0.4) / 0.4, 0, 1) : 0,
       anti: () => saccade && saccade.ok ? clamp((saccade.anti.valid - saccade.anti.weak * 0.5) / Math.max(8, saccade.anti.n * 0.8), 0, 1) * fpsF('saccade') : 0,
       sart: () => sart && !sart.invalid ? clamp(sart.n / 54, 0, 1) : 0,
-      pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.5) / 0.3, 0, 1) * fpsF('pursuit') : 0,
-      circle: () => circle && circle.ok ? clamp(circle.coverage / 0.8, 0, 1) * clamp((Math.min(circle.rx, circle.ry + 0.25) - 0.5) / 0.3, 0, 1) * fpsF('pursuit') : 0,
+      pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.3) / 0.4, 0.25, 1) * fpsF('pursuit') : 0,
+      circle: () => circle && circle.ok ? clamp(circle.coverage / 0.8, 0, 1) * clamp((Math.min(circle.rx, circle.ry + 0.25) - 0.3) / 0.4, 0.25, 1) * fpsF('pursuit') : 0,
       motion: () => clamp((sartFrames - 0.4) / 0.4, 0, 1),
       gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) * fpsF('neg') * (finite(base.gaze.halfGapNeg) ? clamp(1 - Math.max(0, base.gaze.halfGapNeg - 0.08) / 0.2, 0.5, 1) : 1) : 0,
       gazePos: () => a.gazeOk && posN ? clamp(posSt.length / posN / 0.8, 0, 1) * fpsF('pos') : 0,
@@ -959,19 +960,19 @@
   /* ---------- 시뮬레이션 피험자 (카메라 없는 검증용) ----------
    * 페르소나별로 생리 신호(합성 영상 프레임)와 과제 반응을 만들어 리포트 전 과정을 검증한다. 결과에는 반드시 ‘시뮬레이션’ 표시. */
   const PERSONAS = {
-    balanced: { label: '균형 조절 (대조)', checkin: { valence: 6, tension: 2, energy: 4, kss: 3, sleep: '7to8', caffeine: '3to6', phq: [0, 1] },
+    balanced: { label: '균형 조절 (대조)', checkin: { valence: 6, tension: 2, energy: 4, kss: 3, focus: 4, sleep: '7to8', caffeine: '3to6', phq: [0, 1] },
       hr: { base: 68, task: 1, neg: 1, stress: 5, rec: 0.9, coup: 9 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.6, sart: 0.8 },
       pvt: { mu: 282, sd: 28, lapse: 0.01, early: 0.01 }, anti: { err: 0.14, corr: 0.85, lat: 285, pro: 195 },
       pursuit: { gain: 0.93, lag: 80, noise: 0.025 }, sart: { com: 0.28, om: 0.01, rt: 360, cv: 0.18 }, bias: 0.52, first: 0.5, pos: 0.56, math: 0.85 },
-    fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4, sleep: '5to6', caffeine: 'none', phq: [1, 2, 3, 3, 1, 1, 2, 1] },
+    fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4, focus: 3, sleep: '5to6', caffeine: 'none', phq: [1, 2, 3, 3, 1, 1, 2, 1] },
       hr: { base: 65, task: 1, neg: 1.5, stress: 5, rec: 0.75, coup: 7 }, eye: { blinkMs: 260, drowsy: 0.12 }, motion: { base: 0.7, sart: 1.0 },
       pvt: { mu: 318, sd: 55, lapse: 0.12, early: 0.05 }, anti: { err: 0.3, corr: 0.7, lat: 320, pro: 220 },
       pursuit: { gain: 0.72, lag: 150, noise: 0.05 }, sart: { com: 0.56, om: 0.1, rt: 430, cv: 0.36 }, bias: 0.54, first: 0.52, pos: 0.5, math: 0.7 },
-    control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3, sleep: '6to7', caffeine: '1to3', phq: [1, 1] },
+    control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3, focus: 3, sleep: '6to7', caffeine: '1to3', phq: [1, 1] },
       hr: { base: 72, task: 2, neg: 1, stress: 7, rec: 0.42, coup: 3.2 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.8, sart: 3.4 },
       pvt: { mu: 288, sd: 40, lapse: 0.03, early: 0.06 }, anti: { err: 0.5, corr: 0.6, lat: 300, pro: 190 },
       pursuit: { gain: 0.86, lag: 90, noise: 0.04 }, sart: { com: 0.66, om: 0.04, rt: 330, cv: 0.37 }, bias: 0.53, first: 0.52, pos: 0.54, math: 0.75 },
-    overload: { label: '정서·신체 과부하', checkin: { valence: 4, tension: 2, energy: 3, kss: 5, sleep: '6to7', caffeine: 'gt6', phq: [2, 2, 1, 2, 1, 2, 1, 1] },
+    overload: { label: '정서·신체 과부하', checkin: { valence: 4, tension: 2, energy: 3, kss: 5, focus: 4, sleep: '6to7', caffeine: 'gt6', phq: [2, 2, 1, 2, 1, 2, 1, 1] },
       hr: { base: 76, task: 2, neg: 4.5, stress: 13, rec: 0.12, coup: 1.2 }, eye: { blinkMs: 170, drowsy: 0.01 }, motion: { base: 0.7, sart: 1.2 },
       pvt: { mu: 300, sd: 40, lapse: 0.04, early: 0.02 }, anti: { err: 0.36, corr: 0.7, lat: 310, pro: 200 },
       pursuit: { gain: 0.88, lag: 90, noise: 0.03 }, sart: { com: 0.45, om: 0.03, rt: 370, cv: 0.26 }, bias: 0.72, first: 0.7, pos: 0.47, math: 0.65 },

@@ -156,7 +156,7 @@ def build_prompt(b):
     care_lines = [f"- {CARE[k][0]}: {CARE[k][1]} → {CARE[k][2]}" for k in care_keys]
     ck = b.get("checkin") if isinstance(b.get("checkin"), dict) else {}
     ci = []
-    for key, label, hi in (("valence", "기분", 9), ("tension", "긴장", 5), ("energy", "에너지", 5), ("kss", "졸림", 9)):
+    for key, label, hi in (("valence", "기분", 9), ("tension", "긴장", 5), ("energy", "에너지", 5), ("kss", "졸림", 9), ("focus", "집중", 5)):
         v = _num(ck.get(key), 1, hi)
         if v is not None:
             ci.append(f"{label} {int(v)}/{hi}")

@@ -989,7 +989,7 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 
   <div class="sec-h"><div><div class="kicker">How it works</div><h2>이렇게 진행돼요</h2></div><p>단계마다 안내를 읽고 직접 시작해요. 중간에 언제든 쉬거나 그만둘 수 있어요.</p></div>
   <div class="loop">
-    <div><em>01 · 1분</em><b>지금 상태 답하기</b>기분·긴장·활력·졸림과 어젯밤 수면</div>
+    <div><em>01 · 1분</em><b>지금 상태 답하기</b>기분·긴장·활력·졸림·집중과 어젯밤 수면</div>
     <div><em>02 · 1분</em><b>카메라 확인</b>얼굴 위치와 조명, 심박 신호 점검</div>
     <div><em>03 · 약 8분</em><b>측정</b>화면 속 짧은 과제 9가지</div>
     <div><em>04 · 바로</em><b>결과 리포트</b>점수 · 해설 · 케어 플랜</div>
@@ -1056,7 +1056,7 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
       <div><div class="eyebrow">Step 1 · 자기보고</div>
         <h2>지금 스스로 느끼는 상태를 알려 주세요</h2>
         <p class="lead" style="margin:0">측정 결과와 비교해 ‘느끼는 나’와 ‘측정한 나’의 차이를 찾아 드려요. 정답은 없으니 지금 이 순간의 느낌대로 골라 주세요.</p></div>
-      <div class="ck-prog" aria-live="polite"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="#E6EAF1" stroke-width="6"/><circle id="ckRing" cx="32" cy="32" r="27" fill="none" stroke="url(#ckg)" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 170" transform="rotate(-90 32 32)"/><defs><linearGradient id="ckg" x1="0" x2="1"><stop offset="0" stop-color="#2a78d6"/><stop offset="1" stop-color="#1baf7a"/></linearGradient></defs></svg><div><b id="ckCount">0/6</b><span>답변 완료</span></div></div>
+      <div class="ck-prog" aria-live="polite"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="#E6EAF1" stroke-width="6"/><circle id="ckRing" cx="32" cy="32" r="27" fill="none" stroke="url(#ckg)" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 170" transform="rotate(-90 32 32)"/><defs><linearGradient id="ckg" x1="0" x2="1"><stop offset="0" stop-color="#2a78d6"/><stop offset="1" stop-color="#1baf7a"/></linearGradient></defs></svg><div><b id="ckCount">0/7</b><span>답변 완료</span></div></div>
     </div>
     <div class="ck-q"><div class="ck-qh"><span class="ck-n">01</span><b>지금 기분은 어떤가요?</b><em class="ck-pick" id="pk-valence"></em></div>
       <div class="scale s9 hue" id="qValence"></div>
@@ -1068,9 +1068,11 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
     <div class="ck-q"><div class="ck-qh"><span class="ck-n">04</span><b>지금 얼마나 졸리고 피곤한가요?</b><em class="ck-pick" id="pk-kss"></em></div>
       <div class="scale s9" id="qKss"></div>
       <div class="ends"><span>매우 또렷함</span><span>중간</span><span>매우 졸림</span></div></div>
-    <div class="ck-q"><div class="ck-qh"><span class="ck-n">05</span><b>어젯밤 몇 시간 잤나요?</b></div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">05</span><b>지금 하려는 일에 집중이 얼마나 잘 되나요?</b><em class="ck-pick" id="pk-focus"></em></div>
+      <div class="scale s5" id="qFocus"></div></div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">06</span><b>어젯밤 몇 시간 잤나요?</b></div>
       <div class="choice" id="qSleep" data-key="sleep"></div></div>
-    <div class="ck-q"><div class="ck-qh"><span class="ck-n">06</span><b>커피·에너지음료 등 카페인을 마지막으로 마신 때는?</b></div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">07</span><b>커피·에너지음료 등 카페인을 마지막으로 마신 때는?</b></div>
       <div class="choice" id="qCaf" data-key="caffeine"></div></div>
     <div class="phq" id="phq">
       <div class="phq-h"><div><span class="eyebrow">선택 문항</span><h3>최근 2주간의 마음 상태</h3></div><span class="small muted">약 30초 · 응답에 따라 6문항이 추가될 수 있어요</span></div>
@@ -1329,9 +1331,10 @@ const SCALE_LABELS = {
   valence: ['매우 나쁨', '나쁨', '조금 나쁨', '약간 나쁨', '보통', '약간 좋음', '조금 좋음', '좋음', '매우 좋음'],
   tension: ['전혀 없음', '조금', '보통', '꽤 큼', '매우 큼'],
   energy: ['방전', '낮음', '보통', '높음', '충만'],
+  focus: ['전혀 안 됨', '잘 안 됨', '보통', '잘 됨', '아주 잘 됨'],
   kss: ['매우 또렷함', '또렷함', '꽤 또렷함', '약간 또렷함', '중간', '약간 졸림', '졸리지만 버틸 만함', '졸려서 힘듦', '매우 졸림'],
 };
-const CK_KEYS = ['valence', 'tension', 'energy', 'kss', 'sleep', 'caffeine'];
+const CK_KEYS = ['valence', 'tension', 'energy', 'kss', 'focus', 'sleep', 'caffeine'];
 /* 기분 척도는 나쁨(빨강) → 좋음(초록) 색으로 단서를 준다 */
 const hueOf = (i, n) => `hsl(${Math.round(352 + (148 - 352 + 360) % 360 * (i - 1) / (n - 1)) % 360} 62% 52%)`;
 function scale(el, n, key) {
@@ -1359,7 +1362,7 @@ function choice(el, map) {
   }));
 }
 choice($('qSleep'), B.CONTEXT.sleep); choice($('qCaf'), B.CONTEXT.caffeine);
-scale($('qValence'), 9, 'valence'); scale($('qTension'), 5, 'tension'); scale($('qEnergy'), 5, 'energy'); scale($('qKss'), 9, 'kss');
+scale($('qValence'), 9, 'valence'); scale($('qTension'), 5, 'tension'); scale($('qEnergy'), 5, 'energy'); scale($('qKss'), 9, 'kss'); scale($('qFocus'), 5, 'focus');
 
 /* 최근 2주 자기보고: PHQ-2 → 3점 이상이면 3~8번 문항 추가 (PHQ-8, 9번 자해 문항 제외) */
 const PQ = B.PHQ;
@@ -1882,6 +1885,7 @@ async function runStep(key, fn) {
   S.lmRec = !S.demo && (key === 'calibration' || GAZE_STEPS.includes(key));
   renderStepper();
   $('skip').hidden = false;
+  const stopAnchor = key === 'pvt' || key === 'sart' ? startAutoAnchor() : () => {};
   try { await fn(); st.status = S.demo ? 'input' : 'done'; }
   catch (e) {
     if (e !== Skip) { st.status=e===Abort?'aborted':'error';throw e; }
@@ -1889,6 +1893,7 @@ async function runStep(key, fn) {
     S.stepPhases.forEach(p => { delete S.phases[p]; });
     if (DISCARD[key]) DISCARD[key]();
   } finally {
+    stopAnchor();
     if(S.telemetry?.steps[key])S.telemetry.steps[key].end=now();
     S.cleanup.forEach(f => f()); S.cleanup = [];
     S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null; S.onGaze = null; S.cur = null; S.lmRec = false;
@@ -1954,6 +1959,25 @@ async function runSession() {
 /* 가운데 점 응시로 현재 시선의 치우침(drift)을 재서 보정 (과제마다 시작 직전) */
 /* 암묵 보정(자동 영점 유지): 과제 중 사용자가 반드시 보는 응시점(정서 사진 사이의 +, 사카드 시작 응시점)이 나올 때마다
  * 그 동안의 시선을 모아 영점을 조금씩(25%) 옮긴다. 표본이 흩어져 있거나(다른 곳을 봄) 너무 멀면 쓰지 않는다 */
+/* 배경 자동 영점: 화면 가운데에 과제가 나오는 단계(PVT·SART) 동안 2.5초마다 최근 1초 시선이 한곳에 모여 있고
+ * 가운데 근처면 영점을 15%씩 옮긴다. 다른 곳을 보거나 흩어져 있으면 쓰지 않는다 */
+function startAutoAnchor() {
+  if (S.demo || !S.model) return () => {};
+  const buf = [];
+  let last = -1;
+  const col = every(33, () => { if (S.rawG && S.rawG.t > last && now() - S.rawG.t < 250 && !S.rawG.bl) { last = S.rawG.t; buf.push({ t: now(), x: S.rawG.x, y: S.rawG.y }); while (buf.length && buf[0].t < now() - 1000) buf.shift(); } });
+  const upd = every(2500, () => {
+    if (buf.length < 6) return;
+    const W = stage.clientWidth, H = stage.clientHeight, xs = buf.map(p => p.x), ys = buf.map(p => p.y);
+    const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));
+    const mdx = mx - W / 2, mdy = my - H / 2;
+    if (madX > W * 0.03 || madY > H * 0.045 || Math.abs(mdx - S.drift.dx) > W * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25) return;
+    const k = 0.15;
+    S.drift = { dx: S.drift.dx + k * (mdx - S.drift.dx), dy: S.drift.dy + k * (mdy - S.drift.dy) };
+    S.telemetry?.drift.push({ t: now(), key: S.cur, samples: buf.length, measuredDx: mdx, measuredDy: mdy, dx: S.drift.dx, dy: S.drift.dy, weight: k, applied: true, source: 'implicit-background-center' });
+  });
+  return () => { col(); upd(); };
+}
 async function anchorFix(ms, tx, ty) {
   if (S.demo || !S.model) { await wait(ms); return; }
   const W = stage.clientWidth, H = stage.clientHeight; tx = tx ?? W / 2; ty = ty ?? H / 2;
@@ -2197,6 +2221,17 @@ async function calibrate() {
         if (ok.length) {
           const b0 = ok[0];
           S.model = b0.model; S.affine = b0.A; S.resid = b0.R;
+          /* 고른 방식으로, 정밀 보정 점까지 모두 넣어 최종 보정을 다시 맞춘다(평가가 끝난 뒤 학습 자료를 늘리는 표준 절차).
+           * 전체 보정 점에서 오차가 줄어들 때만 바꾸고, 표시하는 오차는 학습에 쓰지 않았던 평가 오차(b0)를 그대로 쓴다 */
+          {
+            const pts = [...val, ...zc, ...fp];
+            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)]) || b0.model) : b0.model;
+            if (mF !== b0.model) N.validateGazeEyes(mF, val, W, H);
+            const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;
+            const RF = b0.R ? N.fitResidual(pts.map(p => predAt(mF, AF, p)), W, H) : null;
+            const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);
+            if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }
+          }
           fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
           acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };
           /* 적응형 안정화: 정밀 보정 점을 바라보는 동안의 시선 흔들림(점별 MAD 중앙값)으로 화면 시선 평활 강도를 정한다 */

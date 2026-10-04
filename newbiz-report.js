@@ -275,21 +275,35 @@
   /* 추세: 이 기기의 이전 측정 + 이번 측정, 영역별 선 (영역 색 + 끝점 직접 표기) */
   function trendSvg(points) {
     if (points.length < 2) return '';
-    const W = 860, H = 220, px = 34, py = 16, iw = W - px - 110, ih = H - py - 34;
+    const W = 860, H = 230, px = 34, py = 18, iw = W - px - 190, ih = H - py - 36, GAP = 22;
     const xs = i => px + (points.length > 1 ? i / (points.length - 1) : 0.5) * iw, ys = v => py + (1 - v / 100) * ih;
-    const lines = B.DOMAIN_KEYS.map(k => {
+    const series = B.DOMAIN_KEYS.map(k => {
       const pts = points.map((p, i) => finite(p.scores[k]) ? [xs(i), ys(p.scores[k]), p.scores[k]] : null);
+      return { k, pts, last: [...pts].reverse().find(Boolean) };
+    });
+    /* 끝 라벨 겹침 방지: 끝점 높이 순으로 정렬한 뒤 최소 간격(22px)을 두고 위아래로 밀어 오른쪽 한 줄에 세운다 */
+    const lab = series.filter(x => x.last).map(x => ({ ...x, y: x.last[1] })).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < lab.length; i++) if (lab[i].y - lab[i - 1].y < GAP) lab[i].y = lab[i - 1].y + GAP;
+    const over = lab.length ? lab[lab.length - 1].y - (py + ih) : 0;
+    if (over > 0) lab.forEach(l => { l.y -= over; });
+    for (let i = lab.length - 2; i >= 0; i--) if (lab[i + 1].y - lab[i].y < GAP) lab[i].y = lab[i + 1].y - GAP;
+    const lx = px + iw + 34;
+    const lines = series.map(({ k, pts }) => {
       let d = '', pen = false;
       pts.forEach(q => { if (!q) { pen = false; return; } d += `${pen ? 'L' : 'M'}${q[0].toFixed(1)} ${q[1].toFixed(1)} `; pen = true; });
-      const last = [...pts].reverse().find(Boolean);
-      return `<path d="${d}" fill="none" stroke="${DCOLOR[k]}" stroke-width="2" stroke-linejoin="round"/>
-        ${pts.filter(Boolean).map(q => `<circle cx="${q[0]}" cy="${q[1]}" r="4.5" fill="${DCOLOR[k]}" stroke="#fff" stroke-width="2"><title>${esc(B.DOMAINS[k].name)} ${q[2]}점</title></circle>`).join('')}
-        ${last ? `<text x="${last[0] + 10}" y="${last[1] + 4}" font-size="11.5" font-weight="700" fill="#273451">${esc(B.DOMAINS[k].name)} ${last[2]}</text>` : ''}`;
+      return `<path d="${d}" fill="none" stroke="${DCOLOR[k]}" stroke-width="2.4" stroke-linejoin="round"/>
+        ${pts.filter(Boolean).map(q => `<circle cx="${q[0]}" cy="${q[1]}" r="4.5" fill="${DCOLOR[k]}" stroke="#fff" stroke-width="2"><title>${esc(B.DOMAINS[k].name)} ${q[2]}점</title></circle>`).join('')}`;
+    }).join('');
+    const labels = lab.map(l => {
+      const name = B.DOMAINS[l.k].name, w = 18 + name.length * 13 + 30;
+      return `<path d="M${(l.last[0] + 6).toFixed(1)} ${l.last[1].toFixed(1)} C${(l.last[0] + 20).toFixed(1)} ${l.last[1].toFixed(1)} ${(lx - 14).toFixed(1)} ${l.y.toFixed(1)} ${lx.toFixed(1)} ${l.y.toFixed(1)}" fill="none" stroke="${DCOLOR[l.k]}" stroke-width="1.2" opacity=".6"/>
+        <rect x="${lx}" y="${(l.y - 10).toFixed(1)}" width="${w}" height="20" rx="10" fill="${DCOLOR[l.k]}"/>
+        <text x="${lx + 10}" y="${(l.y + 4).toFixed(1)}" font-size="11.5" font-weight="800" fill="#fff">${esc(name)} <tspan font-family="Sora">${l.last[2]}</tspan></text>`;
     }).join('');
     return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="영역 점수 추세">
       ${[40, 70].map(v => `<line x1="${px}" x2="${px + iw}" y1="${ys(v)}" y2="${ys(v)}" stroke="#E3E8F1" stroke-dasharray="4 4"/><text x="${px - 6}" y="${ys(v) + 4}" text-anchor="end" font-size="10" fill="#8A93A8">${v}</text>`).join('')}
-      ${lines}
-      ${points.map((p, i) => `<text x="${xs(i)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="#647089">${esc(p.label)}</text>`).join('')}</svg>
+      ${lines}${labels}
+      ${points.map((p, i) => `<text x="${xs(i)}" y="${H - 8}" text-anchor="middle" font-size="10.5" fill="#647089">${esc(p.label)}</text>`).join('')}</svg>
       <div class="legend">${B.DOMAIN_KEYS.map(k => `<span><i style="background:${DCOLOR[k]}"></i>${esc(B.DOMAINS[k].name)}</span>`).join('')}</div>`;
   }
 
@@ -303,7 +317,7 @@
       demo: !!(r.demo || b.sim), mode: r.mode || 'full', type: I.code, primary: I.primary, secondary: I.secondary, domains,
       indicators: b.indicators.filter(i => i.value !== null && !i.excluded && i.status !== 'na').map(i => ({ key: i.key, value: i.value, status: i.status, borderline: !!i.borderline })),
       pathways: I.pathways.map(p => p.key), mismatches: I.mismatches.map(m => m.key),
-      checkin: { valence: c.valence ?? null, tension: c.tension ?? null, energy: c.energy ?? null, kss: c.kss ?? null },
+      checkin: { valence: c.valence ?? null, tension: c.tension ?? null, energy: c.energy ?? null, kss: c.kss ?? null, focus: c.focus ?? null },
       care: b.care.filter(t => t.domain !== 'safety').map(t => t.domain), qc: { grade: b.qc ? b.qc.grade : null, hrRef: b.qc ? b.qc.hrRef || null : null },
       trend: tr ? { n: tr.n, days: tr.days, overall: [tr.prev.overall ?? null, tr.cur.overall ?? null], deltas: tr.deltas, done: tr.done } : null,
       context: { sleep: c.sleep || null, caffeine: c.caffeine || null, hour: r.measuredAt && !isNaN(new Date(r.measuredAt)) ? new Date(r.measuredAt).getHours() : null, notes: (I.context || []).map(m => m.key) },
@@ -579,7 +593,8 @@
     const c = r.checkin || {}, b = r.battery, phq = b.phq;
     const rows = [
       ['alert', '졸림 ↔ 또렷함', finite(c.kss) ? Math.round((9 - c.kss) / 8 * 100) : null],
-      ['control', '집중 ↔ 집중 조절', phq && finite(phq.items[6]) ? Math.round((3 - phq.items[6]) / 3 * 100) : null],
+      /* 집중: 자기보고 ‘지금 집중이 잘 되나요’(1~5). 예전 기록처럼 문항이 없으면 최근 2주 집중 곤란(PHQ 7번)으로 대신한다 */
+      ['control', '집중 ↔ 집중 조절', finite(c.focus) ? Math.round((c.focus - 1) / 4 * 100) : phq && finite(phq.items[6]) ? Math.round((3 - phq.items[6]) / 3 * 100) : null],
       ['emotion', '기분 ↔ 마음의 시선', finite(c.valence) ? Math.round((c.valence - 1) / 8 * 100) : null],
       ['autonomic', '긴장 ↔ 몸의 회복력', finite(c.tension) ? Math.round((5 - c.tension) / 4 * 100) : null],
     ].map(([k, name, self]) => ({ k, name, self, meas: b.domains[k].score })).filter(x => finite(x.self) && finite(x.meas));
