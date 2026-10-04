@@ -1559,8 +1559,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55537796462",
@@ -1591,7 +1591,9 @@
           "url": "https://neurolens-hn1rskitn-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-04T10:17:43.806911+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "a831959ece1364a95d98766083eb78ffce60a97b",
@@ -1711,8 +1713,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55537213005",
@@ -1743,7 +1745,9 @@
           "url": "https://neurolens-mcxjsbvs6-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-04T10:17:44.389389+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "dc2a2a8ff88078f5552cdd03bcd02a3c7ab30265",
@@ -1840,8 +1844,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55535914805",
@@ -1872,7 +1876,9 @@
           "url": "https://neurolens-25jih4lxz-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-04T10:17:44.979009+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "4d1f5d7848db5bf6fecdd5e9247272d73937b2be",
@@ -7900,7 +7906,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "6ac1c36d64e4493d487e968dfaf234624b4c32d2"
+    "sourceHead": "7b6ad8e5369352151b9955ae622aa60bc5b9796b"
   },
-  "updatedAt": "2026-10-04T10:17:17.870994+00:00"
+  "updatedAt": "2026-10-04T10:17:46.217320+00:00"
 }
