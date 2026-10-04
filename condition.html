@@ -1102,7 +1102,7 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
           <li><span><i class="dot" id="dStill"></i>머리 안정</span><b id="vStill">—</b></li>
         </ul>
         <div class="livehr"><svg class="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.4 5c2 0 3.3 1 4 2.1h3.2C14.3 6 15.6 5 17.6 5 21 5 23.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>
-          <div><b id="vLiveHr">--</b> <span class="small">bpm</span><div class="small" id="vLiveQ">얼굴을 10초 정도 비추면 카메라만으로 심박이 잡혀요</div></div></div>
+          <div><b id="vLiveHr">--</b> <span class="small">bpm</span><div class="small" id="vLiveQ">얼굴을 비추면 3초 정도부터 카메라만으로 심박이 잡혀요</div></div></div>
         <div class="status" id="setupStatus"></div>
       </div>
     </div>
@@ -1205,7 +1205,7 @@ window.addEventListener('online',()=>NLResearchStore.flush().catch(()=>{}));
 NLResearchStore.flush().catch(()=>{});
 const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
 /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */
-const resetEuro = () => { S.euro = { x: N.oneEuro({ minCutoff: 0.6, beta: 0.004 }), y: N.oneEuro({ minCutoff: 0.6, beta: 0.004 }) }; S.view = null; };
+const resetEuro = () => { S.euro = { x: N.oneEuro({ minCutoff: 0.5, beta: 0.004 }), y: N.oneEuro({ minCutoff: 0.5, beta: 0.004 }) }; S.view = null; S.gstab = null; };
 resetEuro();
 const GAZE_STEPS = ['pursuit', 'saccade', 'freeview'];
 const FIX_MS = 700;
@@ -1463,10 +1463,12 @@ function processResult(fr, packet, context) {
   const bs = blendMap(res);
   f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));
   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));
-  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q);
+  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2;
+  /* 시선 유효: 적어도 한 눈이 또렷하고(품질 0.15 이상) 깜빡이는 중이 아닐 때만. 반쯤 감긴 눈의 홍채 위치는 크게 튄다 */
+  const gazeValid = eyeQ >= 0.15 && blinkAvg < 0.45;
   Object.assign(fr, roi, {
     ok: roi.n >= 12, ppgOk: roi.n >= 12, skinOk: roi.n >= 12, faceOk: true,
-    eyeOk: Math.max(eyes?.left ?? 1,eyes?.right ?? 1) > .035, gazeOk: eyeQ > .035, skinQ: roi.q, eyeQ, qLeft: f.eyes.left.q, qRight: f.eyes.right.q,
+    eyeOk: Math.max(eyes?.left ?? 1,eyes?.right ?? 1) > .035, gazeOk: gazeValid, skinQ: roi.q, eyeQ, qLeft: f.eyes.left.q, qRight: f.eyes.right.q,
     uLeft: f.eyes.left.u, vLeft: f.eyes.left.v, uRight: f.eyes.right.u, vRight: f.eyes.right.v,
     source: 'observed', roiAge: 0, exposureGain: gain, cx: f.cx, cy: f.cy, fw: f.fw, open: f.open,
     blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,
@@ -1480,13 +1482,16 @@ function processResult(fr, packet, context) {
   if (S.model) {
     const pred = N.predictGaze(S.model, f), g0 = N.applyAffine(S.affine, pred);
     if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) return;
-    const bl = !fr.gazeOk;
-    S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };
     const g = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy };
-    S.gaze = g; // Display filtering cannot change measured latency or dwell.
-    if (!bl) S.view = { x: S.euro.x(g.x, t), y: S.euro.y(g.y, t), t };
-    if (!bl && S.onGaze) S.onGaze(g, t);
-    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:g.x,y:g.y,rx:g.x,ry:g.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});
+    /* 안정화: 화면 밖 제한 → 확인되지 않은 큰 점프 차단 → 5표본 중앙값. 차단된 튐은 분석에서도 뺀다(bl) */
+    if (!S.gstab) S.gstab = N.gazeStabilizer({ W: stage.clientWidth || innerWidth, H: stage.clientHeight || innerHeight });
+    const st = fr.gazeOk ? S.gstab.push(g, t) : null;
+    const bl = !fr.gazeOk || !st || st.held;
+    S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };
+    if (st) S.gaze = { x: st.x, y: st.y };
+    if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };
+    if (!bl && S.onGaze) S.onGaze({ x: st.x, y: st.y, rx: g.x, ry: g.y }, t);
+    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});
   }
 }
 function pushFrame(fr) {
@@ -1551,6 +1556,17 @@ function posCheck() {
   return { ok: !msg, msg: msg || '좋아요 · 이 자세를 유지하세요' };
 }
 function setDot(id, state) { $(id).className = 'dot ' + (state || ''); }
+/* 화면 표시용 실시간 심박: 융합 추정(약 6~10초 이후)이 나오기 전에는 짧은 창 예비값을 바로 보여 준다.
+ * 숫자가 튀지 않게 직전 표시값과 부드럽게 섞는다 (측정·판정에는 쓰지 않음) */
+function liveHrNow(frames, key = 'setup') {
+  const full = N.liveHr(frames), est = full && full.quality !== 'poor' ? full : N.quickHr(frames);
+  if (!est || !Number.isFinite(est.bpm)) return null;
+  S.hrShow = S.hrShow || {};
+  const prev = S.hrShow[key];
+  const v = prev && Math.abs(est.bpm - prev) < 25 ? prev + (est.provisional ? 0.4 : 0.6) * (est.bpm - prev) : est.bpm;
+  S.hrShow[key] = v;
+  return { ...est, bpm: Math.round(v) };
+}
 function setupTicker() {
   setInterval(() => {
     if ($('sSetup').hidden) return;
@@ -1568,10 +1584,11 @@ function setupTicker() {
     $('vLight').textContent = !Number.isFinite(lum) ? '—' : lum < 70 ? '어두움' : lum > 215 ? '너무 밝음' : '적정';
     setDot('dFps', fps >= 24 ? 'ok' : fps >= 15 ? 'warn' : 'bad'); $('vFps').textContent = Math.round(fps) + ' fps';
     setDot('dStill', motion === null ? '' : motion < 3 ? 'ok' : 'warn'); $('vStill').textContent = motion === null ? '—' : motion < 3 ? '안정' : '움직임 많음';
-    const live = N.liveHr(S.buf);
-    if (live && S.buf.length && S.buf[S.buf.length - 1].t - S.buf[0].t > 9000) {
-      $('vLiveHr').textContent = live.quality === 'poor' ? '--' : live.bpm;
-      $('vLiveQ').textContent = live.quality === 'good' ? '카메라만으로 심박이 안정적으로 잡히고 있어요' : live.quality === 'fair' ? '심박 신호를 읽는 중이에요. 움직임을 줄여 주세요' : '신호가 약해요. 조명을 밝게 하고 정면을 봐 주세요';
+    const live = liveHrNow(S.buf);
+    if (live) {
+      $('vLiveHr').textContent = live.bpm;
+      $('vLiveQ').textContent = live.provisional ? `심박을 읽는 중이에요 · 예비값 (${Math.round(live.validSeconds)}초 측정)`
+        : live.quality === 'good' ? '카메라만으로 심박이 안정적으로 잡히고 있어요' : live.quality === 'fair' ? '심박 신호를 읽는 중이에요. 움직임을 줄여 주세요' : '신호가 약해요. 조명을 밝게 하고 정면을 봐 주세요';
     }
     $('goRun').disabled = !faceOk;
   }, 1000);
@@ -1960,8 +1977,11 @@ async function cal9(W, H) {
   for (const [x, y] of pts) {
     dot.style.left = x + 'px'; dot.style.top = y + 'px';
     if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });
-    S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), samples);
+    const pt = [];
+    S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), pt);
     await wait(1700);
+    const keep = new Set(N.robustFeatures(pt.map(s => s.f)));
+    samples.push(...pt.filter(s => keep.has(s.f)));
   }
   S.onFeature = null;
   return samples;
@@ -1998,7 +2018,7 @@ async function calCollect(points, label) {
     await wait(500); fs.length = 0;
     await wait(800);
     S.onFeature = null;
-    out.push({ ...p, fs: fs.slice() });
+    out.push({ ...p, fs: N.robustFeatures(fs.slice()) });
   }
   return out;
 }
@@ -2030,7 +2050,8 @@ async function cursorTask(zones, W, H) {
     const zn = $('zn'), gc0 = $('gc'), zp = $('znP');
     const t0 = now();
     let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0;
-    S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; };
+    const held = [];
+    S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; if (inside && inSince !== null && t - inSince > 150) held.push({ x: g.x, y: g.y }); };
     await new Promise((res2, rej) => {
       const w = { rej, cleanup: () => { cancelAnimationFrame(raf); S.onGaze = null; } };
       waiters.add(w);
@@ -2055,11 +2076,12 @@ async function cursorTask(zones, W, H) {
       S.cleanup.push(w.cleanup);
     });
     zn.classList.add(done.ok ? 'hit' : 'miss');
+    if (held.length >= 6) done.pair = { x: z.x, y: z.y, gx: N.median(held.map(p => p.x)), gy: N.median(held.map(p => p.y)) };
     res.push(done);
     await wait(350);
   }
   S.onGaze = null;
-  return { n: res.length, hit: res.filter(r => r.ok).length, meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };
+  return { n: res.length, hit: res.filter(r => r.ok).length, pairs: res.filter(r => r.pair).map(r => r.pair), meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };
 }
 async function calibrate() {
   await brief('calibration');
@@ -2090,7 +2112,16 @@ async function calibrate() {
       const ctl = acc.grade === 'poor' ? null : await cursorTask(shuffle(zones.slice()).slice(0, 4), W, H);
       /* 커서 과제에서 학습한 치우침이 영역 전체에 일관되면(학습 표본 충분), 커서 없이 바라본 자료로 다시 평가해
        * 오차가 실제로 줄어들 때만 측정용 영점에 더한다 (보정 학습 자료가 아니라 평가 자료로만 판단) */
-      if (ctl && ctl.bias.n >= 40 && Math.hypot(ctl.bias.x, ctl.bias.y) > W * 0.01) {
+      /* 측정값 보정: 커서 과제에서 원 안에 머문 동안의 실제 시선(3곳 이상)으로 축별 보정을 한 번 더 맞추고,
+       * 커서 없이 바라본 자료(검증점·영점)의 오차가 줄어들 때만 반영한다 */
+      if (ctl && ctl.pairs.length >= 3) {
+        const A0 = S.affine, A2 = N.fitAffine(ctl.pairs), A1 = A2 && N.composeAffine(A0, A2);
+        if (A1) {
+          const e0 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A0, p)), W, H), e1 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A1, p)), W, H);
+          if (e1.errPct !== null && (e0.errPct === null || e1.errPct <= e0.errPct + 0.3)) { S.affine = A1; ctl.measuredFit = { before: e0.errPct, after: e1.errPct, zones: ctl.pairs.length }; acc = { ...acc, errPct: e1.errPct, grade: e1.grade }; }
+        }
+      }
+      if (ctl && !ctl.measuredFit && ctl.bias.n >= 40 && Math.hypot(ctl.bias.x, ctl.bias.y) > W * 0.01) {
         const A0 = S.affine || { x: { a: 1, b: 0 }, y: { a: 1, b: 0 } };
         const A1 = { x: { a: A0.x.a, b: A0.x.b + ctl.bias.x * 0.5 }, y: { a: A0.y.a, b: A0.y.b + ctl.bias.y * 0.5 } };
         const e0 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A0, p)), W, H), e1 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A1, p)), W, H);
@@ -2813,7 +2844,7 @@ async function runBio() {
   const bio = $('bio');
   const fmt = (v, d = 0, sign = false) => v === null || v === undefined || !Number.isFinite(v) ? '—' : (sign && v > 0 ? '+' : '') + v.toFixed(d);
   const synthetic = S.demo || !S.stream;
-  S.bioFrames = []; bio.classList.add('on');
+  S.bioFrames = []; bio.classList.add('on'); if (S.hrShow) S.hrShow.bio = null;
   const hist = [];
   const t0 = now();
   const demoFn = t => 79 - Math.min(7, (t - t0) / 7000) + 3.5 * Math.sin(2 * Math.PI * 0.1 * (t - t0) / 1000 - Math.PI / 2);
@@ -2825,9 +2856,9 @@ async function runBio() {
   while (now() - t0 < SEC * 1000 && !closed) {
     await new Promise(r => setTimeout(r, 1000));
     const frames = synthetic ? N.synthFrames(now() - 10000, now(), demoFn, { seed: Math.floor(now()) % 997, noise: 0.35 }) : S.bioFrames;
-    const live = now() - t0 > 9000 ? N.liveHr(frames) : null;
-    if (live && live.quality !== 'poor') { $('bioHr').textContent = live.bpm; hist.push(live.bpm); }
-    $('bioQ').textContent = live ? `실시간 심박 · ${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함' }[live.quality]}${synthetic ? ' · 시뮬레이션' : ''}` : '심박 측정 준비 중… (약 10초)';
+    const live = liveHrNow(frames, 'bio');
+    if (live) { $('bioHr').textContent = live.bpm; if (!live.provisional && live.quality !== 'poor') hist.push(live.bpm); }
+    $('bioQ').textContent = live ? (live.provisional ? '실시간 심박 · 예비값 (신호를 모으는 중)' : `실시간 심박 · ${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함' }[live.quality]}`) + (synthetic ? ' · 시뮬레이션' : '') : '심박 측정 준비 중… (3초 정도)';
     if (hist.length > 1) {
       const lo = Math.min(...hist) - 3, hi = Math.max(...hist) + 3;
       const pts = hist.map((v, i) => `${(i / Math.max(1, SEC - 10)) * 520},${70 - (v - lo) / (hi - lo) * 66 - 2}`).join(' ');

@@ -82,7 +82,7 @@
         try{
           const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
           if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
-          ctx.drawImage(this.video,0,0,w,h);const gain=NLSignal.exposureGain(ctx),raw=gain>1.05?ctx.getImageData(0,0,w,h):null;
+          ctx.drawImage(this.video,0,0,w,h);const g0=NLSignal.exposureGain(ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20,raw=gain>1.05?ctx.getImageData(0,0,w,h):null;
           NLSignal.enhance(ctx,gain);
           const result=this.detector.detectForVideo(c,t),lm=result.faceLandmarks?.[0];
           if(raw)ctx.putImageData(raw,0,0);

@@ -160,9 +160,9 @@
   }
 
   /* 대역 안 최대 피크 주파수(포물선 보간) + SNR(1·2차 고조파 ±0.1Hz 대 나머지, dB) */
-  function spectralPeak(x, fs, lo = HR_BAND[0], hi = HR_BAND[1]) {
+  function spectralPeak(x, fs, lo = HR_BAND[0], hi = HR_BAND[1], minSec = 4) {
     const n = x.length;
-    if (n < fs * 4) return null;
+    if (n < fs * minSec) return null;
     const w = Float64Array.from(x, (v, i) => v * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1))));
     const nfft = Math.max(2048, nextPow2(n * 4));
     const p = powerSpectrum(w, nfft), df = fs / nfft;
@@ -460,19 +460,21 @@
     if(model.eyes && !Object.values(model.eyes).some(Boolean))delete model.eyes;
     return model;
   }
+  /* 시선 예측: 두 눈이 모두 또렷하면 두 눈 평균 특징으로 학습한 기본(양안) 모델을 쓴다.
+   * 프레임마다 눈별 품질 가중을 바꾸면 두 눈 모델의 미세한 치우침 차이 때문에 좌표가 들썩이므로,
+   * 한쪽 눈이 감기거나 반사로 흐려졌을 때만 검증을 통과한 나머지 한쪽 눈 모델로 넘어간다 */
+  const EYE_OK = 0.15;
   function predictGaze(model, f) {
     if (!model || !f) return null;
-    if(model.eyes && f.eyes){
-      const predictions=['left','right'].map(side=>{
-        const eye=f.eyes[side],m=model.eyes[side];
-        if(!m||!eye||eye.q<=.035)return null;
-        return {...predictGaze(m,{...f,u:eye.u,v:eye.v}),w:eye.q*eye.q,side};
-      }).filter(Boolean);
-      if(predictions.length===1 && ['poor','none'].includes(model.eyes[predictions[0].side].validation?.grade))return null;
-      const total=predictions.reduce((s,p)=>s+p.w,0);
-      if(total>0)return {x:predictions.reduce((s,p)=>s+p.x*p.w,0)/total,y:predictions.reduce((s,p)=>s+p.y*p.w,0)/total,
-        mode:predictions.length===2?'binocular':predictions[0].side};
-      return null;
+    if (f.eyes) {
+      const okL = f.eyes.left && f.eyes.left.q >= EYE_OK, okR = f.eyes.right && f.eyes.right.q >= EYE_OK;
+      if (!okL && !okR) return null;                                   // 두 눈 모두 불안정(깜빡임·반사) → 이 프레임은 쓰지 않는다
+      if (!(okL && okR)) {
+        const side = okL ? 'left' : 'right', e = f.eyes[side], m = model.eyes && model.eyes[side];
+        if (m && !['poor', 'none'].includes(m.validation && m.validation.grade)) return { ...predictGaze(m, { ...f, eyes: null, u: e.u, v: e.v }), mode: side };
+        if (m) return null;                                              // 검증에 실패한 한쪽 눈 모델로는 시선을 만들지 않는다
+        f = { ...f, eyes: null, u: e.u, v: e.v };                      // 한쪽 눈 모델이 없으면 그 눈 특징으로 양안 모델 사용
+      }
     }
     const v = gazeVec(f, model.mu, model.sd, model.quad);
     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);
@@ -552,6 +554,44 @@
       get pos() { return pos; },
     };
   }
+
+  /* 시선 좌표 안정화 (화면 표시·커서·과제 판정용)
+   * ① 화면 밖으로 크게 벗어난 값은 가장자리로 제한 ② 화면 폭의 22% 넘게 한 번에 뛰는 값은 다음 표본들이 같은 곳을 가리킬 때만
+   * 진짜 시선 이동으로 받아들이고(그 전에는 직전 위치 유지) ③ 최근 5표본(200ms 이내) 중앙값으로 한 프레임짜리 튐을 지운다.
+   * 400ms 넘게 표본이 끊기면(깜빡임·얼굴 이탈) 새로 시작한다 */
+  function gazeStabilizer(opt = {}) {
+    const W = opt.W || 1440, H = opt.H || 900, JUMP = opt.jump ?? 0.22, CONF = opt.confirm ?? 0.07, N = opt.n ?? 5, SPAN = opt.span ?? 200;
+    let win = [], pend = [], stable = null;
+    const dist = (a, b) => Math.hypot((a.x - b.x) / W, (a.y - b.y) / W);
+    return {
+      push(g, t) {
+        if (!g || !finite(g.x) || !finite(g.y) || !finite(t)) return null;
+        const p = { x: clamp(g.x, -0.1 * W, 1.1 * W), y: clamp(g.y, -0.1 * H, 1.1 * H), t };
+        if (stable && t - stable.t > 400) { win = []; pend = []; stable = null; }
+        if (stable && dist(p, stable) > JUMP) {
+          pend = pend.filter(q => t - q.t <= SPAN); pend.push(p);
+          const ok = pend.length >= 2 && pend.every(q => dist(q, p) <= CONF);
+          if (!ok) return { x: stable.x, y: stable.y, t, held: true };
+          win = pend.slice(); pend = [];
+        } else { pend = []; win.push(p); }
+        win = win.filter(q => t - q.t <= SPAN).slice(-N);
+        stable = { x: median(win.map(q => q.x)), y: median(win.map(q => q.y)), t };
+        return { ...stable, held: false };
+      },
+      reset() { win = []; pend = []; stable = null; },
+      get stable() { return stable; },
+    };
+  }
+  /* 보정 표본 정리: 한 표적을 보는 동안 모은 눈 특징 중 중앙값에서 크게 벗어난 프레임(반쯤 감김·반사·순간 오검출)을 뺀다 */
+  function robustFeatures(fs) {
+    if (!fs || fs.length < 6) return fs || [];
+    const mu = median(fs.map(f => f.u)), mv = median(fs.map(f => f.v));
+    const su = Math.max(0.006, 1.4826 * median(fs.map(f => Math.abs(f.u - mu)))), sv = Math.max(0.006, 1.4826 * median(fs.map(f => Math.abs(f.v - mv))));
+    const kept = fs.filter(f => Math.abs(f.u - mu) <= 3 * su && Math.abs(f.v - mv) <= 3 * sv);
+    return kept.length >= Math.max(4, fs.length * 0.4) ? kept : fs;
+  }
+  /* 축별 1차 보정 두 개를 겹친다: 먼저 A, 그다음 B */
+  const composeAffine = (A, Bm) => (!A ? Bm : !Bm ? A : { x: { a: Bm.x.a * A.x.a, b: Bm.x.a * A.x.b + Bm.x.b }, y: { a: Bm.y.a * A.y.a, b: Bm.y.a * A.y.b + Bm.y.b } });
 
   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */
   function gazeAccuracy(points, W, H) {
@@ -805,6 +845,30 @@
     return pk && end-pk.t<5000 ? { bpm: round(pk.bpm, 0), snr: round(pk.snr, 1), quality: pk.quality, confidence:pk.confidence, validSeconds:pk.windowSec, status:pk.status } : null;
   }
 
+  /* 예비 심박 (화면 표시 전용): 카메라를 켜고 약 3초부터 바로 보여 주기 위한 짧은 창 추정.
+   * 스펙트럼 피크와 박동 간격(피크 사이 시간)을 함께 보고, 둘이 어긋나면 품질을 낮춘다.
+   * 융합 추정(liveHr)이 나오기 전까지만 쓰며, 측정·판정에는 쓰지 않는다 */
+  function quickHr(frames, fs = 30) {
+    const ok = frames.filter(f => (f.ppgOk ?? f.ok) && [f.t, f.r, f.g, f.b].every(finite));
+    if (ok.length < 2) return null;
+    const end = ok[ok.length - 1].t, use = ok.filter(f => f.t >= end - 8000);
+    const sec = (end - use[0].t) / 1000;
+    if (sec < 2.8 || use.length < fs * 2.2) return null;
+    const rs = resample(use.map(f => f.t), [use.map(f => f.r), use.map(f => f.g), use.map(f => f.b)], fs);
+    const x = bandpass(pos(rs.data[0], rs.data[1], rs.data[2], fs), fs);
+    if (std(Array.from(x)) < 1e-9) return null;
+    const pk = spectralPeak(x, fs, HR_BAND[0], HR_BAND[1], 2.5);
+    if (!pk) return null;
+    /* 박동 간격: 0.33초 이상 떨어진 양(+)의 국소 최대 */
+    const peaks = [];
+    for (let i = 1; i < x.length - 1; i++) if (x[i] > 0 && x[i] >= x[i - 1] && x[i] > x[i + 1] && (!peaks.length || i - peaks[peaks.length - 1] >= fs * 0.33)) peaks.push(i);
+    const ibi = peaks.slice(1).map((p, i) => (p - peaks[i]) / fs).filter(v => v >= 0.33 && v <= 1.5);
+    const bpmI = ibi.length >= 2 ? 60 / median(ibi) : null;
+    const agree = bpmI !== null && Math.abs(bpmI - pk.bpm) <= 8;
+    const bpm = agree ? (pk.bpm + bpmI) / 2 : pk.bpm;
+    return { bpm: round(bpm, 0), snr: round(pk.snrDb, 1), quality: agree && pk.snrDb >= -2 ? 'fair' : 'poor', provisional: true, validSeconds: round(sec, 1) };
+  }
+
   /* ---------- 시뮬레이션 (카메라 없는 데모·테스트용) ----------
    * hrAt(t) 로 정한 심박을 따라 피부색에 맥동을 섞은 프레임을 만든다. 데모 결과는 반드시 '시뮬레이션'으로 표시한다. */
   function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; }; }
@@ -841,7 +905,7 @@
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, measureEvidence, beats, ibis, rmssd, breathingCoupling,
     faceFeatures, fitGaze, predictGaze, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
-    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, synthFrames,
+    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };
   const Fusion = createFusion(api); api.Fusion = Fusion;
   return api;

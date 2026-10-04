@@ -1,6 +1,6 @@
 /* Classic worker: MediaPipe's WASM loader may use importScripts internally. */
 importScripts('condition-signal.js');
-let detector, canvas, ctx, skinCanvas, skinCtx;
+let detector, canvas, ctx, skinCanvas, skinCtx, gainS = null;
 self.onmessage = async ({data:m}) => {
   try {
     if(m.type==='init') {
@@ -19,7 +19,8 @@ self.onmessage = async ({data:m}) => {
       const w=Math.min(640,bmp.width),h=Math.round(bmp.height*w/bmp.width);
       if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
       ctx.drawImage(bmp,0,0,w,h);
-      const gain=NLSignal.exposureGain(ctx);
+      // 노출 보정 이득을 부드럽게: 프레임마다 밝기 보정이 달라지면 홍채 랜드마크가 흔들린다
+      const g0=NLSignal.exposureGain(ctx);gainS=gainS===null?g0:gainS+.12*(g0-gainS);const gain=Math.round(gainS*20)/20;
       // Keep the original pixels for quality and pulse extraction.
       const raw=gain>1.05?ctx.getImageData(0,0,w,h):null;
       NLSignal.enhance(ctx,gain);
