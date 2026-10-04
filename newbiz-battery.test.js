@@ -106,6 +106,22 @@ const R = require('./newbiz-report.js');
   assert.ok(p.errPct < 2, `err ${p.errPct}`);
 }
 
+/* 6-0) SART 순서: 원판 비율 유지 + 3 연속 금지·앞에 반응 숫자 2개 이상·전반/후반 균등 */
+for (const n of [54, 108, 225]) for (const r of [() => 0, () => 0.5, () => 0.999, Math.random]) {
+  const seq = B.sartSequence(n, r), idx = seq.map((d, i) => (d === 3 ? i : -1)).filter(i => i >= 0);
+  assert.equal(seq.length, n);
+  for (let d = 1; d <= 9; d++) assert.equal(seq.filter(x => x === d).length, Math.floor(n / 9) + (d <= n % 9 ? 1 : 0), `digit ${d} count`);
+  assert.ok(idx.every((i, k) => i >= 2 && (k === 0 || i - idx[k - 1] >= 3)), `spacing ${idx}`);
+  assert.ok(Math.abs(idx.filter(i => i < n / 2).length - idx.filter(i => i >= n / 2).length) <= 1, `halves ${idx}`);
+}
+/* 실패 직전 가속: 실패 직전 반응이 평소보다 빠르면 양수 */
+{
+  const seq = B.sartSequence(108, () => 0.5);
+  const trials = seq.map((digit, i) => ({ digit, onset: i * 1150, rt: digit === 3 ? 300 : (seq.slice(i + 1, i + 5).includes(3) ? 300 : 400) }));
+  const s = B.sartStats({ trials });
+  assert.equal(s.commits, s.nogo);
+  assert.ok(s.preErrorSpeedup > 50, `speedup ${s.preErrorSpeedup}`);
+}
 /* 6) SART: 억제 실패·누락·변동성 */
 {
   const seq = B.sartSequence(90, () => 0.5);
@@ -222,10 +238,18 @@ for (const [p, e] of Object.entries(expect)) {
     assert.ok(q.hard && q.ans >= 0 && q.ans <= 9 && v === q.ans && q.text.split(/ [+−] /).length === 4, `L6 ${q.text}`);
   }
   assert.ok(B.PROTOCOL.stress.hardAt.length >= 1 && B.PROTOCOL.stress.hardAt.length <= 2);
-  assert.deepEqual(B.mistNext(4000, 3), { limit: 3600, streak: 0 });
-  assert.deepEqual(B.mistNext(4000, -3), { limit: 4400, streak: 0 });
-  assert.deepEqual(B.mistNext(4000, 2), { limit: 4000, streak: 2 });
-  assert.equal(B.mistNext(B.PROTOCOL.stress.minMs, 3).limit, B.PROTOCOL.stress.minMs);
+  assert.equal(B.mistNext(4000, true), 3680);
+  assert.equal(B.mistNext(4000, false), 4480);
+  assert.equal(B.mistNext(B.PROTOCOL.stress.minMs, true), B.PROTOCOL.stress.minMs);
+  assert.equal(B.mistStart([2000, 2400, 2200]), 1980);                     // 연습 정답 평균 × 0.9
+  assert.equal(B.mistStart([2000]), B.PROTOCOL.stress.limitMs);             // 정답이 부족하면 기본값
+  /* 가중 계단법: 응답 시간이 일정한 사람(약 2초 ± 잡음)은 정답률 약 60%에 수렴한다 */
+  {
+    let limit = 4000, ok = 0, n = 0, seed = 3;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 400; i++) { const rt = 2000 * Math.exp((rnd() - 0.5) * 0.6), hit = rt <= limit; if (i >= 50) { n++; ok += hit; } limit = B.mistNext(limit, hit); }
+    assert.ok(Math.abs(ok / n - 0.6) < 0.06, `staircase accuracy ${ok / n}`);
+  }
 }
 
 /* 12) NL-QC: PVT 기기 지연 보정 · 수행 타당도 */

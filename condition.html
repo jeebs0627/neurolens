@@ -1797,9 +1797,9 @@ function stepInfo(key) {
       how: ['숫자 1~9가 <b>잠깐 나타났다 사라지고</b>, 1.15초마다 다음 숫자가 나와요 (크기는 매번 달라져요)', '<b>3을 뺀 모든 숫자</b>에 스페이스바 · <b>3이 나오면 누르지 않아요</b>', `연습 ${d.sartPractice}개는 매번 정답 여부를 알려 주고, 본 검사 ${d.sart}개는 누를 때마다 <b>입력 확인 점</b>만 켜져요`],
       orig: '<b>원판 그대로</b> 1.15초 간격의 빠른 속도, 다섯 가지 숫자 크기, 본 검사 중 정답을 알려 주지 않는 것은 Robertson 등(1997)의 원판 설정이에요. 원판은 숫자 뒤에 원 안의 × 모양 가림 화면이 나오는데, ‘틀렸다’는 표시로 오인되기 쉬워 빈 화면으로 바꿨어요. 빠른 리듬에 맞춰 습관적으로 누르다가 3에서 멈출 수 있는지가 측정의 핵심이라, 정오를 알려 주면 다른 검사가 돼요. 속도와 정확성을 똑같이 중요하게 생각해 주세요.',
       ref: 'Robertson et al., 1997 · SART' },
-    stress: { tag: 'Domain 4 · 자율신경 조절', title: '압박 과제 (MIST 암산)', vis: V.math, time: `${d.stress}초`, resp: '숫자 키 0~9 · 클릭',
+    stress: { tag: 'Domain 4 · 자율신경 조절', title: '압박 과제 (MIST 암산)', vis: V.math, time: `연습 4문제 · 쉬기 ${B.PROTOCOL.stress.restSec}초 · 본 과제 ${d.stress}초`, resp: '숫자 키 0~9 · 클릭',
       what: '수행에 맞춰 점점 짧아지는 제한 시간 안에 암산하는 압박 상황에서 심박이 얼마나 오르는지로 스트레스 반응성을 봅니다.',
-      how: ['난이도 1~5의 <b>덧셈·뺄셈</b> 문제가 무작위로 나와요 · 답은 항상 <b>0~9 한 자리</b>', '키보드 숫자 키 또는 화면의 숫자 버튼으로 답해요', '3문제 연속 맞히면 제한 시간이 10% 줄어요 — 일부러 어렵게 만든 과제이니 틀려도 괜찮아요'],
+      how: ['난이도 1~5의 <b>덧셈·뺄셈</b> 문제가 무작위로 나와요 · 답은 항상 <b>0~9 한 자리</b>', '키보드 숫자 키 또는 화면의 숫자 버튼으로 답해요', '먼저 <b>연습 4문제</b>(시간 제한 없음)로 내 속도를 재고, <b>30초</b> 편히 쉰 뒤 본 과제를 시작해요', '맞히면 제한 시간이 줄고 틀리면 늘어나, 누구나 <b>절반쯤 틀리는</b> 속도로 맞춰져요 — 일부러 어렵게 만든 과제이니 틀려도 괜찮아요'],
       orig: '<b>원판 구성</b> 몬트리올 영상 스트레스 과제(MIST)처럼 난이도 무작위 혼합(한 자리 2항 → 두 자리 3항), 적응형 제한 시간, 목표 대비 성적 막대를 씁니다. 곱셈·나눗셈은 빼서 계산 실력보다 시간 압박이 반응을 만들게 했어요. 원판의 ‘가짜 평균 비교’ 대신 실제 목표 정답률 80%를 보여 줘요. 압박 반응을 비교하려면 과제 종류를 고정하는 것이 표준이라 다른 과제는 섞지 않았어요.',
       ref: 'Dedovic et al., 2005 · MIST' },
     recovery: { tag: 'Domain 4 · 자율신경 조절', title: '공명 호흡 회복', vis: V.breath, time: `${d.recovery}초`, resp: '호흡 따라 하기',
@@ -2631,16 +2631,44 @@ async function phaseSart(d) {
 
 /* 압박 과제: MIST (Dedovic et al., 2005) — 난이도 1~5 무작위 덧셈·뺄셈, 답 0~9, 적응형 제한 시간, 목표 대비 성적 막대.
  * 피드백은 화면 밝기를 바꾸지 않도록 글자로만 */
+/* 연습: 시간 제한 없이(최대 8초) 4문제 → 정답 응답 시간으로 시작 제한 시간을 정한다 (MIST 원판 규칙) */
+async function mistPractice(P) {
+  const rts = [];
+  for (let i = 0; i < P.practice; i++) {
+    const q = B.mistProblem(1 + Math.floor(Math.random() * 5));
+    body.innerHTML = `<div class="mist"><div class="mist-top"><span>연습 ${i + 1}/${P.practice} · 제한 없음</span></div>
+      <div class="prob">${esc(q.text)} = <span class="q">?</span></div>
+      <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(v => `<button type="button" data-v="${v}">${v}</button>`).join('')}</div><div class="fb" id="fb"></div></div>`;
+    const t0 = now();
+    const v = await new Promise((res, rej) => {
+      const w = { rej, cleanup: () => { S.onKey = null; } };
+      const done = x => { clearTimeout(w.to); waiters.delete(w); S.onKey = null; res(x); };
+      w.to = setTimeout(() => done(null), P.practiceMs);
+      waiters.add(w);
+      S.onKey = e => { if (/^[0-9]$/.test(e.key)) { e.preventDefault(); done(+e.key); } };
+      body.querySelectorAll('.keypad button').forEach(b => b.addEventListener('click', () => done(+b.dataset.v)));
+    });
+    if (v === q.ans) rts.push(now() - t0);
+    $('fb').textContent = v === null ? '시간 초과' : v === q.ans ? '정답' : `오답 · 정답 ${q.ans}`;
+    await wait(600);
+  }
+  return rts;
+}
 async function phaseStress(sec) {
   const P = B.PROTOCOL.stress;
-  mark('preStress','start');
   await brief('stress');
-  mark('preStress','end');
   if (document.activeElement) document.activeElement.blur();
+  const practiceRts = await mistPractice(P);
+  /* 압박 직전 안정 구간: 몇 분 전 기준선 대신 바로 직전 심박을 비교 기준으로 쓴다(PVT·SART 뒤 달라진 각성 수준 반영) */
+  body.innerHTML = `<div class="sac-fix" style="width:16px;height:16px;margin:-8px 0 0 -8px"></div><div class="cue">편안히 화면 가운데를 보며 쉬어 주세요 · ${P.restSec}초 뒤 본 과제가 시작돼요</div>`;
+  mark('preStress', 'start');
+  await wait(P.restSec * 1000);
+  mark('preStress', 'end');
   await countdown('암산 과제가 곧 시작돼요');
   mark('stress', 'start');
   const end = now() + sec * 1000, stopT = task('MIST 암산', sec * 1000);
-  let correct = 0, total = 0, limit = P.limitMs, streak = 0, minLimit = limit;
+  let correct = 0, total = 0, limit = B.mistStart(practiceRts), minLimit = limit;
+  const startLimit = limit;
   const levels = [0, 0, 0, 0, 0, 0], log = [], t0s = now();
   /* 고난도 문제: 과제 시간의 정해진 지점마다 1문제씩 반드시 출제 (표준·정밀 모두 2문제) */
   const hardQ = (P.hardAt || []).map(f => t0s + f * sec * 1000);
@@ -2673,16 +2701,13 @@ async function phaseStress(sec) {
     if (v !== null) { const hb = body.querySelector(`.keypad button[data-v="${v}"]`); if (hb) hb.classList.add('hit'); }
     tb.style.transition = 'none'; tb.style.width = Math.max(0, 100 - (now() - t0) / limit * 100) + '%';
     $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : `오답 · 정답 ${q.ans}`;
-    if (!hard) {                                       // 고난도 문제는 제한 시간 조정에 넣지 않는다
-      streak = ok ? Math.max(0, streak) + 1 : Math.min(0, streak) - 1;
-      ({ limit, streak } = B.mistNext(limit, streak));
-    }
+    if (!hard) limit = B.mistNext(limit, ok);           // 고난도 문제는 제한 시간 조정에 넣지 않는다
     minLimit = Math.min(minLimit, limit);
     await wait(ok ? 450 : 750);
   }
   stopT();
   mark('stress', 'end');
-  S.stressScore = { correct, total, minLimit, levels, log, hard: { correct: hardCorrect, total: hardTotal } };
+  S.stressScore = { correct, total, minLimit, startLimit, practiceRts: practiceRts.map(Math.round), levels, log, hard: { correct: hardCorrect, total: hardTotal } };
 }
 
 /* 공명 호흡 페이서: 들숨 5초 · 날숨 5초. 원(크기)·바깥 띠(단계 진행)·초 카운트·호흡 파형을 함께 보여 준다 */

@@ -108,8 +108,10 @@
      * 기준을 넘지 못하면 진폭의 25% 로 한 번 더 찾고(약한 반응), 방향만 판정에 쓰고 잠복기에는 쓰지 않는다 */
     saccadeRule: { thr: 0.4, weak: 0.25, sustain: 0.7, offcenter: 0.8 },                                            // 수평 정현파 추적
     perclos: { closure: 0.8, blink: 0.5 },                                                       // P80 (Wierwille et al., 1994)
-    /* MIST (Dedovic et al., 2005): 난이도 1~5 무작위, 답은 항상 0~9 한 자리, 제한 시간은 연속 3회 정답이면 10% 단축·연속 3회 실패면 10% 연장 */
-    stress: { limitMs: 4000, minMs: 1800, maxMs: 6500, step: 0.1, streak: 3, target: 0.8, hardAt: [0.35, 0.72] },
+    /* MIST (Dedovic et al., 2005): 난이도 1~5 무작위, 답은 항상 0~9 한 자리.
+     * 시작 제한 시간 = 연습 문제 정답 평균 시간 × 0.9 (원판 규칙). 이후 정답마다 8% 단축·오답/시간 초과마다 12% 연장 —
+     * 가중 계단법(Kaernbach, 1991)이라 정답률 약 60%로 수렴한다(0.08×0.6 = 0.12×0.4). 실패 경험이 압박이 되는 구간 */
+    stress: { limitMs: 4000, minMs: 1200, maxMs: 6500, down: 0.08, up: 0.12, startFactor: 0.9, practice: 4, practiceMs: 8000, target: 0.8, hardAt: [0.35, 0.72], restSec: 30 },
     /* 개인 기기 지연 보정: 가장 빠른 10% 반응이 이 값보다 느린 만큼을 입력·표시 지연으로 보고 빼 준다 (상한 maxMs) */
     latency: { fastRef: 210, maxMs: 60, minTrials: 10 },
   };
@@ -120,7 +122,7 @@
    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다
    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */
   /* minR: 이 신뢰도 아래만 판정에서 뺀다. 0.3 → 0.2로 낮춰, 약하지만 근거가 있는 지표는 버리지 않고 낮은 가중으로 반영한다(점수 기여 = 가중 × 신뢰도) */
-  const QC = { version: 'In_mind QC 1.7', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
+  const QC = { version: 'In_mind QC 1.8', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
     full:  { baseline: 60, pursuit: 24, circle: 15, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
@@ -185,7 +187,7 @@
     { key: 'antiError', domain: 'control', w: 2, label: '안티사카드 방향 오류', unit: '%', d: 0, band: BAND('low', 5, 25, 40, 80), refs: ['munoz', 'antoniades'],
       desc: '반대쪽을 봐야 할 때 표적 쪽으로 먼저 시선이 간 비율. 반사적 반응 억제의 직접 지표', get: a => a.saccade && a.saccade.ok ? a.saccade.anti.errorRate * 100 : null },
     { key: 'sartCommission', domain: 'control', w: 2, label: 'SART 억제 실패', unit: '%', d: 0, band: BAND('low', 10, 40, 60, 90), refs: ['robertson'],
-      desc: '숫자 3에서 멈추지 못한 비율. 일상적 주의 실수와 관련', get: a => a.sart && a.sart.commission * 100 },
+      desc: '숫자 3에서 멈추지 못한 비율. 일상적 주의 실수와 관련', get: a => a.sart && a.sart.commission * 100, count: a => a.sart ? `${a.sart.commits}/${a.sart.nogo}회` : null },
     { key: 'sartCv', domain: 'control', w: 2, label: '반응시간 변동성 (CV)', unit: '', d: 2, band: BAND('low', 0.12, 0.25, 0.35, 0.6), refs: ['kofler'],
       desc: '반응시간 표준편차 ÷ 평균. 주의가 순간순간 흔들리는 정도', get: a => a.sart && a.sart.cv },
     { key: 'sartOmission', domain: 'control', w: 1, label: 'SART 누락', unit: '%', d: 1, band: BAND('low', 0, 5, 10, 30), refs: ['robertson'],
@@ -509,20 +511,34 @@
     const a = ri(0, 9), b = ri(0, 9 - a);
     return { level, text: `${a} + ${b}`, ans: a + b };
   }
-  /* MIST 제한 시간: 연속 3회 정답이면 10% 단축, 연속 3회 오답·시간 초과면 10% 연장 */
-  function mistNext(limit, streak) {
+  /* MIST 제한 시간: 정답이면 8% 단축, 오답·시간 초과면 12% 연장 (정답률 약 60%로 수렴) */
+  function mistNext(limit, ok) {
     const P = PROTOCOL.stress;
-    if (streak >= P.streak) return { limit: Math.max(P.minMs, Math.round(limit * (1 - P.step))), streak: 0 };
-    if (streak <= -P.streak) return { limit: Math.min(P.maxMs, Math.round(limit * (1 + P.step))), streak: 0 };
-    return { limit, streak };
+    return ok ? Math.max(P.minMs, Math.round(limit * (1 - P.down))) : Math.min(P.maxMs, Math.round(limit * (1 + P.up)));
+  }
+  /* 시작 제한 시간: 연습 정답 응답 시간 평균 × 0.9. 정답이 2개 미만이면 기본값 */
+  function mistStart(rts) {
+    const P = PROTOCOL.stress, v = (rts || []).filter(finite);
+    return v.length >= 2 ? clamp(Math.round(mean(v) * P.startFactor), P.minMs, P.maxMs) : P.limitMs;
   }
 
   /* SART: trials [{digit, onset, rt|null}] — 응답 창은 숫자+빈 화면 1150ms */
+  /* 숫자 비율은 원판대로(1~9 같은 수), 순서는 무작위. 다만 3은 연속으로 나오지 않고 앞에 반응 숫자가 2개 이상 오며,
+   * 전반·후반에 같은 수로 나눈다 — 위치에 따른 우연한 변동(예: 후반 3연속)을 줄여 적은 거부 시행에서도 비교가 안정적이게 */
   function sartSequence(n, rand = Math.random) {
-    const out = [];
-    for (let i = 0; i < n; i++) out.push(1 + (i % 9));
-    for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
-    return out;
+    const nogo = PROTOCOL.sart.nogo, digits = [];
+    for (let i = 0; i < n; i++) digits.push(1 + (i % 9));
+    const go = digits.filter(d => d !== nogo), k = digits.length - go.length;
+    for (let i = go.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [go[i], go[j]] = [go[j], go[i]]; }
+    const places = new Set(), halves = [[0, Math.floor(n / 2), Math.ceil(k / 2)], [Math.floor(n / 2), n, Math.floor(k / 2)]];
+    for (const [a, b, m] of halves) {
+      if (!m) continue;
+      const slack = Math.max(0, (b - a) - 2 - 3 * (m - 1) - 1);                     // 구간 시작 뒤 2칸, 3끼리 최소 3칸 간격
+      const s = Array.from({ length: m }, () => Math.floor(rand() * (slack + 1))).sort((x, y) => x - y);
+      s.forEach((v, i) => places.add(Math.min(b - 1, a + 2 + 3 * i + v)));
+    }
+    let gi = 0;
+    return Array.from({ length: n }, (_, i) => (places.has(i) ? nogo : go[gi++ % go.length]));
   }
   function sartStats(sart) {
     const T = sart && Array.isArray(sart.trials) ? sart.trials : [];
@@ -532,10 +548,16 @@
     const rts = go.filter(t => finite(t.rt) && t.rt >= 100).map(t => t.rt);
     const m = mean(rts), sd = std(rts);
     const omission = go.filter(t => !finite(t.rt)).length / go.length;
+    /* 실패 전 가속 (Robertson et al., 1997; Cheyne et al., 2009): 억제 실패 직전 반응 4개가 평소(반응 시행 평균)보다 얼마나 빨랐는지.
+     * 거부 시행 수보다 훨씬 많은 반응 시행을 쓰므로 실패율보다 안정적이다. 양수 = 실패 직전에 빨라짐(자동 반응) */
+    const pre = [];
+    T.forEach((t, i) => { if (t.digit === PROTOCOL.sart.nogo && finite(t.rt)) T.slice(Math.max(0, i - 4), i).forEach(p => { if (p.digit !== PROTOCOL.sart.nogo && finite(p.rt) && p.rt >= 100) pre.push(p.rt); }); });
+    const commits = nogo.filter(t => finite(t.rt)).length;
     return {
-      n: T.length, nogo: nogo.length, go: go.length,
+      n: T.length, nogo: nogo.length, go: go.length, commits,
+      preErrorSpeedup: pre.length >= 4 && rts.length >= 10 ? round(m - mean(pre)) : null,
       invalid: omission > QC.sartOmitMax ? `반응해야 할 숫자의 ${Math.round(omission * 100)}%에 반응하지 않았어요 — 과제를 따라가지 못한 것으로 보여 판정에서 뺐어요` : null,
-      commission: round(nogo.filter(t => finite(t.rt)).length / nogo.length, 3),
+      commission: round(commits / nogo.length, 3),
       omission: round(omission, 3),
       meanRt: round(m), sdRt: round(sd), cv: rts.length >= 10 ? round(sd / m, 3) : null,
       rts: T.map(t => ({ rt: finite(t.rt) ? Math.round(t.rt) : null, nogo: t.digit === PROTOCOL.sart.nogo })),
@@ -860,14 +882,14 @@
       const borderline = !!ci && cuts.some(cut => ci[0] < cut && cut < ci[1]);
       const excluded = has && r < QC.minR;
       return { key: ind.key, domain: ind.domain, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
-        value: v, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded,
+        value: v, count: has && ind.count ? ind.count(a) : null, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded,
         next: has && !excluded ? nextBand(ind, v) : null };
     });
 
     const domains = {};
     DOMAIN_KEYS.forEach(k => { domains[k] = aggregateDomain(k, indicators); });
     if (domains.autonomic.status !== 'na') {
-      if (base.hrRef === 'pre') domains.autonomic.notes.push(base.hr.pre.context === 'pre-task-instructions' ? '안정 기준선의 심박 신호가 약해, 압박 과제 직전 안내 구간을 비교 기준으로 썼어요' : '안정 기준선의 심박 신호가 약해, 압박 과제 직전 구간을 비교 기준으로 썼어요');
+      if (base.hrRef === 'pre') domains.autonomic.notes.push(base.hr.pre.context === 'pre-task-rest' ? '압박 과제 직전 30초 안정 구간의 심박을 비교 기준으로 썼어요 (몇 분 전 기준선보다 바로 직전 상태가 더 정확한 비교라서)' : base.hr.pre.context === 'pre-task-instructions' ? '안정 기준선의 심박 신호가 약해, 압박 과제 직전 안내 구간을 비교 기준으로 썼어요' : '안정 기준선의 심박 신호가 약해, 압박 과제 직전 구간을 비교 기준으로 썼어요');
       if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);
       else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);
       if (base.recovery !== null && base.hr.stressPeak !== null && refHr && refHr.bpm !== null && base.hr.stressPeak - refHr.bpm < 3) domains.autonomic.notes.push('압박 때 심박이 크게 오르지 않아, 회복률은 ‘호흡 후 심박이 평소 수준으로 돌아왔는지’로 계산했어요');
@@ -934,6 +956,7 @@
         { label: '원형 추적 이득 (가로 · 세로)', value: circle && circle.ok ? `${circle.gainX} · ${circle.gainY}` : null, unit: '', refs: ['maruta'] },
         { label: '원형 추적 지연', value: circle && circle.ok ? circle.lagMs : null, unit: 'ms', refs: ['maruta'] },
         { label: 'SART 평균 반응시간', value: pv(sart, 'meanRt'), unit: 'ms', refs: ['robertson'] },
+        { label: 'SART 실패 직전 가속 (평소 대비)', value: pv(sart, 'preErrorSpeedup'), unit: 'ms', refs: ['robertson'] },
         { label: '기준선 머리 움직임', value: base.motion.baseline, unit: '%/초', refs: ['teicher'] },
       ],
       emotion: [
@@ -1122,6 +1145,6 @@
 
   return {
     VERSION, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
-    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
+    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, mistStart, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
   };
 });

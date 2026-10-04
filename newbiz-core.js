@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.1';
+  const VERSION = 'In_mind core 1.2';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -820,7 +820,7 @@
     /* 과제 직전 안정 구간(안내 읽기·카운트다운, 시작 3~25초 전): 기준선이 약하거나 오래전이면 이쪽을 비교 기준으로 */
     hr.pre = ph.preStress ? summarizePhase(Math.max(ph.preStress.start,ph.preStress.end-25000),ph.preStress.end)
       : rec.capture ? phaseHr([],NaN,NaN) : summarizePhase(ss - 25000, ss - 3000);
-    hr.pre.context=ph.preStress?'pre-task-instructions':'legacy-pre-task';
+    hr.pre.context=!ph.preStress?'legacy-pre-task':ph.preStress.end-ph.preStress.start>=15000?'pre-task-rest':'pre-task-instructions';
     /* 회복: 회복 구간 후반 절반 심박 */
     const [rs, re] = span('recovery');
     hr.recoveryLate = summarizePhase((rs + re) / 2, re);
@@ -828,8 +828,11 @@
     /* 약한 신호(weak-signal)라도 창 3개 이상이 일관되면 비교에 쓴다 — 신뢰도(hq)가 낮게 매겨져 점수 가중이 작아진다 */
     const usableHr = q => q && q.bpm !== null && q.quality !== 'none' && (q.quality !== 'poor' || (q.status === 'weak-signal' && q.n >= 3));
     const QR = { good: 2, fair: 1, poor: 0, none: -1 };
-    const ref = usableHr(hr.baseline) && (!usableHr(hr.pre) || QR[hr.baseline.quality] >= QR[hr.pre.quality]) ? { ...hr.baseline, src: 'baseline' }
-      : usableHr(hr.pre) ? { ...hr.pre, src: 'pre' } : null;
+    /* 압박 직전 안정 구간(30초)이 측정됐으면 그쪽을 기준으로 쓴다: 몇 분 전 기준선보다 PVT·SART 뒤 달라진 각성 수준이 반영된다.
+     * 직전 구간 품질이 기준선보다 두 단계 이상 낮을 때만 기준선을 쓴다 */
+    const preFirst = ph.preStress && ph.preStress.end - ph.preStress.start >= 15000;
+    const ref = usableHr(hr.pre) && (preFirst ? !usableHr(hr.baseline) || QR[hr.pre.quality] >= QR[hr.baseline.quality] - 1 : !usableHr(hr.baseline) || QR[hr.pre.quality] > QR[hr.baseline.quality]) ? { ...hr.pre, src: 'pre' }
+      : usableHr(hr.baseline) ? { ...hr.baseline, src: 'baseline' } : null;
     const stressDelta = ref && usableHr(hr.stress) ? round(hr.stress.bpm - ref.bpm, 1) : null;
     const negDelta = usableHr(hr.neu) && usableHr(hr.neg) ? round(hr.neg.bpm - hr.neu.bpm, 1) : null;
     /* 심박 회복률 (항상 계산되도록 재정의):
