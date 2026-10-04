@@ -5,7 +5,7 @@
   if(root)root.NLFusionFactory=factory;
 })(typeof globalThis!=='undefined'?globalThis:null,function(N){
   'use strict';
-  const VERSION='condition-fusion-1',finite=Number.isFinite;
+  const VERSION='condition-fusion-2',finite=Number.isFinite;
   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
   function weightedQuantile(rows,key,q=.5){
     const sorted=rows.filter(r=>finite(r[key])&&r.weight>0).slice().sort((a,b)=>a[key]-b[key]);

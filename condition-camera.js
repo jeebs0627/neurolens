@@ -6,7 +6,7 @@
     constructor(video,opt){
       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;
       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});
-      this.info={version:'condition-camera-2',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
+      this.info={version:'condition-camera-3',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
     }
     async init(){
       /* 기본은 주 스레드 GPU 추론(동영상 프레임마다 직접 추론). 워커 경로는 기기에 따라 초당 7회 수준까지 떨어져
