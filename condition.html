@@ -1013,7 +1013,7 @@ const S = {
   trials: [], pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, curTrial: null,
   model: null, affine: null, gaze: null, view: null, euro: null, rawG: null, drift: { dx: 0, dy: 0 }, feat: null, lastLm: null, rois: null, lastFace: 0, lastTs: 0, fpsTimes: [],
   onFeature: null, onResp: null, onKey: null, onGo: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
-  stim: null, stimMode: 'schematic',
+  stim: null, stimAll: null, stimMeta: null, stimMode: 'schematic',
   aiText: null, hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
 };
 const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
@@ -1035,14 +1035,33 @@ function stimNeed(mode) {
   const f = B.DUR[mode].fv;
   return { threat: f.neg / 2, dysphoric: f.neg / 2, positive: f.pos, neutral: f.neu * 2 + f.neg + f.pos };
 }
+/* 정서 사진 세트: manifest v2 는 forms.A / forms.B 두 세트를 가진다. 같은 기기에서 측정마다 번갈아 써서
+ * 같은 사진을 반복해 보는 습관화를 막는다 (?form=A|B 로 고정). v1(images 하나)도 그대로 읽는다 */
+const FORM_KEY = 'nlNewbiz:stimForm';
+function stimForms(m) {
+  const pick = list => { const set = {}; STIM_CATS.forEach(c => { set[c] = (list || []).filter(x => x && x.category === c && typeof x.file === 'string' && !x.exclude); }); return set; };
+  if (m.forms && typeof m.forms === 'object') return Object.fromEntries(Object.entries(m.forms).map(([k, v]) => [k, pick(v && v.images)]));
+  return { [m.form || 'A']: pick(m.images) };
+}
 async function loadStimuli() {
   try {
     const res = await fetch(STIM_URL, { cache: 'no-cache' });
     if (!res.ok) return;
-    const m = await res.json(), set = {};
-    STIM_CATS.forEach(c => { set[c] = (m.images || []).filter(x => x && x.category === c && typeof x.file === 'string' && !x.exclude); });
-    S.stim = { set, form: m.form || 'A', base: STIM_URL.replace(/[^/]+$/, ''), baseline: Array.isArray(m.baseline) ? m.baseline.filter(x => typeof x === 'string') : [], status: m.status === 'provisional' ? 'provisional' : 'validated' };
+    const m = await res.json();
+    S.stimAll = stimForms(m);
+    S.stimMeta = { base: STIM_URL.replace(/[^/]+$/, ''), baseline: Array.isArray(m.baseline) ? m.baseline.filter(x => typeof x === 'string') : [], status: m.status === 'provisional' ? 'provisional' : 'validated' };
+    chooseForm(modeVal());
   } catch (_) { S.stim = null; }
+}
+/* 이번 측정에 쓸 세트: 고정 지정 → 지난번과 다른 세트 → 준비된 세트 순 */
+function chooseForm(mode) {
+  if (!S.stimAll) return;
+  const forms = Object.keys(S.stimAll).sort(), need = stimNeed(mode);
+  const ready = forms.filter(f => STIM_CATS.every(c => S.stimAll[f][c].length >= need[c]));
+  let last = null; try { last = localStorage.getItem(FORM_KEY); } catch (_) {}
+  const fixed = new URLSearchParams(location.search).get('form');
+  const form = ready.includes(fixed) ? fixed : ready.find(f => f !== last) || ready[0] || forms[0];
+  S.stim = { set: S.stimAll[form], form, ...S.stimMeta };
 }
 function stimReady(mode) {
   if (!S.stim) return false;
@@ -1094,7 +1113,7 @@ function refreshIntro() {
   $('simReport').disabled = !any;
   $('stimInfo').textContent = stimInfoText();
 }
-document.querySelectorAll('[data-mod], input[name=mode]').forEach(el => el.addEventListener('change', refreshIntro));
+document.querySelectorAll('[data-mod], input[name=mode]').forEach(el => el.addEventListener('change', () => { chooseForm(modeVal()); refreshIntro(); }));
 $('agree').addEventListener('change', refreshIntro);
 $('simPersona').innerHTML = Object.keys(B.PERSONAS).map(k => `<option value="${k}">${esc(B.PERSONAS[k].label)}</option>`).join('');
 refreshIntro();
@@ -1673,7 +1692,9 @@ async function runStep(key, fn) {
 async function runSession() {
   Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null });
   Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 } });
+  chooseForm(S.mode);
   S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';
+  if (S.stimMode === 'photo' && !S.demo) { try { localStorage.setItem(FORM_KEY, S.stim.form); } catch (_) {} }
   if (S.demo) S.calib = { grade: 'good', errPct: null, mouse: true };
   const d = B.DUR[S.mode], m = S.mods, plan = [];
   if (!S.demo) plan.push(['calibration', () => calibrate()]);

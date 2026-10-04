@@ -13,3 +13,5 @@ gemini.key
 /__pycache__/
 /api/*_test.py
 /tools/
+/newbiz-stim/generation-report-*/
+/newbiz-stim/02scape.png

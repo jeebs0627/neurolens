@@ -70,32 +70,39 @@ newbiz.html 의 '정서 자유 보기' 검사가 쓰는 사진 세트입니다. 
 4. **사전 검증 (파일럿)** — 20명 이상에게 웹캠으로 검사를 실시해, 중립-중립 쌍의 좌우 응시가 50%에 가깝고
    (사진 자체의 쏠림 없음) 범주별 편향의 반분 신뢰도를 확인합니다.
 
-## 5. manifest.json 형식
+## 5. manifest.json 형식 (v2 — 두 세트)
 
 ```json
 {
-  "version": 1,
-  "form": "A",
-  "images": [
-    { "id": "THR-P-01", "file": "A/thr_person_01.jpg", "category": "threat", "content": "person", "valence": 2.9, "arousal": 6.4, "luminance": 128 },
-    { "id": "NEU-P-01", "file": "A/neu_person_01.jpg", "category": "neutral", "content": "person", "valence": 5.1, "arousal": 2.6, "luminance": 131 }
-  ]
+  "version": 2,
+  "status": "provisional",
+  "baseline": ["calm/scape_02.jpg"],
+  "forms": {
+    "A": { "images": [ { "id": "THR-P-01", "file": "A/thr_person_01.jpg", "category": "threat", "content": "person", "twin": "NEU-P-001", "luminance": 129 } ] },
+    "B": { "images": [ { "id": "NEU-P-307", "file": "B/neu_person_307.jpg", "category": "neutral", "content": "person", "role": "filler", "luminance": 129 } ] }
+  }
 }
 ```
 
-- `category`: `threat` · `dysphoric` · `positive` · `neutral`
-- `content`: `person` · `animal` · `scene` · `object`
-- `file`: 이 폴더 기준 경로 · `exclude: true` 로 임시 제외 가능
-- 검사에 필요한 최소 수량 — 표준 측정(약 8분, 기본): 위협 4 · 슬픔 4 · 긍정 4 · 중립 18 / 정밀 측정: 위협 12 · 슬픔 12 · 긍정 12 · 중립 48
+- 같은 기기에서는 **측정마다 A·B 를 번갈아** 씁니다 (같은 사진 반복으로 편향이 줄어드는 습관화 방지). 주소에 `?form=A` 또는 `?form=B` 를 붙이면 고정됩니다.
+- `category`: `threat` · `dysphoric` · `positive` · `neutral` / `content`: `person` · `animal` · `scene` · `object`
+- `twin`: 정서 사진의 중립 쌍둥이 id — 검사가 우선 짝지어 보여 줍니다. 쌍둥이가 제외되면 같은 `content` 의 다른 중립 사진과 짝짓습니다.
+- `exclude: true` + `note`: 검사에서 빼는 사진과 이유 (파일은 지우지 않음)
+- `status: "provisional"`: SAM 평정 전 — 리포트에 ‘잠정 세트’로 표시됩니다. 평정을 마치면 각 사진에 `valence`·`arousal` 을 넣고 이 줄을 지우세요.
+- 검사에 필요한 최소 수량(세트마다) — 표준 측정(약 8분): 위협 4 · 슬픔 4 · 긍정 4 · 중립 18 / 정밀 측정: 위협 12 · 슬픔 12 · 긍정 12 · 중립 48
 
-## 참고문헌
+### 2026-10-04 적용 결과
+세트 A·B 각 105장(정서 45 + 쌍둥이 45 + 채움 15) 모두 등록. 제외 기준과 제외 사진:
 
-- Armstrong T, Olatunji BO. Eye tracking of attention in anxiety and depression: a meta-analytic review and synthesis. Clin Psychol Rev. 2012;32(8):704–723.
-- Bradley MM, Lang PJ. Measuring emotion: the Self-Assessment Manikin and the semantic differential. J Behav Ther Exp Psychiatry. 1994;25(1):49–59.
-- Kellough JL, Beevers CG, Ellis AJ, Wells TT. Time course of selective attention in clinically depressed young adults: an eye tracking study. Behav Res Ther. 2008;46(11):1238–1243.
-- Kurdi B, Lozano S, Banaji MR. Introducing the Open Affective Standardized Image Set (OASIS). Behav Res Methods. 2017;49(2):457–470.
-- Marchewka A, Żurawski Ł, Jednoróg K, Grabowska A. The Nencki Affective Picture System (NAPS). Behav Res Methods. 2014;46(2):596–610.
-- Waechter S, Nelson AL, Wright C, Hyatt A, Oakman J. Measuring attentional bias to threat: reliability of dot probe and eye movement indices. Cognit Ther Res. 2014;38(3):313–333.
+| 기준 | A | B |
+|---|---|---|
+| 위협 단서가 약함 | thr_scene_01, thr_scene_04 | thr_scene_05 |
+| 쌍둥이와 채도 차이 35 초과 | thr_object_02, dys_animal_03, dys_scene_02, pos_scene_01 | dys_animal_04, dys_scene_05 |
+| 중립이 아닌 쌍둥이·중립 | neu_scene_201 (흐린 바다) | neu_person_111 (장례식장), neu_person_112 (눈물), neu_person_209 (결혼식) |
+| 생성 보고서 보류 | — | neu_animal_306 (비단잉어) |
+
+사용 수량 — A: 위협 12 · 슬픔 13 · 긍정 14 · 중립 59 / B: 위협 14 · 슬픔 13 · 긍정 15 · 중립 56.
+남은 검증: 2인 시각 검수, SAM 정서가·각성가 평정(장당 20명 이상), A·B 정서 동등성, 파일럿 (generation-report-20261003/review_pending.md).
 
 ## 6. 안정 기준선 풍경 사진 (선택)
 
