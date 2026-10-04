@@ -2,11 +2,14 @@
 import hashlib
 import json
 import os
+import random
 import re
+import time
 import urllib.error
 import urllib.request
 import uuid
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from http.server import BaseHTTPRequestHandler
 
 MODEL = 'gemini-3.6-flash'
@@ -27,8 +30,9 @@ SYSTEM = '''당신은 NeuroLens 측정 알고리즘 연구 기록 담당자다. 
 
 
 class RequestError(Exception):
-    def __init__(self, status, message):
+    def __init__(self, status, message, code='DATASET_REQUEST_ERROR', retryable=False):
         self.status, self.message = status, message
+        self.code, self.retryable = code, retryable
 
 
 def canonical(value):
@@ -116,6 +120,32 @@ def compose(detail, operation, source_id):
     return context, instruction, memo, source
 
 
+def provider_error(status):
+    if status in (500, 502, 503, 504):
+        return RequestError(503, f'Gemini 서버가 일시적으로 요청을 처리하지 못했습니다(HTTP {status}). 이번 요청을 완료하지 못했습니다. 잠시 후 같은 버튼으로 다시 시도하세요. 저장된 원문은 유지됩니다.', 'GEMINI_UNAVAILABLE', True)
+    if status == 429:
+        return RequestError(429, 'Gemini 요청 한도에 도달했습니다(HTTP 429). 잠시 후 재시도하거나 Google AI Studio에서 해당 API 키의 할당량·결제를 확인하세요.', 'GEMINI_RATE_LIMIT', True)
+    if status in (401, 403):
+        return RequestError(502, f'Gemini 키 또는 API 접근 권한을 확인하세요(HTTP {status}). Vercel의 neurolens_dataset 값과 Google 프로젝트의 API 설정을 확인해야 합니다.', 'GEMINI_ACCESS_DENIED')
+    if status == 404:
+        return RequestError(502, f'현재 키에서 {MODEL} 모델을 찾지 못했습니다(HTTP 404). 모델 제공 여부와 프로젝트 접근 권한을 확인하세요.', 'GEMINI_MODEL_NOT_FOUND')
+    return RequestError(502, f'Gemini가 요청을 거절했습니다(HTTP {status}). 저장한 메모와 개발 결과는 유지됩니다.', 'GEMINI_REQUEST_REJECTED')
+
+
+def retry_delay(error, attempt):
+    delay = 2 ** attempt + random.uniform(0, 0.5)
+    value = error.headers.get('Retry-After', '') if error.headers else ''
+    if value:
+        try:
+            delay = max(delay, float(value))
+        except ValueError:
+            try:
+                delay = max(delay, (parsedate_to_datetime(value) - datetime.now(timezone.utc)).total_seconds())
+            except (ValueError, TypeError, OverflowError):
+                pass
+    return delay
+
+
 def generate(context, instruction, api_key):
     payload = {'systemInstruction': {'parts': [{'text': SYSTEM}]},
                'contents': [{'role': 'user', 'parts': [{'text': instruction + '\n\n[연구 자료 JSON]\n' + canonical(context)}]}],
@@ -124,11 +154,24 @@ def generate(context, instruction, api_key):
         'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent',
         data=canonical(payload).encode('utf-8'),
         headers={'Content-Type': 'application/json', 'x-goog-api-key': api_key}, method='POST')
-    try:
-        with urllib.request.urlopen(req, timeout=55) as response:
-            data = json.load(response)
-    except urllib.error.HTTPError as error:
-        raise RequestError(502, f'Gemini 호출 실패(HTTP {error.code}). 모델 접근 권한·키·할당량을 확인하세요. 저장한 메모와 개발 결과는 유지됩니다.') from None
+    # Reserve time for the two Supabase RPCs within the 120-second function limit.
+    deadline, attempts = time.monotonic() + 80, 0
+    for attempt in range(3):
+        attempts += 1
+        try:
+            with urllib.request.urlopen(req, timeout=max(1, min(55, deadline - time.monotonic()))) as response:
+                data = json.load(response)
+            break
+        except urllib.error.HTTPError as error:
+            failure = provider_error(error.code)
+            delay = retry_delay(error, attempt)
+            error.close()
+            if not failure.retryable or attempt == 2 or deadline - time.monotonic() < delay + 5:
+                raise failure from None
+            time.sleep(delay)
+        except (urllib.error.URLError, TimeoutError):
+            # A timed-out generation may have run upstream. Avoid automatically repeating it.
+            raise RequestError(504, 'Gemini 응답을 시간 내에 확인하지 못했습니다. 잠시 후 재시도하세요. 저장된 원문은 유지됩니다.', 'GEMINI_TIMEOUT', True) from None
     candidates = data.get('candidates') or []
     candidate = candidates[0] if candidates else {}
     if candidate.get('finishReason') != 'STOP':
@@ -137,7 +180,7 @@ def generate(context, instruction, api_key):
     if not text or len(text) > 40000:
         raise RequestError(502, 'Gemini 응답의 길이 또는 형식이 올바르지 않습니다.')
     usage = data.get('usageMetadata') or {}
-    return text, {'model': MODEL, 'modelVersion': data.get('modelVersion'),
+    return text, {'model': MODEL, 'modelVersion': data.get('modelVersion'), 'attempts': attempts,
                   'usage': {k: usage[k] for k in ('promptTokenCount', 'candidatesTokenCount', 'totalTokenCount') if k in usage}}
 
 
@@ -163,7 +206,7 @@ def process(body, token):
         return {'annotation': prior, 'reused': True}
     api_key = os.environ.get('neurolens_dataset', '').strip()
     if not api_key:
-        raise RequestError(503, 'Vercel 환경변수 neurolens_dataset을 설정하고 다시 배포하세요.')
+        raise RequestError(503, '현재 배포에 neurolens_dataset 키가 없습니다. Vercel 환경변수 이름과 Production 적용 여부를 확인한 뒤 재배포하세요.', 'DATASET_KEY_MISSING')
     text, provenance = generate(context, instruction, api_key)
     created_at = datetime.now(timezone.utc).isoformat()
     measurement_hash = digest(context['measurement'])
@@ -203,7 +246,7 @@ class handler(BaseHTTPRequestHandler):
                 raise RequestError(400, '잘못된 JSON입니다.') from None
             self.send_json(200, process(body, authorization[7:]))
         except RequestError as error:
-            self.send_json(error.status, {'error': error.message})
+            self.send_json(error.status, {'error': error.message, 'code': error.code, 'retryable': error.retryable})
         except Exception:
             # Never log tokens, provider bodies or research data.
             self.send_json(502, {'error': 'AI 처리 또는 기록 저장에 실패했습니다. 원본 메모·개발 결과는 유지됩니다. 새로고침 후 재시도하세요.'})

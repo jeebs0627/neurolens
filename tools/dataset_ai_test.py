@@ -130,6 +130,52 @@ class DatasetTests(unittest.TestCase):
                 self.run_operation()
             self.assertEqual(len(self.detail['annotations']), 1)
 
+    def test_transient_503_recovers_without_duplicate_annotation(self):
+        response = {'candidates': [{'finishReason': 'STOP', 'content': {'parts': [{'text': 'recovered'}]}}]}
+        errors = [urllib.error.HTTPError('https://provider.invalid', 503, 'busy', {}, io.BytesIO(b'private provider body')) for _ in range(2)]
+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}), patch.object(api.urllib.request, 'urlopen', side_effect=[*errors, io.BytesIO(json.dumps(response).encode())]) as request, patch.object(api.time, 'sleep') as sleep, patch.object(api.random, 'uniform', return_value=0):
+            result = self.run_operation()
+            self.assertEqual(result['annotation']['body']['provenance']['attempts'], 3)
+            self.assertEqual(request.call_count, 3)
+            self.assertEqual([x.args[0] for x in sleep.call_args_list], [1, 2])
+            self.assertEqual(len(self.detail['annotations']), 2)
+            self.assertNotIn('private provider body', api.canonical(result))
+
+    def test_persistent_503_preserves_memo_and_reports_retryable(self):
+        errors = [urllib.error.HTTPError('https://provider.invalid', 503, 'busy', {}, io.BytesIO()) for _ in range(3)]
+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}), patch.object(api.urllib.request, 'urlopen', side_effect=errors) as request, patch.object(api.time, 'sleep'):
+            with self.assertRaises(api.RequestError) as caught:
+                self.run_operation()
+            self.assertEqual(caught.exception.code, 'GEMINI_UNAVAILABLE')
+            self.assertEqual(caught.exception.status, 503)
+            self.assertTrue(caught.exception.retryable)
+            self.assertEqual(request.call_count, 3)
+            self.assertEqual(self.detail['annotations'], [self.memo])
+
+    def test_permanent_errors_not_retried(self):
+        for status, code in [(400, 'GEMINI_REQUEST_REJECTED'), (403, 'GEMINI_ACCESS_DENIED'), (404, 'GEMINI_MODEL_NOT_FOUND')]:
+            with patch.object(api.urllib.request, 'urlopen', side_effect=urllib.error.HTTPError('https://provider.invalid', status, 'error', {}, io.BytesIO())) as request, patch.object(api.time, 'sleep') as sleep:
+                with self.assertRaises(api.RequestError) as caught:
+                    api.generate({}, 'test', 'fixture')
+                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(request.call_count, 1)
+                sleep.assert_not_called()
+
+    def test_retry_after_and_deadline_are_respected(self):
+        for status, headers, times in [(429, {'Retry-After': '120'}, [0, 0, 0]), (503, {}, [0, 0, 77])]:
+            with patch.object(api.urllib.request, 'urlopen', side_effect=urllib.error.HTTPError('https://provider.invalid', status, 'busy', headers, io.BytesIO())) as request, patch.object(api.time, 'monotonic', side_effect=times), patch.object(api.time, 'sleep') as sleep, patch.object(api.random, 'uniform', return_value=0):
+                with self.assertRaises(api.RequestError):
+                    api.generate({}, 'test', 'fixture')
+                self.assertEqual(request.call_count, 1)
+                sleep.assert_not_called()
+
+    def test_timeout_not_automatically_repeated(self):
+        with patch.object(api.urllib.request, 'urlopen', side_effect=TimeoutError()) as request:
+            with self.assertRaises(api.RequestError) as caught:
+                api.generate({}, 'test', 'fixture')
+            self.assertEqual(caught.exception.code, 'GEMINI_TIMEOUT')
+            self.assertEqual(request.call_count, 1)
+
     def test_handler_no_auth_and_body_size(self):
         handler = object.__new__(api.handler)
         handler.headers = {}
