@@ -1,5 +1,12 @@
 {
+  "functions": {
+    "api/neurolens_dataset.py": { "maxDuration": 120 }
+  },
   "rewrites": [
+    {
+      "source": "/neurolens_dataset",
+      "destination": "/api/neurolens_dataset"
+    },
     {
       "source": "/dataset",
       "destination": "/dataset.html"
