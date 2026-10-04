@@ -1498,6 +1498,8 @@ function processResult(fr, packet, context) {
     const st = fr.gazeOk ? S.gstab.push(g, t) : null;
     const bl = !fr.gazeOk || !st || st.held;
     S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };
+    /* 시선 이탈 감시: 시선 과제 중 보정 좌표가 화면에서 25% 넘게 벗어난 비율. 높으면 보정이 무너진 것이라 시선 지표를 판정하지 않는다 */
+    if (fr.gazeOk && S.gazeOut && GAZE_STEPS.includes(S.cur)) { const W = stage.clientWidth || innerWidth, H = stage.clientHeight || innerHeight; S.gazeOut.n++; if (g.x < -0.25 * W || g.x > 1.25 * W || g.y < -0.25 * H || g.y > 1.25 * H) S.gazeOut.off++; }
     if (st) S.gaze = { x: st.x, y: st.y };
     if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };
     if (!bl && S.onGaze) S.onGaze({ x: st.x, y: st.y, rx: g.x, ry: g.y }, t);
@@ -1903,7 +1905,7 @@ async function runStep(key, fn) {
 }
 async function runSession() {
   Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null, phaseEvidence: {} });
-  Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 } });
+  Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 }, gazeOut: { n: 0, off: 0 } });
   S.attemptId=crypto.randomUUID();S.startedAt=now();S.endedAt=null;S.outcome='recording';S.errorCode=null;
   S.researchConsent=!S.demo&&$('rsOpt').checked?{version:NLResearch.CONSENT_VERSION,research:true,phq:$('rsPhq').checked,at:new Date().toISOString()}:null;
   S.telemetry={clock:{timeOrigin:performance.timeOrigin,start:S.startedAt,onset:'requestAnimationFrame-before-paint'},steps:{},stimuli:[],inputs:[],drift:[],calibrationFrames:[]};
@@ -2734,11 +2736,17 @@ async function phaseRecovery(sec) {
 }
 
 /* ---------- 분석 · 리포트 ---------- */
+/* 시선 과제 표본의 40% 이상이 화면 밖이면 보정 등급을 'poor'로 내려 추적·사카드·정서 시선 지표를 판정에서 뺀다(원래 등급은 lost 에 남김) */
+function gazeLostCalib() {
+  const o = S.gazeOut, c = S.calib;
+  if (!c || !o || o.n < 60 || o.off / o.n < 0.4) return c;
+  return { ...c, grade: 'poor', lost: { offscreen: Math.round(o.off / o.n * 100) / 100, samples: o.n, originalGrade: c.grade } };
+}
 function liveRecord() {
   return {
     attemptId:S.attemptId,startedAt:S.startedAt,endedAt:S.endedAt||now(),outcome:S.outcome,errorCode:S.errorCode,telemetry:S.telemetry,reference:S.researchConsent?referenceCollector.snapshot():null,researchConsent:S.researchConsent,
     frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
-    stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: S.calib, checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
+    stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: gazeLostCalib(), checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
     stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null, measuredAt: new Date().toISOString(),
     capture: S.camera ? { ...S.camera.info } : null, hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
   };

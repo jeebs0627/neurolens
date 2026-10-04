@@ -35,6 +35,13 @@ test('An isolated RGB impulse is repaired without rewriting captured data',()=>{
   const raw=f.r,sig=N.buildBvp(frames);assert.equal(f.r,raw);assert.ok(sig.recoveredFraction>0);
   assert.ok(Math.abs(N.median(N.hrWindows(sig).map(w=>w.bpm))-72)<3);
 });
+test('A slower opening segment keeps its pulse windows when the camera later speeds up',()=>{
+  // 2026-10-04 실측 회귀: 앞 30초 18fps, 이후 30fps → 전체 중앙값 간격 기준이면 앞 구간 전체가 '보간'으로 탈락했다
+  const frames=[...N.synthFrames(0,30000,()=>72,{fps:18,noise:.04,seed:31}),...N.synthFrames(30050,100000,()=>72,{fps:30,noise:.04,seed:32})];
+  const sig=N.buildBvp(frames),early=N.hrWindows(sig).filter(w=>w.end<=30000&&w.usable);
+  assert.ok(early.length>=5,'early windows '+early.length);
+  assert.ok(Math.abs(N.median(early.map(w=>w.bpm))-72)<4);
+});
 test('Eye measurements are retained when PPG is unavailable at 12 fps',()=>{
   const frames=N.synthFrames(0,60000,()=>72,{fps:12}).map(f=>({...f,ok:false,ppgOk:false,eyeOk:true,faceOk:true}));
   const eye=B.eyeStats(frames,0,60000);assert.ok(eye&&eye.coverage>.95);assert.equal(N.buildBvp(frames),null);

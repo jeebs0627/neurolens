@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 0.9';
+  const VERSION = 'In_mind core 1.0';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -214,6 +214,8 @@
           p.jitter=Math.max(...[0,2].map(k=>Math.abs(ratio(p.v,k)/Math.max(.01,ratio(prev.v,k))-1)));
         }
       });
+      const gaps=clean.map((p,i)=>i?p.t-clean[i-1].t:NaN),dtCache=new Map();
+      const localDt=j=>{if(!dtCache.has(j)){const g=gaps.slice(Math.max(1,j-15),j+16).filter(v=>v>0);dtCache.set(j,g.length?median(g):dt);}return dtCache.get(j);};
       const rgb=[0,1,2].map(()=>new Float64Array(length).fill(NaN));
       let j=0;
       for(let i=0;i<length;i++){
@@ -225,7 +227,9 @@
         if(!b||b.t-a.t>200||b.t<=a.t)continue;
         const q=(t-a.t)/(b.t-a.t);qualityTrace[i]=a.q+(b.q-a.q)*q;jitterTrace[i]=a.jitter+(b.jitter-a.jitter)*q;
         for(let k=0;k<3;k++)rgb[k][i]=a.v[k]+(b.v[k]-a.v[k])*q;
-        if(b.t-a.t>dt*1.6)repaired[i]=1;
+        // 보간 표시는 주변 ±15프레임 간격의 국소 중앙값 기준: 기록 전체 중앙값(dt)만 쓰면 빨라진 구간 때문에
+        // 18~20fps 구간 전체가 '보간'으로 잡혀 창이 모두 버려진다(2026-10-04 실측: 기준선 0초)
+        if(b.t-a.t>localDt(j)*1.6)repaired[i]=1;
       }
       // Filtering is restarted at every long gap; no pulse is synthesized across absence.
       for(let a=0;a<length;){
@@ -443,8 +447,12 @@
    * 홍채 위치(u,v)의 제곱항을 더해 화면 가장자리에서 시선이 덜 따라가는 비선형을 보정한다 */
   /* 눈꺼풀 열림(open)은 위를 보면 커지고 아래를 보면 작아져 웹캠에서 약한 세로 시선 추정을 보강한다.
    * 보정 표본 모두에 값이 있을 때만 특징으로 쓰고(model.keys), 예측 때 없으면 평균값(z=0)으로 둔다 */
+  /* 머리 자세 특징의 표준편차 하한: 보정 중 머리가 거의 안 움직이면 σ가 0.002 수준으로 작게 잡혀,
+   * 이후 자세가 조금만 바뀌어도 수 σ로 외삽돼 시선이 화면 밖으로 튄다(2026-10-04 실측: 세로 +3,000px).
+   * 하한(HEAD_SD_MIN)·머리 특징 강한 수축(HEAD_RIDGE, fitGaze)·예측 z ±4 제한으로 외삽을 묶는다 */
+  const HEAD_SD_MIN = { yaw: 0.01, pitch: 0.01, cx: 0.01, cy: 0.01 }, Z_MAX = 4, HEAD_RIDGE = 100;
   const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS) => {
-    const z = keys.map(k => (finite(f[k]) ? (f[k] - mu[k]) / sd[k] : 0));
+    const z = keys.map(k => (finite(f[k]) ? clamp((f[k] - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0));
     return quad ? [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]] : [1, ...z];
   };
   function fitGaze(samples, lambda = 0.5, opt = {}) {
@@ -462,7 +470,9 @@
         const w = W[i];
         for (let a = 0; a < d; a++) { Xty[a] += w * row[a] * S[i][key]; for (let b = 0; b < d; b++) XtX[a][b] += w * row[a] * row[b]; }
       });
-      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 : 1);   // 제곱항은 더 강하게 수축
+      // 제곱항은 더 강하게 수축. 머리 자세(yaw·pitch·cx·cy)는 보정 중 시선을 따라 함께 움직인 상관을 배우지 않도록 100배 수축
+      // (2026-10-04 실측 재현: 보정 밖 검증점 오차 21% → 16%, 과제 중 세로 좌표가 화면 밖 +2,000px → 화면 안)
+      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 : HEAD_SD_MIN[keys[a - 1]] ? HEAD_RIDGE : 1);
       return solve(XtX, Xty);
     };
     const wx = fit('x'), wy = fit('y');

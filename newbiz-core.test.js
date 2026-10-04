@@ -168,4 +168,17 @@ const N = require('./newbiz-core.js');
   assert.equal(j.length, 1); assert.ok(Math.abs(j[0] - 15000) < 2100);
 }
 
+/* 보정 중 머리가 시선을 따라 조금 움직이면(cy가 표적 y와 상관) 모델이 cy를 배워, 이후 자세가 2%만 내려가도 시선이 화면 밖으로 튀었다(2026-10-04 실측 회귀) */
+{
+  const W = 1920, H = 1080, S = [];
+  let k = 0;
+  for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 20; i++, k++) {
+    const n = Math.sin(k * 12.9898) * 0.5;
+    S.push({ x: fx * W, y: fy * H, f: { u: 0.5 + (fx - 0.5) * 0.15 + n * 0.004, v: -0.015 + (fy - 0.5) * 0.02 + n * 0.003, yaw: (fx - 0.5) * 0.004, pitch: 0.05 + (fy - 0.5) * 0.004, cx: 0.51 + (fx - 0.5) * 0.003, cy: 0.56 + (fy - 0.5) * 0.004, open: 0.4 } });
+  }
+  const m = N.fitGaze(S);
+  const center = N.predictGaze(m, { u: 0.5, v: -0.015, yaw: 0, pitch: 0.05, cx: 0.51, cy: 0.58, open: 0.4 });
+  assert.ok(center.y > -0.25 * H && center.y < 1.25 * H, 'gaze y stays on screen after a 2% posture shift: ' + Math.round(center.y));
+}
+
 console.log('newbiz-core tests passed');
