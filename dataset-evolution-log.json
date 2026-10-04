@@ -4633,9 +4633,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:22:05.913715+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "a7ab7b57b02b4015b1e65e5ad17ef5f6d46ecf90",
@@ -4686,9 +4689,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:22:12.919958+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "142ae96cab96e6dc2a2424cc060a3fb8348681fd",
@@ -5819,9 +5825,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:22:17.277402+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "ff140ac45506c62649058cf987cb9816032c013b",
@@ -8212,7 +8221,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "5c20cd4d1939f6f608d020f9c3b2be0754e3e98f"
+    "sourceHead": "38688bdb0256baf2403ffc6c12ce23f5989c7c94"
   },
-  "updatedAt": "2026-10-04T10:21:37.229742+00:00"
+  "updatedAt": "2026-10-04T10:22:22.512585+00:00"
 }
