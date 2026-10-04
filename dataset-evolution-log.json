@@ -74,6 +74,26 @@
           "at": "2026-10-04T10:18:59Z",
           "url": "https://vercel.com/ax-open-lab/neurolens/3EoKqdcTD1o28rzqBrXnWghpQ5bM",
           "source": "github-commit-status"
+        },
+        {
+          "key": "check-55544314425",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "failure",
+          "at": "2026-10-04T10:20:10Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/3EoKqdcTD1o28rzqBrXnWghpQ5bM",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6839733336-19240628452",
+          "type": "deployment",
+          "deploymentId": 6839733336,
+          "environment": "Production",
+          "production": false,
+          "state": "inactive",
+          "at": "2026-10-04T10:20:11Z",
+          "url": "https://neurolens-903p33oea-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
         }
       ],
       "lastAttemptAt": "2026-10-04T10:19:30.821421+00:00",
@@ -4365,9 +4385,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:21:21.516673+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "5cb8616722d8834e965ac3a5dcc239ede9153aa3",
@@ -4435,9 +4458,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:21:28.467325+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "72cdb5c90ec64d7d821b1ce7c3028d57e40b4a76",
@@ -4517,9 +4543,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:21:32.803091+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "ae3579cf223b9c6a5d4615263b8f347dcb767571",
@@ -8183,7 +8212,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "18fa8984d145082f1c2ce8c3d1e7cfac985adddc"
+    "sourceHead": "5c20cd4d1939f6f608d020f9c3b2be0754e3e98f"
   },
-  "updatedAt": "2026-10-04T10:21:02.103040+00:00"
+  "updatedAt": "2026-10-04T10:21:37.229742+00:00"
 }
