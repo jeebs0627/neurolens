@@ -130,7 +130,7 @@ window.NLAuth = {
     });
   },
 
-  /** 내 검사 내역 (최신순, 리포트 본문 제외) */
+  /** 내 시선추적 성향검사 내역 (최신순, 리포트 본문 제외) */
   myResults: function () {
     if (!client) return Promise.resolve([]);
     return this.getUser().then(function (u) {
@@ -138,8 +138,60 @@ window.NLAuth = {
       return client.from('test_results')
         .select('id, created_at, name, mbti, holland')
         .eq('user_id', u.id)
+        .eq('kind', 'trait')
         .order('created_at', { ascending: false })
         .then(function (r) { return r.data || []; });
+    });
+  },
+
+  /* ---------- 마인드 컨디션 검사 (kind = 'condition') ---------- */
+
+  /** 컨디션 검사 결과 저장 → 행 id. result = {kind, summary:{overall,title,code,scores,statuses,profile}, report} */
+  saveCondition: function (payload) {
+    if (!client) return Promise.resolve(null);
+    return this.getUser().then(function (u) {
+      if (!u) return null;
+      var nm = (u.user_metadata && u.user_metadata.name) || '';
+      return client.from('test_results').insert({ user_id: u.id, kind: 'condition', name: nm, result: payload })
+        .select('id').single().then(function (r) {
+          if (r.error) { console.error('컨디션 결과 저장 실패:', r.error); return null; }
+          return r.data.id;
+        });
+    });
+  },
+
+  /** 내 컨디션 검사 내역 (최신순) — 요약만: [{id, created_at, summary}] */
+  myConditions: function (limit) {
+    if (!client) return Promise.resolve([]);
+    return this.getUser().then(function (u) {
+      if (!u) return [];
+      return client.from('test_results')
+        .select('id, created_at, summary:result->summary')
+        .eq('user_id', u.id).eq('kind', 'condition')
+        .order('created_at', { ascending: false }).limit(limit || 50)
+        .then(function (r) { return r.data || []; });
+    });
+  },
+
+  /** 저장된 컨디션 결과에 종합 해설 덧붙이기 (본인 행만: results_update_own 정책) */
+  saveConditionAi: function (id, text) {
+    if (!client || !id) return Promise.resolve(false);
+    return client.from('test_results').select('result').eq('id', id).maybeSingle().then(function (r) {
+      if (!r.data || !r.data.result) return false;
+      var res = Object.assign({}, r.data.result, { ai: text });
+      return client.from('test_results').update({ result: res }).eq('id', id).then(function (u) { return !u.error; });
+    });
+  },
+
+  /** 가장 최근 성향검사 1건 (결과 본문 포함) | null — 프로필 뱃지용 */
+  latestTrait: function () {
+    if (!client) return Promise.resolve(null);
+    return this.getUser().then(function (u) {
+      if (!u) return null;
+      return client.from('test_results').select('id, created_at, mbti, holland, result')
+        .eq('user_id', u.id).eq('kind', 'trait')
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+        .then(function (r) { return r.data || null; });
     });
   },
 
@@ -162,6 +214,7 @@ window.NLAuth = {
     if (!client) return Promise.resolve([]);
     return client.from('test_results')
       .select('id, user_id, created_at, name, mbti, holland')
+      .eq('kind', 'trait')
       .order('created_at', { ascending: false })
       .then(function (r) { if (r.error) throw r.error; return r.data || []; });
   },

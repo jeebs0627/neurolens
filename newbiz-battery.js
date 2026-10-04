@@ -65,6 +65,8 @@
     pos: 'Wang W, den Brinker AC, Stuijk S, de Haan G. Algorithmic principles of remote PPG. IEEE Trans Biomed Eng. 2017;64(7):1479–1491.',
     mediapipe: 'Kartynnik Y, Ablavatski A, Grishchenko I, Grundmann M. Real-time facial surface geometry from monocular video on mobile GPUs. CVPR Workshop on Computer Vision for AR/VR; 2019. arXiv:1907.06724.',
     webcamET: 'Semmelmann K, Weigelt S. Online webcam-based eye tracking in cognitive science: a first look. Behav Res Methods. 2018;50(2):451–465.',
+    mogg: 'Mogg K, Bradley BP, Miles F, Dixon R. Time course of attentional bias for threat scenes: testing the vigilance-avoidance hypothesis. Cogn Emot. 2004;18(5):689–700.',
+    winer: 'Winer ES, Salem T. Reward devaluation: dot-probe meta-analytic evidence of avoidance of positive information in depressed persons. Psychol Bull. 2016;142(1):18–78.',
     kellough: 'Kellough JL, Beevers CG, Ellis AJ, Wells TT. Time course of selective attention in clinically depressed young adults: an eye tracking study. Behav Res Ther. 2008;46(11):1238–1243.',
     waechter: 'Waechter S, Nelson AL, Wright C, Hyatt A, Oakman J. Measuring attentional bias to threat: reliability of dot probe and eye movement indices. Cognit Ther Res. 2014;38(3):313–333.',
     kurdi: 'Kurdi B, Lozano S, Banaji MR. Introducing the Open Affective Standardized Image Set (OASIS). Behav Res Methods. 2017;49(2):457–470.',
@@ -99,12 +101,14 @@
     sart: { digitMs: 250, maskMs: 900, mask: false, nogo: 3, sizes: [48, 72, 94, 100, 120] },   // SART (Robertson et al., 1997) — 마스크 대신 빈 화면 (아래 MODULES 참고)
     saccade: { fixMin: 1000, fixMax: 2000, targetMs: 1200, gapMs: 400, ecc: 0.35, window: 1000 }, // 단계 패러다임 (Antoniades et al., 2013 참고)
     pursuit: { freq: 0.25, amp: 0.36, skipMs: 1500 },
+    /* 원형 추적 (Maruta et al., 2010): 원을 그리며 도는 점을 따라간다. 수평·수직 추적과 예측적 동기화를 함께 본다 */
+    circle: { freq: 0.4, r: 0.17, skipMs: 1200 },
     /* 사카드 판정: 응답 기준은 개인 시선 진폭의 40%, 단발성 튐을 막기 위해 다음 표본도 기준의 70% 이상 같은 쪽이어야 한다.
      * 기준을 넘지 못하면 진폭의 25% 로 한 번 더 찾고(약한 반응), 방향만 판정에 쓰고 잠복기에는 쓰지 않는다 */
     saccadeRule: { thr: 0.4, weak: 0.25, sustain: 0.7, offcenter: 0.8 },                                            // 수평 정현파 추적
     perclos: { closure: 0.8, blink: 0.5 },                                                       // P80 (Wierwille et al., 1994)
     /* MIST (Dedovic et al., 2005): 난이도 1~5 무작위, 답은 항상 0~9 한 자리, 제한 시간은 연속 3회 정답이면 10% 단축·연속 3회 실패면 10% 연장 */
-    stress: { limitMs: 4000, minMs: 1800, maxMs: 6500, step: 0.1, streak: 3, target: 0.8 },
+    stress: { limitMs: 4000, minMs: 1800, maxMs: 6500, step: 0.1, streak: 3, target: 0.8, hardAt: [0.35, 0.72] },
     /* 개인 기기 지연 보정: 가장 빠른 10% 반응이 이 값보다 느린 만큼을 입력·표시 지연으로 보고 빼 준다 (상한 maxMs) */
     latency: { fastRef: 210, maxMs: 60, minTrials: 10 },
   };
@@ -117,9 +121,9 @@
   const QC = { version: 'In_mind QC 1.2', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
-    full:  { baseline: 60, pursuit: 24, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
+    full:  { baseline: 60, pursuit: 24, circle: 15, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
     /* 표준(약 8분, 기본값) — 각 과제의 최소 신뢰 수준을 지키며 측정 시간을 8분 안팎으로 맞춘 구성 */
-    quick: { baseline: 30, pursuit: 12, pro: 4, anti: 10, practice: 1, trials: 4, fv: { neu: 3, neg: 8, pos: 4 }, pvt: 90, pvtPractice: 2, sart: 54, sartPractice: 9, stress: 40, recovery: 40 },
+    quick: { baseline: 30, pursuit: 12, circle: 10, pro: 4, anti: 10, practice: 1, trials: 4, fv: { neu: 3, neg: 8, pos: 4 }, pvt: 90, pvtPractice: 2, sart: 54, sartPractice: 9, stress: 40, recovery: 40 },
   };
 
   const MODULES = {
@@ -161,6 +165,9 @@
 
   /* ---------- 지표 정의: band = 좋음 기준점(best) · 양호 한계(ok) · 주의 한계(concern) · 최저점(worst) ---------- */
   const BAND = (dir, best, ok, concern, worst) => ({ dir, best, ok, concern, worst });
+  /* 양쪽 범위(mid): 기준값보다 크면 up, 작으면 down 범위로 판정. 정서 자극 응시처럼 ‘너무 많이 봄’과 ‘지나친 회피’가 모두 신호일 때 쓴다 */
+  const BAND_MID = (up, down) => ({ dir: 'mid', up, down, best: up.best, ok: up.ok, concern: up.concern, worst: up.worst });
+  const bandSide = (b, v) => (b.dir !== 'mid' ? b : v >= b.up.best ? b.up : b.down);
   const INDICATORS = [
     { key: 'pvtLapses', domain: 'alert', w: 2, label: 'PVT 경과 반응 (lapse)', unit: '회/3분', d: 1, band: BAND('low', 0, 3, 7, 16), refs: ['basnerB', 'basner'],
       desc: '355ms 이상 늦은 반응과 무반응의 3분 환산 횟수. PVT에서 각성 저하에 가장 민감한 지표', get: a => a.pvt && a.pvt.lapsesPer3 },
@@ -185,13 +192,19 @@
       desc: '표적 움직임 대비 시선 움직임의 크기 (1.0 = 정확한 추적)', get: a => a.pursuit && a.pursuit.ok ? a.pursuit.gain : null },
     { key: 'pursuitErr', domain: 'control', w: 1, label: '추적 동기화 오차', unit: '%', d: 1, band: BAND('low', 3, 8, 14, 30), refs: ['maruta'],
       desc: '추적 중 시선-표적 오차의 흔들림(SD, 화면 폭 대비). 주의 동기화 지표', get: a => a.pursuit && a.pursuit.ok ? a.pursuit.errPct : null },
+    { key: 'circErr', domain: 'control', w: 1, label: '원형 추적 동기화 오차', unit: '%', d: 1, band: BAND('low', 4, 10, 17, 35), refs: ['maruta'],
+      desc: '원을 그리며 도는 점을 따라갈 때 시선-표적 2차원 오차의 SD (화면 폭 대비). 주의 동기화·예측적 추적 지표', get: a => a.circle && a.circle.ok ? a.circle.errPct : null },
     { key: 'motion', domain: 'control', w: 1, label: '과제 중 머리 움직임', unit: '%/초', d: 1, band: BAND('low', 0.4, 1.5, 3, 6), refs: ['teicher'],
       desc: 'SART 중 얼굴 폭 대비 1초당 이동량', get: a => a.sartMotion },
 
-    { key: 'bias', domain: 'emotion', w: 2, label: '부정 자극 응시 비율', unit: '%', d: 0, band: BAND('low', 50, 58, 65, 85), refs: ['armstrong'],
-      desc: '부정-중립 쌍에서 부정 쪽을 본 시간 비율 (50% = 균형)', get: a => a.gazeOk && finite(a.attentionBias) ? (a.attentionBias + 0.5) * 100 : null },
+    { key: 'bias', domain: 'emotion', w: 2, label: '부정 자극 응시 비율', unit: '%', d: 0, band: BAND_MID(BAND('low', 50, 58, 65, 85), BAND('high', 50, 40, 32, 15)), refs: ['armstrong', 'waechter'],
+      desc: '부정-중립 쌍에서 부정 쪽을 본 시간 비율 (50% = 균형). 너무 높으면 몰입, 너무 낮으면 회피 경향', get: a => a.gazeOk && finite(a.attentionBias) ? (a.attentionBias + 0.5) * 100 : null },
+    { key: 'lateNeg', domain: 'emotion', w: 2, label: '부정 자극 유지 응시 (1.5초 이후)', unit: '%', d: 0, band: BAND_MID(BAND('low', 50, 58, 66, 85), BAND('high', 50, 38, 30, 12)), refs: ['armstrong', 'kellough'],
+      desc: '사진이 뜨고 1.5초가 지난 뒤에도 부정 쪽에 머문 시간 비율. 유지 주의(벗어나기 어려움)의 지표', get: a => a.gazeOk && finite(a.lateNeg) ? a.lateNeg * 100 : null },
     { key: 'firstNeg', domain: 'emotion', w: 1, label: '첫 시선 부정 비율', unit: '%', d: 0, band: BAND('low', 50, 60, 72, 95), refs: ['armstrong'],
-      desc: '자극이 뜬 뒤 시선이 먼저 부정 자극으로 간 비율 (초기 정향)', get: a => a.gazeOk && finite(a.firstNeg) ? a.firstNeg * 100 : null },
+      desc: '자극이 뜬 뒤 시선이 먼저 부정 자극으로 간 비율 (초기 정향·경계)', get: a => a.gazeOk && finite(a.firstNeg) ? a.firstNeg * 100 : null },
+    { key: 'posBias', domain: 'emotion', w: 1, label: '긍정 자극 응시 비율', unit: '%', d: 0, band: BAND('high', 58, 50, 42, 28), refs: ['armstrong', 'winer'],
+      desc: '긍정-중립 쌍에서 긍정 쪽을 본 시간 비율. 낮을수록 기쁜 정보에서 멀어지는 경향', get: a => a.gazeOk && finite(a.positivity) ? (a.positivity + 0.5) * 100 : null },
     { key: 'negHr', domain: 'emotion', w: 1, label: '정서 자극 심박 반응', unit: 'bpm', d: 1, band: BAND('low', 0, 3, 6, 12), refs: ['kreibig'],
       desc: '부정 블록 − 중립 블록 심박', get: a => a.negDelta },
 
@@ -207,6 +220,7 @@
 
   /* 기준점 (best 100 · ok 70 · concern 40 · worst 0) 사이 선형 보간 */
   function scoreOf(v, b) {
+    if (b.dir === 'mid') return scoreOf(v, bandSide(b, v));
     const s = b.dir === 'low' ? 1 : -1, x = v * s;
     const P = [[b.best * s, 100], [b.ok * s, 70], [b.concern * s, 40], [b.worst * s, 0]];
     if (x <= P[0][0]) return 100;
@@ -221,6 +235,7 @@
   const SEV = { na: -1, ok: 0, watch: 1, concern: 2 };
   function rangeText(ind) {
     const b = ind.band, f = v => (ind.d >= 2 ? v.toFixed(2) : String(v)) + (ind.unit && ind.unit !== '' && ind.unit.length <= 3 ? ind.unit : '');
+    if (b.dir === 'mid') return `양호 ${f(b.down.ok)}~${f(b.up.ok)} · 주의 ${f(b.down.concern)}~${f(b.up.concern)} · 그 밖은 관리 필요`;
     return b.dir === 'low'
       ? `양호 ≤ ${f(b.ok)} · 주의 ≤ ${f(b.concern)} · 관리 필요 > ${f(b.concern)}`
       : `양호 ≥ ${f(b.ok)} · 주의 ≥ ${f(b.concern)} · 관리 필요 < ${f(b.concern)}`;
@@ -427,12 +442,48 @@
     return { ok: !reason, reason, gain: round(gain, 2), lagMs: best.L, r: round(best.r, 2), errPct: round(errPct, 1), coverage, trace };
   }
 
+  /* 원형 추적: 표적 (cx + r·cosθ, cy + r·sinθ), θ = 2πf·t − π/2 (위에서 시작해 시계 방향).
+   * 최적 지연(0~400ms)에서 축별로 이득·영점을 맞춘 뒤 남는 2차원 오차의 SD(화면 폭 대비)를 동기화 오차로 쓴다 (Maruta et al., 2010) */
+  function circleStats(c, W, calOk = true) {
+    if (!c || !Array.isArray(c.samples) || !finite(c.t0)) return null;
+    const { t0, cx, cy, r, freq, dur } = c, skip = PROTOCOL.circle.skipMs;
+    const tgt = t => { const a = 2 * Math.PI * freq * (t - t0) / 1000 - Math.PI / 2; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+    const s = c.samples.filter(z => z.t >= t0 + skip && z.t <= t0 + dur && finite(finite(z.rx) ? z.rx : z.x) && finite(finite(z.ry) ? z.ry : z.y)).map(z => ({ t: z.t, x: finite(z.rx) ? z.rx : z.x, y: finite(z.ry) ? z.ry : z.y }));
+    const expected = Math.max(1, (dur - skip) / 1000 * 25), coverage = round(Math.min(1, s.length / expected), 2);
+    if (s.length < 50) return { ok: false, reason: '시선 표본이 부족해요', coverage };
+    const gx = s.map(z => z.x), gy = s.map(z => z.y);
+    let best = null;
+    for (let L = 0; L <= 400; L += 10) {
+      const tp = s.map(z => tgt(z.t - L)), rx = corr(tp.map(p => p[0]), gx), ry = corr(tp.map(p => p[1]), gy);
+      if (!best || rx + ry > best.rx + best.ry) best = { L, rx, ry, tp };
+    }
+    const fit = (tv, gv) => { const mt = mean(tv), mg = mean(gv); let cov = 0, vt = 0; for (let i = 0; i < gv.length; i++) { cov += (tv[i] - mt) * (gv[i] - mg); vt += (tv[i] - mt) ** 2; } const k = cov / vt; return { k, res: gv.map((v, i) => v - (mg + k * (tv[i] - mt))) }; };
+    const fx = fit(best.tp.map(p => p[0]), gx), fy = fit(best.tp.map(p => p[1]), gy);
+    const errPct = Math.sqrt(std(fx.res) ** 2 + std(fy.res) ** 2) / W * 100;
+    const step = Math.max(1, Math.floor(s.length / 200));
+    const trace = s.filter((_, i) => i % step === 0).map(z => ({ x: round((z.x - cx) / r, 2), y: round((z.y - cy) / r, 2) }));
+    let reason = null;
+    if (!calOk) reason = '시선 보정이 불안정해 원형 추적 지표를 판정하지 않았어요';
+    else if (coverage < 0.5) reason = '얼굴·시선 인식 구간이 부족해요';
+    else if (best.rx < 0.5 || best.ry < 0.25) reason = `시선이 원을 따라 움직이지 않았어요 (가로 r=${best.rx.toFixed(2)} · 세로 r=${best.ry.toFixed(2)})`;
+    return { ok: !reason, reason, gainX: round(fx.k, 2), gainY: round(fy.k, 2), lagMs: best.L, rx: round(best.rx, 2), ry: round(best.ry, 2), errPct: round(errPct, 1), coverage, trace };
+  }
+
   /* MIST 방식 암산 (Dedovic et al., 2005) — 덧셈·뺄셈만, 답은 항상 0~9 한 자리. 난이도는 수의 자릿수와 항 수로 올린다.
    *   1: 한 자리 2항 (7 − 3)    2: 한 자리 3항 (8 − 5 + 4)    3: 두 자리 − 한 자리 (14 − 9)
    *   4: 두 자리 2항 (47 − 39)   5: 두 자리 2항 ± 한 자리 (52 − 46 + 3)
    * 정답률이 너무 낮으면 압박 대신 포기가 일어나므로, 계산 단계는 최대 2번으로 묶는다 */
   function mistProblem(level, rand = Math.random) {
     const ri = (a, b) => a + Math.floor(rand() * (b - a + 1));
+    /* 6: 고난도 — 두 자리 3항 ± 한 자리 (64 − 29 − 31 + 2). 매 측정에 1~2문제를 반드시 넣어 실패 경험(사회평가적 압박)을 만든다 */
+    if (level === 6) {
+      for (let tries = 0; tries < 5000; tries++) {
+        const a = ri(41, 98), b = ri(12, 59), c = ri(12, 49), d = ri(1, 9), sb = rand() < 0.5 ? 1 : -1, sd = rand() < 0.5 ? 1 : -1;
+        const ans = a - b + sb * c + sd * d;
+        if (ans >= 0 && ans <= 9 && a - b > 0) return { level, hard: true, text: `${a} − ${b} ${sb > 0 ? '+' : '−'} ${c} ${sd > 0 ? '+' : '−'} ${d}`, ans };
+      }
+      return { level, hard: true, text: '73 − 48 − 19 + 1', ans: 7 };
+    }
     const LV = { 1: ['n1', 'n1'], 2: ['n1', 'n1', 'n1'], 3: ['n2', 'n1'], 4: ['n2', 'n2'], 5: ['n2', 'n2', 'n1'] }[level] || ['n1', 'n1'];
     for (let tries = 0; tries < 600; tries++) {
       const nums = LV.map(k => (k === 'n1' ? ri(1, 9) : ri(11, level >= 4 ? 69 : 39)));
@@ -507,31 +558,31 @@
         { text: '2주간 기상 시각을 ±30분 안에 고정하고, 잠자리에서 깨어 있는 시간을 줄이기 (CBT-I의 수면 제한·자극 조절 원리)', refs: ['trauer'] },
         { text: '오후 졸림이 심한 날 10분 이내 짧은 낮잠 (15시 이전)', refs: ['brooks'] },
         { text: '고집중 작업 전 3분 PVT로 상태 확인 — 경과 반응이 ‘주의’ 이상이면 작업 순서를 조정', refs: ['basnerB'] },
-      ], kpi: 'PVT 경과 반응 3분당 3회 이하 · PERCLOS 8% 이하', remeasure: '각성 모듈 · 2주 후 같은 시간대' },
+      ], kpi: 'PVT 경과 반응 3분당 3회 이하 · PERCLOS 8% 이하', remeasure: '같은 시간대에 2~3일 간격 또는 매주 · 2주 뒤 첫 측정과 비교' },
     control: { title: '집중력 트랙', goal: '충동을 멈추는 힘과 집중을 유지하는 힘을 키웁니다.',
       items: [
         { text: '마음챙김 주의 훈련 하루 10분 (호흡에 주의를 두고, 벗어나면 알아차려 되돌리기)', refs: ['tang'] },
         { text: '중강도 유산소 운동 주 3회 30분 — 실행 기능 향상 근거가 가장 일관된 생활 개입', refs: ['hillman'] },
         { text: '알림을 끄고 25분 단일 과제 블록으로 일하기 (주의 전환 비용 줄이기)', refs: [] },
-      ], kpi: 'SART 억제 실패 40% 이하 · 반응시간 변동성 0.25 이하 · 안티사카드 오류 25% 이하', remeasure: '안구운동 통제 + 지속 주의 모듈 · 4주 후' },
+      ], kpi: 'SART 억제 실패 40% 이하 · 반응시간 변동성 0.25 이하 · 안티사카드 오류 25% 이하', remeasure: '2~3일 간격 또는 매주 · 4주 뒤 첫 측정과 비교' },
     emotion: { title: '마음 전환 트랙', goal: '불편한 정보에서 마음을 떼어내는 유연성을 키웁니다.',
       items: [
         { text: '주의 전환 연습 하루 2분 — 부정 자극 반대편 표적에 반응하는 주의 편향 수정(ABM) 형식. 효과 크기는 작게 보고되므로 다른 루틴과 병행', refs: ['hakamata', 'cristea'] },
         { text: '걱정 시간 정하기 — 반추를 하루 정해진 15분으로 모으기', refs: ['borkovec'] },
         { text: '생각 라벨링: “나는 지금 ~라는 생각을 하고 있다”로 거리 두기', refs: ['tang'] },
-      ], kpi: '부정 자극 응시 58% 이하', remeasure: '정서 주의 · 스트레스 반응 모듈 · 2주 후' },
+      ], kpi: '부정 자극 응시 58% 이하', remeasure: '2~3일 간격 또는 매주 · 2주 뒤 첫 측정과 비교' },
     autonomic: { title: '몸 이완 트랙', goal: '긴장 뒤 심박이 빨리 편안해지는 회복력을 키웁니다.',
       items: [
         { text: '분당 6회 공명 호흡 하루 2회 5분 (들숨 5초 · 날숨 5초)', refs: ['lehrer', 'zaccaro'] },
         { text: '4주 심박 바이오피드백 — 호흡 중 심박이 출렁이는 폭을 키우는 연습', refs: ['goessl'] },
         { text: '긴장된 일정 직후 90초 몸 스캔으로 회복 구간 만들기', refs: [] },
-      ], kpi: '압박 심박 반응 6bpm 이하 또는 회복률 50% 이상 · 호흡 동조 3bpm 이상', remeasure: '정서 주의 · 스트레스 반응 모듈 · 2주 후' },
+      ], kpi: '압박 심박 반응 6bpm 이하 또는 회복률 50% 이상 · 호흡 동조 3bpm 이상', remeasure: '2~3일 간격 또는 매주 · 2주 뒤 첫 측정과 비교' },
     balanced: { title: '유지 관리 트랙', goal: '지금의 균형을 개인 기준선으로 남깁니다.',
       items: [
-        { text: '같은 시간대에 월 1회 통합 측정으로 개인 기준선 쌓기', refs: [] },
+        { text: '같은 시간대에 2~3일 간격 또는 매주 측정해 개인 기준선 쌓기', refs: [] },
         { text: '분당 6회 호흡은 긴장된 일정 전후에만 3분', refs: ['zaccaro'] },
         { text: '수면 규칙성 유지 — 각성은 다른 모든 영역의 토대', refs: ['limDinges'] },
-      ], kpi: '모든 영역 양호 유지', remeasure: '전체 배터리 · 4주 후' },
+      ], kpi: '모든 영역 양호 유지', remeasure: '전체 측정 · 2~3일 간격 또는 매주' },
   };
 
   function domainNames(keys) { return keys.map(k => DOMAINS[k].name).join('·'); }
@@ -603,12 +654,12 @@
     if (!(wsum > 0)) return [];
     return m.map(i => {
       const share = (i.primary ? 2 : 1) * i.r / wsum;
-      return { key: i.key, label: i.label, status: i.status, share: round(share * 100), points: round(share * i.score, 1), score: i.score, next: i.next || null };
+      return { key: i.key, label: i.label, status: i.status, share: round(share * 100), points: round(share * i.score, 1), score: i.score, value: i.value, unit: i.unit, d: i.d, next: i.next || null };
     }).sort((a, b) => b.share - a.share);
   }
   /* 지금 판정보다 한 단계 좋아지려면 지표가 얼마여야 하는가 */
   function nextBand(ind, v) {
-    const b = ind.band, st = statusOf(scoreOf(v, b));
+    const b = bandSide(ind.band, v), st = statusOf(scoreOf(v, b));
     if (st === 'ok') return null;
     const target = st === 'concern' ? b.concern : b.ok;
     return { to: st === 'concern' ? 'watch' : 'ok', target, text: `${ind.d >= 2 ? target.toFixed(2) : target}${ind.unit || ''} ${b.dir === 'low' ? '이하' : '이상'}이면 ‘${STATUS[st === 'concern' ? 'watch' : 'ok']}’` };
@@ -688,7 +739,7 @@
       { text: '힘든 마음이 급하게 커지면 언제든 정신건강 위기상담 109 (24시간)', refs: [] },
       { text: '상담과 함께 아래 루틴을 무리하지 않는 선에서 병행하기', refs: [] },
     ],
-    kpi: '2~4주 후 같은 문항으로 다시 확인', remeasure: '자기보고 + 정서 주의 모듈 · 2주 후',
+    kpi: '2~4주 후 같은 문항으로 다시 확인', remeasure: '자기보고 + 전체 측정 · 2~3일 간격 또는 매주',
   };
 
   /* NL-QC 1·3) 신뢰도 가중 영역 점수 + 수렴 원칙.
@@ -727,7 +778,7 @@
       const overlap = (a, b) => hidden.reduce((s, h) => s + Math.max(0, Math.min(b, h.end) - Math.max(a, h.start)), 0);
       rec = { ...rec, trials: keep(rec.trials), saccade: rec.saccade ? keep(rec.saccade) : rec.saccade, sart: rec.sart ? { ...rec.sart, trials: keep(rec.sart.trials) } : rec.sart };
       if (rec.pvt && rec.phases && rec.phases.pvt) rec.pvt = { ...rec.pvt, trials: keep(rec.pvt.trials), durationMs: Math.max(0, rec.pvt.durationMs - overlap(rec.phases.pvt.start, rec.phases.pvt.end)) };
-      if (rec.pursuit) rec.pursuit = { ...rec.pursuit, samples: rec.pursuit.samples.filter(z => !hid(z.t)) };
+      if (rec.pursuit) rec.pursuit = { ...rec.pursuit, samples: rec.pursuit.samples.filter(z => !hid(z.t)), ...(rec.pursuit.circle ? { circle: { ...rec.pursuit.circle, samples: rec.pursuit.circle.samples.filter(z => !hid(z.t)) } } : {}) };
     }
     const base = N.analyze(rec);
     const ph = rec.phases || {};
@@ -740,15 +791,18 @@
     const eyeBase = span('baseline') ? eyeStats(frames, ...span('baseline')) : null;
     const saccade = saccadeStats(rec.saccade, W, calOk, rec.saccadeCal || null);
     const pursuit = pursuitStats(rec.pursuit ? { W, ...rec.pursuit } : null, calOk);
+    const circle = circleStats(rec.pursuit && rec.pursuit.circle, W, calOk);
     const sart = sartStats(rec.sart);
     const sartMotion = span('sart') ? N.motionIndex(face, ...span('sart')) : null;
 
-    const a = { pvt, eye, saccade, pursuit, sart, sartMotion, gazeOk: base.quality.gazeOk, attentionBias: base.gaze.attentionBias, firstNeg: base.gaze.firstNeg,
+    const a = { pvt, eye, saccade, pursuit, circle, sart, sartMotion, gazeOk: base.quality.gazeOk, attentionBias: base.gaze.attentionBias, firstNeg: base.gaze.firstNeg, lateNeg: base.gaze.lateNeg, positivity: base.gaze.positivity,
       negDelta: base.negDelta, stressDelta: base.stressDelta, recovery: base.recovery, recoveryResid: base.recoveryResid, coupling: base.coupling ? base.coupling.ampBpm : null };
 
     /* NL-QC 1) 지표별 신뢰도 r · 2) 표준오차 */
     const negSt = (rec.trials || []).filter(t => t.kind === 'neg').map(t => N.trialStats(t, W)).filter(x => x.valid);
     const negN = (rec.trials || []).filter(t => t.kind === 'neg').length;
+    const posSt = (rec.trials || []).filter(t => t.kind === 'pos').map(t => N.trialStats(t, W)).filter(x => x.valid);
+    const posN = (rec.trials || []).filter(t => t.kind === 'pos').length;
     /* NL-QC 7) 단계별 카메라 프레임 수: 시선·사카드 지표는 24fps 이상에서 온전히, 10fps 에서 0.3배로 */
     const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };
     const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp((v - 10) / 14, 0.3, 1); };
@@ -764,14 +818,16 @@
       anti: () => saccade && saccade.ok ? clamp((saccade.anti.valid - saccade.anti.weak * 0.5) / Math.max(8, saccade.anti.n * 0.8), 0, 1) * fpsF('saccade') : 0,
       sart: () => sart && !sart.invalid ? clamp(sart.n / 54, 0, 1) : 0,
       pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.5) / 0.3, 0, 1) * fpsF('pursuit') : 0,
+      circle: () => circle && circle.ok ? clamp(circle.coverage / 0.8, 0, 1) * clamp((Math.min(circle.rx, circle.ry + 0.25) - 0.5) / 0.3, 0, 1) * fpsF('pursuit') : 0,
       motion: () => clamp((sartFrames - 0.4) / 0.4, 0, 1),
-      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) * fpsF('neg') : 0,
+      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) * fpsF('neg') * (finite(base.gaze.halfGapNeg) ? clamp(1 - Math.max(0, base.gaze.halfGapNeg - 0.08) / 0.2, 0.5, 1) : 1) : 0,
+      gazePos: () => a.gazeOk && posN ? clamp(posSt.length / posN / 0.8, 0, 1) * fpsF('pos') : 0,
     };
     const REL = {
       pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,
       antiError: rOf.anti, sartCommission: rOf.sart, sartCv: rOf.sart, sartOmission: () => sart ? clamp(sart.n / 54, 0, 1) : 0,
-      pursuitGain: rOf.pursuit, pursuitErr: rOf.pursuit, motion: rOf.motion,
-      bias: rOf.gaze, firstNeg: rOf.gaze, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),
+      pursuitGain: rOf.pursuit, pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
+      bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),
       stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)),
       recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => (breathOff ? 0 : hq(base.hr.recovery)),
     };
@@ -782,6 +838,8 @@
       sartCommission: () => sart ? binSe(sart.commission, sart.nogo) : null,
       sartOmission: () => sart ? binSe(sart.omission, sart.go) : null,
       bias: () => negSt.length >= 3 ? std(negSt.map(x => x.emoShare)) / Math.sqrt(negSt.length) * 100 : null,
+      lateNeg: () => { const v = negSt.map(x => x.lateShare).filter(finite); return v.length >= 3 ? std(v) / Math.sqrt(v.length) * 100 : null; },
+      posBias: () => posSt.length >= 3 ? std(posSt.map(x => x.emoShare)) / Math.sqrt(posSt.length) * 100 : null,
       firstNeg: () => { const f = negSt.filter(x => x.first); return f.length ? binSe(f.filter(x => x.first === 'emo').length / f.length, f.length) : null; },
     };
     const indicators = INDICATORS.map(ind => {
@@ -789,7 +847,8 @@
       const r = has ? round(REL[ind.key] ? REL[ind.key]() : 1, 2) : null;
       const se = has && SE[ind.key] ? SE[ind.key]() : null;
       const ci = finite(se) ? [round(v - 1.96 * se, ind.d), round(v + 1.96 * se, ind.d)] : null;
-      const borderline = !!ci && [ind.band.ok, ind.band.concern].some(cut => ci[0] < cut && cut < ci[1]);
+      const cuts = ind.band.dir === 'mid' ? [ind.band.up.ok, ind.band.up.concern, ind.band.down.ok, ind.band.down.concern] : [ind.band.ok, ind.band.concern];
+      const borderline = !!ci && cuts.some(cut => ci[0] < cut && cut < ci[1]);
       const excluded = has && r < QC.minR;
       return { key: ind.key, domain: ind.domain, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
         value: v, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded,
@@ -826,6 +885,7 @@
         rec.pvt ? stepQ('pvt', 'PVT-B · PERCLOS', Math.min(rOf.pvt(), eye ? rOf.eye() : 1), pvt && pvt.invalid) : null,
         rec.saccade ? stepQ('saccade', '프로·안티사카드', rOf.anti(), saccade && (saccade.reason || (saccade.anti.weak ? `약한 반응으로 판정한 시행 ${saccade.anti.weak}회 (방향만 사용)` : null))) : null,
         rec.pursuit ? stepQ('pursuit', '원활 추적', rOf.pursuit(), pursuit && pursuit.reason) : null,
+        rec.pursuit && rec.pursuit.circle ? stepQ('circle', '원형 추적', rOf.circle(), circle && circle.reason) : null,
         rec.sart ? stepQ('sart', 'SART', rOf.sart(), sart && sart.invalid) : null,
         (rec.trials || []).length ? stepQ('freeview', '정서 자유 보기', rOf.gaze(), a.gazeOk ? null : '시선 신호가 부족해 정서 주의 지표를 판정하지 않았어요') : null,
         rec.stressScore ? stepQ('stress', '압박 과제 · 회복', Math.max(REL.stressDelta(), REL.recoveryResid()), base.stressDelta === null ? '압박 구간 심박 신호가 약해 압박 반응을 계산하지 못했어요' : null) : null,
@@ -857,13 +917,18 @@
         { label: '안티사카드 잠복기 (정반응)', value: saccade ? saccade.anti.latency : null, unit: 'ms', refs: ['munoz'] },
         { label: '안티사카드 오류 자기 교정', value: saccade && finite(saccade.anti.correctedRate) ? round(saccade.anti.correctedRate * 100) : null, unit: '%', refs: ['munoz'] },
         { label: '추적 지연', value: pursuit && pursuit.ok ? pursuit.lagMs : null, unit: 'ms', refs: ['lencer'] },
+        { label: '원형 추적 이득 (가로 · 세로)', value: circle && circle.ok ? `${circle.gainX} · ${circle.gainY}` : null, unit: '', refs: ['maruta'] },
+        { label: '원형 추적 지연', value: circle && circle.ok ? circle.lagMs : null, unit: 'ms', refs: ['maruta'] },
         { label: 'SART 평균 반응시간', value: pv(sart, 'meanRt'), unit: 'ms', refs: ['robertson'] },
         { label: '기준선 머리 움직임', value: base.motion.baseline, unit: '%/초', refs: ['teicher'] },
       ],
       emotion: [
         ...emoSub(rec, W, base.quality.gazeOk),
         { label: '부정 자극 첫 체류', value: base.quality.gazeOk ? base.gaze.dwellNeg : null, unit: 'ms', refs: ['armstrong'] },
-        { label: '긍정 자극 응시 비율', value: base.quality.gazeOk && finite(base.gaze.positivity) ? round((base.gaze.positivity + 0.5) * 100) : null, unit: '%', refs: ['armstrong'] },
+        { label: '부정 자극까지 걸린 시간 (첫 도달)', value: base.quality.gazeOk ? base.gaze.latencyNeg : null, unit: 'ms', refs: ['armstrong'] },
+        { label: '사진 사이 시선 전환 (시행당)', value: base.quality.gazeOk ? base.gaze.switches : null, unit: '회', refs: ['mogg'] },
+        { label: '시간 흐름별 부정 응시 (0–1 · 1–2 · 2–3 · 3초+)', value: base.quality.gazeOk && base.gaze.binsNeg ? base.gaze.binsNeg.map(v => (finite(v) ? Math.round(v * 100) : '—')).join(' · ') : null, unit: '%', refs: ['mogg', 'kellough'] },
+        { label: '반분 안정성 (홀·짝 시행 응시 비율 차)', value: base.quality.gazeOk && finite(base.gaze.halfGapNeg) ? round(base.gaze.halfGapNeg * 100, 1) : null, unit: '%p', refs: ['waechter'] },
         { label: '부정 블록 찌푸림 변화', value: base.exprNeg, unit: '×100', refs: [] },
       ],
       autonomic: [
@@ -875,7 +940,7 @@
 
     return {
       ...base, phaseTimes: ph, stressScore: rec.stressScore || null, stimMode: rec.stimMode || 'schematic', stimForm: rec.stimForm || null, stimStatus: rec.stimStatus || null, mode: rec.mode || null, resized: !!rec.resized,
-      battery: { version: VERSION, qc, pvt, eye, eyeBase, saccade, pursuit, sart, sartMotion, indicators, info, domains, integrated, care, phq, phqLinks: links, steps: rec.steps || {}, sim: rec.sim || null },
+      battery: { version: VERSION, qc, pvt, eye, eyeBase, saccade, pursuit, circle, sart, sartMotion, indicators, info, domains, integrated, care, phq, phqLinks: links, steps: rec.steps || {}, sim: rec.sim || null },
     };
   }
 
@@ -918,7 +983,10 @@
       seg('pursuit', D.pursuit * 1000);
       const p = PROTOCOL.pursuit, t0 = ph.pursuit.start, dur = D.pursuit * 1000, amp = p.amp * W, samples = [];
       for (let s = t0; s <= t0 + dur; s += 33) samples.push({ t: s, x: cx + P.pursuit.gain * amp * Math.sin(2 * Math.PI * p.freq * (s - P.pursuit.lag - t0) / 1000) + P.pursuit.noise * W * gauss() });
-      pursuit = { t0, cx, amp, freq: p.freq, dur, samples };
+      const pc = PROTOCOL.circle, c0 = t0 + dur + 800, cdur = (D.circle || 10) * 1000, rr = pc.r * W, cy = (opt.H || 900) / 2, cs = [];
+      for (let s = c0; s <= c0 + cdur; s += 33) { const ang = 2 * Math.PI * pc.freq * (s - P.pursuit.lag - c0) / 1000 - Math.PI / 2; cs.push({ t: s, x: cx + P.pursuit.gain * rr * Math.cos(ang) + P.pursuit.noise * 1.2 * W * gauss(), y: cy + P.pursuit.gain * 0.9 * rr * Math.sin(ang) + P.pursuit.noise * 1.6 * W * gauss() }); }
+      pursuit = { t0, cx, amp, freq: p.freq, dur, samples, circle: { t0: c0, cx, cy, r: rr, freq: pc.freq, dur: cdur, samples: cs } };
+      ph.pursuit.end = c0 + cdur; t = ph.pursuit.end + 3000;
       ph.saccade = { start: t };
       const S = PROTOCOL.saccade;
       const block = (type, n) => {

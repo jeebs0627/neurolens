@@ -664,6 +664,21 @@ footer p{font-size:12.5px;color:var(--gray)}
 .mp-info small{display:block;font-size:11px;color:var(--gray2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mp-view{font-family:var(--font-kr);font-size:12px;font-weight:800;color:var(--blue);background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:11px;padding:8px 13px;cursor:pointer;white-space:nowrap;flex:none;transition:all .15s}
 .mp-view:hover{background:#E2EBFF}
+.mp-sub small{font-weight:600;color:var(--gray2);font-size:11.5px;margin-left:6px}
+.mp-badges{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:20px}
+.mp-bdg{position:relative;border-radius:14px;padding:12px 14px;background:linear-gradient(135deg,var(--bc1),var(--bc2));color:#fff;box-shadow:0 6px 16px rgba(14,26,51,.12);overflow:hidden}
+.mp-bdg::after{content:'';position:absolute;right:-18px;top:-18px;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.14)}
+.mp-bdg i{display:block;font-style:normal;font-size:10.5px;font-weight:800;letter-spacing:.06em;opacity:.85}
+.mp-bdg b{display:block;font-size:17px;font-weight:900;margin-top:2px;line-height:1.25;word-break:keep-all}
+.mp-bdg small{display:block;font-size:10.5px;opacity:.8;margin-top:2px}
+.mp-bdg.empty{background:#F8FAFE;color:var(--gray2);box-shadow:none;border:1px dashed var(--line)}
+.mp-bdg.empty b{font-size:13px;color:var(--gray)}
+.mp-bdg.empty a{font-size:11.5px;font-weight:800;color:var(--blue);text-decoration:none}
+.mp-tabs{display:flex;gap:6px;margin-bottom:10px}
+.mp-tabs button{flex:1;font-family:var(--font-kr);font-size:12.5px;font-weight:800;color:var(--gray);background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 10px;cursor:pointer}
+.mp-tabs button b{font-family:var(--font-num);margin-left:4px;color:var(--blue)}
+.mp-tabs button[aria-selected="true"]{background:var(--blue-soft);border-color:var(--blue-line);color:var(--blue)}
+.mp-sc{font-family:var(--font-num);font-weight:800;font-size:15px;color:#fff;border-radius:10px;padding:5px 9px;flex:none;min-width:44px;text-align:center}
 .mp-empty{font-size:13px;color:var(--gray2);text-align:center;background:#F8FAFE;border:1px dashed var(--line);border-radius:13px;padding:26px 16px;line-height:1.7}
 .mp-foot{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px dashed var(--line)}
 .mp-foot a{font-size:12.5px;font-weight:800;color:var(--violet);text-decoration:none;background:var(--violet-soft);border-radius:11px;padding:9px 16px}
@@ -1534,8 +1549,12 @@ footer p{font-size:12.5px;color:var(--gray)}
     <button class="x" data-close aria-label="닫기">&times;</button>
     <h3 class="mp-title">👤 마이페이지</h3>
     <div class="mp-user" id="mpUser"></div>
-    <h4 class="mp-sub">📋 나의 검사 내역 (일자별)</h4>
+    <h4 class="mp-sub">🏅 나의 프로필 뱃지 <small>두 검사의 가장 최근 결과로 만들어요</small></h4>
+    <div class="mp-badges" id="mpBadges"></div>
+    <h4 class="mp-sub">📋 나의 검사 내역</h4>
+    <div class="mp-tabs" role="tablist"><button type="button" role="tab" data-tab="trait" aria-selected="true">시선추적 성향검사 <b id="mpCntT">0</b></button><button type="button" role="tab" data-tab="condition" aria-selected="false">마인드 컨디션 검사 <b id="mpCntC">0</b></button></div>
     <div class="mp-list" id="mpList"></div>
+    <div class="mp-list" id="mpListC" hidden></div>
     <div class="mp-foot">
       <a id="mpAdminLink" href="admin.html" style="display:none">🛠 관리자 페이지</a>
       <button id="mpLogout">로그아웃</button>
@@ -1966,6 +1985,11 @@ if (window.NLAuth) {
   renderAuthArea(null);
 }
 /* report.html 의 "가입하고 저장하기" 링크 → 가입 모달 바로 열기 */
+/* 컨디션 검사 결과 화면의 "마이페이지에서 보기" → 로그인 확인 후 마이페이지(컨디션 탭) */
+if (location.hash === '#my') {
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+  setTimeout(() => { try { openMyPage('condition'); } catch (_) {} }, 400);
+}
 if (location.hash === '#signup' || location.hash === '#login') {
   const mode = location.hash.slice(1);
   try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
@@ -2130,8 +2154,42 @@ document.getElementById('authForm').addEventListener('submit', async e => {
   btn.disabled = false;
 });
 
-/* ----- 마이페이지: 일자별 검사 내역 + 리포트 새 창 ----- */
-async function openMyPage() {
+/* ----- 마이페이지: 프로필 뱃지 + 검사 종류별 내역 ----- */
+const BIG5_KEYS = ['개방성', '성실성', '외향성', '친화성', '신경성'];
+function traitBadges(row) {
+  const r = (row && row.result) || {}, out = [];
+  const mbti = String(r.MBTI || row.mbti || '').toUpperCase().trim();
+  const big = r.BIG5 || {}, vals = BIG5_KEYS.map(k => parseFloat(big[k + '_백분위'])).map(v => (isNaN(v) ? -1 : v));
+  const jobs = (Array.isArray(r['직무적합도']) ? r['직무적합도'] : []).map(j => ({ n: j['직업'], s: parseFloat(j['점수']) })).filter(j => j.n && !isNaN(j.s)).sort((a, b) => b.s - a.s);
+  const hol = (r['직업흥미유형'] || {})['유형'] || row.holland || '';
+  if (mbti) out.push(['MBTI', mbti, '#6C4CE0', '#9B7BFF']);
+  if (Math.max(...vals) > 0) out.push(['BIG5 TOP1', BIG5_KEYS[vals.indexOf(Math.max(...vals))], '#1E5AF0', '#5B8CFF']);
+  if (jobs[0]) out.push(['직무적합 TOP1', jobs[0].n, '#0FA47A', '#3FD3A5']);
+  if (hol) out.push(['흥미유형', hol, '#E8890C', '#FFB547']);
+  return out;
+}
+async function renderBadges(conds) {
+  const el = document.getElementById('mpBadges');
+  const card = ([lb, v, c1, c2], sub) => '<div class="mp-bdg" style="--bc1:' + c1 + ';--bc2:' + c2 + '"><i>' + esc(lb) + '</i><b>' + esc(v) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>';
+  let html = '';
+  const c = conds[0] && conds[0].summary;
+  if (c && Number.isFinite(c.overall)) {
+    const col = c.overall >= 70 ? ['#0E8F6A', '#2FC79A'] : c.overall >= 40 ? ['#C77A06', '#F2B544'] : ['#C2385A', '#F27C98'];
+    html += card(['종합 컨디션', c.overall + '점', col[0], col[1]], (c.title || '') + ' · ' + fmtDate(conds[0].created_at));
+  } else html += '<div class="mp-bdg empty"><i>종합 컨디션</i><b>아직 결과가 없어요</b><a href="condition.html">컨디션 검사 하러 가기 →</a></div>';
+  let t = null; try { t = await NLAuth.latestTrait(); } catch (_) {}
+  const tb = t ? traitBadges(t) : [];
+  if (tb.length) html += tb.map(x => card(x, fmtDate(t.created_at))).join('');
+  else html += '<div class="mp-bdg empty"><i>성향 프로필</i><b>MBTI · BIG5 · 직무 · 흥미유형</b><a href="#tests" onclick="closeModalA11y(myModal)">성향검사 하러 가기 →</a></div>';
+  el.innerHTML = html;
+}
+function setMpTab(tab) {
+  document.querySelectorAll('.mp-tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  document.getElementById('mpList').hidden = tab !== 'trait';
+  document.getElementById('mpListC').hidden = tab !== 'condition';
+}
+document.querySelectorAll('.mp-tabs button').forEach(b => b.addEventListener('click', () => setMpTab(b.dataset.tab)));
+async function openMyPage(tab) {
   const u = await NLAuth.getUser();
   if (!u) { openAuthModal('login'); return; }
   openModalA11y(myModal);
@@ -2141,16 +2199,20 @@ async function openMyPage() {
     '<span class="mp-avatar big">' + esc((nm || u.email).slice(0, 1).toUpperCase()) + '</span>'
     + '<div><b>' + esc(nm || u.email.split('@')[0]) + '</b><small>' + esc(u.email) + '</small></div>';
   NLAuth.isAdmin().then(a => { document.getElementById('mpAdminLink').style.display = a ? '' : 'none'; }).catch(() => {});
+  setMpTab(tab === 'condition' ? 'condition' : 'trait');
 
-  const listEl = document.getElementById('mpList');
-  listEl.innerHTML = '<div class="mp-empty">검사 내역을 불러오는 중…</div>';
-  try {
-    const rows = await NLAuth.myResults();
-    if (!rows.length) {
-      listEl.innerHTML = '<div class="mp-empty">아직 저장된 검사 내역이 없어요.<br>로그인 상태로 검사를 완료하면 이곳에 일자별로 쌓입니다.</div>';
-      return;
-    }
-    listEl.innerHTML = rows.map((row, i) =>
+  const listEl = document.getElementById('mpList'), listC = document.getElementById('mpListC');
+  listEl.innerHTML = listC.innerHTML = '<div class="mp-empty">검사 내역을 불러오는 중…</div>';
+  document.getElementById('mpBadges').innerHTML = '';
+  let rows = [], conds = [];
+  try { [rows, conds] = await Promise.all([NLAuth.myResults(), NLAuth.myConditions(50)]); }
+  catch (e) { listEl.innerHTML = listC.innerHTML = '<div class="mp-empty">내역을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>'; return; }
+  document.getElementById('mpCntT').textContent = rows.length;
+  document.getElementById('mpCntC').textContent = conds.length;
+  renderBadges(conds);
+
+  listEl.innerHTML = !rows.length ? '<div class="mp-empty">아직 저장된 성향검사 내역이 없어요.<br>로그인 상태로 검사를 완료하면 이곳에 일자별로 쌓입니다.</div>'
+    : rows.map((row, i) =>
       '<div class="mp-row">'
       + '<span class="mp-no">' + (rows.length - i) + '회차</span>'
       + '<div class="mp-info"><b>' + fmtDate(row.created_at) + '</b>'
@@ -2159,11 +2221,23 @@ async function openMyPage() {
       + (row.holland ? ' · 흥미 ' + esc(row.holland) : '') + '</small></div>'
       + '<button class="mp-view" data-id="' + esc(row.id) + '">결과 리포트 보기 ↗</button>'
       + '</div>').join('');
-    listEl.querySelectorAll('.mp-view').forEach(b =>
-      b.addEventListener('click', () => window.open('report.html?id=' + b.dataset.id, '_blank')));
-  } catch (e) {
-    listEl.innerHTML = '<div class="mp-empty">내역을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>';
-  }
+  listEl.querySelectorAll('.mp-view').forEach(b =>
+    b.addEventListener('click', () => window.open('report.html?id=' + b.dataset.id, '_blank')));
+
+  listC.innerHTML = !conds.length ? '<div class="mp-empty">아직 저장된 컨디션 검사 내역이 없어요.<br>로그인 상태로 <a href="condition.html">마인드 컨디션 검사</a>를 마치면 이곳에 쌓이고, 지난 결과와 비교해 드려요.</div>'
+    : conds.map((row, i) => {
+      const s = row.summary || {}, o = Number.isFinite(s.overall) ? s.overall : null, prev = conds[i + 1] && conds[i + 1].summary;
+      const d = o !== null && prev && Number.isFinite(prev.overall) ? o - prev.overall : null;
+      const col = o === null ? '#A3ABBD' : o >= 70 ? '#1FA77A' : o >= 40 ? '#D99A1E' : '#D2486A';
+      return '<div class="mp-row">'
+        + '<span class="mp-sc" style="background:' + col + '">' + (o === null ? '—' : o) + '</span>'
+        + '<div class="mp-info"><b>' + fmtDate(row.created_at) + ' · ' + esc(s.title || '컨디션 검사') + '</b>'
+        + '<small>' + fmtTime(row.created_at) + (d === null ? '' : ' · 지난번 대비 ' + (d > 0 ? '+' : '') + d + '점')
+        + (s.scores ? ' · 또렷함 ' + esc(s.scores.alert ?? '—') + ' · 집중 ' + esc(s.scores.control ?? '—') + ' · 마음 ' + esc(s.scores.emotion ?? '—') + ' · 몸 ' + esc(s.scores.autonomic ?? '—') : '') + '</small></div>'
+        + '<button class="mp-view" data-cid="' + esc(row.id) + '">결과 보기 ↗</button></div>';
+    }).join('');
+  listC.querySelectorAll('.mp-view').forEach(b =>
+    b.addEventListener('click', () => window.open('condition.html?rid=' + b.dataset.cid, '_blank')));
 }
 
 document.getElementById('mpLogout').addEventListener('click', async () => {

@@ -101,6 +101,13 @@
       <text x="${px}" y="${H - 8}" font-size="11" fill="#647089">회색 점선: 표적 위치 · 파랑: 추정 시선 (수평, 진폭 대비) · 처음 ${Math.round(t1 - t0)}초</text></svg>`;
   }
 
+  /* 원형 추적: 표적 원(점선)과 시선 궤적 */
+  function circleSvg(c) {
+    if (!c || !c.trace || c.trace.length < 10) return '';
+    const S = 70, o = 90, p = c.trace.map(z => `${(o + Math.max(-1.6, Math.min(1.6, z.x)) * S).toFixed(1)},${(o + Math.max(-1.6, Math.min(1.6, z.y)) * S).toFixed(1)}`).join(' ');
+    return `<svg class="chart" viewBox="0 0 180 180" style="max-width:240px" role="img" aria-label="원형 추적 시선 궤적"><circle cx="${o}" cy="${o}" r="${S}" fill="none" stroke="#A3ABBD" stroke-width="2" stroke-dasharray="5 4"/><polyline points="${p}" fill="none" stroke="#2458E6" stroke-width="1.4" opacity=".75"/><text x="${o}" y="176" text-anchor="middle" font-size="9.5" fill="#647089">점선: 표적 원 · 파랑: 시선</text></svg>`;
+  }
+
   function sartSvg(s) {
     const T = s.rts, n = T.length, W = 860, H = 170, px = 44, py = 12, iw = W - px - 10, ih = H - py - 28;
     const lo = 100, hi = 1100, ys = v => py + (1 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * ih, xs = i => px + i / Math.max(1, n - 1) * iw;
@@ -238,8 +245,9 @@
   }
 
   /* 종합 해설 요청 본문: 허용된 구조화 지표만 (PHQ 응답·영상·자유 문장은 넣지 않는다) */
-  function summaryPayload(r) {
+  function summaryPayload(r, hist) {
     const b = r.battery, I = b.integrated, c = r.checkin || {};
+    const tr = trendOf(r, hist || []);
     const domains = {};
     B.DOMAIN_KEYS.forEach(k => { const d = b.domains[k]; domains[k] = { score: d.score, status: d.status, confidence: d.confidence, tentative: !!d.tentative }; });
     return {
@@ -248,6 +256,7 @@
       pathways: I.pathways.map(p => p.key), mismatches: I.mismatches.map(m => m.key),
       checkin: { valence: c.valence ?? null, tension: c.tension ?? null, energy: c.energy ?? null, kss: c.kss ?? null },
       care: b.care.filter(t => t.domain !== 'safety').map(t => t.domain), qc: { grade: b.qc ? b.qc.grade : null, hrRef: b.qc ? b.qc.hrRef || null : null },
+      trend: tr ? { n: tr.n, days: tr.days, overall: [tr.prev.overall ?? null, tr.cur.overall ?? null], deltas: tr.deltas, done: tr.done } : null,
       context: { sleep: c.sleep || null, caffeine: c.caffeine || null, hour: r.measuredAt && !isNaN(new Date(r.measuredAt)) ? new Date(r.measuredAt).getHours() : null, notes: (I.context || []).map(m => m.key) },
     };
   }
@@ -327,9 +336,12 @@
     sartCv: ['반응 속도의 고르기', '반응 시간이 들쭉날쭉할수록 집중이 흔들려요'],
     sartOmission: ['놓친 반응', '눌러야 할 숫자를 놓친 비율'],
     pursuitGain: ['눈으로 따라가기', '움직이는 점을 눈이 얼마나 잘 따라갔는지'],
-    pursuitErr: ['따라갈 때 흔들림', '따라가는 동안 시선이 흔들린 정도'],
+    pursuitErr: ['따라갈 때 흔들림', '좌우로 따라가는 동안 시선이 흔들린 정도'],
+    circErr: ['원 따라가기 정확도', '원을 그리며 도는 점을 가로·세로로 함께 맞춰 따라간 정도'],
     motion: ['머리 움직임', '집중 과제 중 머리가 움직인 양'],
     bias: ['불편한 사진을 본 시간', '불편한 사진과 평범한 사진 중 불편한 쪽을 본 비율'],
+    lateNeg: ['불편한 사진에서 벗어나기', '사진이 뜨고 1.5초 뒤에도 불편한 쪽에 머문 비율'],
+    posBias: ['기쁜 사진을 본 시간', '기쁜 사진과 평범한 사진 중 기쁜 쪽을 본 비율'],
     firstNeg: ['첫 시선의 방향', '사진이 뜨자마자 불편한 사진으로 먼저 눈이 간 비율'],
     negHr: ['사진을 볼 때 심박 변화', '불편한 사진을 볼 때 심박이 오른 정도'],
     stressDelta: ['긴장할 때 심박 상승', '시간 압박 속 암산 중 심박이 평소보다 오른 정도'],
@@ -362,27 +374,27 @@
   };
   /* 케어: 결과와 이어지는 실천 항목 (근거 문헌은 부록의 케어 근거에서 확인) */
   const CARE_EASY = {
-    alert: { goal: '반응이 늦어지는 순간과 눈 감김이 줄어드는 것', when: '2주 뒤 같은 시간대', items: [
+    alert: { goal: '반응이 늦어지는 순간과 눈 감김이 줄어드는 것', when: '2~3일 간격 또는 매주', items: [
       ['기상 시각 고정하기', '2주 동안 일어나는 시간을 30분 범위 안에서 지켜 보세요. 잠이 오지 않을 때 침대에 오래 누워 있지 않는 것도 중요해요.', '매일 아침'],
       ['10분 짧은 낮잠', '오후 졸림이 심한 날에는 오후 3시 이전에 10분 정도만 눈을 붙여 보세요. 길게 자면 밤잠을 방해할 수 있어요.', '졸린 날 오후'],
       ['중요한 일 전 컨디션 점검', '집중이 필요한 일을 앞두고 3분 반응 점검을 해 보고, 피로가 크면 쉬운 일부터 먼저 하도록 순서를 바꿔 보세요.', '중요한 일 전']] },
-    control: { goal: '멈춰야 할 때 멈추는 힘과 고른 반응 속도', when: '4주 뒤', items: [
+    control: { goal: '멈춰야 할 때 멈추는 힘과 고른 반응 속도', when: '2~3일 간격 또는 매주', items: [
       ['10분 호흡 집중 훈련', '호흡에 주의를 두고, 생각이 다른 곳으로 가면 알아차린 뒤 다시 호흡으로 돌아오는 연습이에요.', '하루 10분'],
       ['주 3회 유산소 운동', '빠르게 걷기나 가벼운 달리기를 30분 정도 해 보세요. 집중력에 가장 꾸준히 효과가 확인된 생활 습관이에요.', '주 3회'],
       ['25분 한 가지 일만 하기', '알림을 끄고 25분 동안 한 가지 일에만 집중한 뒤 5분 쉬어 보세요.', '일·공부 시간']] },
-    emotion: { goal: '불편한 정보에서 마음을 떼어 내는 유연성', when: '2주 뒤', items: [
+    emotion: { goal: '불편한 정보에서 마음을 떼어 내는 유연성', when: '2~3일 간격 또는 매주', items: [
       ['2분 주의 전환 연습', '불편한 장면이나 생각이 떠오르면 일부러 시선을 다른 대상으로 옮겨 잠시 머무는 연습을 해 보세요.', '하루 2분'],
       ['걱정 시간 정해 두기', '걱정은 하루 15분 정해 둔 시간에 몰아서 하고, 그 밖의 시간에는 “이따가 생각하자”고 미뤄 보세요.', '하루 15분'],
       ['생각에 이름 붙이기', '“나는 지금 ~라는 생각을 하고 있구나”라고 말해 보면 생각과 거리를 두는 데 도움이 돼요.', '걱정이 떠오를 때']] },
-    autonomic: { goal: '긴장한 뒤 심박이 빨리 제자리로 돌아오는 것', when: '2주 뒤', items: [
+    autonomic: { goal: '긴장한 뒤 심박이 빨리 제자리로 돌아오는 것', when: '2~3일 간격 또는 매주', items: [
       ['공명 호흡 5분', '5초 들이쉬고 5초 내쉬는 호흡(분당 6회)을 하루 두 번 5분씩 해 보세요. 아래 1분 호흡으로 바로 연습할 수 있어요.', '하루 2번'],
       ['4주 꾸준히 호흡 연습', '꾸준히 하면 숨을 쉴 때 심박이 함께 부드럽게 오르내리는 폭이 커져요. 몸이 긴장을 푸는 힘이 길러진다는 신호예요.', '4주 동안'],
       ['90초 몸 스캔', '긴장된 일정이 끝나면 머리부터 발끝까지 힘이 들어간 곳을 차례로 살피며 풀어 주세요.', '긴장된 일정 직후']] },
-    balanced: { goal: '네 영역 모두 지금처럼 양호하게 유지', when: '4주 뒤', items: [
-      ['월 1회 같은 시간대 측정', '지금 결과를 나의 기준으로 삼고 한 달에 한 번 같은 시간대에 재 보세요. 작은 변화도 금방 알아챌 수 있어요.', '월 1회'],
+    balanced: { goal: '네 영역 모두 지금처럼 양호하게 유지', when: '2~3일 간격 또는 매주', items: [
+      ['2~3일마다 같은 시간대 측정', '지금 결과를 나의 기준으로 삼고 2~3일 간격 또는 매주 같은 시간대에 재 보세요. 기록이 쌓일수록 작은 변화도 금방 알아챌 수 있어요.', '2~3일 간격 또는 매주'],
       ['긴장된 일정 전후 3분 호흡', '발표나 시험 같은 일정 전후에 천천히 3분 호흡하면 지금의 회복력을 지키는 데 도움이 돼요.', '필요할 때'],
       ['수면 리듬 지키기', '또렷함은 다른 모든 영역의 바탕이에요. 자고 일어나는 시간을 지금처럼 일정하게 유지해 주세요.', '매일']] },
-    safety: { goal: '마음의 부담을 혼자 견디지 않기', when: '2~4주 뒤', items: [
+    safety: { goal: '마음의 부담을 혼자 견디지 않기', when: '2~3일 간격 또는 매주', items: [
       ['전문가와 이야기해 보기', '가까운 정신건강복지센터나 정신건강의학과에서 상담을 받아 보세요. 이 결과지를 함께 보여 주면 도움이 돼요.', '이번 주 안에'],
       ['힘들 땐 바로 연락하기', '힘든 마음이 갑자기 커지면 언제든 정신건강 위기상담 109(24시간)에 전화해 주세요.', '언제든'],
       ['루틴은 무리하지 않게', '상담과 함께 아래 루틴을 할 수 있는 만큼만 천천히 이어 가 보세요.', '여유가 될 때']] },
@@ -394,14 +406,14 @@
       '이번 결과는 ‘피로 회복 우선형’으로 정리됐어요. 마음의 시선과 몸의 회복력은 양호한 범위에 있어서, 불편한 정보에 크게 휘둘리지 않고 긴장한 뒤에도 몸이 비교적 잘 돌아오는 편이에요. 다만 집중의 바탕이 되는 또렷함이 떨어져 있고, 집중 조절도 함께 ‘주의’ 범위로 내려와 있어요.',
       '반응 과제에서 신호를 보고도 한 박자 늦게 누른 순간이 여러 번 있었고, 눈꺼풀이 무겁게 내려와 있던 시간도 길었어요. 이렇게 피로가 쌓이면 멈춰야 할 때 손이 먼저 나가거나 반응 속도가 들쭉날쭉해지기 쉬워요. 이번 집중 조절 결과도 피로의 영향을 함께 받았을 가능성이 커요.',
       '스스로는 그렇게 졸리지 않다고 답했지만, 측정에서는 피로 신호가 분명하게 보였어요. 어젯밤 수면이 짧았던 것도 영향을 줬을 거예요. 피로는 느낌보다 수행에 먼저 나타나는 경우가 많으니, 오늘은 생각보다 지쳐 있다고 여기고 일정을 조금 여유 있게 잡아 보시는 게 좋겠습니다.',
-      '가장 먼저 수면 리듬을 되찾는 것을 추천드려요. 앞으로 2주 동안 기상 시각을 30분 범위 안에서 일정하게 지키고, 잠이 오지 않을 때 침대에 오래 누워 있지 않는 것부터 시작해 보면 어떨까요? 오후에 졸림이 심한 날에는 오후 3시 이전에 10분 정도 짧게 눈을 붙이는 것도 도움이 돼요. 집중이 필요한 일은 컨디션이 좋은 오전에 배치하는 편이 좋겠습니다.',
-      '그리고 최근 2주 동안 마음이 꽤 힘들었다고 답해 주셨는데, 이 부분은 루틴보다 먼저 챙기셨으면 해요. 가까운 정신건강복지센터나 전문가와 한 번 이야기해 보시길 권해 드려요. 2주 뒤 같은 시간대에 다시 측정해 보면 수면을 정돈한 효과가 또렷함과 집중 조절에 어떻게 나타나는지 확인할 수 있을 거예요.',
+      '지난 측정과 비교하면 또렷함이 조금 올라왔어요. 체크해 두신 기상 시각 고정하기가 효과를 내기 시작한 것 같아요. 다만 아직 ‘주의’ 범위라서, 가장 먼저 수면 리듬을 계속 지켜 가는 것을 추천드려요. 앞으로 2주 동안 기상 시각을 30분 범위 안에서 일정하게 지키고, 잠이 오지 않을 때 침대에 오래 누워 있지 않는 것부터 시작해 보면 어떨까요? 오후에 졸림이 심한 날에는 오후 3시 이전에 10분 정도 짧게 눈을 붙이는 것도 도움이 돼요. 집중이 필요한 일은 컨디션이 좋은 오전에 배치하는 편이 좋겠습니다.',
+      '그리고 최근 2주 동안 마음이 꽤 힘들었다고 답해 주셨는데, 이 부분은 루틴보다 먼저 챙기셨으면 해요. 가까운 정신건강복지센터나 전문가와 한 번 이야기해 보시길 권해 드려요. 2~3일 간격 또는 매주, 비슷한 시간대에 다시 측정해 보시면 수면을 정돈한 효과가 또렷함과 집중 조절에 어떻게 나타나는지 확인할 수 있을 거예요.',
     ],
     balanced: [
       '이번 결과는 ‘균형 조절형’이에요. 또렷함, 집중 조절, 마음의 시선, 몸의 회복력 네 영역이 모두 양호한 범위에 있어서 전반적으로 컨디션이 안정적인 상태예요.',
       '반응 과제에서는 신호에 빠르고 고르게 반응했고, 불편한 사진과 평범한 사진에도 시선을 치우치지 않게 나눠 봤어요. 압박 과제에서 심박이 잠시 올랐다가도 천천히 호흡하자 금방 제자리로 돌아왔어요. 긴장을 받아들이고 다시 회복하는 흐름이 잘 작동하고 있다는 뜻이에요.',
       '스스로 느끼는 졸림과 긴장도 측정 결과와 잘 맞았어요. 몸의 신호를 비교적 정확하게 알아차리고 있다는 점도 좋은 강점이에요. 어젯밤 충분히 잔 것이 오늘 결과에 도움이 됐을 거예요.',
-      '지금은 새로운 것을 더하기보다 현재의 리듬을 지키는 게 좋겠습니다. 오늘 결과를 나의 기준으로 남겨 두고, 한 달에 한 번 같은 시간대에 다시 측정해 보시길 추천드려요. 발표나 시험처럼 긴장되는 일정 전후에는 3분 정도 천천히 호흡하는 습관을 들여 보는 건 어떨까요?',
+      '지금은 새로운 것을 더하기보다 현재의 리듬을 지키는 게 좋겠습니다. 오늘 결과를 나의 기준으로 남겨 두고, 2~3일 간격 또는 매주 같은 시간대에 다시 측정해 보시길 추천드려요. 발표나 시험처럼 긴장되는 일정 전후에는 3분 정도 천천히 호흡하는 습관을 들여 보는 건 어떨까요?',
       '자고 일어나는 시간을 지금처럼 일정하게 유지하는 것도 잊지 마세요. 또렷함은 다른 모든 영역의 바탕이라서, 수면 리듬만 잘 지켜도 지금의 균형을 오래 이어 갈 수 있어요.',
     ],
     control: [
@@ -409,16 +421,87 @@
       '숫자 과제에서 멈춰야 할 때 손이 먼저 나간 경우가 꽤 있었고, 반응 속도도 들쭉날쭉했어요. 반대쪽을 봐야 하는 과제에서도 눈이 먼저 표적을 따라간 경우가 있었어요. 집중을 조절하는 힘과 긴장을 푸는 몸의 힘은 같은 조절 회로를 함께 쓰는 것으로 알려져 있어서, 두 결과가 함께 나타난 것은 자연스러운 흐름이에요.',
       '느끼는 긴장과 몸의 반응은 대체로 비슷했어요. 측정 1~3시간 전에 카페인을 마셨기 때문에 반응 속도는 평소보다 조금 좋게 나왔을 수 있어요. 다음 측정은 카페인 조건을 맞춰서 비교해 보시는 게 좋겠습니다.',
       '가장 먼저 하루 10분 호흡 집중 훈련을 추천드려요. 호흡에 주의를 두고, 생각이 다른 곳으로 흘러가면 알아차린 뒤 다시 돌아오는 연습이에요. 여기에 일을 할 때 알림을 끄고 25분 동안 한 가지 일만 해 보는 방식을 더해 보면 어떨까요? 주 3회, 30분 정도의 빠른 걷기도 집중력에 꾸준히 도움이 되는 습관이에요.',
-      '하루 두 번, 5초 들이쉬고 5초 내쉬는 호흡을 5분씩 해 주시면 몸의 회복력과 집중 조절을 함께 챙길 수 있어요. 4주 정도 이어 간 뒤 다시 측정해서 멈추는 힘과 반응 속도가 얼마나 고르게 바뀌었는지 확인해 보세요.',
+      '하루 두 번, 5초 들이쉬고 5초 내쉬는 호흡을 5분씩 해 주시면 몸의 회복력과 집중 조절을 함께 챙길 수 있어요. 2~3일 간격 또는 매주 같은 시간대에 다시 측정하면서 멈추는 힘과 반응 속도가 얼마나 고르게 바뀌었는지 확인해 보세요.',
     ],
     overload: [
       '이번 결과에서는 또렷함과 집중 조절이 잘 유지되고 있어요. 머리는 맑게 깨어 있고 할 일에 집중하는 힘도 괜찮은 편이에요. 다만 마음의 시선과 몸의 회복력이 함께 ‘관리 필요’ 범위에 있어서, 마음과 몸 모두 긴장이 꽤 쌓여 있는 상태로 보여요.',
       '불편한 사진이 나오면 시선이 먼저 그쪽으로 향하고 오래 머물렀어요. 압박 과제에서는 심박이 크게 올랐고, 호흡을 한 뒤에도 몸이 제자리로 돌아오는 데 시간이 걸렸어요. 걱정을 곱씹는 시간이 길어지면 몸의 긴장도 함께 길어지기 쉬운데, 이번 결과가 바로 그런 흐름을 보여 주고 있어요.',
       '스스로는 긴장이 크지 않다고 느꼈지만 몸은 꽤 크게 반응하고 있었어요. 마음으로는 괜찮다고 생각해도 몸이 먼저 지쳐 갈 수 있으니, 요즘 몸이 보내는 신호에 조금 더 귀 기울여 주시면 좋겠습니다.',
       '최근 2주 동안 마음이 많이 힘들었다고 답해 주셨어요. 이번에는 혼자 해결하려 하기보다 가까운 정신건강복지센터나 전문가와 먼저 이야기해 보시길 권해 드려요. 그와 함께 하루 두 번, 5초 들이쉬고 5초 내쉬는 호흡을 5분씩 해 보는 건 어떨까요? 긴장된 일정이 끝나면 90초 정도 몸 구석구석의 힘을 풀어 주는 것도 도움이 돼요.',
-      '걱정은 하루 15분 정해 둔 시간에 몰아서 하고, 그 밖의 시간에는 “나는 지금 이런 생각을 하고 있구나” 하고 한발 떨어져 보는 연습을 추천드려요. 2주 뒤 같은 시간대에 다시 측정하면 몸의 회복과 시선의 변화를 확인할 수 있을 거예요.',
+      '걱정은 하루 15분 정해 둔 시간에 몰아서 하고, 그 밖의 시간에는 “나는 지금 이런 생각을 하고 있구나” 하고 한발 떨어져 보는 연습을 추천드려요. 2~3일 간격 또는 매주, 비슷한 시간대에 다시 측정하면 몸의 회복과 시선의 변화를 확인할 수 있을 거예요.',
     ],
   };
+
+  /* ---------- 지난 측정과 비교 · 코칭 ----------
+   * hist: 이 측정보다 앞선 기록 [{at, overall, scores, title, todos}] (최신순). 같은 종류(실측/데모)끼리만 비교한다.
+   * 한 번의 차이는 측정 오차일 수 있어 5점 미만은 ‘비슷함’으로 본다 */
+  const SAME = 5;
+  function trendOf(r, hist) {
+    const t = r.measuredAt ? new Date(r.measuredAt).getTime() : Date.now();
+    const list = (hist || []).filter(x => x && x.scores && !x.demo === !r.demo && new Date(x.at).getTime() < t - 60000);
+    if (!list.length) return null;
+    const prev = list[0], b = r.battery;
+    const cur = { overall: overallIndex(b), scores: Object.fromEntries(B.DOMAIN_KEYS.map(k => [k, b.domains[k].score])) };
+    const deltas = {};
+    B.DOMAIN_KEYS.forEach(k => { deltas[k] = finite(cur.scores[k]) && finite(prev.scores[k]) ? cur.scores[k] - prev.scores[k] : null; });
+    const base = list.slice(0, 6), avg = {};
+    B.DOMAIN_KEYS.forEach(k => { const v = base.map(x => x.scores[k]).filter(finite); avg[k] = v.length >= 2 ? Math.round(v.reduce((a, z) => a + z, 0) / v.length) : null; });
+    const done = prev.todos ? Object.values(prev.todos).filter(Boolean).length : null;
+    return { n: list.length + 1, prev, cur, deltas, avg, days: Math.max(0, Math.round((t - new Date(prev.at).getTime()) / 864e5)), done, todos: prev.todos || null, list };
+  }
+  function coachLines(tr) {
+    const out = [], D = B.DOMAIN_KEYS.filter(k => finite(tr.deltas[k]));
+    const up = D.filter(k => tr.deltas[k] >= SAME).sort((x, y) => tr.deltas[y] - tr.deltas[x]);
+    const down = D.filter(k => tr.deltas[k] <= -SAME).sort((x, y) => tr.deltas[x] - tr.deltas[y]);
+    const doneIn = k => tr.todos ? Object.entries(tr.todos).filter(([id, v]) => v && id.startsWith(k + '-')).map(([id]) => CARE_EASY[k] && CARE_EASY[k].items[+id.split('-')[1]]).filter(Boolean) : [];
+    up.slice(0, 2).forEach(k => {
+      const did = doneIn(k)[0];
+      out.push(['up', `${B.DOMAINS[k].name}이 지난번보다 ${tr.deltas[k]}점 좋아졌어요.${did ? ` 체크해 둔 ‘${did[0]}’ 실천이 도움이 됐을 수 있어요. 지금처럼 이어 가 보세요.` : ' 최근 생활에서 무엇이 달라졌는지 떠올려 보고, 그 습관을 계속 지켜 보세요.'}`]);
+    });
+    down.slice(0, 2).forEach(k => {
+      const tip = (CARE_EASY[k] || CARE_EASY.balanced).items[0];
+      out.push(['down', `${B.DOMAINS[k].name}이 지난번보다 ${-tr.deltas[k]}점 낮아졌어요. 요즘 수면이나 긴장이 달라지지 않았는지 살펴보시고, ‘${tip[0]}’부터 다시 시작해 보는 건 어떨까요?`]);
+    });
+    if (!up.length && !down.length) out.push(['same', '네 영역 모두 지난번과 비슷해요(±5점 이내). 컨디션이 안정적으로 유지되고 있다는 뜻이에요.']);
+    if (tr.done === 0) out.push(['tip', '지난 측정 뒤 체크한 실천 항목이 없었어요. 이번에는 케어 플랜에서 한 가지만 골라 2~3일 꾸준히 해 보시길 권해 드려요.']);
+    else if (tr.done > 0) out.push(['tip', `지난 측정 뒤 실천 항목 ${tr.done}개를 체크하셨어요. 꾸준함이 변화를 만드는 가장 확실한 방법이에요.`]);
+    if (tr.days > 10) out.push(['tip', `지난 측정과 ${tr.days}일 차이가 나요. 2~3일 간격 또는 매주, 비슷한 시간대에 재면 변화를 더 정확하게 볼 수 있어요.`]);
+    return out;
+  }
+  function compareSection(r, hist) {
+    const tr = trendOf(r, hist);
+    if (!tr) return '';
+    const fmtD = d => `${d > 0 ? '+' : ''}${d}`, cls = d => (!finite(d) ? 'na' : d >= SAME ? 'up' : d <= -SAME ? 'down' : 'same');
+    const word = { up: '좋아짐', down: '낮아짐', same: '비슷함', na: '비교 불가' };
+    const od = finite(tr.cur.overall) && finite(tr.prev.overall) ? tr.cur.overall - tr.prev.overall : null;
+    const when = new Date(tr.prev.at);
+    const spark = k => {
+      const v = [...tr.list.slice(0, 5).reverse().map(x => x.scores[k]), tr.cur.scores[k]];
+      const p = v.map((y, i) => (finite(y) ? [6 + i / Math.max(1, v.length - 1) * 108, 34 - y / 100 * 28] : null)).filter(Boolean);
+      return p.length < 2 ? '' : `<svg viewBox="0 0 120 40" class="cmp-sp" aria-hidden="true"><polyline points="${p.map(q => q.map(n => n.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="${DCOLOR[k]}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${p[p.length - 1][0].toFixed(1)}" cy="${p[p.length - 1][1].toFixed(1)}" r="3.6" fill="${DCOLOR[k]}"/></svg>`;
+    };
+    return `<section class="card cmp" id="r-cmp">
+      <div class="cmp-h"><div><div class="eyebrow">Progress</div><h2>지난 측정과 비교해 봤어요</h2>
+        <p class="muted" style="margin:0">${esc(when.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }))} 측정(${tr.days ? tr.days + '일 전' : '오늘'})과 비교 · 이번이 ${tr.n}번째 측정이에요</p></div>
+        <div class="cmp-o"><span>종합 컨디션</span><b>${tr.prev.overall ?? '—'}<i>→</i>${tr.cur.overall ?? '—'}</b>${od === null ? '' : `<em class="d-${cls(od)}">${fmtD(od)}점</em>`}</div></div>
+      <div class="cmp-g">${B.DOMAIN_KEYS.map(k => { const d = tr.deltas[k], c = cls(d); return `<div class="cmp-c">
+        <div class="cmp-ch"><span class="dic sm" style="color:${DCOLOR[k]};background:${DCOLOR[k]}1A">${icon(k)}</span><b>${esc(B.DOMAINS[k].name)}</b><em class="d-${c}">${finite(d) ? fmtD(d) : '—'}</em></div>
+        <div class="cmp-n"><span>${tr.prev.scores[k] ?? '—'}</span><i>→</i><b>${tr.cur.scores[k] ?? '—'}</b><small>${word[c]}</small></div>${spark(k)}
+        ${finite(tr.avg[k]) && finite(tr.cur.scores[k]) ? `<p>평소(최근 평균 ${tr.avg[k]}점)보다 ${Math.abs(tr.cur.scores[k] - tr.avg[k]) < SAME ? '비슷해요' : tr.cur.scores[k] > tr.avg[k] ? '높아요' : '낮아요'}</p>` : ''}</div>`; }).join('')}</div>
+      <div class="coach"><div class="coach-h">이번 변화에 맞춘 코칭</div><ul>${coachLines(tr).map(([t, x]) => `<li class="c-${t}">${esc(x)}</li>`).join('')}</ul></div>
+      <p class="muted small" style="margin:10px 0 0">한 번의 측정은 그날의 수면·컨디션 영향을 받아요. 5점 미만의 차이는 ‘비슷함’으로 보고, 여러 번의 흐름으로 판단해 주세요.</p>
+    </section>`;
+  }
+  /* 예시 리포트용 가상의 지난 기록 3회 (예시에서도 비교·코칭 화면을 보여 주기 위함) */
+  function sampleHistory(r) {
+    const b = r.battery, t = r.measuredAt ? new Date(r.measuredAt).getTime() : Date.now();
+    const off = { alert: [-14, -11, -8], control: [-8, -5, -2], emotion: [3, 1, 2], autonomic: [-2, 1, -1] };
+    return [3, 7, 10].map((days, i) => {
+      const scores = Object.fromEntries(B.DOMAIN_KEYS.map(k => [k, finite(b.domains[k].score) ? Math.max(0, Math.min(100, b.domains[k].score + off[k][2 - i])) : null]));
+      const v = Object.values(scores).filter(finite);
+      return { at: new Date(t - days * 864e5).toISOString(), demo: !!r.demo, title: b.integrated.title, scores, overall: v.length ? Math.round(v.reduce((a, z) => a + z, 0) / v.length) : null, todos: i === 0 ? { 'alert-0': true, 'alert-1': true } : null };
+    });
+  }
 
   /* ---------- 본문 구성 요소 ---------- */
   /* 네 영역 한눈에: 관리 필요 · 주의 · 양호 구간 위에 내 점수 표지 (+ 지난 측정) */
@@ -451,22 +534,55 @@
     <div class="legend"><span><i class="hollow"></i>내가 느낀 상태</span><span><i style="background:#2a78d6;border-radius:50%"></i>측정 결과</span><span class="muted">오른쪽일수록 좋은 상태</span></div>`;
   }
 
+  /* 측정값을 쉬운 말로: 왜 이 점수가 나왔는지 한 줄로 */
+  const VALUE_SAY = {
+    bias: v => v > 58 ? '불편한 사진 쪽에 더 오래 머물렀어요' : v < 40 ? '불편한 사진을 피하는 편이었어요' : '불편한 사진과 평범한 사진을 고르게 봤어요 (균형 50%)',
+    lateNeg: v => v > 58 ? '시간이 지나도 불편한 사진에서 잘 벗어나지 못했어요' : v < 38 ? '불편한 사진을 일부러 피하는 듯한 흐름이었어요' : '처음 본 뒤에는 자연스럽게 다른 곳으로 옮겨 갔어요',
+    firstNeg: v => v > 60 ? '사진이 뜨자마자 불편한 쪽으로 먼저 눈이 가는 편이에요' : '첫 시선이 한쪽으로 쏠리지 않았어요',
+    posBias: v => v >= 50 ? '기쁜 사진에 자연스럽게 눈이 갔어요' : '기쁜 사진에도 시선이 덜 머물렀어요',
+    negHr: v => v > 3 ? '불편한 사진을 볼 때 심박이 꽤 올랐어요' : '불편한 사진을 볼 때도 심박이 안정적이었어요',
+  };
+  const exVal = e => !finite(e.value) ? '' : `${e.d >= 2 ? e.value.toFixed(e.d) : e.value}${e.unit && e.unit.length <= 3 ? e.unit : e.unit ? ' ' + e.unit : ''}`;
+
   /* 점수 구성: 항목마다 배정된 몫(막대 길이)을 얼마나 채웠는지(색) — 채운 만큼을 더하면 영역 점수 */
   function scoreBuild(k, d) {
     const ex = (d.explain || []).filter(e => e.share > 0);
     if (!ex.length || d.score === null) return '';
     const max = Math.max(...ex.map(e => e.share));
     const worst = ex.slice().sort((a, z) => (z.share - z.points) - (a.share - a.points))[0], lost = worst.share - worst.points;
-    return `<div class="sb"><div class="sb-h"><b>점수 구성</b><p>항목마다 점수에 반영되는 몫이 달라요. 막대가 길수록 비중이 큰 항목이고, 색으로 채워진 만큼이 이번에 얻은 점수예요.</p></div>
+    return `<div class="sb"><div class="sb-h"><b>점수 구성</b><p>100점을 항목마다 나눠 배정했어요. 막대가 길수록 배정된 점수(비중)가 큰 항목이고, 색으로 채워진 만큼이 이번에 받은 점수예요. 각 항목의 측정값과 판정도 함께 보여 드려요.</p></div>
       <div class="sb-rows">${ex.map(e => {
-        const nm = EASY[e.key] || [e.label, ''];
-        return `<div class="sb-r${e === worst && lost >= 3 ? ' worst' : ''}"><div class="sb-l"><b>${esc(nm[0])}</b><small>${esc(nm[1])}</small></div>
+        const nm = EASY[e.key] || [e.label, ''], say = VALUE_SAY[e.key] && finite(e.value) ? VALUE_SAY[e.key](e.value) : nm[1];
+        return `<div class="sb-r${e === worst && lost >= 3 ? ' worst' : ''}"><div class="sb-l"><b>${esc(nm[0])}${finite(e.value) ? `<span class="sb-val st-${e.status}">${esc(exVal(e))} · ${B.STATUS[e.status]}</span>` : ''}</b><small>${esc(say)}</small></div>
           <div class="sb-bar"><span class="sb-slot" style="width:${Math.max(8, e.share / max * 100)}%"><i style="width:${Math.max(0, Math.min(100, e.score))}%;background:${SCOLOR[e.status]}"></i></span></div>
-          <div class="sb-v"><b>${Math.round(e.points)}</b><small>/ ${Math.round(e.share)}점</small></div></div>`;
+          <div class="sb-v"><b>${Math.round(e.points)}</b><small>점 / 배정 ${Math.round(e.share)}점</small></div></div>`;
       }).join('')}</div>
       <div class="sb-sum"><span>합계</span><div class="sb-total"><i style="width:${d.score}%;background:${DCOLOR[k]}"></i></div><b>${d.score}<small> / 100점</small></b></div>
-      ${lost >= 3 ? `<p class="sb-tip">가장 아쉬운 항목 <b>‘${esc(easyName(worst))}’</b> — 여기서 약 ${Math.round(lost)}점이 빠졌어요.</p>` : '<p class="sb-tip ok">모든 항목이 고르게 채워졌어요.</p>'}</div>`;
+      ${lost >= 3 ? `<p class="sb-tip">가장 아쉬운 항목 <b>‘${esc(easyName(worst))}’</b> — 배정된 ${Math.round(worst.share)}점 중 약 ${Math.round(lost)}점이 빠졌어요.</p>` : '<p class="sb-tip ok">모든 항목이 배정된 점수를 거의 채웠어요.</p>'}</div>`;
   }
+
+  /* 마음의 시선 · 시간 흐름: 사진이 뜬 뒤 1초 단위로 불편한(·기쁜) 사진에 머문 비율 */
+  function emoTimeSvg(r) {
+    const g = r.gaze || {}, neg = g.binsNeg, pos = g.binsPos;
+    if (!r.quality.gazeOk || !neg || neg.filter(finite).length < 3) return '';
+    const W = 560, H = 210, px = 44, py = 16, iw = W - px - 20, ih = H - py - 40;
+    const xs = i => px + (i + 0.5) / 4 * iw, ys = v => py + (1 - v) * ih;
+    const line = (arr, c, dash) => { const p = arr.map((v, i) => (finite(v) ? [xs(i), ys(v)] : null)).filter(Boolean); return p.length < 2 ? '' : `<path d="${p.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ')}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"${dash ? ' stroke-dasharray="6 5"' : ''}/>${p.map(q => `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="5" fill="#fff" stroke="${c}" stroke-width="3"/>`).join('')}`; };
+    const early = mean2(neg.slice(0, 2)), late = mean2(neg.slice(2));
+    const say = !finite(early) || !finite(late) ? '' : late > 0.58 ? '시간이 지나도 불편한 사진에 시선이 머물렀어요. 한번 붙잡힌 생각에서 빠져나오기 어려운 흐름일 수 있어요.'
+      : early > 0.6 && late < 0.5 ? '처음엔 불편한 사진에 눈이 갔지만 곧 다른 곳으로 옮겨 갔어요. 빠르게 알아차리고 벗어나는 흐름이에요.'
+        : late < 0.38 ? '불편한 사진을 점점 피하는 흐름이었어요. 불편한 감정을 피하려는 경향이 있는지 함께 살펴보세요.'
+          : '처음부터 끝까지 두 사진을 고르게 봤어요.';
+    return `<div class="emo-t"><div class="group-t">사진을 본 시간 흐름</div><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="시간 흐름별 정서 사진 응시 비율">
+      <rect x="${px}" y="${ys(0.58)}" width="${iw}" height="${ys(0.42) - ys(0.58)}" fill="#EEF7F2"/>
+      ${[0, 0.5, 1].map(v => `<line x1="${px}" x2="${px + iw}" y1="${ys(v)}" y2="${ys(v)}" stroke="${v === 0.5 ? '#9AA6BC' : '#E3E8F1'}" ${v === 0.5 ? 'stroke-dasharray="4 4"' : ''}/><text x="${px - 8}" y="${ys(v) + 4}" text-anchor="end" font-size="11" fill="#8A93A8">${v * 100}%</text>`).join('')}
+      <text x="${px + iw - 4}" y="${ys(0.5) - 6}" text-anchor="end" font-size="10.5" fill="#647089">균형 50%</text>
+      ${pos ? line(pos, '#1baf7a', true) : ''}${line(neg, '#D2486A', false)}
+      ${['0~1초', '1~2초', '2~3초', '3초 이후'].map((t, i) => `<text x="${xs(i)}" y="${H - 14}" text-anchor="middle" font-size="11.5" fill="#647089">${t}</text>`).join('')}</svg>
+      <div class="legend"><span><i style="background:#D2486A"></i>불편한 사진</span>${pos ? '<span><i style="background:#1baf7a"></i>기쁜 사진</span>' : ''}<span><i style="background:#EEF7F2;border:1px solid #C4E3DC"></i>고르게 본 범위</span></div>
+      ${say ? `<p class="note-l">${esc(say)}</p>` : ''}</div>`;
+  }
+  const mean2 = a => { const v = a.filter(finite); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
 
   /* 측정 맥락: 수면 · 카페인 · 측정 시각 — 점수는 그대로 두고 해석만 돕는다 */
   function contextCard(r) {
@@ -482,7 +598,7 @@
     const d = b.domains[k], care = CARE_EASY[k].items[0];
     let extra = '';
     if (k === 'emotion' && d.status !== 'na') {
-      extra = `<div class="q3-wrap"><div class="q3-fig">${quadrantSvg(r)}</div><div class="q3-txt"><span class="eyebrow">마음 × 몸 반응 유형</span><b>${esc(r.profile.title)}</b><em>${esc(r.profile.tag)}</em><p>${esc(r.profile.desc)}</p>
+      extra = emoTimeSvg(r) + `<div class="q3-wrap"><div class="q3-fig">${quadrantSvg(r)}</div><div class="q3-txt"><span class="eyebrow">마음 × 몸 반응 유형</span><b>${esc(r.profile.title)}</b><em>${esc(r.profile.tag)}</em><p>${esc(r.profile.desc)}</p>
         <p class="muted small">불편한 사진에 시선이 머문 정도(세로)와 긴장할 때 심박이 오른 정도(가로)로 네 가지 유형을 나눠요.</p></div></div>`;
     }
     if (k === 'autonomic' && d.status !== 'na') extra = `<div class="group-t">검사하는 동안의 심박 흐름</div>${timelineSvg(r)}<p class="muted small" style="margin:4px 0 0">압박 구간에서 심박이 올랐다가 회복 호흡 구간에서 얼마나 내려오는지가 몸의 회복력을 보여 줘요.</p>`;
@@ -517,9 +633,9 @@
     const main = b.care.find(t => t.domain !== 'safety') || b.care[0], E = CARE_EASY[main.domain] || CARE_EASY.balanced;
     const steps = [
       ['오늘', '1분 호흡으로 몸이 어떻게 반응하는지 바로 확인해요'],
+      ['2~3일 뒤', '같은 시간대에 다시 측정해 오늘과 비교해요 (이후 2~3일 간격 또는 매주)'],
       ['1~2주', `${main.title} — 위의 실천 항목을 매일 조금씩 이어 가요`],
-      [E.when.replace(' 같은 시간대', ''), '같은 시간대에 다시 측정해 변화를 확인해요'],
-      ['그다음', '오늘 결과를 나의 기준으로 삼아 꾸준히 비교해요'],
+      ['2주 뒤', '쌓인 기록으로 실천 효과를 확인하고 케어를 조정해요'],
     ];
     return `<div class="group-t">앞으로의 관리 일정</div><ol class="roadmap">${steps.map(([w, t], i) => `<li><span class="rm-n">${i + 1}</span><b>${esc(w)}</b><p>${esc(t)}</p></li>`).join('')}</ol>`;
   }
@@ -534,6 +650,7 @@
     } else if (k === 'control') {
       body += b.saccade ? `<div class="group-t">프로·안티사카드 · 시행 결과</div>${saccadeSvg(b.saccade)}${b.saccade.ok ? '' : `<p class="warn-line">${esc(b.saccade.reason)} — 안티사카드 지표를 판정에서 제외했어요.</p>`}` : '';
       body += b.pursuit && b.pursuit.trace ? `<div class="group-t">원활 추적 · 표적 대비 시선</div>${pursuitSvg(b.pursuit)}${b.pursuit.ok ? '' : `<p class="warn-line">${esc(b.pursuit.reason)} — 추적 지표를 판정에서 제외했어요.</p>`}` : (b.pursuit && !b.pursuit.ok ? `<p class="warn-line">원활 추적: ${esc(b.pursuit.reason)}</p>` : '');
+      body += b.circle ? `<div class="group-t">원형 추적 · 시선 궤적</div>${circleSvg(b.circle)}${b.circle.ok ? '' : `<p class="warn-line">${esc(b.circle.reason)} — 원형 추적 지표를 판정에서 제외했어요.</p>`}` : '';
       body += b.sart ? `<div class="group-t">SART · 시행별 반응</div>${sartSvg(b.sart)}${b.sart.invalid ? `<p class="warn-line">${esc(b.sart.invalid)}</p>` : ''}` : '';
       body += methodBox('oculo', b, C, `<p><b>프로토콜</b> 응시점 ${P.saccade.fixMin / 1000}~${P.saccade.fixMax / 1000}초 무작위 후 응시점이 사라지며 표적이 화면 중심에서 폭의 ${Math.round(P.saccade.ecc * 100)}% 위치에 1초 제시(단계 패러다임). 원활 추적은 ${P.pursuit.freq}Hz 수평 정현파(진폭 폭의 ${Math.round(P.pursuit.amp * 100)}%), 첫 ${P.pursuit.skipMs / 1000}초 제외 후 최적 지연에서의 이득과 잔차 SD를 계산.${C.cite(['antoniades', 'maruta'])}</p>`);
       body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + ${P.sart.mask ? '마스크' : '빈 화면'} ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 11%)에서 반응 억제.${C.cite(['robertson'])}</p>`);
@@ -566,7 +683,7 @@
     const prev = hist.find(x => x.scores && !x.demo === !r.demo) || null;
     const safety = b.care.find(t => t.domain === 'safety');
     const flagged = ['control', 'emotion'].filter(k => B.SEV[b.domains[k].status] >= 1).map(k => b.domains[k].name).join('·');
-    const next = new Date(r.measuredAt ? new Date(r.measuredAt).getTime() : Date.now()); next.setDate(next.getDate() + 14);
+    const next = new Date(r.measuredAt ? new Date(r.measuredAt).getTime() : Date.now()); next.setDate(next.getDate() + 3);
     const domTiles = B.DOMAIN_KEYS.map(k => {
       const d = b.domains[k];
       return `<a class="rdom" href="#dom-${k}"><div class="rdom-h"><span class="dic" style="color:#fff;background:${DCOLOR[k]}">${icon(k, '#fff')}</span><b>${esc(d.name)}</b></div>
@@ -575,7 +692,7 @@
     }).join('');
 
     let h = `
-    <nav class="rnav no-print" aria-label="리포트 목차"><a href="#r-top">요약</a><a href="#r-ai">종합 해설</a><a href="#r-dash">한눈에 보기</a><a href="#dom-alert">영역별 결과</a><a href="#r-care">케어 플랜</a><a href="#r-app">부록</a></nav>
+    <nav class="rnav no-print" aria-label="리포트 목차"><a href="#r-top">요약</a><a href="#r-ai">종합 해설</a>${trendOf(r, hist) ? '<a href="#r-cmp">지난 측정과 비교</a>' : ''}<a href="#r-dash">한눈에 보기</a><a href="#dom-alert">영역별 결과</a><a href="#r-care">케어 플랜</a><a href="#r-app">부록</a></nav>
 
     <section class="rhero" id="r-top">
       <div class="rhero-top"><div><div class="kicker">Mind Condition Report</div><h1>마인드 컨디션 리포트</h1>
@@ -595,6 +712,8 @@
       <p class="ai-f">측정 결과를 바탕으로 정리한 참고용 해설이며, 의학적 진단이 아니에요.</p>
     </section>
 
+    ${compareSection(r, hist)}
+
     <section id="r-dash">
       <div class="dgrid">
         <div class="card dcard wide"><div class="dcard-h"><h3>네 영역 한눈에 보기</h3><span class="muted small">눌러서 영역별 자세한 결과로 이동</span></div>${zoneBars(b, prev ? prev.scores : null)}</div>
@@ -608,7 +727,7 @@
           const pts = [...hist.filter(x => x.scores && !x.demo === !r.demo).slice(0, 5).reverse().map(x => ({ label: new Date(x.at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }), scores: x.scores })),
             { label: '이번', scores: Object.fromEntries(B.DOMAIN_KEYS.map(k => [k, b.domains[k].score])) }];
           return `<div class="card dcard wide"><div class="dcard-h"><h3>변화 추이</h3><span class="muted small">이 기기에 남은 ${r.demo ? '데모·예시' : ''} 기록</span></div>${pts.length >= 2 ? trendSvg(pts)
-            : '<p class="muted small" style="margin:0">이번이 첫 측정이에요. 2주 뒤 같은 시간대에 다시 측정하면 여기에서 변화를 그래프로 볼 수 있어요.</p>'}</div>`;
+            : '<p class="muted small" style="margin:0">이번이 첫 측정이에요. 2~3일 뒤 같은 시간대에 다시 측정하면 여기에서 변화를 그래프로 볼 수 있어요.</p>'}</div>`;
         })()}
       </div>
     </section>`;
@@ -622,7 +741,7 @@
       <p class="muted" style="margin-top:0">결과에서 가장 먼저 챙길 영역부터 실천 방법을 골랐어요. 해 본 항목은 체크해 두면 이 기기에 기억돼요.</p>
       <div class="tracks">${b.care.map(t => careTrack(t, b)).join('')}</div>
       ${careRoadmap(b)}
-      <div class="next-m"><div><span class="eyebrow">다음 측정 추천일</span><b>${esc(next.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }))}</b><p class="muted small" style="margin:2px 0 0">오늘과 같은 시간대에 재면 변화를 가장 정확하게 비교할 수 있어요.</p></div>
+      <div class="next-m"><div><span class="eyebrow">다음 측정 추천일</span><b>${esc(next.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }))}</b><p class="muted small" style="margin:2px 0 0">2~3일 간격 또는 매주, 오늘과 같은 시간대에 재면 변화를 가장 정확하게 비교할 수 있어요.</p></div>
         <button class="btn care no-print" id="bioStart" type="button">지금 1분 호흡해 보기</button></div>
       <div class="effect" id="effect"></div>
       <div class="btns no-print">
@@ -663,5 +782,5 @@
     return h;
   }
 
-  return { render, citer, esc, summaryPayload, overallIndex, SAMPLE_SUMMARY };
+  return { render, citer, esc, summaryPayload, overallIndex, SAMPLE_SUMMARY, sampleHistory, trendOf };
 });

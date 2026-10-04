@@ -14,8 +14,8 @@ const R = require('./newbiz-report.js');
   /* 모든 지표에 근거 문헌과 단조 기준점이 있어야 한다 */
   B.INDICATORS.forEach(i => {
     assert.ok(i.refs.length && i.refs.every(k => B.REFS[k]), `refs ${i.key}`);
-    const b = i.band, s = b.dir === 'low' ? 1 : -1;
-    assert.ok(b.best * s < b.ok * s && b.ok * s < b.concern * s && b.concern * s < b.worst * s, `band ${i.key}`);
+    const mono = (b, tag) => { const s = b.dir === 'low' ? 1 : -1; assert.ok(b.best * s < b.ok * s && b.ok * s < b.concern * s && b.concern * s < b.worst * s, `band ${i.key}${tag}`); };
+    if (i.band.dir === 'mid') { mono(i.band.up, ' up'); mono(i.band.down, ' down'); assert.equal(i.band.up.best, i.band.down.best); } else mono(i.band, '');
   });
   Object.values(B.MODULES).forEach(m => assert.ok(m.refs.every(k => B.REFS[k])));
   Object.values(B.CARE_PLAN).forEach(t => t.items.forEach(it => assert.ok(it.refs.every(k => B.REFS[k]))));
@@ -217,6 +217,11 @@ for (const [p, e] of Object.entries(expect)) {
     assert.equal(nums.length, { 1: 2, 2: 3, 3: 2, 4: 2, 5: 3 }[lv], `L${lv} 항 수 ${q.text}`);
     if (lv >= 3) assert.ok(nums.some(n => n >= 10) && q.text.includes('−'), `L${lv} 두 자리 + 뺄셈 ${q.text}`);
   }
+  for (let i = 0; i < 300; i++) {                     // 고난도(6): 두 자리 3항 ± 한 자리, 답은 0~9이고 식과 일치
+    const q = B.mistProblem(6, rand), v = Function(`return ${q.text.replace(/−/g, '-')}`)();
+    assert.ok(q.hard && q.ans >= 0 && q.ans <= 9 && v === q.ans && q.text.split(/ [+−] /).length === 4, `L6 ${q.text}`);
+  }
+  assert.ok(B.PROTOCOL.stress.hardAt.length >= 1 && B.PROTOCOL.stress.hardAt.length <= 2);
   assert.deepEqual(B.mistNext(4000, 3), { limit: 3600, streak: 0 });
   assert.deepEqual(B.mistNext(4000, -3), { limit: 4400, streak: 0 });
   assert.deepEqual(B.mistNext(4000, 2), { limit: 4000, streak: 2 });

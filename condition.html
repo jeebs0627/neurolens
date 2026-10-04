@@ -246,6 +246,9 @@ html.staging,html.staging body{overflow:hidden}
 /* 안내 카드 데모 애니메이션 */
 @keyframes swing{0%,100%{transform:translateX(-95px)}50%{transform:translateX(95px)}}
 .a-swing{animation:swing 4s ease-in-out infinite}
+@keyframes swing2{0%,100%{transform:translateX(calc(-1 * var(--sw)))}50%{transform:translateX(var(--sw))}}
+.a-swing[style*="--sw"]{animation-name:swing2}
+.a-orbit{transform-origin:225px 85px;animation:orbit 2.5s linear infinite}
 @keyframes blinkin{0%,45%{opacity:0}50%,100%{opacity:1}}
 .a-blink{animation:blinkin 2.4s steps(1) infinite}
 @keyframes grow{0%,100%{transform:scale(.6)}50%{transform:scale(1)}}
@@ -579,6 +582,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .mist-lv{display:flex;gap:3px;align-items:center}
 .mist-lv i{width:16px;height:6px;border-radius:3px;background:#D3D9E5}
 .mist-lv i.on{background:#7D879E}
+.mist-hard{margin-left:8px;font-size:11.5px;font-weight:800;color:#fff;background:#B23A57;border-radius:6px;padding:1px 7px;animation:fadeIn .3s}
 .mist .prob{font-family:var(--font-num);font-size:clamp(34px,5vw,54px);font-weight:700;color:#2C3650;letter-spacing:.01em;margin:6px 0 0}
 .mist .prob .q{color:#9AA3B6}
 .mist .tbar{width:100%;height:6px;border-radius:9px;background:#D3D9E5;margin:16px auto 18px;overflow:hidden}
@@ -848,6 +852,8 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .ct-b b{font-size:14.5px}
 .ct-b em{font-style:normal;font-size:11.5px;font-weight:800;color:var(--care);background:var(--care-soft);border-radius:999px;padding:2px 8px;margin-left:6px;white-space:nowrap}
 .ct-b small{display:block;font-size:13px;color:var(--ink-2);margin-top:3px;line-height:1.6;word-break:keep-all}
+.acct-b{margin:-4px 0 16px;padding:12px 16px;border-radius:14px;background:#EEF4FF;border:1px solid #CFDDF8;font-size:14px;color:#21408F}
+.acct-b a{font-weight:800;color:var(--blue)}
 .ct-items label:has(input:checked){background:var(--care-soft);border-color:var(--care-line)}
 .ct-items label:has(input:checked) .ct-b b{text-decoration:line-through;color:var(--muted)}
 .ct-f{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;color:#1F5E52}
@@ -891,6 +897,39 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
   .ainfo{grid-template-columns:1fr 1fr}
   .flow li{flex:none}
 }
+/* 점수 구성 · 측정값 표시 */
+.sb-r,.sb-sum{grid-template-columns:minmax(170px,260px) 1fr 118px}
+.sb-val{display:inline-block;margin-left:8px;font-size:11.5px;font-weight:800;border-radius:999px;padding:1px 8px;vertical-align:1px;white-space:nowrap}
+.sb-val.st-ok{background:#E4F4EC;color:#1C6E49}.sb-val.st-watch{background:var(--amber-soft);color:#7A4E06}.sb-val.st-concern{background:var(--rose-soft);color:#A2304A}
+.sb-v small{font-size:11.5px}
+.emo-t{margin-top:16px}
+.emo-t svg{max-width:620px;display:block}
+/* 지난 측정과 비교 */
+.card.cmp{border-top:3px solid #6A4FD8;background:linear-gradient(180deg,#FAF9FF,#fff 220px)}
+.cmp-h{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.cmp-h h2{margin:6px 0 4px}
+.cmp-o{text-align:right}
+.cmp-o span{display:block;font-size:12px;font-weight:800;color:var(--muted)}
+.cmp-o b{font-family:var(--font-num);font-size:30px;line-height:1.1}
+.cmp-o b i{font-style:normal;color:#A3ABBD;margin:0 8px;font-size:20px}
+.cmp-o em,.cmp-ch em{font-style:normal;font-family:var(--font-num);font-weight:800;font-size:13px;border-radius:999px;padding:2px 9px;margin-left:6px}
+.d-up{background:#E4F4EC;color:#1C6E49}.d-down{background:var(--rose-soft);color:#A2304A}.d-same,.d-na{background:#EEF1F6;color:#5A6580}
+.cmp-g{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.cmp-c{border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:#fff}
+.cmp-ch{display:flex;align-items:center;gap:7px}
+.cmp-ch b{font-size:14px}.cmp-ch em{margin-left:auto}
+.cmp-n{display:flex;align-items:baseline;gap:6px;margin-top:8px;font-family:var(--font-num)}
+.cmp-n span{color:var(--muted);font-size:16px}.cmp-n i{font-style:normal;color:#A3ABBD}.cmp-n b{font-size:22px}
+.cmp-n small{margin-left:auto;font-family:var(--font-kr);font-size:11.5px;color:var(--muted);font-weight:700}
+.cmp-sp{width:100%;height:40px;margin-top:4px}
+.cmp-c p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.coach{margin-top:14px;border-radius:16px;padding:14px 18px;background:#F5F2FF;border:1px solid #DDD5FF}
+.coach-h{font-weight:800;font-size:14px;color:#3E2E8F;margin-bottom:6px}
+.coach ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.coach li{position:relative;padding-left:24px;font-size:14px;color:var(--ink-2);word-break:keep-all;line-height:1.65}
+.coach li::before{position:absolute;left:0;top:0;font-weight:900}
+.coach li.c-up::before{content:'▲';color:#1FA77A}.coach li.c-down::before{content:'▼';color:#D2486A}.coach li.c-same::before{content:'＝';color:#5A6580}.coach li.c-tip::before{content:'✦';color:#6A4FD8}
+@media (max-width:820px){.cmp-g{grid-template-columns:1fr 1fr}.cmp-o{text-align:left}.sb-r,.sb-sum{grid-template-columns:1fr 100px}}
 @media print{.ax{break-inside:avoid}.ax>summary::after{display:none}}
 </style>
 </head>
@@ -1115,6 +1154,9 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 </div>
 <video id="camProc" class="selfcam" playsinline muted></video>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
 <script src="newbiz-core.js"></script>
 <script src="newbiz-battery.js"></script>
 <script src="newbiz-report.js"></script>
@@ -1224,7 +1266,7 @@ function fvTrials(d) { return S.stimMode === 'photo' || stimReady(S.mode) ? d.fv
 function stepEstimateSec(key, d) {
   return {
     /* 측정 시간만 (단계 안내를 읽는 시간 제외) */
-    calibration: 55, baseline: d.baseline + 3, pursuit: d.pursuit + 3, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,
+    calibration: 55, baseline: d.baseline + 3, pursuit: d.pursuit + (d.circle || 0) + 5, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,
     freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 2, pvt: d.pvt + d.pvtPractice * 3.5 + 6, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 6,
     stress: d.stress + 3, recovery: d.recovery + 3,
   }[key] || 0;
@@ -1344,6 +1386,8 @@ phqRender();
 $('goSetup').addEventListener('click', () => {
   if (S.demo) { runSession(); return; }
   show('sSetup');
+  /* 카메라 준비 단계에 들어오면 카메라를 바로 켠다 (권한 요청 → 얼굴 인식 모델 로드). 실패하면 버튼으로 다시 시도 */
+  if (!S.stream && !$('camStart').disabled) $('camStart').click();
 });
 
 /* ---------- 카메라 + MediaPipe ---------- */
@@ -1362,7 +1406,7 @@ async function loadLandmarker() {
 $('camStart').addEventListener('click', async () => {
   const st = $('setupStatus');
   st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';
-  $('camStart').disabled = true;
+  $('camStart').disabled = true; $('camStart').hidden = true;
   try {
     S.stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false });
     procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;
@@ -1374,7 +1418,7 @@ $('camStart').addEventListener('click', async () => {
   } catch (e) {
     st.className = 'status err';
     st.textContent = e && e.name === 'NotAllowedError' ? '카메라 권한이 거부됐어요. 주소창의 카메라 아이콘에서 허용해 주세요.' : '카메라 또는 모델을 불러오지 못했어요: ' + (e && e.message || e);
-    $('camStart').disabled = false;
+    $('camStart').disabled = false; $('camStart').hidden = false; $('camStart').textContent = '카메라 다시 켜기';
   }
 });
 
@@ -1681,7 +1725,7 @@ const DCOL = { calibration: '#7C88A2', baseline: '#7C88A2', pvt: '#3C6FE0', purs
 const V = {
   cal: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/>' + [0, 1, 2].map(r => [0, 1, 2].map(c => `<circle cx="${30 + c * 120}" cy="${26 + r * 59}" r="7" fill="${r === 1 && c === 1 ? '#C93C5C' : '#B7BFCD'}"/>`).join('')).join('') + '</svg>',
   fix: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><text x="150" y="102" text-anchor="middle" font-size="48" fill="#59647D" font-family="Sora">+</text></svg>',
-  pursuit: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><line x1="40" y1="85" x2="260" y2="85" stroke="#C5CCD8" stroke-dasharray="5 5"/><circle class="a-swing" cx="150" cy="85" r="11" fill="#1F4FD8"/></svg>',
+  pursuit: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><line x1="30" y1="85" x2="160" y2="85" stroke="#C5CCD8" stroke-dasharray="5 5"/><circle class="a-swing" cx="95" cy="85" r="9" fill="#1F4FD8" style="--sw:50px"/><circle cx="225" cy="85" r="46" fill="none" stroke="#C5CCD8" stroke-dasharray="5 5"/><g class="a-orbit"><circle cx="225" cy="39" r="9" fill="#1F4FD8"/></g><text x="95" y="150" text-anchor="middle" font-size="12" fill="#5A6580">1부 · 좌우</text><text x="225" y="150" text-anchor="middle" font-size="12" fill="#5A6580">2부 · 원형</text></svg>',
   pro: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><circle cx="150" cy="85" r="7" fill="#59647D"/><circle class="a-blink" cx="252" cy="85" r="11" fill="#C93C5C"/><path d="M162 85 H232" stroke="#1F4FD8" stroke-width="3.5" marker-end="url(#ah1)"/><defs><marker id="ah1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1F4FD8"/></marker></defs><text x="252" y="122" text-anchor="middle" font-size="13" fill="#1F4FD8" font-weight="700">점을 보기</text></svg>',
   anti: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><circle cx="150" cy="85" r="7" fill="#59647D"/><circle class="a-blink" cx="252" cy="85" r="11" fill="#C93C5C"/><circle cx="48" cy="85" r="11" fill="none" stroke="#1F4FD8" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M138 85 H68" stroke="#1F4FD8" stroke-width="3.5" marker-end="url(#ah2)"/><defs><marker id="ah2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1F4FD8"/></marker></defs><text x="48" y="122" text-anchor="middle" font-size="13" fill="#1F4FD8" font-weight="700">반대쪽 보기</text></svg>',
   fv: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><rect x="24" y="44" width="110" height="82" rx="6" fill="#C9CFDA"/><rect x="166" y="44" width="110" height="82" rx="6" fill="#C9CFDA"/><circle cx="79" cy="78" r="16" fill="#AEB6C6"/><path d="M58 112 Q79 96 100 112" fill="#AEB6C6"/><path d="M186 112 L210 82 L232 104 L246 92 L262 112z" fill="#AEB6C6"/></svg>',
@@ -1704,9 +1748,9 @@ function stepInfo(key) {
       how: ['잔잔한 호수 풍경이 펼쳐져요. 가운데 작은 점 근처를 <b>편안히</b> 바라봐 주세요', '말하거나 움직이지 않고 평소처럼 호흡해요 (호흡을 조절하지 않아도 돼요)', '끝나면 자동으로 다음 안내가 나와요'],
       orig: '빈 화면을 응시하는 휴식보다 잔잔한 풍경 영상을 보는 <b>‘바닐라 기준선’</b>이 지루함·잡념이 섞이지 않은 더 안정된 심박 기준선을 준다고 보고됐어요. 풍경의 밝기는 측정 화면과 같게 맞춰 카메라 심박에 영향을 주지 않아요.',
       ref: 'Jennings et al., 1992 · Piferi et al., 2000 · 원격 심박 POS: Wang et al., 2017' },
-    pursuit: { tag: 'Domain 2 · 주의 통제', title: '원활 추적', vis: V.pursuit, time: `${d.pursuit}초`, resp: '눈으로 따라가기',
-      what: '움직이는 표적을 눈으로 부드럽게 따라가는 능력은 주의 유지와 예측적 시선 조절을 반영합니다. 추적이 흔들리는 정도를 주의 동기화 지표로 봅니다.',
-      how: ['먼저 가운데 점을 1초 바라보며 시선을 재정렬해요', '파란 점이 좌우로 천천히 움직여요', '머리는 고정하고 <b>눈으로만</b> 점의 가운데를 계속 따라가세요'], ref: 'Lencer & Trillenberg, 2008 · Maruta et al., 2010' },
+    pursuit: { tag: 'Domain 2 · 주의 통제', title: '원활 추적', vis: V.pursuit, time: `${d.pursuit + (d.circle || 0)}초`, resp: '눈으로 따라가기',
+      what: '움직이는 표적을 눈으로 부드럽게 따라가는 능력은 주의 유지와 예측적 시선 조절을 반영합니다. 좌우 추적으로 시선 이득(정확도)을, 원형 추적으로 가로·세로를 함께 맞추는 동기화 오차를 봅니다.',
+      how: ['먼저 가운데 점을 1초 바라보며 시선을 재정렬해요', `1부: 파란 점이 좌우로 천천히 움직여요 (${d.pursuit}초)`, `2부: 점이 <b>원을 그리며</b> 돌아요 (${d.circle || 0}초)`, '머리는 고정하고 <b>눈으로만</b> 점의 가운데를 계속 따라가세요'], ref: 'Lencer & Trillenberg, 2008 · Maruta et al., 2010' },
     saccade: { tag: 'Domain 2 · 주의 통제', title: '프로 · 안티사카드', vis: V.anti, time: `약 ${Math.round(((d.pro + d.anti + d.practice) * 3.2 + 10) / 6) / 10}분`, resp: '눈으로 바라보기', trials: `프로 ${d.pro} · 연습 ${d.practice} · 안티 ${d.anti}`,
       what: '갑자기 나타난 자극으로 향하려는 반사적 시선을 억제하고 반대쪽을 보는 능력(안티사카드)은 전전두엽 실행 통제의 대표 지표입니다.',
       how: ['먼저 좌 · 중 · 우 점을 차례로 보며 <b>개인 시선 범위</b>를 재요', '프로사카드: 빨간 점이 나타나면 <b>그 점을</b> 봐요', '안티사카드: 빨간 점의 <b>반대쪽 같은 거리</b>를 봐요 (시작 전에 다시 안내해요)'], ref: 'Hallett, 1978 · Munoz & Everling, 2004 · Antoniades et al., 2013' },
@@ -2124,9 +2168,28 @@ async function phasePursuit(sec) {
   const anim = ts => { dot.style.left = (cx + amp * Math.sin(2 * Math.PI * P.freq * (ts - t0) / 1000)) + 'px'; raf = requestAnimationFrame(anim); };
   raf = requestAnimationFrame(anim);
   S.cleanup.push(() => cancelAnimationFrame(raf));
-  const stop = task('원활 추적', dur);
+  const stop = task('원활 추적 · 좌우', dur);
   await wait(dur);
   stop();
+  cancelAnimationFrame(raf);
+  /* 2부 · 원형 추적 (Maruta et al., 2010): 좌우만이 아니라 위아래까지 함께 따라가며 예측적 시선 동기화를 본다 */
+  const C = B.PROTOCOL.circle, cdur = (B.DUR[S.mode].circle || 10) * 1000, r = C.r * W, cy = H / 2;
+  dot.style.transition = 'left .6s ease, top .6s ease';
+  dot.style.left = cx + 'px'; dot.style.top = (cy - r) + 'px';
+  body.querySelectorAll('.cue').forEach(e => e.remove());
+  body.insertAdjacentHTML('beforeend', '<div class="cue" id="pCue">이번에는 점이 <b>원을 그리며</b> 돌아요 · 눈으로만 계속 따라가세요</div>');
+  await wait(1400);
+  dot.style.transition = 'none';
+  const tr2 = { samples: [] }, c0 = await nextFrame();
+  S.pursuit.circle = { t0: c0, cx, cy, r, freq: C.freq, dur: cdur, samples: tr2.samples };
+  S.curTrial = tr2;
+  if (S.demo) every(33, () => tr2.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y }));
+  const anim2 = ts => { const a = 2 * Math.PI * C.freq * (ts - c0) / 1000 - Math.PI / 2; dot.style.left = (cx + r * Math.cos(a)) + 'px'; dot.style.top = (cy + r * Math.sin(a)) + 'px'; raf = requestAnimationFrame(anim2); };
+  raf = requestAnimationFrame(anim2);
+  const stop2 = task('원활 추적 · 원형', cdur);
+  await wait(cdur);
+  stop2();
+  cancelAnimationFrame(raf);
   S.curTrial = null;
   mark('pursuit', 'end');
 }
@@ -2196,14 +2259,17 @@ async function phaseSaccade(d) {
     if (c === 1) break;
   }
   S.saccade.push(...pro);
-  await pauseCard('이번에는 반대쪽을 보세요', `빨간 점이 나타나면 <b>점을 보지 말고, 반대쪽 같은 거리</b>를 최대한 빨리 바라보세요. 점에 눈이 먼저 가도 괜찮아요 — 바로 반대쪽으로 옮기면 돼요.${V.anti}<br>연습 ${d.practice}회 후 본 시행 ${d.anti}회가 이어져요.`, '연습 시작');
-  if (d.practice) S.saccade.push(...await sacBlock('anti', d.practice, true));
-  await pauseCard('연습 끝 · 본 시행', `이제 안티사카드 ${d.anti}회를 진행해요. 빨간 점의 <b>반대쪽</b>을 보세요. 시작 전에 가운데·좌우 점으로 시선을 한 번 더 맞춰요.`, '시작');
-  /* 안내를 읽는 동안 머리가 움직이고 시선이 흘러가므로, 안티 블록 직전에 영점과 개인 시선 범위를 다시 잰다 */
+  /* 안티사카드 준비는 한 가지 흐름으로: ① (점을 ‘바라보는’) 시선 범위 맞추기는 반대쪽 보기 안내 전에 끝내고
+   * ② 안내 → ③ 반대쪽 보기 연습 → ④ 곧바로 본 시행. 연습과 본 시행 사이에 ‘점을 바라보라’는 지시가 끼어들지 않게 한다 */
+  await driftCheck();
+  { const cal2 = await sacCalibrate(); if (cal2) S.sacCal = cal2; }
+  await pauseCard('이번에는 반대쪽을 보세요', `빨간 점이 나타나면 <b>점을 보지 말고, 반대쪽 같은 거리</b>를 최대한 빨리 바라보세요. 점에 눈이 먼저 가도 괜찮아요 — 바로 반대쪽으로 옮기면 돼요.${V.anti}<br>${d.practice ? `연습 ${d.practice}회 후 바로 본 시행 ${d.anti}회가 이어져요.` : `본 시행 ${d.anti}회를 진행해요.`}`, d.practice ? '연습 시작' : '시작');
+  if (d.practice) {
+    S.saccade.push(...await sacBlock('anti', d.practice, true));
+    await countdown('연습 끝 · 본 시행을 시작해요', 3);
+  }
   for (let attempt = 0; attempt < 2; attempt++) {
-    await driftCheck();
-    const cal2 = await sacCalibrate();
-    if (cal2) S.sacCal = cal2;
+    if (attempt) { await driftCheck(); const cal2 = await sacCalibrate(); if (cal2) S.sacCal = cal2; await countdown('다시 반대쪽 보기 · 본 시행', 3); }
     const anti = await sacBlock('anti', d.anti, false);
     const q = B.saccadeQuick(anti, S.screenW, S.sacCal);
     if (S.demo || attempt === 1 || q.validRate >= 0.5) { S.saccade.push(...anti); break; }
@@ -2409,12 +2475,17 @@ async function phaseStress(sec) {
   mark('stress', 'start');
   const end = now() + sec * 1000, stopT = task('MIST 암산', sec * 1000);
   let correct = 0, total = 0, limit = P.limitMs, streak = 0, minLimit = limit;
-  const levels = [0, 0, 0, 0, 0], log = [];
+  const levels = [0, 0, 0, 0, 0, 0], log = [], t0s = now();
+  /* 고난도 문제: 과제 시간의 정해진 지점마다 1문제씩 반드시 출제 (표준·정밀 모두 2문제) */
+  const hardQ = (P.hardAt || []).map(f => t0s + f * sec * 1000);
+  let hardCorrect = 0, hardTotal = 0;
   while (now() < end) {
-    const lv = 1 + Math.floor(Math.random() * 5), q = B.mistProblem(lv);
+    const hard = hardQ.length && now() >= hardQ[0];
+    if (hard) hardQ.shift();
+    const lv = hard ? 6 : 1 + Math.floor(Math.random() * 5), q = B.mistProblem(lv);
     levels[lv - 1]++;
     const pct = total ? Math.round(correct / total * 100) : 0;
-    body.innerHTML = `<div class="mist"><div class="mist-top"><span class="mist-lv">난이도&nbsp;${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lv ? 'on' : ''}"></i>`).join('')}</span><span>제한 시간 ${(limit / 1000).toFixed(1)}초</span></div>
+    body.innerHTML = `<div class="mist"><div class="mist-top"><span class="mist-lv">난이도&nbsp;${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lv ? 'on' : ''}"></i>`).join('')}${hard ? '<b class="mist-hard">고난도</b>' : ''}</span><span>제한 시간 ${(limit / 1000).toFixed(1)}초</span></div>
       <div class="prob">${esc(q.text)} = <span class="q">?</span></div><div class="tbar"><i id="tb" style="width:100%"></i></div>
       <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(v => `<button type="button" data-v="${v}">${v}</button>`).join('')}</div>
       <div class="fb" id="fb"></div>
@@ -2431,18 +2502,21 @@ async function phaseStress(sec) {
     });
     total++;
     const ok = v === q.ans; if (ok) correct++;
+    if (hard) { hardTotal++; if (ok) hardCorrect++; }
     log.push([Math.round(t0 - S.phases.stress.start), lv, limit, v === null ? null : Math.round(now() - t0), q.ans, v, ok ? 1 : 0]);
     if (v !== null) { const hb = body.querySelector(`.keypad button[data-v="${v}"]`); if (hb) hb.classList.add('hit'); }
     tb.style.transition = 'none'; tb.style.width = Math.max(0, 100 - (now() - t0) / limit * 100) + '%';
     $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : `오답 · 정답 ${q.ans}`;
-    streak = ok ? Math.max(0, streak) + 1 : Math.min(0, streak) - 1;
-    ({ limit, streak } = B.mistNext(limit, streak));
+    if (!hard) {                                       // 고난도 문제는 제한 시간 조정에 넣지 않는다
+      streak = ok ? Math.max(0, streak) + 1 : Math.min(0, streak) - 1;
+      ({ limit, streak } = B.mistNext(limit, streak));
+    }
     minLimit = Math.min(minLimit, limit);
     await wait(ok ? 450 : 750);
   }
   stopT();
   mark('stress', 'end');
-  S.stressScore = { correct, total, minLimit, levels, log };
+  S.stressScore = { correct, total, minLimit, levels, log, hard: { correct: hardCorrect, total: hardTotal } };
 }
 
 /* 공명 호흡 페이서: 들숨 5초 · 날숨 5초. 원(크기)·바깥 띠(단계 진행)·초 카운트·호흡 파형을 함께 보여 준다 */
@@ -2523,21 +2597,73 @@ function demoRecord() {
 }
 function finish() {
   show('sAnalyze');
-  setTimeout(() => {
-    try { const rec = S.demo ? demoRecord() : liveRecord(); const res = finishWith(rec); if (!S.demo) researchSubmit(rec, res); }
-    catch (e) { console.error(e); alert('분석 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
+  setTimeout(async () => {
+    try {
+      const rec = S.demo ? demoRecord() : liveRecord();
+      const server = S.demo ? [] : await serverHistory();
+      const res = finishWith(rec, server);
+      if (!S.demo) { researchSubmit(rec, res); accountSave(res); }
+    } catch (e) { console.error(e); alert('분석 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
   }, 60);
 }
-function finishWith(rec) {
-  const res = B.run(rec);
+/* 비교용 기록: 이 기기 기록 + (로그인 시) 계정 기록을 합쳐 최신순으로. 측정마다 체크해 둔 실천 항목도 붙인다 */
+function mergeHistory(local, server) {
+  const seen = new Set(), out = [];
+  [...server, ...local].forEach(x => { if (x && x.at && x.scores && !seen.has(x.at)) { seen.add(x.at); out.push(x); } });
+  out.sort((a, b) => new Date(b.at) - new Date(a.at));
+  return out.slice(0, 12).map(x => { let todos = null; try { todos = JSON.parse(localStorage.getItem(TODO_KEY + x.at) || 'null'); } catch (_) {} return { ...x, todos: todos || x.todos || null }; });
+}
+async function serverHistory() {
+  if (!window.NLAuth) return [];
+  try {
+    const rows = await Promise.race([NLAuth.myConditions(12), new Promise(r => setTimeout(() => r([]), 2500))]);
+    return (rows || []).filter(x => x.summary && x.summary.scores).map(x => ({ at: x.summary.at || x.created_at, demo: false, title: x.summary.title, code: x.summary.code, overall: x.summary.overall, scores: x.summary.scores }));
+  } catch (_) { return []; }
+}
+function finishWith(rec, server = [], opt = {}) {
+  const res = opt.res || B.run(rec);
   S.result = res;
-  const hist = loadHistory();
-  saveHistory(res);
-  $('sReport').innerHTML = R.render(res, { history: hist.slice(0, 5) });
+  const sim = !!res.battery.sim;
+  const hist = opt.history || (sim ? R.sampleHistory(res) : mergeHistory(loadHistory(), server));
+  if (!sim && !opt.res) saveHistory(res);
+  S.hist = hist;
+  $('sReport').innerHTML = R.render(res, { history: hist });
   bindReport(res);
   show('sReport');
-  summary(res, false);
+  if (opt.ai) summaryRender(opt.ai, false); else summary(res, false);
   return res;
+}
+/* ---------- 계정 저장: 로그인 상태의 실측 결과를 ‘마인드 컨디션 검사’ 내역으로 쌓는다 ---------- */
+function condSummary(res) {
+  const b = res.battery, scores = {}, statuses = {};
+  B.DOMAIN_KEYS.forEach(k => { scores[k] = b.domains[k].score; statuses[k] = b.domains[k].status; });
+  return { at: res.measuredAt, overall: R.overallIndex(b), title: b.integrated.title, code: b.integrated.code, scores, statuses, profile: res.profile ? res.profile.title : null, mode: res.mode || null };
+}
+function accountBanner(html) {
+  const host = $('r-top'); if (!host) return;
+  let el = $('acctBanner');
+  if (!el) { el = document.createElement('div'); el.id = 'acctBanner'; el.className = 'acct-b no-print'; host.insertAdjacentElement('afterend', el); }
+  el.innerHTML = html;
+}
+async function accountSave(res) {
+  if (!window.NLAuth) return;
+  let user = null; try { user = await NLAuth.getUser(); } catch (_) {}
+  if (!user) { accountBanner('로그인하면 이 결과가 내 계정에 쌓이고, 마이페이지에서 지난 결과와 비교해 볼 수 있어요. <a href="/#login">로그인하기</a>'); return; }
+  try {
+    S.savedId = await NLAuth.saveCondition({ kind: 'condition', v: 1, summary: condSummary(res), report: res, ai: S.aiText || null });
+    if (S.savedId) accountBanner('✓ 내 계정에 저장했어요 · <a href="/#my">마이페이지에서 보기</a>');
+  } catch (e) { console.warn('account save failed', e); }
+}
+/* 마이페이지에서 연 지난 결과: ?rid=<id> */
+async function openSaved(id) {
+  show('sAnalyze');
+  try {
+    const row = window.NLAuth ? await NLAuth.getResult(id) : null;
+    if (!row || row.kind !== 'condition' || !row.result || !row.result.report) throw new Error('결과를 찾을 수 없어요');
+    const at = row.result.report.measuredAt, server = await serverHistory();
+    S.savedId = row.id;
+    finishWith(null, [], { res: row.result.report, history: mergeHistory([], server).filter(x => new Date(x.at) < new Date(at)), ai: row.result.ai || null });
+  } catch (e) { alert('저장된 결과를 열지 못했어요. 로그인 상태를 확인해 주세요.'); show('sIntro'); }
 }
 /* ---------- 종합 해설 (/rppg) ----------
  * 허용된 구조화 지표만 보낸다(R.summaryPayload). 같은 측정의 해설은 이 기기에 캐시해 다시 열어도 호출하지 않는다.
@@ -2570,12 +2696,14 @@ async function summary(res, force) {
   el.innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk s2"></div>';
   try {
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
-    const r = await fetch('/rppg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(R.summaryPayload(res)), signal: ctl.signal });
+    const r = await fetch('/rppg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(R.summaryPayload(res, S.hist)), signal: ctl.signal });
     clearTimeout(to);
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.text) throw new Error(j.error || `HTTP ${r.status}`);
     try { localStorage.setItem(key, JSON.stringify({ text: j.text })); } catch (_) {}
+    S.aiText = j.text;
     summaryRender(j.text, true);
+    if (S.savedId && window.NLAuth) NLAuth.saveConditionAi(S.savedId, j.text).catch(() => {});
   } catch (e) {
     console.warn('summary failed', e);
     el.innerHTML = '<p class="err">해설을 불러오지 못했어요. 아래 영역별 결과와 케어 플랜은 그대로 확인할 수 있어요. <button class="sbtn" type="button" id="sumRetry">다시 시도</button></p>';
@@ -2629,7 +2757,7 @@ function saveHistory(r) {
   try {
     const list = loadHistory(), b = r.battery, scores = {};
     B.DOMAIN_KEYS.forEach(k => { scores[k] = b.domains[k].score; });
-    list.unshift({ at: r.measuredAt, demo: r.demo, code: b.integrated.code, title: b.integrated.title, scores, phq2: b.phq ? b.phq.phq2 : null, phq8: b.phq ? b.phq.phq8 : null });
+    list.unshift({ at: r.measuredAt, demo: r.demo, code: b.integrated.code, title: b.integrated.title, overall: R.overallIndex(b), scores, phq2: b.phq ? b.phq.phq2 : null, phq8: b.phq ? b.phq.phq8 : null });
     localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0, 20)));
   } catch (_) {}
 }
@@ -2709,6 +2837,7 @@ async function runBio() {
 if (new URLSearchParams(location.search).get('debug') === '1') window.__nl = { S, cursorTask, calPursuit, stage, resetEuro };
 
 if (new URLSearchParams(location.search).get('qa') === '1') $('qaBox').hidden = false;
+{ const rid = new URLSearchParams(location.search).get('rid'); if (rid) openSaved(rid); }
 /* 주소로 바로 열기: ?sim=balanced|fatigue|control|overload [&mode=quick] */
 {
   const qp = new URLSearchParams(location.search), sim = qp.get('sim');

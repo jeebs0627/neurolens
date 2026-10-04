@@ -503,13 +503,27 @@
   const SIDE_GAP = 0.06, ONSET_SKIP = 150, MAX_DT = 120;
   const sideOf = (x, W) => !finite(x) ? null : x < W * (0.5 - SIDE_GAP) ? 'L' : x > W * (0.5 + SIDE_GAP) ? 'R' : null;
   /* trial: {kind:'neg'|'pos'|'neu', emoSide:'L'|'R', onset, end, samples:[{t,x}]} */
+  /* 자유 보기 시행 1개: 전체 체류 비율 + 시간 흐름(1초 구간) + 유지 주의(1.5초 이후) + 시선 전환 횟수
+   * 초기 정향(첫 시선)과 유지 주의(후반 체류)는 서로 다른 기제로, 불안은 초기 경계·우울은 후반 유지와 더 관련된다
+   * (Armstrong & Olatunji, 2012). 시간 구간 분석은 경계-회피 패턴을 구분하게 해 준다 (Mogg et al., 2004) */
+  const LATE_MS = 1500, BIN_MS = 1000;
   function trialStats(tr, W) {
     let emo = 0, other = 0, first = null, firstVisit = null, visitStart = null, lapse = 0, lapseStart = null;
+    let lateEmo = 0, lateAll = 0, switches = 0, lastSide = null, latency = null;
+    const bins = [[0, 0], [0, 0], [0, 0], [0, 0]];
     const s = tr.samples.filter(p => p.t >= tr.onset && p.t <= tr.end);
     for (let i = 0; i < s.length; i++) {
       const side = sideOf(s[i].x, W);
       const dt = i + 1 < s.length ? Math.min(MAX_DT, s[i + 1].t - s[i].t) : 0;
       if (side === tr.emoSide) emo += dt; else if (side) other += dt;
+      if (side) {
+        const rel = s[i].t - tr.onset, b = Math.min(3, Math.floor(rel / BIN_MS));
+        bins[b][1] += dt; if (side === tr.emoSide) bins[b][0] += dt;
+        if (rel >= LATE_MS) { lateAll += dt; if (side === tr.emoSide) lateEmo += dt; }
+        if (lastSide && side !== lastSide) switches++;
+        lastSide = side;
+        if (latency === null && side === tr.emoSide && rel >= ONSET_SKIP) latency = rel;
+      }
       if (!first && side && s[i].t - tr.onset >= ONSET_SKIP) first = side === tr.emoSide ? 'emo' : 'other';
       if (firstVisit === null) {                       // 감정 자극에 처음 머문 시간 (100ms 미만 이탈은 무시)
         if (side === tr.emoSide) { if (visitStart === null) visitStart = s[i].t; lapse = 0; lapseStart = null; }
@@ -523,7 +537,9 @@
     if (firstVisit === null && visitStart !== null) firstVisit = tr.end - visitStart;
     const total = emo + other, dur = tr.end - tr.onset;
     const valid = total >= dur * 0.3;
-    return { valid, emoShare: valid ? emo / total : null, first: valid ? first : null, firstVisitMs: valid ? firstVisit : null };
+    return { valid, emoShare: valid ? emo / total : null, first: valid ? first : null, firstVisitMs: valid ? firstVisit : null,
+      lateShare: valid && lateAll >= (dur - LATE_MS) * 0.3 ? lateEmo / lateAll : null, bins: valid ? bins.map(([e, a]) => (a >= 250 ? e / a : null)) : null,
+      switches: valid ? switches : null, latencyMs: valid ? latency : null };
   }
   /* 좌우 균형 가중(NL-QC 5): 유효 시행이 한쪽에 몰리면 개인의 좌우 시선 치우침이 편향처럼 보이므로,
    * 정서 자극이 왼쪽·오른쪽에 있던 시행을 따로 평균한 뒤 두 평균을 같은 비중으로 합친다 (양쪽 2시행 이상일 때) */
@@ -532,9 +548,24 @@
     const firsts = st.filter(s => s.first);
     const L = st.filter(s => s.side === 'L').map(s => s.emoShare), R = st.filter(s => s.side === 'R').map(s => s.emoShare);
     const balanced = L.length >= 2 && R.length >= 2;
+    /* 좌우 균형 평균을 다른 비율 지표에도 같은 방식으로 적용 */
+    const balMean = key => {
+      const ok = st.filter(s => finite(s[key]));
+      if (!ok.length) return null;
+      const l = ok.filter(s => s.side === 'L').map(s => s[key]), r = ok.filter(s => s.side === 'R').map(s => s[key]);
+      return round(l.length >= 2 && r.length >= 2 ? (mean(l) + mean(r)) / 2 : mean(ok.map(s => s[key])), 3);
+    };
+    /* 반분 안정성: 홀수·짝수 번째 시행의 평균 응시 비율 차이 — 작을수록 시행마다 일관되게 측정된 것 */
+    const half = k => { const a = st.filter((_, i) => i % 2 === k).map(s => s.emoShare); return a.length ? mean(a) : null; };
+    const h0 = half(0), h1 = half(1);
     return {
       n: trials.length, valid: st.length, balanced,
       emoShare: !st.length ? null : balanced ? round((mean(L) + mean(R)) / 2, 3) : round(mean(st.map(s => s.emoShare)), 3),
+      lateShare: balMean('lateShare'),
+      bins: st.length ? [0, 1, 2, 3].map(b => { const v = st.map(s => s.bins && s.bins[b]).filter(finite); return v.length ? round(mean(v), 3) : null; }) : null,
+      switches: st.length ? round(mean(st.map(s => s.switches)), 2) : null,
+      latencyMs: (() => { const v = st.map(s => s.latencyMs).filter(finite); return v.length >= 2 ? round(median(v), 0) : null; })(),
+      halfGap: finite(h0) && finite(h1) && st.length >= 6 ? round(Math.abs(h0 - h1), 3) : null,
       firstEmoRate: firsts.length ? round(firsts.filter(s => s.first === 'emo').length / firsts.length, 2) : null,
       dwellMs: st.length ? round(median(st.map(s => s.firstVisitMs)), 0) : null,
     };
@@ -671,7 +702,8 @@
       version: VERSION, demo: !!rec.demo, measuredAt: rec.measuredAt || null, checkin: rec.checkin || null,
       quality: { faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },
       hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),
-      gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate },
+      gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate,
+        lateNeg: blocks.neg.lateShare, binsNeg: blocks.neg.bins, binsPos: blocks.pos.bins, switches: blocks.neg.switches, latencyNeg: blocks.neg.latencyMs, halfGapNeg: blocks.neg.halfGap },
       blink, motion, expr, exprNeg,
       profile: { code, ...PROFILES[code], biasHigh, bodyHigh },
       care: CARE[code], mismatch,
