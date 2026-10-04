@@ -3,6 +3,106 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "b7adb7b78259e46036cda1069b025631064ed905",
+      "parents": [
+        "20854d8799485805a27da6391e8770537ddf2f22"
+      ],
+      "committedAt": "2026-10-04T22:08:39+09:00",
+      "subject": "Condition: fix gaze collapse after calibration, restore baseline pulse, cap QC grade for lost domains",
+      "url": "https://github.com/jeebs0627/neurolens/commit/b7adb7b78259e46036cda1069b025631064ed905",
+      "files": [
+        {
+          "path": "condition-signal.test.cjs",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 0
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 2
+        },
+        {
+          "path": "newbiz-battery.js",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 3
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 4
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse",
+        "gaze",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex ce91a6f..fd2e506 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -1499,4 +1499,6 @@ function processResult(fr, packet, context) {\n     const bl = !fr.gazeOk || !st || st.held;\n     S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };\n+    /* 시선 이탈 감시: 시선 과제 중 보정 좌표가 화면에서 25% 넘게 벗어난 비율. 높으면 보정이 무너진 것이라 시선 지표를 판정하지 않는다 */\n+    if (fr.gazeOk && S.gazeOut && GAZE_STEPS.includes(S.cur)) { const W = stage.clientWidth || innerWidth, H = stage.clientHeight || innerHeight; S.gazeOut.n++; if (g.x < -0.25 * W || g.x > 1.25 * W || g.y < -0.25 * H || g.y > 1.25 * H) S.gazeOut.off++; }\n     if (st) S.gaze = { x: st.x, y: st.y };\n     if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };\n@@ -1904,5 +1906,5 @@ async function runStep(key, fn) {\n async function runSession() {\n   Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null, phaseEvidence: {} });\n-  Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 } });\n+  Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 }, gazeOut: { n: 0, off: 0 } });\n   S.attemptId=crypto.randomUUID();S.startedAt=now();S.endedAt=null;S.outcome='recording';S.errorCode=null;\n   S.researchConsent=!S.demo&&$('rsOpt').checked?{version:NLResearch.CONSENT_VERSION,research:true,phq:$('rsPhq').checked,at:new Date().toISOString()}:null;\n@@ -2735,9 +2737,15 @@ async function phaseRecovery(sec) {\n \n /* ---------- 분석 · 리포트 ---------- */\n+/* 시선 과제 표본의 40% 이상이 화면 밖이면 보정 등급을 'poor'로 내려 추적·사카드·정서 시선 지표를 판정에서 뺀다(원래 등급은 lost 에 남김) */\n+function gazeLostCalib() {\n+  const o = S.gazeOut, c = S.calib;\n+  if (!c || !o || o.n < 60 || o.off / o.n < 0.4) return c;\n+  return { ...c, grade: 'poor', lost: { offscreen: Math.round(o.off / o.n * 100) / 100, samples: o.n, originalGrade: c.grade } };\n+}\n function liveRecord() {\n   return {\n     attemptId:S.attemptId,startedAt:S.startedAt,endedAt:S.endedAt||now(),outcome:S.outcome,errorCode:S.errorCode,telemetry:S.telemetry,reference:S.researchConsent?referenceCollector.snapshot():null,researchConsent:S.researchConsent,\n     frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,\n-    stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: S.calib, checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,\n+    stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: gazeLostCalib(), checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,\n     stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null, measuredAt: new Date().toISOString(),\n     capture: S.camera ? { ...S.camera.info } : null, hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,\ndiff --git a/newbiz-battery.js b/newbiz-battery.js\nindex e3779d5..7f0fa5a 100644\n--- a/newbiz-battery.js\n+++ b/newbiz-battery.js\n@@ -121,5 +121,5 @@\n    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */\n   /* minR: 이 신뢰도 아래만 판정에서 뺀다. 0.3 → 0.2로 낮춰, 약하지만 근거가 있는 지표는 버리지 않고 낮은 가중으로 반영한다(점수 기여 = 가중 × 신뢰도) */\n-  const QC = { version: 'In_mind QC 1.5', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n+  const QC = { version: 'In_mind QC 1.6', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n   const DUR = {\n     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */\n@@ -838,5 +838,5 @@\n       pursuitGain: rOf.pursuit, pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,\n       bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),\n-      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)),\n+      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로\n       recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => (breathOff ? 0 : hq(base.hr.recovery)),\n     };\n@@ -887,7 +887,12 @@\n     const measuredD = DOMAIN_KEYS.filter(k => domains[k].status !== 'na');\n     const overall = measuredD.length ? round(mean(measuredD.map(k => domains[k].confidence)), 2) : 0;\n+    /* 진행했는데 판정하지 못한 영역이 있으면 등급 상한을 둔다: 측정된 영역 평균만 보면 한 영역이 통째로 빠져도 A가 나온다 */\n+    const DOMAIN_STEPS = { alert: ['pvt'], control: ['pursuit', 'saccade', 'sart'], emotion: ['freeview'], autonomic: ['stress', 'recovery'] };\n+    const ran = k => !rec.steps || DOMAIN_STEPS[k].some(s => rec.steps[s] && (rec.steps[s].status === 'done' || rec.steps[s].status === 'input'));\n+    const lostD = DOMAIN_KEYS.filter(k => domains[k].status === 'na' && ran(k));\n+    const capGrade = (g, lost) => (lost >= 2 ? (g < 'C' ? 'C' : g) : lost === 1 ? (g < 'B' ? 'B' : g) : g);\n     const stepQ = (key, label, r, note) => ({ key, label, r: finite(r) ? round(r, 2) : null, note: note || null });\n     const qc = {\n-      version: QC.version, pulseEvidence: base.evidence?.phases || null, acquisition: rec.capture || null, signals: { captured: frames.length, face: face.length, eyes: frames.filter(f=>f.eyeOk??f.ok).length, skin: frames.filter(f=>f.ppgOk??f.ok).length, monocular: [...(rec.saccade||[]),...(rec.trials||[]),...(rec.pursuit?[rec.pursuit]:[])].flatMap(t=>t.samples||[]).filter(p=>p.mode==='left'||p.mode==='right').length }, confidence: overall, grade: overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D',\n+      version: QC.version, pulseEvidence: base.evidence?.phases || null, acquisition: rec.capture || null, signals: { captured: frames.length, face: face.length, eyes: frames.filter(f=>f.eyeOk??f.ok).length, skin: frames.filter(f=>f.ppgOk??f.ok).length, monocular: [...(rec.saccade||[]),...(rec.trials||[]),...(rec.pursuit?[rec.pursuit]:[])].flatMap(t=>t.samples||[]).filter(p=>p.mode==='left'||p.mode==='right').length }, confidence: overall, grade: capGrade(overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D', lostD.length), lostDomains: lostD,\n       steps: [\n         stepQ('baseline', '안정 기준선 · 심박', hq(base.hr.baseline), base.hr.baseline.quality === 'poor' ? '심박 신호가 약해 기준선 비교가 제한돼요' : null),\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex 6181cfc..d552cde 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 0.9';\n+  const VERSION = 'In_mind core 1.0';\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -215,4 +215,6 @@\n         }\n       });\n+      const gaps=clean.map((p,i)=>i?p.t-clean[i-1].t:NaN),dtCache=new Map();\n+      const localDt=j=>{if(!dtCache.has(j)){const g=gaps.slice(Math.max(1,j-15),j+16).filter(v=>v>0);dtCache.set(j,g.length?median(g):dt);}return dtCache.get(j);};\n       const rgb=[0,1,2].map(()=>new Float64Array(length).fill(NaN));\n       let j=0;\n@@ -226,5 +228,7 @@\n         const q=(t-a.t)/(b.t-a.t);qualityTrace[i]=a.q+(b.q-a.q)*q;jitterTrace[i]=a.jitter+(b.jitter-a.jitter)*q;\n         for(let k=0;k<3;k++)rgb[k][i]=a.v[k]+(b.v[k]-a.v[k])*q;\n-        if(b.t-a.t>dt*1.6)repaired[i]=1;\n+        // 보간 표시는 주변 ±15프레임 간격의 국소 중앙값 기준: 기록 전체 중앙값(dt)만 쓰면 빨라진 구간 때문에\n+        // 18~20fps 구간 전체가 '보간'으로 잡혀 창이 모두 버려진다(2026-10-04 실측: 기준선 0초)\n+        if(b.t-a.t>localDt(j)*1.6)repaired[i]=1;\n       }\n       // Filtering is restarted at every long gap; no pulse is synthesized across absence.\n@@ -444,6 +448,10 @@\n   /* 눈꺼풀 열림(open)은 위를 보면 커지고 아래를 보면 작아져 웹캠에서 약한 세로 시선 추정을 보강한다.\n    * 보정 표본 모두에 값이 있을 때만 특징으로 쓰고(model.keys), 예측 때 없으면 평균값(z=0)으로 둔다 */\n+  /* 머리 자세 특징의 표준편차 하한: 보정 중 머리가 거의 안 움직이면 σ가 0.002 수준으로 작게 잡혀,\n+   * 이후 자세가 조금만 바뀌어도 수 σ로 외삽돼 시선이 화면 밖으로 튄다(2026-10-04 실측: 세로 +3,000px).\n+   * 하한(HEAD_SD_MIN)·머리 특징 강한 수축(HEAD_RIDGE, fitGaze)·예측 z ±4 제한으로 외삽을 묶는다 */\n+  const HEAD_SD_MIN = { yaw: 0.01, pitch: 0.01, cx: 0.01, cy: 0.01 }, Z_MAX = 4, HEAD_RIDGE = 100;\n   const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS) => {\n-    const z = keys.map(k => (finite(f[k]) ? (f[k] - mu[k]) / sd[k] : 0));\n+    const z = keys.map(k => (finite(f[k]) ? clamp((f[k] - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0));\n     return quad ? [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]] : [1, ...z];\n   };\n@@ -463,5 +471,7 @@\n         for (let a = 0; a < d; a++) { Xty[a] += w * row[a] * S[i][key]; for (let b = 0; b < d; b++) XtX[a][b] += w * row[a] * row[b]; }\n       });\n-      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 : 1);   // 제곱항은 더 강하게 수축\n+      // 제곱항은 더 강하게 수축. 머리 자세(yaw·pitch·cx·cy)는 보정 중 시선을 따라 함께 움직인 상관을 배우지 않도록 100배 수축\n+      // (2026-10-04 실측 재현: 보정 밖 검증점 오차 21% → 16%, 과제 중 세로 좌표가 화면 밖 +2,000px → 화면 안)\n+      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 : HEAD_SD_MIN[keys[a - 1]] ? HEAD_RIDGE : 1);\n       return solve(XtX, Xty);\n     };\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex f6a76c7..3f036dd 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -169,3 +169,16 @@ const N = require('./newbiz-core.js');\n }\n \n+/* 보정 중 머리가 시선을 따라 조금 움직이면(cy가 표적 y와 상관) 모델이 cy를 배워, 이후 자세가 2%만 내려가도 시선이 화면 밖으로 튀었다(2026-10-04 실측 회귀) */\n+{\n+  const W = 1920, H = 1080, S = [];\n+  let k = 0;\n+  for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 20; i++, k++) {\n+    const n = Math.sin(k * 12.9898) * 0.5;\n+    S.push({ x: fx * W, y: fy * H, f: { u: 0.5 + (fx - 0.5) * 0.15 + n * 0.004, v: -0.015 + (fy - 0.5) * 0.02 + n * 0.003, yaw: (fx - 0.5) * 0.004, pitch: 0.05 + (fy - 0.5) * 0.004, cx: 0.51 + (fx - 0.5) * 0.003, cy: 0.56 + (fy - 0.5) * 0.004, open: 0.4 } });\n+  }\n+  const m = N.fitGaze(S);\n+  const center = N.predictGaze(m, { u: 0.5, v: -0.015, yaw: 0, pitch: 0.05, cx: 0.51, cy: 0.58, open: 0.4 });\n+  assert.ok(center.y > -0.25 * H && center.y < 1.25 * H, 'gaze y stays on screen after a 2% posture shift: ' + Math.round(center.y));\n+}\n+\n console.log('newbiz-core tests passed');\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-b7adb7b78259-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-b7adb7b78259-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: b7adb7b78259e46036cda1069b025631064ed905\n변경 제목: Condition: fix gaze collapse after calibration, restore baseline pulse, cap QC grade for lost domains\n관련 파일: condition-signal.test.cjs, condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-b7adb7b78259-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-b7adb7b78259-gaze",
+          "domain": "gaze",
+          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-b7adb7b78259-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: b7adb7b78259e46036cda1069b025631064ed905\n변경 제목: Condition: fix gaze collapse after calibration, restore baseline pulse, cap QC grade for lost domains\n관련 파일: condition-signal.test.cjs, condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-b7adb7b78259-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-b7adb7b78259-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-b7adb7b78259-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: b7adb7b78259e46036cda1069b025631064ed905\n변경 제목: Condition: fix gaze collapse after calibration, restore baseline pulse, cap QC grade for lost domains\n관련 파일: condition-signal.test.cjs, condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-b7adb7b78259-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55548374882",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T13:08:42Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/8Csd1ooG91T83eUQkxX2Tr9SZ5Qz",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-04T13:08:54.414523+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "d162404769b6de9ec0f7aeaf264163ca9fcaf790",
       "parents": [
         "e2a360abc550b0d26aa552eba25e23fefe6e5a1a"
@@ -8466,9 +8566,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "1cfc155cd7065074cfc46fcb1f825921787148e1"
+    "sourceHead": "b7adb7b78259e46036cda1069b025631064ed905"
   },
-  "updatedAt": "2026-10-04T10:38:45.043811+00:00",
-  "aiCooldownUntil": "2026-10-04T11:24:06.734936+00:00",
-  "aiCooldownReason": "GEMINI_RATE_LIMIT"
+  "updatedAt": "2026-10-04T13:09:09.189547+00:00",
+  "aiCooldownUntil": "2026-10-04T13:14:08.821473+00:00",
+  "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
