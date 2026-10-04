@@ -3489,9 +3489,11 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:19:08.295840+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "4849ff718c30f5ed316f260a3f6dc79e89a53a62",
@@ -3594,9 +3596,11 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:19:08.935516+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "741275af1a57773b7b56e7aecf8a3b916f262ee7",
@@ -3746,9 +3750,11 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:19:09.421369+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "31d720a4c30ef5b3bac32c2d9711b3fd5c452eff",
@@ -7912,7 +7918,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "1d15b7ed055a3c004589dec1e78207d249fe67c8"
+    "sourceHead": "e99239f5ad604d2d439cb2a45dda86590776a862"
   },
-  "updatedAt": "2026-10-04T10:18:29.202878+00:00"
+  "updatedAt": "2026-10-04T10:19:10.741548+00:00"
 }
