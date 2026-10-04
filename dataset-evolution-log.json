@@ -152,6 +152,26 @@
           "at": "2026-10-04T10:13:42Z",
           "url": "https://vercel.com/ax-open-lab/neurolens/A61CbSTbRhRyTsgyLm5gdbsTWqZq",
           "source": "github-commit-status"
+        },
+        {
+          "key": "check-55544182102",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T10:14:28Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/A61CbSTbRhRyTsgyLm5gdbsTWqZq",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6839681173-19240510655",
+          "type": "deployment",
+          "deploymentId": 6839681173,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T10:14:28Z",
+          "url": "https://neurolens-r4u0fw3ll-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
         }
       ],
       "lastAttemptAt": "2026-10-04T10:14:01.625337+00:00",
@@ -439,8 +459,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55542000669",
@@ -471,7 +491,9 @@
           "url": "https://neurolens-ib5q1yn4o-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-04T10:14:42.561817+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "537333a33e3d9a38c5cae42033faa37197799a5f",
@@ -562,8 +584,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55541991601",
@@ -594,7 +616,9 @@
           "url": "https://neurolens-i0gfpng3x-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-04T10:14:42.766329+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "fe5b940f824a9d39d5421ecf6f3e6c46bb31b172",
@@ -687,8 +711,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55541325514",
@@ -719,7 +743,9 @@
           "url": "https://neurolens-3ianlznkx-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-04T10:14:42.947354+00:00",
+      "analysisError": "HTTP_403"
     },
     {
       "sha": "d61afb939c0002c4469f41f4cdb2efd65daca5bf",
@@ -7710,7 +7736,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "679009b7c05a5105da15b03e738aa641c5cbb8bb"
+    "sourceHead": "cdf87b173b305f5e377f0316b8bf5686b3897cd9"
   },
-  "updatedAt": "2026-10-04T10:14:02.896339+00:00"
+  "updatedAt": "2026-10-04T10:14:43.307777+00:00"
 }
