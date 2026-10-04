@@ -9,6 +9,12 @@
       this.info={version:'condition-camera-2',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
     }
     async init(){
+      /* 기본은 주 스레드 GPU 추론(동영상 프레임마다 직접 추론). 워커 경로는 기기에 따라 초당 7회 수준까지 떨어져
+       * 시선 표본과 피부 영역 위치가 부족해지는 것이 실측 세션에서 확인돼, 명시적으로 요청할 때(?camworker=1)만 쓴다 */
+      if(this.opt.preferMain!==false){
+        try{await this.loadFallback();this.info.fallbackReason='main-thread-preferred';return;}
+        catch(e){this.info.fallbackReason='main-thread-failed:'+String(e.message||e);}
+      }
       if(typeof Worker==='function' && typeof createImageBitmap==='function' && typeof OffscreenCanvas==='function'){
         try {
           await new Promise((resolve,reject)=>{
@@ -61,9 +67,11 @@
       if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}
       this.ctx.drawImage(this.video,0,0,w,h);
       const age=this.geometry?t-this.geometry.t:Infinity;
-      const skin=NLSignal.sampleSkin(this.ctx,age<=180?this.geometry.lm:null);
+      /* 얼굴 위치(랜드마크)가 조금 묵어도(≤600ms) 피부 영역은 거의 그대로이므로 버리지 않고 나이만큼 품질을 낮춘다 */
+      const ageW=age<=100?1:age<=600?1-(age-100)/650:0;
+      const skin=NLSignal.sampleSkin(this.ctx,ageW>0?this.geometry.lm:null);
       const fr={t,ok:skin.n>=12,ppgOk:skin.n>=12,skinOk:skin.n>=12,faceOk:false,eyeOk:false,gazeOk:false,
-        ...skin,skinQ:skin.q*(age<=80?1:.6),roiAge:Number.isFinite(age)?age:null,source:'tracked-roi',
+        ...skin,skinQ:skin.q*ageW,roiWeight:ageW,roiAge:Number.isFinite(age)?age:null,source:'tracked-roi',
         clockSource:captured?'capture':'callback',intervalMs,captureDelayMs:captured?tp-meta.captureTime:null,
         callbackLateMs:Number.isFinite(meta?.expectedDisplayTime)?Math.max(0,tp-meta.expectedDisplayTime):null,
         mediaTimeMs:Number.isFinite(meta?.mediaTime)?meta.mediaTime*1000:null,presentedFrames:meta?.presentedFrames??null};
@@ -77,16 +85,18 @@
           this.worker.postMessage({type:'frame',t,bitmap},[bitmap]);
         }).catch(e=>this.fallback(String(e.message||e)));
       }else if(this.detector){
-        // Compatibility path: acquisition keeps its own cadence; inference is capped at 15 Hz.
-        if(t-(this.lastInfer||0)<65){this.info.skipped++;return;}this.lastInfer=t;
+        // 주 스레드: 카메라 프레임마다 추론(최대 약 33Hz). 밝기가 충분하면 영상 요소를 그대로 넣어 복사 비용을 없앤다
+        if(t-(this.lastInfer||0)<28){this.info.skipped++;return;}this.lastInfer=t;
         try{
-          const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
-          if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
-          ctx.drawImage(this.video,0,0,w,h);const g0=NLSignal.exposureGain(ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20,raw=gain>1.05?ctx.getImageData(0,0,w,h):null;
-          NLSignal.enhance(ctx,gain);
-          const result=this.detector.detectForVideo(c,t),lm=result.faceLandmarks?.[0];
-          if(raw)ctx.putImageData(raw,0,0);
-          const eyes=lm?{left:NLSignal.eyeQuality(ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(ctx,lm,[33,133,159,145])}:null;
+          const g0=NLSignal.exposureGain(this.ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20;
+          let result;
+          if(gain>1.05){
+            const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
+            if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
+            ctx.drawImage(this.video,0,0,w,h);NLSignal.enhance(ctx,gain);result=this.detector.detectForVideo(c,t);
+          } else result=this.detector.detectForVideo(this.video,t);
+          const lm=result.faceLandmarks?.[0];
+          const eyes=lm?{left:NLSignal.eyeQuality(this.ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(this.ctx,lm,[33,133,159,145])}:null;
           this.deliver({fr,context},{t,result,skin:NLSignal.sampleSkin(this.ctx,lm),eyes,gain});
           this.consecutiveErrors=0;
         }catch(e){

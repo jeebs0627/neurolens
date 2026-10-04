@@ -30,7 +30,7 @@ async function main(){
       setInterval(()=>{ctx.fillStyle='rgb(28,22,18)';ctx.fillRect(0,0,640,480);},33);
       navigator.mediaDevices.getUserMedia=async()=>c.captureStream(30);
     });
-    await page.goto(base+'/condition.html');
+    await page.goto(base+'/condition.html?camworker=1'); // 워커 경로 검증 (기본은 주 스레드)
     await page.waitForFunction(()=>window.__condition);
     await page.evaluate(()=>{document.querySelector('#camStart').click();document.querySelector('#sSetup').hidden=false;});
     await page.waitForFunction(()=>window.__condition.S.camera?.info.inferred>=10);
@@ -71,7 +71,7 @@ async function main(){
         const c=document.createElement('canvas');c.width=640;c.height=480;const ctx=c.getContext('2d');ctx.drawImage(image,0,0,640,480);
         const v=document.createElement('video');v.muted=true;v.srcObject=c.captureStream(15);await v.play();
         let faces=0,frames=0;
-        const camera=new NLCamera(v,{base:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14',model:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',
+        const camera=new NLCamera(v,{preferMain:false,base:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14',model:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',
           loadFallback:async()=>{throw new Error('Real worker failed');},onFrame:()=>null,onResult:(_,p)=>{frames++;if(p.result.faceLandmarks?.length)faces++;}});
         await camera.init();
         const until=performance.now()+25000;

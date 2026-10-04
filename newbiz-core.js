@@ -469,6 +469,12 @@
     if (f.eyes) {
       const okL = f.eyes.left && f.eyes.left.q >= EYE_OK, okR = f.eyes.right && f.eyes.right.q >= EYE_OK;
       if (!okL && !okR) return null;                                   // 두 눈 모두 불안정(깜빡임·반사) → 이 프레임은 쓰지 않는다
+      /* 눈별 신뢰도 결합: 보정 검증에서 오차가 작은 눈에 더 큰 고정 가중(1/오차²)을 준다. 가중은 측정 내내 바뀌지 않아 좌표가 들썩이지 않는다 */
+      const cw = model.combine;
+      if (cw && okL && okR && model.eyes && model.eyes.left && model.eyes.right) {
+        const pl = predictGaze(model.eyes.left, { ...f, eyes: null, u: f.eyes.left.u, v: f.eyes.left.v }), pr = predictGaze(model.eyes.right, { ...f, eyes: null, u: f.eyes.right.u, v: f.eyes.right.v });
+        if (pl && pr) return { x: cw.left * pl.x + cw.right * pr.x, y: cw.left * pl.y + cw.right * pr.y, mode: 'weighted' };
+      }
       if (!(okL && okR)) {
         const side = okL ? 'left' : 'right', e = f.eyes[side], m = model.eyes && model.eyes[side];
         if (m && !['poor', 'none'].includes(m.validation && m.validation.grade)) return { ...predictGaze(m, { ...f, eyes: null, u: e.u, v: e.v }), mode: side };

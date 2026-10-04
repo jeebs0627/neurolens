@@ -606,7 +606,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .zone.miss{background:rgba(201,60,92,.10)}
 .zone-a{position:absolute;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(47,158,106,.07),transparent 70%);pointer-events:none}
 .gcur.near{background:rgba(47,158,106,.9);box-shadow:0 0 0 6px rgba(47,158,106,.2)}
-.gcur{transition:background .2s;position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(31,79,216,.85);box-shadow:0 0 0 6px rgba(31,79,216,.18);display:none;pointer-events:none}
+.gcur{transition:background .2s,opacity .3s;left:0;top:0;will-change:transform;position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(31,79,216,.85);box-shadow:0 0 0 6px rgba(31,79,216,.18);display:none;pointer-events:none}
 .calsum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
 .calsum div{background:#EDF0F5;border-radius:10px;padding:8px 10px}
 .calsum span{display:block;font-size:11.5px;color:var(--muted)}
@@ -1425,7 +1425,7 @@ $('camStart').addEventListener('click', async () => {
     procVideo.classList.add('on');
     await Promise.all([procVideo.play(), prevVideo.play()]);
     S.camera = new NLCamera(procVideo, {
-      base: MP_BASE, model: MODEL_URL, loadFallback: loadLandmarker,
+      base: MP_BASE, model: MODEL_URL, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },
       onResult: processResult,
       onError(e) {
@@ -1491,7 +1491,8 @@ function processResult(fr, packet, context) {
     if (st) S.gaze = { x: st.x, y: st.y };
     if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };
     if (!bl && S.onGaze) S.onGaze({ x: st.x, y: st.y, rx: g.x, ry: g.y }, t);
-    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});
+    /* 좌표 분리 저장: px,py = 시선 모델 원출력(보정 전 raw) · rx,ry = 영점·축별 보정 후(calibrated) · x,y = 화면 안정화 후 */
+    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,px:pred.x,py:pred.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});
   }
 }
 function pushFrame(fr) {
@@ -1951,13 +1952,15 @@ async function driftCheck() {
   await wait(450);
   const xs = [], ys = [];
   let lastSample = -1;
-  const stop = every(33, () => { if (S.rawG && S.rawG.t > lastSample && now() - S.rawG.t < 200 && !S.rawG.bl) { lastSample = S.rawG.t; xs.push(S.rawG.x); ys.push(S.rawG.y); } });
-  await wait(900);
+  const stop = every(33, () => { if (S.rawG && S.rawG.t > lastSample && now() - S.rawG.t < 250 && !S.rawG.bl) { lastSample = S.rawG.t; xs.push(S.rawG.x); ys.push(S.rawG.y); } });
+  await wait(1200);
   stop();
-  if (xs.length >= 8) {
-    const dx = N.median(xs) - W / 2, dy = N.median(ys) - H / 2;
-    const applied=Math.abs(dx) < W * 0.25 && Math.abs(dy) < H * 0.3;
-    S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,dx,dy,applied,source:'instructed-center-fixation'});
+  /* 표본 4개 이상이면 적용하되, 표본이 적을수록 직전 영점과 더 많이 섞는다(지수 평활) — 한 번의 흔들린 측정이 영점을 크게 옮기지 않게 */
+  if (xs.length >= 4) {
+    const mdx = N.median(xs) - W / 2, mdy = N.median(ys) - H / 2;
+    const applied=Math.abs(mdx) < W * 0.25 && Math.abs(mdy) < H * 0.3;
+    const k = Math.min(1, 0.35 + xs.length / 30), dx = S.drift.dx + k * (mdx - S.drift.dx), dy = S.drift.dy + k * (mdy - S.drift.dy);
+    S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,measuredDx:mdx,measuredDy:mdy,dx,dy,weight:k,applied,source:'instructed-center-fixation'});
     if (applied) { S.drift = { dx, dy }; S.gaze = null; }
   } else {
     S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,dx:null,dy:null,applied:false,source:'insufficient-observations'});
@@ -2049,7 +2052,7 @@ async function cursorTask(zones, W, H) {
       <div class="gcur" id="gc"></div><div class="cue">원 쪽을 편하게 바라보세요 — 가까이 가면 커서(●)가 원 안으로 끌려 들어가요 · 영역 ${i + 1}/${zones.length} · 3단계 시선 이동 확인</div>`;
     const zn = $('zn'), gc0 = $('gc'), zp = $('znP');
     const t0 = now();
-    let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0;
+    let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0, disp = null, lastTick = null;
     const held = [];
     S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; if (inside && inSince !== null && t - inSince > 150) held.push({ x: g.x, y: g.y }); };
     await new Promise((res2, rej) => {
@@ -2057,14 +2060,23 @@ async function cursorTask(zones, W, H) {
       waiters.add(w);
       const tick = () => {
         const t = now();
-        if (cur && t - cur.t < 250) {
-          gc0.style.display = 'block'; gc0.style.left = cur.x + 'px'; gc0.style.top = cur.y + 'px';
-          const d = Math.hypot(cur.x - z.x, cur.y - z.y);
+        /* 시선 표본은 초당 15~30회로 들어오므로, 화면 표시는 매 프레임 목표 위치로 부드럽게 다가가게(시간 상수 90ms) 한다.
+         * 표본이 잠깐 끊겨도(깜빡임·튐 차단) 1.2초까지는 마지막 위치에 머물며, 그 뒤에만 흐리게 표시한다 */
+        const dtF = lastTick === null ? 16 : Math.min(100, t - lastTick); lastTick = t;
+        if (cur) {
+          if (!disp) disp = { x: cur.x, y: cur.y };
+          const a = 1 - Math.exp(-dtF / 90);
+          disp.x += a * (cur.x - disp.x); disp.y += a * (cur.y - disp.y);
+          gc0.style.display = 'block'; gc0.style.opacity = t - cur.t < 1200 ? '1' : '.35';
+          gc0.style.transform = 'translate3d(' + disp.x + 'px,' + disp.y + 'px,0)';
+        }
+        if (cur && t - cur.t < 1200) {
+          const d = Math.hypot(disp.x - z.x, disp.y - z.y);
           const nowIn = inside ? d <= R * 1.3 : d <= R;
           if (nowIn) { outSince = null; if (!inside) { inside = true; inSince = t; } }
           else if (inside) { if (outSince === null) outSince = t; if (t - outSince > 150) { inside = false; inSince = null; } }
           gc0.classList.toggle('near', cur.near);
-        } else gc0.style.display = 'none';
+        }
         zn.classList.toggle('in', inside);
         zp.style.strokeDashoffset = 289 * (1 - Math.min(1, inside && inSince !== null ? (t - inSince) / HOLD : 0));
         if (inside && inSince !== null && t - inSince >= HOLD) done = { ok: true, ms: Math.round(inSince - t0) };
@@ -2100,6 +2112,14 @@ async function calibrate() {
     let acc = { grade: 'poor', errPct: null }, info = '';
     if (cands.length) {
       S.model = cands[0].m;
+      /* 눈별 신뢰도 결합 후보: 두 눈 모델이 모두 검증을 통과하면 가중 1/오차²로 결합한 예측을 같은 검증점으로 비교해, 더 정확할 때만 쓴다 */
+      const ev = S.model.eyes && S.model.eyes.left && S.model.eyes.right ? [S.model.eyes.left.validation, S.model.eyes.right.validation] : null;
+      if (ev && ev.every(v => v && Number.isFinite(v.errPct) && v.grade !== 'poor')) {
+        const il = 1 / Math.max(1, ev[0].errPct) ** 2, ir = 1 / Math.max(1, ev[1].errPct) ** 2;
+        const combine = { left: il / (il + ir), right: ir / (il + ir), from: { left: ev[0].errPct, right: ev[1].errPct } };
+        const accW = N.gazeAccuracy(val.map(p => predAt({ ...S.model, combine }, null, p)), W, H);
+        if (accW.errPct !== null && accW.errPct < cands[0].acc.errPct) { S.model = { ...S.model, combine }; cands[0] = { ...cands[0], key: cands[0].key + '·눈별 가중', acc: accW }; }
+      }
       const before = cands[0].acc;
       /* 영점 조정: 화면 다섯 영역(가운데·네 모서리 안쪽)을 커서 없이 바라본 자료 + 검증점으로 축별 보정 */
       const zones = [[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
@@ -2310,10 +2330,8 @@ async function phaseSaccade(d) {
     if (c === 1) break;
   }
   S.saccade.push(...pro);
-  /* 안티사카드 준비는 한 가지 흐름으로: ① (점을 ‘바라보는’) 시선 범위 맞추기는 반대쪽 보기 안내 전에 끝내고
-   * ② 안내 → ③ 반대쪽 보기 연습 → ④ 곧바로 본 시행. 연습과 본 시행 사이에 ‘점을 바라보라’는 지시가 끼어들지 않게 한다 */
-  await driftCheck();
-  { const cal2 = await sacCalibrate(); if (cal2) S.sacCal = cal2; }
+  /* 안티사카드: 안내 → 반대쪽 보기 연습(시범 1회) → 곧바로 본 시행. 시선 범위는 프로사카드 앞에서 잰 값을 그대로 쓰고,
+   * 연습 앞에 ‘점을 바라보는’ 범위 맞추기나 영점 점을 다시 넣지 않는다(시범이 두 번 섞이지 않게). 다시 하기를 고를 때만 다시 잰다 */
   await pauseCard('이번에는 반대쪽을 보세요', `빨간 점이 나타나면 <b>점을 보지 말고, 반대쪽 같은 거리</b>를 최대한 빨리 바라보세요. 점에 눈이 먼저 가도 괜찮아요 — 바로 반대쪽으로 옮기면 돼요.${V.anti}<br>${d.practice ? `연습 ${d.practice}회 후 바로 본 시행 ${d.anti}회가 이어져요.` : `본 시행 ${d.anti}회를 진행해요.`}`, d.practice ? '연습 시작' : '시작');
   if (d.practice) {
     S.saccade.push(...await sacBlock('anti', d.practice, true));

@@ -163,7 +163,22 @@
     const inside=wins.filter(w=>(w.start??w.t)>=start-.01&&(w.end??w.t)<=end+.01&&finite(w.bpm));
     const valid=inside.filter(w=>w.usable??w.snr>=-2),s=support(valid,start,end);
     const empty={bpm:null,snr:null,quality:'none',n:0,validSeconds:0,effectiveSeconds:0,coverage:0,confidence:0,spreadBpm:null,rangeBpm:null,recovered:0,status:'unavailable',candidateWindows:inside.length};
-    if(!valid.length)return empty;
+    if(!valid.length){
+      /* 약한 신호(weak-signal): 후보 창은 있으나 채택 기준에 못 미친 경우 버리지 않고, 두 영역 이상이 동의한 창들로
+       * 낮은 신뢰도의 추정치를 따로 보고한다. 판정용 품질은 'poor'로 두고(판정에서 제외), 보정 근거를 함께 남긴다 */
+      // 색차 기반 추정법(POS·CHROM)이 함께 지지한 창만: 밝기만 깜빡이는 화면·조명은 색차에서 상쇄되므로 맥박으로 오인하지 않는다
+      const weak=inside.filter(w=>(w.methods||[]).some(m=>m!=='green')&&(w.recoverable||(w.agreement>=.5&&w.snr>=-7&&(w.regions||[]).length>=2)));
+      if(!weak.length)return empty;
+      const sw=support(weak.map(w=>({...w,confidence:Math.min(.29,w.candidateConfidence??w.confidence??.2)})),start,end);
+      const rowsW=sw.weighted.length?sw.weighted:weak.map(w=>({...w,weight:.2}));
+      const bpmW=weightedQuantile(rowsW,'bpm'),spreadW=Math.sqrt(avgSquared(rowsW,bpmW));
+      const snrW=rowsW.reduce((a,r)=>a+(r.snr||0)*r.weight,0)/rowsW.reduce((a,r)=>a+r.weight,0);
+      const consistent=spreadW<=6&&weak.length>=3;
+      return {...empty,bpm:bpmW,snr:snrW,quality:consistent?'fair':'poor',n:weak.length,validSeconds:sw.seconds,effectiveSeconds:sw.effective,
+        coverage:clamp(sw.seconds/Math.max(.001,(end-start)/1000)),confidence:Math.min(consistent?.45:.29,sw.seconds?sw.effective/sw.seconds:.2),
+        spreadBpm:spreadW,status:'weak-signal',candidateWindows:inside.length,
+        correction:{kind:'weak-signal-recovery',rule:consistent?'≥3 windows, ≥2 skin regions agreeing, spread ≤6 bpm':'regions agree but windows inconsistent',windows:weak.length}};
+    }
     // Legacy callers may provide only window centres; retain their existing summary contract.
     const rows=s.weighted.length?s.weighted:valid.map(w=>({...w,weight:w.confidence??.65}));
     const avg=key=>rows.reduce((a,r)=>a+(r[key]||0)*r.weight,0)/rows.reduce((a,r)=>a+r.weight,0);
