@@ -87,6 +87,19 @@ class EvolutionTests(unittest.TestCase):
             collector.publish(copy.deepcopy(ledger))
             request.assert_not_called()
 
+    def test_rate_limit_stops_batch_and_next_runs(self):
+        second = entry()
+        second['sha'] = 'b' * 40
+        ledger = {'entries': [entry(), second]}
+        error = urllib.error.HTTPError('url', 429, 'limited', {}, io.BytesIO(b'{"code":"GEMINI_RATE_LIMIT"}'))
+        with patch.object(collector, 'ai_analyze', side_effect=error) as request:
+            collector.enrich(ledger)
+            self.assertEqual(request.call_count, 1)
+            self.assertEqual(second['analysisState'], 'pending')
+            self.assertEqual(ledger['aiCooldownReason'], 'GEMINI_RATE_LIMIT')
+            collector.enrich(ledger)
+            self.assertEqual(request.call_count, 1)
+
     def test_bookkeeping_commit_is_ignored(self):
         def git(*args):
             if args[0] == 'rev-list': return SHA

@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "node dataset-deploy-guard.cjs",
   "functions": {
     "api/neurolens_dataset.py": { "maxDuration": 120 },
     "api/dataset_evolution.py": { "maxDuration": 120 }

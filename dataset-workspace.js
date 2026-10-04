@@ -76,7 +76,7 @@
       let origin='배포본';try{const local=await read('dataset-evolution-log.json');if(!ledger.updatedAt||local.updatedAt>=ledger.updatedAt)ledger=local;}catch(_){}
       render();
       try{const latest=await read('https://raw.githubusercontent.com/jeebs0627/neurolens/main/dataset-evolution-log.json?v='+Math.floor(Date.now()/60000));if(!ledger.updatedAt||latest.updatedAt>=ledger.updatedAt){ledger=latest;origin='GitHub 기록';}}catch(_){origin='배포본 · GitHub 최신 기록 연결 대기';}
-      $('evolutionStatus').textContent=`${origin} · ${date(ledger.updatedAt)} · push·배포 이벤트 및 30분 주기 자동 동기화. 새로고침은 수집된 기록을 조회합니다.`;render();
+      $('evolutionStatus').textContent=`${origin} · ${date(ledger.updatedAt)} · push·배포 이벤트 및 30분 주기 자동 동기화. 새로고침은 수집된 기록을 조회합니다.${ledger.aiCooldownUntil&&Date.parse(ledger.aiCooldownUntil)>Date.now()?' AI 호출 대기: '+date(ledger.aiCooldownUntil)+' 이후 자동 재시도. 기본 과제는 사용할 수 있습니다.':''}`;render();
     }finally{loading=false;$('syncEvolution').disabled=false;}
   }
   function init(options){

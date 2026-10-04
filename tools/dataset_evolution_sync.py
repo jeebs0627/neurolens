@@ -131,6 +131,12 @@ def ai_analyze(sha):
 
 
 def enrich(ledger, limit=3, retry_failed=False):
+    cooldown = ledger.get('aiCooldownUntil')
+    if cooldown and not retry_failed and datetime.fromisoformat(cooldown) > datetime.now(timezone.utc):
+        print('AI provider cooldown active; code and deployment collection continues.')
+        return
+    ledger.pop('aiCooldownUntil', None)
+    ledger.pop('aiCooldownReason', None)
     attempted = 0
     for entry in ledger['entries']:
         if not entry['domains'] or entry.get('analysisState') == 'generated':
@@ -163,6 +169,11 @@ def enrich(ledger, limit=3, retry_failed=False):
                     entry['analysisErrorCode'] = code
             except (ValueError, AttributeError):
                 pass
+            if error.code in (429, 503):
+                ledger['aiCooldownUntil'] = (datetime.now(timezone.utc) + timedelta(minutes=60 if error.code == 429 else 5)).isoformat()
+                ledger['aiCooldownReason'] = entry.get('analysisErrorCode') or entry['analysisError']
+                print('Provider cooldown; remaining tasks retain their saved prompts.')
+                break
         except Exception:
             entry['analysisState'], entry['analysisError'] = 'retry-pending', 'ANALYSIS_UNAVAILABLE'
         print('analysis', entry['sha'][:12], entry['analysisState'])
