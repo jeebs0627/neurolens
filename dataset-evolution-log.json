@@ -3,6 +3,163 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "1a30d38ad4018d0b5782f641431e9b9b5d327345",
+      "parents": [
+        "e99239f5ad604d2d439cb2a45dda86590776a862"
+      ],
+      "committedAt": "2026-10-04T19:18:53+09:00",
+      "subject": "Verify deployment-event OIDC against main workflow runs",
+      "url": "https://github.com/jeebs0627/neurolens/commit/1a30d38ad4018d0b5782f641431e9b9b5d327345",
+      "files": [
+        {
+          "path": "api/dataset_evolution.py",
+          "status": "modified",
+          "additions": 16,
+          "deletions": 2
+        },
+        {
+          "path": "dataset-workflow.browser.test.cjs",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "dataset-workspace.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tools/dataset_evolution_sync.py",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "tools/dataset_evolution_test.py",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 1
+        }
+      ],
+      "domains": [
+        "research"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/api/dataset_evolution.py b/api/dataset_evolution.py\nindex 1192b18..bde14cd 100644\n--- a/api/dataset_evolution.py\n+++ b/api/dataset_evolution.py\n@@ -23,8 +23,22 @@ def authorize(token):\n                             options={'require': ['exp', 'iat', 'nbf', 'sub', 'repository_id', 'repository', 'ref', 'workflow_ref']})\n         if (claims['repository_id'] != REPOSITORY_ID or claims['repository'] != REPOSITORY\n-                or claims['ref'] != 'refs/heads/main' or claims['workflow_ref'] != WORKFLOW\n-                or claims['sub'] != 'repo:' + REPOSITORY + ':ref:refs/heads/main'\n+                or not claims['sub'].startswith('repo:' + REPOSITORY + ':')\n                 or claims.get('event_name') not in ('push', 'schedule', 'deployment_status', 'workflow_dispatch')):\n             raise ValueError('untrusted workflow')\n+        if claims['ref'] != 'refs/heads/main' or claims['workflow_ref'] != WORKFLOW:\n+            # Deployment events can identify the deployed commit, rather than a branch ref.\n+            # Resolve the signed run ID against GitHub; never trust a caller-supplied branch.\n+            if claims['event_name'] != 'deployment_status' or claims['workflow_ref'].split('@')[0] != WORKFLOW.split('@')[0]:\n+                raise ValueError('untrusted workflow ref')\n+            run_id = str(claims.get('run_id', ''))\n+            if not run_id.isdigit():\n+                raise ValueError('invalid run ID')\n+            req = urllib.request.Request(f'https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}', headers={'User-Agent': 'NeuroLens-OIDC'})\n+            with urllib.request.urlopen(req, timeout=12) as response:\n+                run = json.load(response)\n+            if (run.get('head_branch') != 'main' or run.get('path') != '.github/workflows/dataset-evolution.yml'\n+                    or run.get('event') != 'deployment_status' or run.get('head_sha') != claims.get('sha')\n+                    or str(run.get('repository', {}).get('id')) != REPOSITORY_ID):\n+                raise ValueError('untrusted deployment run')\n         return claims\n     except Exception:\ndiff --git a/dataset-workspace.js b/dataset-workspace.js\nindex 1eeddac..a6948b2 100644\n--- a/dataset-workspace.js\n+++ b/dataset-workspace.js\n@@ -76,5 +76,5 @@\n       let origin='배포본';try{const local=await read('dataset-evolution-log.json');if(!ledger.updatedAt||local.updatedAt>=ledger.updatedAt)ledger=local;}catch(_){}\n       render();\n-      try{const latest=await read('https://raw.githubusercontent.com/jeebs0627/neurolens/main/dataset-evolution-log.json');if(!ledger.updatedAt||latest.updatedAt>=ledger.updatedAt){ledger=latest;origin='GitHub 최신 기록';}}catch(_){origin='배포본 · GitHub 최신 기록 연결 대기';}\n+      try{const latest=await read('https://raw.githubusercontent.com/jeebs0627/neurolens/main/dataset-evolution-log.json?v='+Math.floor(Date.now()/60000));if(!ledger.updatedAt||latest.updatedAt>=ledger.updatedAt){ledger=latest;origin='GitHub 기록';}}catch(_){origin='배포본 · GitHub 최신 기록 연결 대기';}\n       $('evolutionStatus').textContent=`${origin} · ${date(ledger.updatedAt)} · push·배포 이벤트 및 30분 주기 자동 동기화. 새로고침은 수집된 기록을 조회합니다.`;render();\n     }finally{loading=false;$('syncEvolution').disabled=false;}\ndiff --git a/tools/dataset_evolution_sync.py b/tools/dataset_evolution_sync.py\nindex de29bc6..c4c674b 100644\n--- a/tools/dataset_evolution_sync.py\n+++ b/tools/dataset_evolution_sync.py\n@@ -153,7 +153,15 @@ def enrich(ledger, limit=3, retry_failed=False):\n             entry['tasks'] = result['tasks']\n             entry.pop('analysisError', None)\n+            entry.pop('analysisErrorCode', None)\n         except urllib.error.HTTPError as error:\n             # Persist a safe machine status, never provider text, tokens or identity claims.\n             entry['analysisState'], entry['analysisError'] = 'retry-pending', 'HTTP_' + str(error.code)\n+            try:\n+                import re\n+                code = json.loads(error.read(4096)).get('code', '')\n+                if isinstance(code, str) and re.fullmatch('[A-Z_]{1,80}', code):\n+                    entry['analysisErrorCode'] = code\n+            except (ValueError, AttributeError):\n+                pass\n         except Exception:\n             entry['analysisState'], entry['analysisError'] = 'retry-pending', 'ANALYSIS_UNAVAILABLE'\ndiff --git a/tools/dataset_evolution_test.py b/tools/dataset_evolution_test.py\nindex dee51ac..13ffc4d 100644\n--- a/tools/dataset_evolution_test.py\n+++ b/tools/dataset_evolution_test.py\n@@ -72,7 +72,8 @@ class EvolutionTests(unittest.TestCase):\n     def test_ai_failure_preserves_rule_prompt_and_stops_after_five(self):\n         ledger = {'entries': [entry()]}\n-        with patch.object(collector, 'ai_analyze', side_effect=urllib.error.HTTPError('url', 503, 'secret response', {}, io.BytesIO())) as call:\n+        with patch.object(collector, 'ai_analyze', side_effect=urllib.error.HTTPError('url', 503, 'secret response', {}, io.BytesIO(b'{\"code\":\"GEMINI_UNAVAILABLE\",\"error\":\"secret response\"}'))) as call:\n             collector.enrich(ledger)\n             self.assertEqual(ledger['entries'][0]['analysisError'], 'HTTP_503')\n+            self.assertEqual(ledger['entries'][0]['analysisErrorCode'], 'GEMINI_UNAVAILABLE')\n             self.assertTrue(ledger['entries'][0]['tasks'][0]['prompt'])\n             self.assertNotIn('secret response', json.dumps(ledger))\n@@ -106,4 +107,10 @@ class EvolutionTests(unittest.TestCase):\n                 with self.assertRaises(api.RequestError): api.authorize(jwt.encode({**claims,field:value},key,algorithm='RS256'))\n             with self.assertRaises(api.RequestError): api.authorize(jwt.encode(claims, 'a'*40, algorithm='HS256'))\n+            deployment_claims = {**claims, 'event_name': 'deployment_status', 'sub': 'repo:'+core.REPOSITORY+':environment:Production', 'ref': SHA, 'sha': SHA, 'run_id': '123', 'workflow_ref': api.WORKFLOW.split('@')[0]+'@'+SHA}\n+            run = {'head_branch': 'main', 'path': '.github/workflows/dataset-evolution.yml', 'event': 'deployment_status', 'head_sha': SHA, 'repository': {'id': int(core.REPOSITORY_ID)}}\n+            with patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(run).encode())):\n+                self.assertEqual(api.authorize(jwt.encode(deployment_claims,key,algorithm='RS256'))['sha'], SHA)\n+            with patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps({**run,'head_branch':'evil'}).encode())):\n+                with self.assertRaises(api.RequestError): api.authorize(jwt.encode(deployment_claims,key,algorithm='RS256'))\n \n     def test_endpoint_unauthorized_and_wrong_sha(self):\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-1a30d38ad401-research",
+          "domain": "research",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "웹캠 약한 신호 회복 알고리즘 평가 및 데이터셋 동기화 예외 처리 후속 검증",
+          "rationale": "관측 사실: api/dataset_evolution.py의 OIDC 배포 이벤트 검증 및 tools/dataset_evolution_sync.py의 에러 코드(analysisErrorCode) 파싱 기능 추가 확인.\n연구자 가설: 파이프라인 인증 및 오류 기록의 안정성 확보가 데이터셋 동기화 신뢰도를 높여, 일상 웹캠 환경에서의 제한된 약한 신호 회복률과 오차 관계 분석을 재현성 있게 수행할 수 있게 할 것이다.\n구분: 코드 변경을 통한 CI/CD 보안 및 로그 수집 로직 개선은 증명되었으나, 이를 통한 측정 성공률 향상 및 측정 정확도 개선은 검증되지 않은 가설 상태임.",
+          "validationPlan": "1. 회귀 검증:\n- api/dataset_evolution.py OIDC 인증 로직 단위 테스트(정상, evil branch, 잘못된 sha, 타임아웃).\n- tools/dataset_evolution_sync.py의 HTTP 에러 파싱 및 민감정보 유출 방지 테스트.\n2. 실측 및 약한 신호 회복 검증:\n- 실제 측정 수치는 본 커밋에 없으므로 연동된 dataset의 실제 기록과 연구자 메모를 참조하여 평가.\n- 참가자(Participant), 기기(Device), 날짜(Date)별로 세션을 분리하여 평가 단위를 구성.\n- 측정 성공률 평가 시 중단되거나 실패한 전체 시도 세션을 분모에 반드시 포함하여 계산.\n- 부분 유효 신호의 활용량(Yield)과 측정 오차(Error Margin)의 트레이드오프 분석 및 불확실성 범위 기록.\n- 자의적인 정상값 임의 생성(Imputation) 및 무조건적인 신호 폐기 금지 기준 적용 확인.",
+          "prompt": "[현재 코드 상태 및 데이터 확인]\n- api/dataset_evolution.py에서 deployment_status OIDC 토큰 조회를 위한 GitHub API 호출 검증 로직을 확인하라.\n- tools/dataset_evolution_sync.py에서 HTTP 에러 수신 시 analysisErrorCode 추출 로직을 확인하라.\n\n[개발 및 검증 과제 지시]\n1. 코드 검증:\n   - OIDC 인증 예외 처리 및 분석 에러 코드 추출 로직의 단위 테스트 coverage를 확인하고 보안성/안정성을 검증하라.\n2. 약한 신호 활용 및 오차 동시 평가:\n   - 제한된 일상 웹캠 환경에서 수집되는 약한 신호를 평가할 때, 신호를 자의적으로 정상값으로 채우거나 일률적으로 폐기하지 마라.\n   - 부분 유효 신호의 활용량(Yield)과 오차(Error), 불확실성(Uncertainty)을 함께 측정하고 기록하라.\n   - 기준 센서가 없는 자체 실험 결과를 임상 진단 정확도나 독립적인 정답(Ground Truth)으로 주장하지 마라.\n3. 데이터셋 연동 및 실측 데이터 평가 산출:\n   - 본 자료에는 실측 성능 수치가 포함되어 있지 않다. dataset 내 실제 측정 기록과 연구자 메모를 연결하여 분석하라.\n   - 평가 분모에는 실패하거나 중단된 세션 시도를 반드시 포함하라.\n   - 평가 결과는 참가자(Participant), 기기(Device), 측정 날짜(Date)별로 분리하여 조건별 활용률과 오차를 보고하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: OIDC 인증 및 에러 파싱 회귀 테스트 통과, dataset 연동을 통한 실패 시도 포함 분모 기반 활용률-오차 리포트 작성 완료.\n- 회귀 기준: 인증 타임아웃 발생, HTTP 응답 토큰/민감 정보 유출, 실패 세션을 누락하여 측정 성공률을 부풀리거나 임의의 정상값을 생성하여 채우는 행위.\n\n[결과 보고 양식]\n1. 인증 및 에러 파싱 코드 검증 결과\n2. 데이터셋 연동 현황 (실측 수치 조작 없이 연결된 dataset 항목 명시)\n3. 전체 시도 수(분모) 대비 측정 성공률 및 참가자/기기/날짜별 분리 평가 표\n4. 약한 신호 활용량 대비 오차 및 불확실성 평가 요약\n5. 미검증 한계점 및 향후 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1a30d38ad4018d0b5782f641431e9b9b5d327345\nDataset-Task: evo-1a30d38ad401-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        }
+      ],
+      "analysisState": "generated",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55544288245",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T10:18:59Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/3EoKqdcTD1o28rzqBrXnWghpQ5bM",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-04T10:19:30.821421+00:00",
+      "analysis": {
+        "summary": "관측된 변경 사항 요약:\n1. api/dataset_evolution.py: deployment_status 이벤트에 대해 GitHub API(https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}) 조회를 통해 head_branch('main'), path, head_sha를 검증하는 OIDC 보안 인증 강화 구현.\n2. dataset-workspace.js: raw.githubusercontent.com 데이터 수집 시 분 단위 타임스탬프 쿼리 파라미터(?v=...)를 추가하여 브라우저 캐시 방지 처리.\n3. tools/dataset_evolution_sync.py: AI 분석 실패 시 HTTP 응답 본문에서 정규식([A-Z_]{1,80})을 통해 에러 코드(analysisErrorCode)를 안전하게 추출·저장하도록 로직 개선.\n4. tools/dataset_evolution_test.py: OIDC 배포 토큰 검증 케이스 및 GEMINI_UNAVAILABLE 예외 처리 단위 테스트 추가.\n\n미검증 영향 요약:\n- 본 커밋의 accuracyValidated 값은 false이며, 코드 변경은 배포 자동화 인증 및 로그 수집 안정성에 한정됨. 실제 시선/생체 측정 정밀도나 신호 회복 성능 향상은 검증되지 않음.\n- 인증 과정에서 외부 GitHub API 호출 추가에 따른 네트워크 지연(12초 타임아웃 제한) 및 API Rate Limit 영향 평가 미비.\n- 웹캠 신호 처리 관련 알고리즘 성능 지표(측정 성공률, 불확실성, 정밀도)는 포함되어 있지 않으므로 데이터셋 실측 연동 검증이 별도로 필요함.",
+        "tasks": [
+          {
+            "id": "evo-1a30d38ad401-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "웹캠 약한 신호 회복 알고리즘 평가 및 데이터셋 동기화 예외 처리 후속 검증",
+            "rationale": "관측 사실: api/dataset_evolution.py의 OIDC 배포 이벤트 검증 및 tools/dataset_evolution_sync.py의 에러 코드(analysisErrorCode) 파싱 기능 추가 확인.\n연구자 가설: 파이프라인 인증 및 오류 기록의 안정성 확보가 데이터셋 동기화 신뢰도를 높여, 일상 웹캠 환경에서의 제한된 약한 신호 회복률과 오차 관계 분석을 재현성 있게 수행할 수 있게 할 것이다.\n구분: 코드 변경을 통한 CI/CD 보안 및 로그 수집 로직 개선은 증명되었으나, 이를 통한 측정 성공률 향상 및 측정 정확도 개선은 검증되지 않은 가설 상태임.",
+            "validationPlan": "1. 회귀 검증:\n- api/dataset_evolution.py OIDC 인증 로직 단위 테스트(정상, evil branch, 잘못된 sha, 타임아웃).\n- tools/dataset_evolution_sync.py의 HTTP 에러 파싱 및 민감정보 유출 방지 테스트.\n2. 실측 및 약한 신호 회복 검증:\n- 실제 측정 수치는 본 커밋에 없으므로 연동된 dataset의 실제 기록과 연구자 메모를 참조하여 평가.\n- 참가자(Participant), 기기(Device), 날짜(Date)별로 세션을 분리하여 평가 단위를 구성.\n- 측정 성공률 평가 시 중단되거나 실패한 전체 시도 세션을 분모에 반드시 포함하여 계산.\n- 부분 유효 신호의 활용량(Yield)과 측정 오차(Error Margin)의 트레이드오프 분석 및 불확실성 범위 기록.\n- 자의적인 정상값 임의 생성(Imputation) 및 무조건적인 신호 폐기 금지 기준 적용 확인.",
+            "prompt": "[현재 코드 상태 및 데이터 확인]\n- api/dataset_evolution.py에서 deployment_status OIDC 토큰 조회를 위한 GitHub API 호출 검증 로직을 확인하라.\n- tools/dataset_evolution_sync.py에서 HTTP 에러 수신 시 analysisErrorCode 추출 로직을 확인하라.\n\n[개발 및 검증 과제 지시]\n1. 코드 검증:\n   - OIDC 인증 예외 처리 및 분석 에러 코드 추출 로직의 단위 테스트 coverage를 확인하고 보안성/안정성을 검증하라.\n2. 약한 신호 활용 및 오차 동시 평가:\n   - 제한된 일상 웹캠 환경에서 수집되는 약한 신호를 평가할 때, 신호를 자의적으로 정상값으로 채우거나 일률적으로 폐기하지 마라.\n   - 부분 유효 신호의 활용량(Yield)과 오차(Error), 불확실성(Uncertainty)을 함께 측정하고 기록하라.\n   - 기준 센서가 없는 자체 실험 결과를 임상 진단 정확도나 독립적인 정답(Ground Truth)으로 주장하지 마라.\n3. 데이터셋 연동 및 실측 데이터 평가 산출:\n   - 본 자료에는 실측 성능 수치가 포함되어 있지 않다. dataset 내 실제 측정 기록과 연구자 메모를 연결하여 분석하라.\n   - 평가 분모에는 실패하거나 중단된 세션 시도를 반드시 포함하라.\n   - 평가 결과는 참가자(Participant), 기기(Device), 측정 날짜(Date)별로 분리하여 조건별 활용률과 오차를 보고하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: OIDC 인증 및 에러 파싱 회귀 테스트 통과, dataset 연동을 통한 실패 시도 포함 분모 기반 활용률-오차 리포트 작성 완료.\n- 회귀 기준: 인증 타임아웃 발생, HTTP 응답 토큰/민감 정보 유출, 실패 세션을 누락하여 측정 성공률을 부풀리거나 임의의 정상값을 생성하여 채우는 행위.\n\n[결과 보고 양식]\n1. 인증 및 에러 파싱 코드 검증 결과\n2. 데이터셋 연동 현황 (실측 수치 조작 없이 연결된 dataset 항목 명시)\n3. 전체 시도 수(분모) 대비 측정 성공률 및 참가자/기기/날짜별 분리 평가 표\n4. 약한 신호 활용량 대비 오차 및 불확실성 평가 요약\n5. 미검증 한계점 및 향후 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1a30d38ad4018d0b5782f641431e9b9b5d327345\nDataset-Task: evo-1a30d38ad401-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "8b3e50451da24964a46eba21cfcfc5a3b16c7ab3d28bab27a55beb9821305ed6",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 3,
+          "usage": {
+            "promptTokenCount": 2945,
+            "candidatesTokenCount": 1397,
+            "totalTokenCount": 7310
+          }
+        },
+        "generatedAt": "2026-10-04T10:20:02.415093+00:00",
+        "sourceSha": "1a30d38ad4018d0b5782f641431e9b9b5d327345",
+        "sourceEvidence": {
+          "sha": "1a30d38ad4018d0b5782f641431e9b9b5d327345",
+          "parents": [
+            "e99239f5ad604d2d439cb2a45dda86590776a862"
+          ],
+          "committedAt": "2026-10-04T10:18:53Z",
+          "subject": "Verify deployment-event OIDC against main workflow runs",
+          "url": "https://github.com/jeebs0627/neurolens/commit/1a30d38ad4018d0b5782f641431e9b9b5d327345",
+          "files": [
+            {
+              "path": "api/dataset_evolution.py",
+              "status": "modified",
+              "additions": 16,
+              "deletions": 2
+            },
+            {
+              "path": "dataset-workflow.browser.test.cjs",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "dataset-workspace.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "tools/dataset_evolution_sync.py",
+              "status": "modified",
+              "additions": 8,
+              "deletions": 0
+            },
+            {
+              "path": "tools/dataset_evolution_test.py",
+              "status": "modified",
+              "additions": 8,
+              "deletions": 1
+            }
+          ],
+          "domains": [
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE api/dataset_evolution.py\n@@ -22,10 +22,24 @@ def authorize(token):\n         claims = jwt.decode(token, key, algorithms=['RS256'], audience=AUDIENCE, issuer=ISSUER,\n                             options={'require': ['exp', 'iat', 'nbf', 'sub', 'repository_id', 'repository', 'ref', 'workflow_ref']})\n         if (claims['repository_id'] != REPOSITORY_ID or claims['repository'] != REPOSITORY\n-                or claims['ref'] != 'refs/heads/main' or claims['workflow_ref'] != WORKFLOW\n-                or claims['sub'] != 'repo:' + REPOSITORY + ':ref:refs/heads/main'\n+                or not claims['sub'].startswith('repo:' + REPOSITORY + ':')\n                 or claims.get('event_name') not in ('push', 'schedule', 'deployment_status', 'workflow_dispatch')):\n             raise ValueError('untrusted workflow')\n+        if claims['ref'] != 'refs/heads/main' or claims['workflow_ref'] != WORKFLOW:\n+            # Deployment events can identify the deployed commit, rather than a branch ref.\n+            # Resolve the signed run ID against GitHub; never trust a caller-supplied branch.\n+            if claims['event_name'] != 'deployment_status' or claims['workflow_ref'].split('@')[0] != WORKFLOW.split('@')[0]:\n+                raise ValueError('untrusted workflow ref')\n+            run_id = str(claims.get('run_id', ''))\n+            if not run_id.isdigit():\n+                raise ValueError('invalid run ID')\n+            req = urllib.request.Request(f'https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}', headers={'User-Agent': 'NeuroLens-OIDC'})\n+            with urllib.request.urlopen(req, timeout=12) as response:\n+                run = json.load(response)\n+            if (run.get('head_branch') != 'main' or run.get('path') != '.github/workflows/dataset-evolution.yml'\n+                    or run.get('event') != 'deployment_status' or run.get('head_sha') != claims.get('sha')\n+                    or str(run.get('repository', {}).get('id')) != REPOSITORY_ID):\n+                raise ValueError('untrusted deployment run')\n         return claims\n     except Exception:\n         raise RequestError(403, '등록된 GitHub 자동화만 호출할 수 있습니다.', 'EVOLUTION_WORKFLOW_DENIED') from None\nFILE dataset-workspace.js\n@@ -75,7 +75,7 @@\n     try{\n       let origin='배포본';try{const local=await read('dataset-evolution-log.json');if(!ledger.updatedAt||local.updatedAt>=ledger.updatedAt)ledger=local;}catch(_){}\n       render();\n-      try{const latest=await read('https://raw.githubusercontent.com/jeebs0627/neurolens/main/dataset-evolution-log.json');if(!ledger.updatedAt||latest.updatedAt>=ledger.updatedAt){ledger=latest;origin='GitHub 최신 기록';}}catch(_){origin='배포본 · GitHub 최신 기록 연결 대기';}\n+      try{const latest=await read('https://raw.githubusercontent.com/jeebs0627/neurolens/main/dataset-evolution-log.json?v='+Math.floor(Date.now()/60000));if(!ledger.updatedAt||latest.updatedAt>=ledger.updatedAt){ledger=latest;origin='GitHub 기록';}}catch(_){origin='배포본 · GitHub 최신 기록 연결 대기';}\n       $('evolutionStatus').textContent=`${origin} · ${date(ledger.updatedAt)} · push·배포 이벤트 및 30분 주기 자동 동기화. 새로고침은 수집된 기록을 조회합니다.`;render();\n     }finally{loading=false;$('syncEvolution').disabled=false;}\n   }\nFILE tools/dataset_evolution_sync.py\n@@ -152,9 +152,17 @@ def enrich(ledger, limit=3, retry_failed=False):\n             entry['analysis'], entry['analysisState'] = result, 'generated'\n             entry['tasks'] = result['tasks']\n             entry.pop('analysisError', None)\n+            entry.pop('analysisErrorCode', None)\n         except urllib.error.HTTPError as error:\n             # Persist a safe machine status, never provider text, tokens or identity claims.\n             entry['analysisState'], entry['analysisError'] = 'retry-pending', 'HTTP_' + str(error.code)\n+            try:\n+                import re\n+                code = json.loads(error.read(4096)).get('code', '')\n+                if isinstance(code, str) and re.fullmatch('[A-Z_]{1,80}', code):\n+                    entry['analysisErrorCode'] = code\n+            except (ValueError, AttributeError):\n+                pass\n         except Exception:\n             entry['analysisState'], entry['analysisError'] = 'retry-pending', 'ANALYSIS_UNAVAILABLE'\n         print('analysis', entry['sha'][:12], entry['analysisState'])\nFILE tools/dataset_evolution_test.py\n@@ -71,9 +71,10 @@ def test_merge_keeps_ai_and_disjoint_events(self):\n \n     def test_ai_failure_preserves_rule_prompt_and_stops_after_five(self):\n         ledger = {'entries': [entry()]}\n-        with patch.object(collector, 'ai_analyze', side_effect=urllib.error.HTTPError('url', 503, 'secret response', {}, io.BytesIO())) as call:\n+        with patch.object(collector, 'ai_analyze', side_effect=urllib.error.HTTPError('url', 503, 'secret response', {}, io.BytesIO(b'{\"code\":\"GEMINI_UNAVAILABLE\",\"error\":\"secret response\"}'))) as call:\n             collector.enrich(ledger)\n             self.assertEqual(ledger['entries'][0]['analysisError'], 'HTTP_503')\n+            self.assertEqual(ledger['entries'][0]['analysisErrorCode'], 'GEMINI_UNAVAILABLE')\n             self.assertTrue(ledger['entries'][0]['tasks'][0]['prompt'])\n             self.assertNotIn('secret response', json.dumps(ledger))\n             ledger['entries'][0]['analysisAttempts'] = 5\n@@ -105,6 +106,12 @@ def test_oidc_signature_scope_expiry_and_algorithm(self):\n             for field, value in [('repository_id','other'),('workflow_ref','other'),('ref','refs/heads/evil'),('aud','other'),('exp',int(time.time())-5),('event_name','pull_request')]:\n                 with self.assertRaises(api.RequestError): api.authorize(jwt.encode({**claims,field:value},key,algorithm='RS256'))\n             with self.assertRaises(api.RequestError): api.authorize(jwt.encode(claims, 'a'*40, algorithm='HS256'))\n+            deployment_claims = {**claims, 'event_name': 'deployment_status', 'sub': 'repo:'+core.REPOSITORY+':environment:Production', 'ref': SHA, 'sha': SHA, 'run_id': '123', 'workflow_ref': api.WORKFLOW.split('@')[0]+'@'+SHA}\n+            run = {'head_branch': 'main', 'path': '.github/workflows/dataset-evolution.yml', 'event': 'deployment_status', 'head_sha': SHA, 'repository': {'id': int(core.REPOSITORY_ID)}}\n+            with patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(run).encode())):\n+                self.assertEqual(api.authorize(jwt.encode(deployment_claims,key,algorithm='RS256'))['sha'], SHA)\n+            with patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps({**run,'head_branch':'evil'}).encode())):\n+                with self.assertRaises(api.RequestError): api.authorize(jwt.encode(deployment_claims,key,algorithm='RS256'))\n \n     def test_endpoint_unauthorized_and_wrong_sha(self):\n         handler = object.__new__(api.handler)",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37194968372"
+      }
+    },
+    {
       "sha": "679009b7c05a5105da15b03e738aa641c5cbb8bb",
       "parents": [
         "bd5f477b12d7862a4c1f4eda8e310679c83cf0b4"
@@ -3876,29 +4033,134 @@
       "accuracyValidated": false,
       "tasks": [
         {
-          "id": "evo-fd9d32ae56a8-gaze",
-          "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-fd9d32ae56a8-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: fd9d32ae56a8868fbdcf50e110594696f15ce3b4\n변경 제목: newbiz: dashboard-style report with AI summary (/rppg, Gemini)\n관련 파일: .vercelignore, api/rppg.py, api/rppg_test.py, newbiz-battery.test.js, newbiz-report.js, newbiz.html, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-fd9d32ae56a8-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
           "id": "evo-fd9d32ae56a8-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-fd9d32ae56a8-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: fd9d32ae56a8868fbdcf50e110594696f15ce3b4\n변경 제목: newbiz: dashboard-style report with AI summary (/rppg, Gemini)\n관련 파일: .vercelignore, api/rppg.py, api/rppg_test.py, newbiz-battery.test.js, newbiz-report.js, newbiz.html, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-fd9d32ae56a8-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "rPPG 원격 심박 및 영역 신뢰도 알고리즘의 부분 유효 신호 활용률과 측정 오차 평가",
+          "rationale": "관측된 사실: api/rppg.py 및 api/rppg_test.py가 신규 추가되었고, newbiz-report.js에 rPPG/POS 기반 구간별 심박, 신뢰도(confidence), QC 등급(qc.grade), 영역 점수 계산 로직이 구현되었습니다.\n연구자 주장 및 가설: POS 알고리즘과 바닐라 기준선 모듈을 통해 저품질 웹캠 환경에서도 약한 원격 생리 신호를 회복하고, 신뢰도 가중 평균으로 종합 지수를 산출할 수 있다고 가정합니다.\n구분 필요성: 시뮬레이션 및 프론트엔드 UI 렌더링 변경은 임상적 진단 정확도나 기준 센서(ECG/PPG) 대비 실측 정확도를 보장하지 않으므로, 미검증 가설과 소스 변경 사실을 엄격히 분리해야 합니다.",
+          "validationPlan": "1. 검증 데이터셋 연결: 데이터셋 내 기준 센서(ECG/Contact PPG) 동시 측정 기록과 연동하여, 합성 수치를 생성하지 않고 실측 기반 오차(MAE, RMSE)를 계산합니다.\n2. 분모 및 조건 분리: 총 시도 횟수를 분모로 설정하고 측정 실패/탈락 건수를 포함하여 성공률을 집계합니다. 참가자(피험자 조건), 기기(웹캠 해상도/조도), 측정 날짜별로 독립 분리하여 평가합니다.\n3. 부분 유효 신호 평가: 신호 잡음 비율(SNR) 구간별로 partial-signal 수용 정책을 적용할 때의 활용률 증가량과 오차 증가폭 간의 교환 관계(trade-off)를 정량 평가합니다.",
+          "prompt": "NeuroLens 측정 알고리즘 개발 AI 지시서:\n\n1. 현재 코드 및 변경사항 확인:\n - api/rppg.py, api/rppg_test.py 및 newbiz-report.js 내 overallIndex(), summaryPayload(), qc 및 신뢰도 처리 로직의 현행 구현 상태를 분석하십시오.\n\n2. 부분 유효 신호 활용 및 오차 평가 개발 과제:\n - 원격 심박(rPPG) 신호의 품질이 저하되거나 일부분만 유효할 때, 모든 약한 신호를 일률 폐기하지 않고 신뢰도(confidence) 수치와 잠정(tentative) 플래그를 정교하게 연동하는 신호 회복 및 평가 로직을 강화하십시오.\n - 억지로 정상값을 만들어 채우는 불투명한 보정을 금지하고, 허용 오차 범위 및 측정 불확실성을 명시적으로 표현하도록 정립하십시오.\n\n3. 실측 연결 및 성능 평가 요구사항:\n - 코드 내에 가짜 실측 수치나 정확도 하드코딩을 절대로 생성하지 마십시오.\n - 데이터셋의 실측 센서 기록 및 연구자 메모와 연결하여 평가를 수행하도록 인터페이스를 구성하십시오.\n - 평가 지표 산출 시 실패 시도를 포함한 전체 시도 건수를 분모로 삼고, [참가자 분리 / 기기 환경 분리 / 측정 일시 분리] 기준에 따라 조도 및 움직임 조건별 '활용률 대비 오차(MAE/RMSE)'를 동시 산출하십시오.\n\n4. 성공 및 회귀 기준:\n - 성공 기준: 약한 신호 구간에서 신호 활용률이 개선되는 동시에, 전체 데이터셋 기준 심박수 오차 허용 한계(MAE 기준)를 초과하지 않고, 비정상 신호가 높은 신뢰도로 오평가되는 회귀가 발생하지 않을 것.\n - 회귀 기준: 신호 탈락 건수를 분모에서 제외하여 성공률을 왜곡하거나, 저품질 신호 입력 시 confidence 지수 산출에 왜곡이 발생하는 현상.\n\n5. 결과 보고 양식:\n - 관측된 소스 변경 내용 요약\n - 실험 분모(총 시도, 실패, 탈락) 및 조건별(기기/참가자/날짜) 활용률-오차 매트릭스\n - 데이터셋 실측 메모 연결 검증 결과 및 발견된 불확실성 범위 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: fd9d32ae56a8868fbdcf50e110594696f15ce3b4\nDataset-Task: evo-fd9d32ae56a8-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-fd9d32ae56a8-gaze",
+          "domain": "gaze",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 보정(Gaze Calibration) 및 보조 바이오마커 신호의 수용성·오차 회귀 검증",
+          "rationale": "관측된 사실: newbiz-report.js 및 newbiz.html에서 시선 보정 상태(calText), oculo(안구 운동) 모듈 상태 및 얼굴 인식 비율(faceCoverage)을 리포트에 통합 반영하도록 수정되었습니다.\n연구자 주장 및 가설: 웹캠 환경에서의 시선 보정 메타데이터와 안구 운동 관련 지표가 주의 통제 및 각성 영역 평가의 보조 신호로 유효하게 작동할 것이라고 추정합니다.\n구분 필요성: UI 마크업 및 테스트 정규식 수정(newbiz-battery.test.js)은 시선 추적 좌표의 실제 각도 오차(degree error)나 환경 변화에 대한 강건성을 직접 입증하지 못하므로 별도 실측 검증이 필수적입니다.",
+          "validationPlan": "1. 시선 오차 측정 데이터셋 연동: 실제 안구 추적 장치(Eye-tracker) 또는 정답 좌표 데이터를 갖춘 데이터셋 메모와 연결하여 시선 편차(degree) 및 추적 손실률을 측정합니다.\n2. 환경별 활용률 및 오차 분석: 조도 변화, 고개 회전, 카메라 거리 변동에 따른 오차 분포를 파악하고, 전체 세션 분모 대비 유효 시선 데이터 채택 비율을 산출합니다.\n3. 평가 분리: 참가자 특성, 기기 사양, 날짜별 분리 평가를 통해 단일 세션 성과가 전체로 일반화되지 않도록 회귀 테스트를 수행합니다.",
+          "prompt": "NeuroLens 시선 추적(Gaze) 알고리즘 개발 AI 지시서:\n\n1. 현재 코드 확인:\n - newbiz-report.js 및 newbiz.html에 반영된 시선 보정 텍스트(calText), oculo 모듈 상태 표시 및 지표 수집 구조를 검토하십시오.\n\n2. 변경 및 검증 과제:\n - 약한 시선 신호나 부분 조도 불균형 조건에서 시선 추적 신호의 유효 구간을 선별적으로 활용하되, 미검증 데이터가 영역 점수에 과도하게 반영되지 않도록 가중치 및 제외 기준(excluded) 로직을 정밀화하십시오.\n - 시선 추적 불확실성이 발생할 경우 이를 정상값으로 패브리케이션하지 않고, 잠정 상태 또는 판정 제외 사유로 명확히 기록하도록 처리하십시오.\n\n3. 실측 기반 평가 및 조건 산출:\n - 임의의 정확도 수치나 임상 진단 성공률을 생성하지 마십시오. 데이터셋의 실측 기록을 연결하여 검증을 진행하십시오.\n - 측정 평가 시 실패 및 중도 이탈 세션을 분모에 포함하고, 참가자/사용 기기/측정 날짜별로 조건화된 [시선 좌표 오차(degree) - 신호 활용률] 그래프 및 표를 작성하도록 요구하십시오.\n\n4. 성공 및 회귀 기준:\n - 성공 기준: 저사양 웹캠 및 편향 조도 환경에서 부분 유효 시선 신호의 활용률이 향상되면서, 정답 좌표 대비 허용 오차 범위를 준수할 것.\n - 회귀 기준: 얼굴 인식 비정상 및 보정 미완료 세션이 '양호' 상태로 잘못 분류되거나, 지표 지도에서 제외 기준이 누락되는 현상.\n\n5. 결과 보고 양식:\n - gaze 관련 코드 구조 변경 사항\n - 실측 데이터셋 연결 기반 환경별(참가자/기기/일시) 오차 및 활용률 분석표 (실패 분모 명시)\n - 예외 처리 및 미검증 불확실성 요소에 대한 기술 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: fd9d32ae56a8868fbdcf50e110594696f15ce3b4\nDataset-Task: evo-fd9d32ae56a8-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "generated",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:20:02.450253+00:00",
+      "analysis": {
+        "summary": "2026년 10월 3일 커밋(fd9d32ae56a8868fbdcf50e110594696f15ce3b4)에서 api/rppg.py 및 api/rppg_test.py 추가, newbiz-report.js 대시보드 및 AI 총평 페이로드 구성, newbiz-battery.test.js 테스트 정규식 수정 등이 관측되었습니다. patchExcerpt에는 newbiz-battery.test.js와 newbiz-report.js 일부 변경점만 수록되었으며, api/rppg.py, api/rppg_test.py, newbiz.html, vercel.json, .vercelignore 파일의 상세 diff는 생략(patchTruncated: true)되었습니다. 해당 커밋의 accuracyValidated 항목은 false로, 개발자의 커밋 제목과 UI 추가 사실을 실제 임상·인체 대상 측정 정확도 검증 완료로 해석할 수 없습니다. 신규 추가된 신뢰도 가중 평균(overallIndex), 영역별 신뢰도(confidence), rPPG/POS 신호 품질 및 시선 보정 상태 표시 로직이 웹캠 제한 환경에서 부분 유효 신호를 올바르게 수용하고 오차 및 회귀를 통제하는지 실측 데이터셋과의 연결 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-fd9d32ae56a8-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "rPPG 원격 심박 및 영역 신뢰도 알고리즘의 부분 유효 신호 활용률과 측정 오차 평가",
+            "rationale": "관측된 사실: api/rppg.py 및 api/rppg_test.py가 신규 추가되었고, newbiz-report.js에 rPPG/POS 기반 구간별 심박, 신뢰도(confidence), QC 등급(qc.grade), 영역 점수 계산 로직이 구현되었습니다.\n연구자 주장 및 가설: POS 알고리즘과 바닐라 기준선 모듈을 통해 저품질 웹캠 환경에서도 약한 원격 생리 신호를 회복하고, 신뢰도 가중 평균으로 종합 지수를 산출할 수 있다고 가정합니다.\n구분 필요성: 시뮬레이션 및 프론트엔드 UI 렌더링 변경은 임상적 진단 정확도나 기준 센서(ECG/PPG) 대비 실측 정확도를 보장하지 않으므로, 미검증 가설과 소스 변경 사실을 엄격히 분리해야 합니다.",
+            "validationPlan": "1. 검증 데이터셋 연결: 데이터셋 내 기준 센서(ECG/Contact PPG) 동시 측정 기록과 연동하여, 합성 수치를 생성하지 않고 실측 기반 오차(MAE, RMSE)를 계산합니다.\n2. 분모 및 조건 분리: 총 시도 횟수를 분모로 설정하고 측정 실패/탈락 건수를 포함하여 성공률을 집계합니다. 참가자(피험자 조건), 기기(웹캠 해상도/조도), 측정 날짜별로 독립 분리하여 평가합니다.\n3. 부분 유효 신호 평가: 신호 잡음 비율(SNR) 구간별로 partial-signal 수용 정책을 적용할 때의 활용률 증가량과 오차 증가폭 간의 교환 관계(trade-off)를 정량 평가합니다.",
+            "prompt": "NeuroLens 측정 알고리즘 개발 AI 지시서:\n\n1. 현재 코드 및 변경사항 확인:\n - api/rppg.py, api/rppg_test.py 및 newbiz-report.js 내 overallIndex(), summaryPayload(), qc 및 신뢰도 처리 로직의 현행 구현 상태를 분석하십시오.\n\n2. 부분 유효 신호 활용 및 오차 평가 개발 과제:\n - 원격 심박(rPPG) 신호의 품질이 저하되거나 일부분만 유효할 때, 모든 약한 신호를 일률 폐기하지 않고 신뢰도(confidence) 수치와 잠정(tentative) 플래그를 정교하게 연동하는 신호 회복 및 평가 로직을 강화하십시오.\n - 억지로 정상값을 만들어 채우는 불투명한 보정을 금지하고, 허용 오차 범위 및 측정 불확실성을 명시적으로 표현하도록 정립하십시오.\n\n3. 실측 연결 및 성능 평가 요구사항:\n - 코드 내에 가짜 실측 수치나 정확도 하드코딩을 절대로 생성하지 마십시오.\n - 데이터셋의 실측 센서 기록 및 연구자 메모와 연결하여 평가를 수행하도록 인터페이스를 구성하십시오.\n - 평가 지표 산출 시 실패 시도를 포함한 전체 시도 건수를 분모로 삼고, [참가자 분리 / 기기 환경 분리 / 측정 일시 분리] 기준에 따라 조도 및 움직임 조건별 '활용률 대비 오차(MAE/RMSE)'를 동시 산출하십시오.\n\n4. 성공 및 회귀 기준:\n - 성공 기준: 약한 신호 구간에서 신호 활용률이 개선되는 동시에, 전체 데이터셋 기준 심박수 오차 허용 한계(MAE 기준)를 초과하지 않고, 비정상 신호가 높은 신뢰도로 오평가되는 회귀가 발생하지 않을 것.\n - 회귀 기준: 신호 탈락 건수를 분모에서 제외하여 성공률을 왜곡하거나, 저품질 신호 입력 시 confidence 지수 산출에 왜곡이 발생하는 현상.\n\n5. 결과 보고 양식:\n - 관측된 소스 변경 내용 요약\n - 실험 분모(총 시도, 실패, 탈락) 및 조건별(기기/참가자/날짜) 활용률-오차 매트릭스\n - 데이터셋 실측 메모 연결 검증 결과 및 발견된 불확실성 범위 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: fd9d32ae56a8868fbdcf50e110594696f15ce3b4\nDataset-Task: evo-fd9d32ae56a8-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-fd9d32ae56a8-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 보정(Gaze Calibration) 및 보조 바이오마커 신호의 수용성·오차 회귀 검증",
+            "rationale": "관측된 사실: newbiz-report.js 및 newbiz.html에서 시선 보정 상태(calText), oculo(안구 운동) 모듈 상태 및 얼굴 인식 비율(faceCoverage)을 리포트에 통합 반영하도록 수정되었습니다.\n연구자 주장 및 가설: 웹캠 환경에서의 시선 보정 메타데이터와 안구 운동 관련 지표가 주의 통제 및 각성 영역 평가의 보조 신호로 유효하게 작동할 것이라고 추정합니다.\n구분 필요성: UI 마크업 및 테스트 정규식 수정(newbiz-battery.test.js)은 시선 추적 좌표의 실제 각도 오차(degree error)나 환경 변화에 대한 강건성을 직접 입증하지 못하므로 별도 실측 검증이 필수적입니다.",
+            "validationPlan": "1. 시선 오차 측정 데이터셋 연동: 실제 안구 추적 장치(Eye-tracker) 또는 정답 좌표 데이터를 갖춘 데이터셋 메모와 연결하여 시선 편차(degree) 및 추적 손실률을 측정합니다.\n2. 환경별 활용률 및 오차 분석: 조도 변화, 고개 회전, 카메라 거리 변동에 따른 오차 분포를 파악하고, 전체 세션 분모 대비 유효 시선 데이터 채택 비율을 산출합니다.\n3. 평가 분리: 참가자 특성, 기기 사양, 날짜별 분리 평가를 통해 단일 세션 성과가 전체로 일반화되지 않도록 회귀 테스트를 수행합니다.",
+            "prompt": "NeuroLens 시선 추적(Gaze) 알고리즘 개발 AI 지시서:\n\n1. 현재 코드 확인:\n - newbiz-report.js 및 newbiz.html에 반영된 시선 보정 텍스트(calText), oculo 모듈 상태 표시 및 지표 수집 구조를 검토하십시오.\n\n2. 변경 및 검증 과제:\n - 약한 시선 신호나 부분 조도 불균형 조건에서 시선 추적 신호의 유효 구간을 선별적으로 활용하되, 미검증 데이터가 영역 점수에 과도하게 반영되지 않도록 가중치 및 제외 기준(excluded) 로직을 정밀화하십시오.\n - 시선 추적 불확실성이 발생할 경우 이를 정상값으로 패브리케이션하지 않고, 잠정 상태 또는 판정 제외 사유로 명확히 기록하도록 처리하십시오.\n\n3. 실측 기반 평가 및 조건 산출:\n - 임의의 정확도 수치나 임상 진단 성공률을 생성하지 마십시오. 데이터셋의 실측 기록을 연결하여 검증을 진행하십시오.\n - 측정 평가 시 실패 및 중도 이탈 세션을 분모에 포함하고, 참가자/사용 기기/측정 날짜별로 조건화된 [시선 좌표 오차(degree) - 신호 활용률] 그래프 및 표를 작성하도록 요구하십시오.\n\n4. 성공 및 회귀 기준:\n - 성공 기준: 저사양 웹캠 및 편향 조도 환경에서 부분 유효 시선 신호의 활용률이 향상되면서, 정답 좌표 대비 허용 오차 범위를 준수할 것.\n - 회귀 기준: 얼굴 인식 비정상 및 보정 미완료 세션이 '양호' 상태로 잘못 분류되거나, 지표 지도에서 제외 기준이 누락되는 현상.\n\n5. 결과 보고 양식:\n - gaze 관련 코드 구조 변경 사항\n - 실측 데이터셋 연결 기반 환경별(참가자/기기/일시) 오차 및 활용률 분석표 (실패 분모 명시)\n - 예외 처리 및 미검증 불확실성 요소에 대한 기술 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: fd9d32ae56a8868fbdcf50e110594696f15ce3b4\nDataset-Task: evo-fd9d32ae56a8-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "8245dd32d01ecae3e2e2e8161a3966cd31475e0c150c51d4083df36a0c828f97",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 3,
+          "usage": {
+            "promptTokenCount": 10970,
+            "candidatesTokenCount": 2198,
+            "totalTokenCount": 14354
+          }
+        },
+        "generatedAt": "2026-10-04T10:20:30.694575+00:00",
+        "sourceSha": "fd9d32ae56a8868fbdcf50e110594696f15ce3b4",
+        "sourceEvidence": {
+          "sha": "fd9d32ae56a8868fbdcf50e110594696f15ce3b4",
+          "parents": [
+            "e4af722305951d982577bef3f1eaa48851d26d8a"
+          ],
+          "committedAt": "2026-10-03T07:25:57Z",
+          "subject": "newbiz: dashboard-style report with AI summary (/rppg, Gemini)",
+          "url": "https://github.com/jeebs0627/neurolens/commit/fd9d32ae56a8868fbdcf50e110594696f15ce3b4",
+          "files": [
+            {
+              "path": ".vercelignore",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "api/rppg.py",
+              "status": "added",
+              "additions": 263,
+              "deletions": 0
+            },
+            {
+              "path": "api/rppg_test.py",
+              "status": "added",
+              "additions": 53,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-battery.test.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "newbiz-report.js",
+              "status": "modified",
+              "additions": 217,
+              "deletions": 50
+            },
+            {
+              "path": "newbiz.html",
+              "status": "modified",
+              "additions": 174,
+              "deletions": 2
+            },
+            {
+              "path": "vercel.json",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE newbiz-battery.test.js\n@@ -199,7 +199,7 @@ for (const [p, e] of Object.entries(expect)) {\n   assert.equal(r.battery.care[0].domain, 'safety');\n   const html = checkReport(r, 'phq');\n   assert.ok(html.includes('PHQ-8') && html.includes('상담 권장'));\n-  assert.ok(!/우울증/.test(html.split('<div class=\"card refs\">')[0]));      // 본문에 진단명 없음 (참고문헌 제목은 예외)\n+  assert.ok(!/우울증/.test(html.split('<section class=\"card refs\">')[0]));      // 본문에 진단명 없음 (참고문헌 제목은 예외)\n   const none = B.simulate('balanced'); none.checkin.phq = null;\n   assert.ok(checkReport(B.run(none), 'phq-skip').includes('응답하지 않았어요'));\n }\nFILE newbiz-report.js\n@@ -180,6 +180,154 @@\n     return `<svg class=\"chart\" viewBox=\"0 0 ${W} ${H}\" role=\"img\" aria-label=\"측정 구간별 원격 심박 변화\">${bands}${ticks}<path d=\"${d}\" fill=\"none\" stroke=\"#D2486A\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/></svg>`;\n   }\n \n+  /* ---------- 대시보드 구성 요소 ---------- */\n+  /* 영역 정체성 색 (색각 이상 검증 통과: dataviz validate_palette) — 상태 색(양호·주의·관리 필요)과는 따로 쓴다 */\n+  const DCOLOR = { alert: '#2a78d6', control: '#4a3aa7', emotion: '#e87ba4', autonomic: '#1baf7a' };\n+  const SCOLOR = DOMAIN_CHART;\n+  const DOM_ICON = {\n+    alert: '<path d=\"M12 3v3M12 18v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M3 12h3M18 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1\"/><circle cx=\"12\" cy=\"12\" r=\"3.6\"/>',\n+    control: '<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><circle cx=\"12\" cy=\"12\" r=\"4.5\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/>',\n+    emotion: '<path d=\"M12 20.5s-7.5-4.6-9.2-9.1C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.4 0 5.6 3.4 4.2 6.9-1.7 4.5-9.2 9.1-9.2 9.1z\"/>',\n+    autonomic: '<path d=\"M2 12h4l2.5-6 4 12 3-9 2 3H22\"/>',\n+  };\n+  const icon = (k, c = 'currentColor') => `<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"${c}\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">${DOM_ICON[k]}</svg>`;\n+\n+  /* 종합 지수: 측정된 영역 점수를 측정 신뢰도로 가중 평균 (참고용 요약) */\n+  function overallIndex(b) {\n+    const m = B.DOMAIN_KEYS.map(k => b.domains[k]).filter(d => d.status !== 'na' && finite(d.score));\n+    if (m.length < 2) return null;\n+    const w = m.map(d => Math.max(0.2, d.confidence || 0)), sw = w.reduce((a, x) => a + x, 0);\n+    return Math.round(m.reduce((a, d, i) => a + d.score * w[i], 0) / sw);\n+  }\n+  /* 원형 게이지: 점수 호 + 가운데 숫자 */\n+  function ring(score, { size = 120, stroke = 10, color = '#2a78d6', track = 'rgba(255,255,255,.14)', text = '#fff', sub = '', title = '' } = {}) {\n+    const r = (size - stroke) / 2, C = 2 * Math.PI * r, v = finite(score) ? Math.max(0, Math.min(100, score)) : 0;\n+    return `<svg class=\"ring\" viewBox=\"0 0 ${size} ${size}\" width=\"${size}\" height=\"${size}\" role=\"img\" aria-label=\"${esc(title)} ${finite(score) ? score + '점' : '측정 안 됨'}\">\n+      <title>${esc(title)} ${finite(score) ? score + '점' : '측정 안 됨'}</title>\n+      <circle cx=\"${size / 2}\" cy=\"${size / 2}\" r=\"${r}\" fill=\"none\" stroke=\"${track}\" stroke-width=\"${stroke}\"/>\n+      ${finite(score) ? `<circle class=\"ring-arc\" cx=\"${size / 2}\" cy=\"${size / 2}\" r=\"${r}\" fill=\"none\" stroke=\"${color}\" stroke-width=\"${stroke}\" stroke-linecap=\"round\" stroke-dasharray=\"${(C * v / 100).toFixed(1)} ${C.toFixed(1)}\" transform=\"rotate(-90 ${size / 2} ${size / 2})\"/>` : ''}\n+      <text x=\"50%\" y=\"${sub ? '47%' : '50%'}\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"Sora\" font-weight=\"700\" font-size=\"${size * 0.27}\" fill=\"${text}\">${finite(score) ? score : '—'}</text>\n+      ${sub ? `<text x=\"50%\" y=\"68%\" text-anchor=\"middle\" font-size=\"${size * 0.1}\" font-weight=\"700\" fill=\"${text}\" opacity=\".7\">${esc(sub)}</text>` : ''}</svg>`;\n+  }\n+\n+  /* 레이더: 네 영역 점수 + (있으면) 직전 측정. 배경 동심원은 판정 경계(40 · 70) */\n+  function radarSvg(domains, prev) {\n+    const K = B.DOMAIN_KEYS, cx = 220, cy = 160, R = 108, ang = i => -Math.PI / 2 + i * Math.PI / 2;\n+    const pt = (i, v) => [cx + Math.cos(ang(i)) * R * v / 100, cy + Math.sin(ang(i)) * R * v / 100];\n+    const poly = vals => vals.map((v, i) => pt(i, finite(v) ? v : 0).map(n => n.toFixed(1)).join(',')).join(' ');\n+    const ringPoly = v => K.map((_, i) => pt(i, v).join(',')).join(' ');\n+    const cur = K.map(k => domains[k].score);\n+    const prevVals = prev ? K.map(k => prev[k]) : null;\n+    const lab = (k, i) => {\n+      const [x, y] = pt(i, 116), d = domains[k], anchor = i === 1 ? 'start' : i === 3 ? 'end' : 'middle';\n+      const y0 = i === 0 ? y - 20 : i === 2 ? y + 14 : y - 4;\n+      return `<text x=\"${x}\" y=\"${y0}\" text-anchor=\"${anchor}\" font-size=\"13\" font-weight=\"800\" fill=\"#273451\">${esc(d.name)}</text>\n+        <text x=\"${x}\" y=\"${y0 + 16}\" text-anchor=\"${anchor}\" font-size=\"13\" font-weight=\"700\" font-family=\"Sora\" fill=\"#273451\">${d.score ?? '—'} <tspan font-family=\"Noto Sans KR\" font-size=\"11\" fill=\"#647089\">${B.STATUS[d.status]}</tspan></text>`;\n+    };\n+    return `<svg class=\"chart radar\" viewBox=\"0 0 440 330\" role=\"img\" aria-label=\"네 영역 점수 레이더 차트\">\n+      <polygon points=\"${ringPoly(100)}\" fill=\"#EEF7F2\"/><polygon points=\"${ringPoly(70)}\" fill=\"#FFF6E6\"/><polygon points=\"${ringPoly(40)}\" fill=\"#FDEEF1\"/>\n+      ${[40, 70, 100].map(v => `<polygon points=\"${ringPoly(v)}\" fill=\"none\" stroke=\"#D9DEE8\" stroke-width=\"1\"/>`).join('')}\n+      ${K.map((_, i) => { const [x, y] = pt(i, 100); return `<line x1=\"${cx}\" y1=\"${cy}\" x2=\"${x}\" y2=\"${y}\" stroke=\"#D9DEE8\"/>`; }).join('')}\n+      <text x=\"${cx + 5}\" y=\"${cy - R * 0.4 + 12}\" font-size=\"10\" fill=\"#8A93A8\">40</text><text x=\"${cx + 5}\" y=\"${cy - R * 0.7 + 12}\" font-size=\"10\" fill=\"#8A93A8\">70</text>\n+      ${prevVals ? `<polygon points=\"${poly(prevVals)}\" fill=\"none\" stroke=\"#8A93A8\" stroke-width=\"2\" stroke-dasharray=\"5 4\"/>` : ''}\n+      <polygon class=\"radar-a\" points=\"${poly(cur)}\" fill=\"rgba(42,120,214,.16)\" stroke=\"#2a78d6\" stroke-width=\"2.4\" stroke-linejoin=\"round\"/>\n+      ${K.map((k, i) => finite(cur[i]) ? (() => { const [x, y] = pt(i, cur[i]); return `<circle cx=\"${x}\" cy=\"${y}\" r=\"6\" fill=\"#2a78d6\" stroke=\"#fff\" stroke-width=\"2\"><title>${esc(domains[k].name)} ${cur[i]}점 · ${B.STATUS[domains[k].status]}</title></circle>`; })() : '').join('')}\n+      ${K.map(lab).join('')}\n+    </svg>\n+    <div class=\"legend\"><span><i style=\"background:#2a78d6\"></i>이번 측정</span>${prevVals ? '<span><i class=\"dash\"></i>직전 측정</span>' : ''}<span><i style=\"background:#FDEEF1;border:1px solid #F2C9D3\"></i>관리 필요 &lt;40</span><span><i style=\"background:#FFF6E6;border:1px solid #F0D6A4\"></i>주의 40–70</span><span><i style=\"background:#EEF7F2;border:1px solid #C4E3DC\"></i>양호 ≥70</span></div>`;\n+  }\n+\n+  /* 영역 요약 목록: 점수 막대 + 상태 + 가장 낮은 핵심 지표 */\n+  function domainList(b) {\n+    return B.DOMAIN_KEYS.map(k => {\n+      const d = b.domains[k];\n+      const worst = b.indicators.filter(i => i.domain === k && i.value !== null && !i.excluded && i.status !== 'na').sort((x, y) => x.score - y.score)[0];\n+      return `<a class=\"dl-r\" href=\"#dom-${k}\"><span class=\"dic\" style=\"color:${DCOLOR[k]};background:${DCOLOR[k]}1A\">${icon(k)}</span>\n+        <div class=\"dl-m\"><div class=\"dl-h\"><b>${esc(d.name)}</b><span class=\"st st-${d.status}\">${B.STATUS[d.status]}</span><b class=\"dl-s\">${d.score ?? '—'}</b></div>\n+          <div class=\"dl-t\"><i style=\"width:${finite(d.score) ? Math.max(2, d.score) : 0}%;background:${DCOLOR[k]}\"></i></div>\n+          <div class=\"dl-n\">${d.status === 'na' ? '측정 안 됨' : worst && SEV_OF(worst.status) >= 1 ? `가장 낮은 지표 · ${esc(worst.label)} ${esc(B.STATUS[worst.status])}` : '모든 판정 지표가 양호 범위'}</div></div></a>`;\n+    }).join('');\n+  }\n+  const SEV_OF = s => B.SEV[s] ?? -1;\n+\n+  /* 지표 지도: 판정 지표를 0–100 환산 점수의 막대로 (영역별 묶음) */\n+  function indicatorMap(b) {\n+    return `<div class=\"imap\">${B.DOMAIN_KEYS.map(k => {\n+      const list = b.indicators.filter(i => i.domain === k);\n+      return `<div class=\"imap-g\"><div class=\"imap-h\"><span class=\"dic\" style=\"color:${DCOLOR[k]};background:${DCOLOR[k]}1A\">${icon(k)}</span><b>${esc(b.domains[k].name)}</b></div>\n+        ${list.map(i => {\n+          const has = i.value !== null && !i.excluded, sc = has ? i.score : null;\n+          return `<div class=\"imap-r\" title=\"${esc(i.label)}: ${i.value === null ? '측정 안 됨' : `${i.value}${i.unit ? ' ' + i.unit : ''}`} · ${esc(i.range)}\">\n+            <span class=\"imap-l\">${esc(i.label)}${i.primary ? '<em>핵심</em>' : ''}</span>\n+            <span class=\"imap-t\">${has ? `<i style=\"width:${Math.max(2, sc)}%;background:${SCOLOR[i.status]}\"></i>` : ''}</span>\n+            <span class=\"imap-v\">${i.value === null ? '<span class=\"muted\">—</span>' : i.excluded ? '<span class=\"muted\">제외</span>' : `${esc(B.STATUS[i.status])}${i.borderline ? '·경계' : ''}`}</span></div>`;\n+        }).join('')}</div>`;\n+    }).join('')}</div>\n+    <div class=\"legend\"><span><i style=\"background:${SCOLOR.ok}\"></i>양호</span><span><i style=\"background:${SCOLOR.watch}\"></i>주의</span><span><i style=\"background:${SCOLOR.concern}\"></i>관리 필요</span><span class=\"muted\">막대 길이 = 지표 점수(0–100, 길수록 좋음) · 마우스를 올리면 실제 값</span></div>`;\n+  }\n+\n+  /* 느끼는 나 vs 측정된 나: 같은 0–100(높을수록 좋은 상태) 척도에 자기보고와 측정 점수를 나란히 */\n+  function selfVsMeasured(r) {\n+    const c = r.checkin || {}, b = r.battery, phq = b.phq;\n+    const rows = [\n+      ['alert', '각성', finite(c.kss) ? Math.round((9 - c.kss) / 8 * 100) : null, '졸림(KSS) 반대로'],\n+      ['control', '주의 통제', phq && finite(phq.items[6]) ? Math.round((3 - phq.items[6]) / 3 * 100) : null, '최근 2주 집중 곤란 반대로'],\n+      ['emotion', '정서', finite(c.valence) ? Math.round((c.valence - 1) / 8 * 100) : null, '지금 기분'],\n+      ['autonomic', '몸의 긴장', finite(c.tension) ? Math.round((5 - c.tension) / 4 * 100) : null, '긴장 반대로'],\n+    ].map(([k, name, self, how]) => ({ k, name, self, how, meas: b.domains[k].score }));\n+    const use = rows.filter(x => finite(x.self) || finite(x.meas));\n+    if (!use.length) return '<p class=\"muted small\">비교할 자기보고 또는 측정이 부족했어요.</p>';\n+    return `<div class=\"svm\">${use.map(x => {\n+      const gap = finite(x.self) && finite(x.meas) ? x.meas - x.self : null, lo = gap === null ? 0 : Math.min(x.self, x.meas), hi = gap === null ? 0 : Math.max(x.self, x.meas);\n+      return `<div class=\"svm-r\"><div class=\"svm-l\"><b>${esc(x.name)}</b><span>${esc(x.how)}</span></div>\n+        <div class=\"svm-t\" title=\"자기보고 ${x.self ?? '—'} · 측정 ${x.meas ?? '—'}\">${gap !== null ? `<i class=\"svm-gap\" style=\"left:${lo}%;width:${hi - lo}%\"></i>` : ''}\n+          ${finite(x.self) ? `<i class=\"svm-s\" style=\"left:${x.self}%\"></i>` : ''}${finite(x.meas) ? `<i class=\"svm-m\" style=\"left:${x.meas}%\"></i>` : ''}</div>\n+        <div class=\"svm-v${gap !== null && Math.abs(gap) >= 25 ? ' big' : ''}\">${gap === null ? '—' : `${gap > 0 ? '+' : ''}${gap}`}</div></div>`;\n+    }).join('')}<div class=\"svm-ax\"><span>0</span><span>50</span><span>100</span></div></div>\n+      <div class=\"legend\"><span><i class=\"hollow\"></i>자기보고</span><span><i style=\"background:#2a78d6\"></i>측정</span><span class=\"muted\">오른쪽 = 측정 − 자기보고 (25 이상 차이 강조)</span></div>`;\n+  }\n+\n+  /* 추세: 이 기기의 이전 측정 + 이번 측정, 영역별 선 (영역 색 + 끝점 직접 표기) */\n+  function trendSvg(points) {\n+    if (points.length < 2) return '';\n+    const W = 860, H = 220, px = 34, py = 16, iw = W - px - 110, ih = H - py - 34;\n+    const xs = i => px + (points.length > 1 ? i / (points.length - 1) : 0.5) * iw, ys = v => py + (1 - v / 100) * ih;\n+    const lines = B.DOMAIN_KEYS.map(k => {\n+      const pts = points.map((p, i) => finite(p.scores[k]) ? [xs(i), ys(p.scores[k]), p.scores[k]] : null);\n+      let d = '', pen = false;\n+      pts.forEach(q => { if (!q) { pen = false; return; } d += `${pen ? 'L' : 'M'}${q[0].toFixed(1)} ${q[1].toFixed(1)} `; pen = true; });\n+      const last = [...pts].reverse().find(Boolean);\n+      return `<path d=\"${d}\" fill=\"none\" stroke=\"${DCOLOR[k]}\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n+        ${pts.filter(Boolean).map(q => `<circle cx=\"${q[0]}\" cy=\"${q[1]}\" r=\"4.5\" fill=\"${DCOLOR[k]}\" stroke=\"#fff\" stroke-width=\"2\"><title>${esc(B.DOMAINS[k].name)} ${q[2]}점</title></circle>`).join('')}\n+        ${last ? `<text x=\"${last[0] + 10}\" y=\"${last[1] + 4}\" font-size=\"11.5\" font-weight=\"700\" fill=\"#273451\">${esc(B.DOMAINS[k].name)} ${last[2]}</text>` : ''}`;\n+    }).join('');\n+    return `<svg class=\"chart\" viewBox=\"0 0 ${W} ${H}\" role=\"img\" aria-label=\"영역 점수 추세\">\n+      ${[40, 70].map(v => `<line x1=\"${px}\" x2=\"${px + iw}\" y1=\"${ys(v)}\" y2=\"${ys(v)}\" stroke=\"#E3E8F1\" stroke-dasharray=\"4 4\"/><text x=\"${px - 6}\" y=\"${ys(v) + 4}\" text-anchor=\"end\" font-size=\"10\" fill=\"#8A93A8\">${v}</text>`).join('')}\n+      ${lines}\n+      ${points.map((p, i) => `<text x=\"${xs(i)}\" y=\"${H - 6}\" text-anchor=\"middle\" font-size=\"10.5\" fill=\"#647089\">${esc(p.label)}</text>`).join('')}</svg>\n+      <div class=\"legend\">${B.DOMAIN_KEYS.map(k => `<span><i style=\"background:${DCOLOR[k]}\"></i>${esc(B.DOMAINS[k].name)}</span>`).join('')}</div>`;\n+  }\n+\n+  /* 영역 KPI 타일: 핵심 지표를 큰 숫자로 */\n+  function kpiTiles(list) {\n+    const prim = list.filter(i => i.primary);\n+    return `<div class=\"kpis\">${prim.map(i => `<div class=\"kpi-t st-b-${i.excluded ? 'na' : i.status}\"><span>${esc(i.label)}</span><b>${i.value === null ? '—' : (i.d >= 1 ? i.value.toFixed(i.d) : i.value)}<small>${esc(i.unit || '')}</small></b><em>${i.value === null ? '측정 안 됨' : i.excluded ? '판정 제외' : B.STATUS[i.status] + (i.borderline ? ' · 경계' : '')}</em></div>`).join('')}</div>`;\n+  }\n+\n+  /* AI 총평 요청 본문: 허용된 구조화 지표만 (PHQ 응답·영상·자유 문장은 넣지 않는다) */\n+  function summaryPayload(r) {\n+    const b = r.battery, I = b.integrated, c = r.checkin || {};\n+    const domains = {};\n+    B.DOMAIN_KEYS.forEach(k => { const d = b.domains[k]; domains[k] = { score: d.score, status: d.status, confidence: d.confidence, tentative: !!d.tentative }; });\n+    return {\n+      demo: !!(r.demo || b.sim), mode: r.mode || 'full', type: I.code, primary: I.primary, secondary: I.secondary, domains,\n+      indicators: b.indicators.filter(i => i.value !== null && !i.excluded && i.status !== 'na').map(i => ({ key: i.key, value: i.value, status: i.status, borderline: !!i.borderline })),\n+      pathways: I.pathways.map(p => p.key), mismatches: I.mismatches.map(m => m.key),\n+      checkin: { valence: c.valence ?? null, tension: c.tension ?? null, energy: c.energy ?? null, kss: c.kss ?? null },\n+      care: b.care.filter(t => t.domain !== 'safety').map(t => t.domain), qc: { grade: b.qc ? b.qc.grade : null, hrRef: b.qc ? b.qc.hrRef || null : null },\n+    };\n+  }\n+\n   /* ---------- 섹션 ---------- */\n   function indicatorTable(list, info, C) {\n     const rows = list.map(i => `<tr><td><b>${esc(i.label)}</b>${i.primary ? '<span class=\"core-tag\">핵심</span>' : ''}<div class=\"td-d\">${esc(i.desc)}</div></td>\n@@ -217,13 +365,14 @@\n       body += `<div class=\"group-t\">구간별 원격 심박 (rPPG · POS)</div>${timelineSvg(r)}<p class=\"disc\">기준선은 빈 화면 대신 잔잔한 풍경을 보는 ‘바닐라 기준선’으로 쟀어요${C.cite(['jennings', 'piferi'])}. 공명 호흡은 분당 6회(0.1Hz)${C.cite(['lehrer', 'shaffer'])}.</p>`;\n       body += `<p class=\"disc\">MIST 압박 과제 정답 ${r.stressScore ? `${r.stressScore.correct}/${r.stressScore.total}` : '—'}${r.stressScore && r.stressScore.minLimit ? ` · 최단 제한 시간 ${(r.stressScore.minLimit / 1000).toFixed(1)}초` : ''}${C.cite(['dedovic'])} · 안정 시 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함', none: '없음' }[r.hr.baseline.quality]}${C.cite(['pos'])}</p>`;\n     }\n-    return `<section class=\"card dom\" id=\"dom-${k}\">\n-      <div class=\"dom-h\"><div><div class=\"kicker\">Domain ${idx} · ${esc(d.en)}</div><h2>${esc(d.name)} <span class=\"net\">${esc(d.network)}</span></h2>\n+    return `<section class=\"card dom\" id=\"dom-${k}\" style=\"--dc:${DCOLOR[k]}\">\n+      <div class=\"dom-h\"><div><div class=\"kicker\" style=\"color:${DCOLOR[k]}\"><span class=\"dic sm\" style=\"color:${DCOLOR[k]};background:${DCOLOR[k]}1A\">${icon(k)}</span> Domain ${idx} · ${esc(d.en)}</div><h2>${esc(d.name)} <span class=\"net\">${esc(d.network)}</span></h2>\n         <p class=\"muted small\" style=\"margin:0\">${esc(d.what)}${C.cite(d.refs)}</p></div>\n-        <div class=\"dom-score st-${d.status}\"><b>${d.score === null ? '—' : d.score}</b><span>${B.STATUS[d.status]}</span></div></div>\n+        <div class=\"dom-ring\">${ring(d.score, { size: 96, stroke: 9, color: d.status === 'na' ? '#A3ABBD' : DCOLOR[k], track: '#E6EAF1', text: '#0E1A33', sub: B.STATUS[d.status], title: d.name })}</div></div>\n       ${d.status === 'na' ? '<p class=\"warn-line\">이 영역의 검사를 수행하지 않았거나 신호가 부족해 측정되지 않았어요.</p>'\n         : `<div class=\"confbar\"><span>측정 신뢰도</span><span class=\"cb\"><i style=\"width:${Math.round(d.confidence * 100)}%\"></i></span><b>${Math.round(d.confidence * 100)}%</b>${d.tentative ? '<span class=\"st st-watch\">잠정</span>' : ''}</div>${(d.notes || []).map(n => `<p class=\"qnote\">${esc(n)}</p>`).join('')}`}\n-      ${indicatorTable(list, b.info[k], C)}${body}</section>`;\n+      ${kpiTiles(list)}${body}\n+      <details class=\"method dtl\" open><summary>상세 지표 · 참고 범위 · 근거</summary>${indicatorTable(list, b.info[k], C)}</details></section>`;\n   }\n \n   /* 최근 2주 자기보고(PHQ) — 진단명 없이 부담 수준과 측정 영역 대조만 보여 준다 */\n@@ -290,7 +439,8 @@\n     const sid = 'NL-' + (r.measuredAt || '').replace(/[^0-9]/g, '').slice(2, 14);\n     const ph = r.phaseTimes || {}, pk = Object.keys(ph).filter(k => finite(ph[k].start) && finite(ph[k].end));\n     const mins = pk.length ? Math.round((Math.max(...pk.map(k => ph[k].end)) - Math.min(...pk.map(k => ph[k].start))) / 6000) / 10 : null;\n-    const source = b.sim && !Object.values(b.steps).some(s => s.status === 'input')\n+    const isSim = b.sim && !Object.values(b.steps).some(s => s.status === 'input');\n+    const source = isSim\n       ? `<span class=\"badge demo\">시뮬레이션 피험자 · ${esc(b.sim.label)} — 실제 측정이 아닙니다</span>`\n       : r.demo ? '<span class=\"badge demo\">데모 — 시선은 마우스, 생리 신호는 시뮬레이션</span>'\n         : `<span class=\"badge live\">실측 · 얼굴 인식 ${r.quality.faceCoverage}%</span>`;\n@@ -299,51 +449,70 @@\n     const mods = ['alert', 'oculo', 'sustain', 'core'].map(m => `<span class=\"mchip m-${moduleStatus(b, m).split('+')[0]}\">${esc(B.MODULES[m].title)} · ${esc(statusLabel(moduleStatus(b, m)))}</span>`).join('');\n     const activePaths = I.pathways.map(p => p.key);\n     const chips = [I.primary && `<span class=\"chip pri\">1순위 · ${esc(B.DOMAINS[I.primary].name)}</span>`, I.secondary && `<span class=\"chip sec\">2순위 · ${esc(B.DOMAINS[I.secondary].name)}</span>`].filter(Boolean).join('');\n+    const idx = overallIndex(b), qc = b.qc || { grade: '—', confidence: 0 };\n+    const hist = ctx.history || [];\n+    const prev = hist.find(x => x.scores && !x.demo === !r.demo) || null;\n+    const safety = b.care.find(t => t.domain === 'safety');\n \n     let h = `\n-    <div class=\"card rpt-head\">\n-      <div class=\"rh-top\"><div><div class=\"kicker\">NeuroLens Lab · Integrated Self-Regulation Assessment</div>\n-        <h1 class=\"rh-t\">통합 자기조절 평가 리포트</h1>\n-        <p class=\"muted\" style=\"margin:0\">각성 · 주의 통제 · 정서 주의 · 자율신경 조절을 하나의 모델로 통합해 해석합니다${C.cite(['posner', 'thayerLane'])}</p></div>${source}</div>\n-      <dl class=\"meta\">\n-        <div><dt>측정 일시</dt><dd>${when ? esc(when.toLocaleString('ko-KR')) : '—'}</dd></div>\n-        <div><dt>세션 ID</dt><dd>${esc(sid)}</dd></div>\n-        <div><dt>측정 시간</dt><dd>${mins === null ? '—' : mins + '분'} · ${r.mode === 'quick' ? '빠른 측정' : '표준 측정'}</dd></div>\n-        <div><dt>시선 보정</dt><dd>${esc(calText)}</dd></div>\n-      </dl>\n-      <div class=\"mchips\">${mods}</div>\n-    </div>\n-\n-    <div class=\"card sum\">\n-      <div class=\"kicker\">종합 소견 · Integrated Interpretation</div>\n-      <div class=\"sum-grid\">\n-        <div>\n-          <div class=\"ptype\">${esc(I.title)}</div>\n-          <div class=\"chips\">${chips}</div>\n-          <p class=\"lead\" style=\"margin:10px 0 16px\">${esc(I.lead)}${I.code === 'alert' ? C.cite(['limDinges']) : ''}</p>\n-          ${domainBars(b.domains)}\n-        </div>\n-        <div><div class=\"group-t\" style=\"margin-top:0\">통합 모델 — 활성 연결 강조</div>${frameworkSvg(b.domains, activePaths)}</div>\n+    <nav class=\"rnav no-print\" aria-label=\"리포트 목차\"><a href=\"#r-top\">요약</a><a href=\"#r-ai\">AI 총평</a><a href=\"#r-dash\">대시보드</a>${B.DOMAIN_KEYS.map(k => `<a href=\"#dom-${k}\">${esc(B.DOMAINS[k].name)}</a>`).join('')}<a href=\"#r-care\">케어</a><a href=\"#r-qc\">품질·방법</a></nav>\n+\n+    <section class=\"rhero\" id=\"r-top\">\n+      <div class=\"rhero-top\"><div><div class=\"kicker\">NeuroLens Lab · Integrated Self-Regulation Report</div>\n+        <h1>통합 자기조절 리포트</h1>\n+        <p class=\"rhero-sub\">각성 · 주의 통제 · 정서 주의 · 자율신경 조절을 하나의 모델로 통합해 해석합니다${C.cite(['posner', 'thayerLane'])}</p></div>${source}</div>\n+      <div class=\"rhero-main\">\n+        <div class=\"rhero-gauge\">${ring(idx, { size: 168, stroke: 14, color: idx === null ? '#8A93A8' : idx >= 70 ? '#4FD1A1' : idx >= 40 ? '#F2B544' : '#F27C98', sub: '종합 지수', title: '종합 지수' })}\n+          <div class=\"rhero-qc\"><span>측정 신뢰도</span><b>${esc(qc.grade)}</b><em>${Math.round((qc.confidence || 0) * 100)}%</em></div></div>\n+        <div class=\"rhero-type\"><span class=\"rhero-k\">통합 유형</span><div class=\"rhero-t\">${esc(I.title)}</div><div class=\"chips\">${chips}</div>\n+          <p>${esc(I.lead)}${I.code === 'alert' ? C.cite(['limDinges']) : ''}</p></div>\n+      </div>\n+      <div class=\"rdoms\">${B.DOMAIN_KEYS.map(k => { const d = b.domains[k]; return `<a class=\"rdom\" href=\"#dom-${k}\"><div class=\"rdom-h\"><span class=\"dic\" style=\"color:${DCOLOR[k]};background:rgba(255,255,255,.1)\">${icon(k, '#fff')}</span><span>${esc(d.name)}<small>${esc(d.en)}</small></span></div>\n+        <div class=\"rdom-b\">${ring(d.score, { size: 74, stroke: 7, color: d.status === 'na' ? '#8A93A8' : DCOLOR[k], title: d.name })}<div><span class=\"st st-${d.status}\">${B.STATUS[d.status]}</span>${d.tentative ? '<span class=\"st st-watch\" style=\"margin-left:4px\">잠정</span>' : ''}<div class=\"rdom-c\"><span>신뢰도</span><i><b style=\"width:${Math.round((d.confidence || 0) * 100)}%\"></b></i></div></div></div></a>`; }).join('')}</div>\n+      <dl class=\"rmeta\"><div><dt>측정 일시</dt><dd>${when ? esc(when.toLocaleString('ko-KR')) : '—'}</dd></div><div><dt>세션 ID</dt><dd>${esc(sid)}</dd></div><div><dt>측정 시간</dt><dd>${mins === null ? '—' : mins + '분'} · ${r.mode === 'quick' ? '빠른 측정' : '표준 측정'}</dd></div><div><dt>시선 보정</dt><dd>${esc(calText)}</dd></div></dl>\n+    </section>\n+\n+    <section class=\"card ai\" id=\"r-ai\">\n+      <div class=\"ai-h\"><span class=\"ai-ico\" aria-hidden=\"true\">✦</span><div><div class=\"kicker\">AI Summary · 종합 총평</div><h2>한눈에 보는 나의 자기조절 상태</h2></div><span class=\"ai-badge\" id=\"aiModel\">AI 해설</span></div>\n+      ${safety ? '<div class=\"ai-safe\"><b>먼저 확인해 주세요</b> 최근 2주 기분 부담이 높게 보고됐어요. 아래 해설보다 먼저 전문가와 이야기해 보기를 권합니다 · 정신건강 위기상담 109 (24시간)</div>' : ''}\n+      <div class=\"ai-body\" id=\"aiBody\"><div class=\"sk\"></div><div class=\"sk\"></div><div class=\"sk\"></div><div class=\"sk s2\"></div></div>\n+      <div class=\"ai-f\"><span>측정 수치만으로 AI가 작성한 참고용 해설이며 의학적 진단이 아닙니다 · 카메라 영상과 최근 2주 기분 응답은 보내지 않았어요</span><button class=\"sbtn no-print\" id=\"aiRetry\" type=\"button\">다시 생성</button></div>\n+    </section>\n+\n+    <section id=\"r-dash\">\n+      <div class=\"dgrid\">\n+        <div class=\"card dcard wide\"><div class=\"dcard-h\"><h3>영역 프로필</h3><span class=\"muted small\">0–100 · 높을수록 좋음</span></div>\n+          <div class=\"split\"><div>${radarSvg(b.domains, prev ? prev.scores : null)}</div><div class=\"dlist\">${domainList(b)}</div></div></div>\n+        <div class=\"card dcard wide\"><div class=\"dcard-h\"><h3>통합 모델 · 활성 연결</h3><span class=\"muted small\">보라 실선 = 이번에 나타난 연결</span></div>\n+          <div class=\"split\"><div>${frameworkSvg(b.domains, activePaths)}</div><div>\n+          ${I.pathways.length ? I.pathways.map(p => `<div class=\"path\"><b>${esc(p.title)}</b><p>${esc(p.text)}${C.cite(p.refs)}</p></div>`).join('')\n+            : I.code !== 'insufficient' ? '<p class=\"muted small\">두 영역 이상이 함께 저하된 이론적 연결 패턴은 나타나지 않았어요. 저하된 영역이 있다면 그 영역만의 문제로 보고 해당 케어에 집중하면 돼요.</p>' : '<p class=\"muted small\">측정된 영역이 부족해 연결을 해석하지 않았어요.</p>'}</div></div></div>\n+        <div class=\"card dcard wide\"><div class=\"dcard-h\"><h3>지표 지도</h3><span class=\"muted small\">판정 지표 ${b.indicators.length}개 · 영역별</span></div>${indicatorMap(b)}</div>\n+        <div class=\"card dcard\"><div class=\"dcard-h\"><h3>느끼는 나 vs 측정된 나</h3><span class=\"muted small\">같은 0–100 척도</span></div>${selfVsMeasured(r)}\n+          <div class=\"feel\">기",
+          "patchTruncated": true,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37194968372"
+      }
     },
     {
       "sha": "e4af722305951d982577bef3f1eaa48851d26d8a",
@@ -3995,9 +4257,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:20:30.788917+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
     {
       "sha": "2e974f5cf7a5ce32f6d2e0ccae9c7c9b21c7eac3",
@@ -7918,7 +8183,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "e99239f5ad604d2d439cb2a45dda86590776a862"
+    "sourceHead": "18fa8984d145082f1c2ce8c3d1e7cfac985adddc"
   },
-  "updatedAt": "2026-10-04T10:19:10.741548+00:00"
+  "updatedAt": "2026-10-04T10:21:02.103040+00:00"
 }
