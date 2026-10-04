@@ -1,0 +1,39 @@
+name: Dataset evolution ledger
+on:
+  push:
+    branches: [main]
+    paths-ignore: [dataset-evolution-log.json]
+  deployment_status:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+    inputs:
+      retry_failed:
+        description: Retry deferred Gemini analysis, including entries with five failed attempts
+        type: boolean
+        default: false
+permissions:
+  contents: write
+  statuses: read
+  deployments: read
+  id-token: write
+concurrency:
+  group: dataset-evolution-main
+  cancel-in-progress: false
+jobs:
+  accumulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect commits, deployment states and Gemini follow-up prompts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RETRY_FAILED: ${{ inputs.retry_failed || 'false' }}
+        run: python tools/dataset_evolution_sync.py --publish --ai-limit 3

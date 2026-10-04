@@ -3,6 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright');
 const root=__dirname,sessionId=randomUUID(),otherId=randomUUID(),version='dataset-improvement-1';
 const rows=[sessionId,otherId].map((id,i)=>({id,code:'NLR-WORKFLOW-'+i,created_at:'2026-10-04T12:00:00Z',meta:{versions:{core:'fixture-1'}},audit:null,annotations:[]}));
+const codeSha='d'.repeat(40),codeTask='evo-'+codeSha.slice(0,12)+'-pulse';
+const evolution={schema:'dataset-evolution-1',updatedAt:'2026-10-04T12:00:00Z',entries:[{sha:codeSha,subject:'Improve pulse filtering',committedAt:'2026-10-04T12:00:00Z',url:'https://github.com/jeebs0627/neurolens/commit/'+codeSha,files:[{path:'newbiz-core.js',additions:4,deletions:2}],domains:['pulse'],analysisState:'pending',linkedTaskIds:[],tasks:[{id:codeTask,domain:'pulse',title:'저조도 활용량·오차 검증',rationale:'필터 변경 관측',validationPlan:'기준 센서 동시 측정',prompt:'구현과 검증을 수행하라. Dataset-Task: '+codeTask,generator:'rule'}],deploymentEvents:[{key:'check-1',type:'commit-status',context:'Vercel',state:'success',at:'2026-10-04T12:00:00Z'},{key:'deploy-1',type:'deployment',environment:'Preview',production:false,state:'success',at:'2026-10-04T12:01:00Z'}]}]};
 let aiCalls=0,failPrompt=true,failSummary=true,slowPrompt=false;
 const auth=`window.NLAuth={getUser:async()=>({id:'reviewer'}),signOut:async()=>{},client:{auth:{getSession:async()=>({data:{session:{access_token:'fixture.jwt.token'}}})},rpc:async(fn,args={})=>{const r=await fetch('/test-rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)});return {data:await r.json()}}}};`;
 const server=http.createServer(async(req,res)=>{
@@ -39,7 +41,8 @@ const server=http.createServer(async(req,res)=>{
     context.setDefaultTimeout(12000);page.on('pageerror',e=>errors.push(e.message));
     await context.route('**/supabase.min.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
     await context.route('**/auth.js',r=>r.fulfill({contentType:'text/javascript',body:auth}));
-    await page.goto('http://127.0.0.1:'+server.address().port+'/dataset.html');
+    await context.route('**/dataset-evolution-log.json',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(evolution)}));
+    await page.goto('http://127.0.0.1:'+server.address().port+'/dataset.html#measurements');
     await page.locator(`[data-session="${sessionId}"]`).click();
     await page.locator('#memoTitle').fill('안경 반사 <img src=x onerror=alert(1)>');await page.locator('#memoTarget').selectOption('pursuit');
     await page.locator('#memoText').fill('저조도에서 시선이 튀었음. 부분 신호도 활용하고 싶음.');await page.locator('#memoMetrics').fill('시선 유효 구간 / 기준 장비 오차');await page.locator('#memoValidation').fill('같은 기기에서 안경 착용 전후 재측정');
@@ -59,7 +62,7 @@ const server=http.createServer(async(req,res)=>{
     await page.waitForFunction(()=>document.querySelector('#message').textContent.includes('근거를 입력'));assert.equal(rows[0].annotations.filter(n=>n.body.event==='review').length,0);
     await review.locator('[name=evidence]').fill('fixture synthetic-test-01; 인간 대상 미검증');await review.locator('[name=followup]').fill('실측 NLR-NEXT 재검사');await review.locator('button').click();
     await page.waitForFunction(()=>document.querySelector('.action-summary').textContent.includes('synthetic-test-01'));
-    await page.locator('#loadWorkflowLedger').click();await page.waitForFunction(()=>document.querySelector('#workflowLedger').textContent.includes('v1 → v2'));
+    await page.locator('[data-view=work]').click();await page.locator('#loadWorkflowLedger').click();await page.waitForFunction(()=>document.querySelector('#workflowLedger').textContent.includes('v1 → v2'));
     assert.ok((await page.locator('#workflowLedger').innerText()).includes('NLR-NEXT'));
     await page.reload();await page.locator(`[data-session="${sessionId}"]`).click();await page.locator('.action-summary').waitFor();assert.ok((await page.locator('.action-summary').innerText()).includes('synthetic-test-01'));
     const downloadPromise=page.waitForEvent('download');await page.locator('#exportOne').click();const download=await downloadPromise;
@@ -68,6 +71,13 @@ const server=http.createServer(async(req,res)=>{
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(process.env.TEMP,'dataset-workflow-mobile.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     slowPrompt=true;await page.locator('[data-prompt]').click();await page.locator(`[data-session="${otherId}"]`).click();await page.locator('#memoForm').waitFor();await page.waitForFunction(()=>document.querySelector('#message').textContent.includes('프롬프트를 저장'));
     assert.equal(rows[1].annotations.length,0);assert.ok((await page.locator('#detail').innerText()).includes('NLR-WORKFLOW-1'));assert.equal(await page.locator('.improvement-case').count(),0);
+    await page.locator('[data-view=work]').click();await page.locator('#taskSource').selectOption('code');await page.locator('[data-link-session]').selectOption(otherId);await page.locator('[data-promote]').click();await page.locator('[data-copy]').waitFor();
+    const linkedMemo=rows[1].annotations.find(n=>n.body.event==='memo');assert.equal(linkedMemo.body.releaseTaskId,codeTask);assert.equal(linkedMemo.body.releaseSha,codeSha);assert.ok(linkedMemo.body.codePrompt.includes(codeTask));
+    await page.locator('[data-view=work]').click();await page.locator('[data-link-session]').selectOption(otherId);await page.locator('[data-promote]').click();await page.locator('[data-copy]').waitFor();assert.equal(rows[1].annotations.filter(n=>n.body.event==='memo').length,1);
+    await page.locator('[data-view=releases]').click();assert.ok((await page.locator('#releaseTimeline').innerText()).includes('배포 · Preview: 성공'));assert.ok(!(await page.locator('#releaseTimeline').innerText()).includes('운영 배포'));
+    await page.locator('[data-view=validation]').click();assert.ok((await page.locator('#accumulationMetrics').innerText()).includes('실측·코드 직접 연결 1'));
+    await page.locator('[data-view=work]').click();await page.locator('#taskSource').selectOption('');await page.setViewportSize({width:1360,height:950});await page.screenshot({path:path.join(process.env.TEMP,'dataset-workspace-desktop.png'),fullPage:true});await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(process.env.TEMP,'dataset-workspace-mobile.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    await page.locator('[data-view=measurements]').click();
     const callsBefore=aiCalls;
     await page.locator('#import').setInputFiles({name:'local.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({summary:{},annotations:rows[0].annotations}))});await page.locator('[data-session]').click();assert.equal(await page.locator('[data-prompt]').isDisabled(),true);assert.equal(await page.locator('[data-summary]').isDisabled(),true);assert.equal(aiCalls,callsBefore);
     assert.deepEqual(errors,[]);console.log('PASS memo → prompt → result → summary → verified review; provider failure recovery, durable links, export, session switching, local-only guard, XSS and mobile layout');

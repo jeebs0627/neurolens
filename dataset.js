@@ -20,6 +20,7 @@
   });}
   function effectiveAudit(row){const ref=[...(row.annotations||[])].reverse().find(n=>n.kind==='reference')?.body?.comparison||row.reference_review;return row.audit?{...row.audit,reference:ref||row.audit.reference}:null;}
   function render(){
+    NLDatasetWorkspace.update({rows,allowed,source});
     if(ledgerLoaded)NLDatasetWorkflow.ledger($('workflowLedger'),rows,r=>select(r).catch(e=>tell(e.message,true)));
     else $('workflowLedger').textContent='집계를 누르면 현재 불러온 검사들의 개선 이력을 조회합니다.';
     const visible=filtered(),audits=visible.map(effectiveAudit).filter(Boolean),c=D.cohort(audits);
@@ -40,6 +41,7 @@
     try{const next=await rpc('dataset_list',{p_before:more?cursor?.created_at:null,p_before_id:more?cursor?.id:null,p_limit:50});
       if(!Array.isArray(next))throw Error('서버 응답 형식을 확인하세요.');
       rows=more?[...rows,...next.filter(r=>!rows.some(v=>v.id===r.id))]:next;rows.forEach(r=>r.local=false);cursor=next.at(-1)||cursor;source='server';selected=null;ledgerLoaded=false;$('detail').hidden=true;$('more').hidden=next.length<50;versions();render();tell('연구 기록을 불러왔습니다. 자동 기록은 검토 전 관측 근거입니다.');
+      await loadLedger();
     }finally{loading=false;}
   }
   async function access(){
@@ -61,6 +63,7 @@
   }
   async function select(row){
     if(!row)return;selected=row;
+    NLDatasetWorkspace.activate('measurements');
     if(!row.local){const detail=await rpc('dataset_detail',{p_session:row.id});if(selected!==row)return;row.annotations=detail.annotations||[];}
     renderDetail();$('detail').scrollIntoView({behavior:'smooth',block:'start'});
   }
@@ -123,7 +126,8 @@
   $('testFilter').insertAdjacentHTML('beforeend',Object.entries(D.LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
   ['testFilter','outcomeFilter','versionFilter','search'].forEach(id=>$(id).oninput=render);
   $('refresh').onclick=e=>runButton(e.currentTarget,()=>load());$('more').onclick=e=>runButton(e.currentTarget,()=>load(true));
-  $('loadWorkflowLedger').onclick=e=>runButton(e.currentTarget,async()=>{const snapshot=rows;for(let i=0;i<snapshot.length;i+=4){await Promise.all(snapshot.slice(i,i+4).map(async row=>{if(!row.local){const detail=await rpc('dataset_detail',{p_session:row.id});row.annotations=detail.annotations||[];}}));}if(rows===snapshot){ledgerLoaded=true;render();tell('불러온 검사 범위의 개선 이력을 집계했습니다.');}});
+  async function loadLedger(){const snapshot=rows;for(let i=0;i<snapshot.length;i+=4){await Promise.all(snapshot.slice(i,i+4).map(async row=>{if(!row.local){const detail=await rpc('dataset_detail',{p_session:row.id});row.annotations=detail.annotations||[];}}));}if(rows===snapshot){ledgerLoaded=true;render();}}
+  $('loadWorkflowLedger').onclick=e=>runButton(e.currentTarget,async()=>{await loadLedger();tell('불러온 검사 범위의 개선 이력을 집계했습니다.');});
   $('export').onclick=e=>runButton(e.currentTarget,async()=>{const current=filtered();for(const row of current)if(!row.local){const detail=await rpc('dataset_detail',{p_session:row.id});row.annotations=detail.annotations||[];}download({schema:D.VERSION,exportedAt:new Date().toISOString(),scope:'loaded-records',records:current.map(exportRow)},'condition-dataset.json');});
   $('import').onchange=async e=>{try{const files=Array.from(e.target.files);if(files.reduce((s,f)=>s+f.size,0)>100e6)throw Error('가져올 파일의 합계는 100MB 이하로 준비하세요.');const loaded=[];for(const file of files){const v=JSON.parse(await file.text());for(const r of v.records||[v])loaded.push(normalize(r,loaded.length));}rows=loaded;source='local';selected=null;$('detail').hidden=true;$('more').hidden=true;versions();render();tell('로컬 연구 기록을 불러왔습니다. 저장할 검토 이력은 내보내기를 사용하세요.');}catch(err){tell(err.message,true);}finally{e.target.value='';}};
   $('loginForm').onsubmit=e=>{e.preventDefault();runButton(e.submitter,async()=>{await NLAuth.signIn($('email').value,$('password').value);$('password').value='';await access();});};
@@ -131,5 +135,14 @@
   $('retryLocal').onclick=e=>runButton(e.currentTarget,async()=>{await NLResearchStore.flush();await local();tell('전송을 재시도했습니다. 각 기록의 상태를 확인하세요.');});
   window.addEventListener('nl-research-change',local);window.addEventListener('online',()=>NLResearchStore.flush().then(local).catch(e=>tell(e.message,true)));
   fetch('dataset-engine-log.json').then(r=>{if(!r.ok)throw Error('log unavailable');return r.json();}).then(log=>{$('engineLog').innerHTML=log.entries.map(e=>`<h3>${esc(e.date)} · ${esc(e.version)}</h3><p><b>${esc(e.status)}</b> · ${esc(e.change)}</p><p class="muted">${esc(e.evidence)}</p><p>후속: ${esc(e.next)}</p>`).join('');}).catch(()=>{$('engineLog').textContent='개발 이력을 불러오지 못했습니다.';});
+  NLDatasetWorkspace.init({tell,select:r=>select(r).catch(e=>tell(e.message,true)),promote:async(row,task)=>{
+    const existing=(row.annotations||[]).find(n=>n.body?.workflow===NLDatasetWorkflow.VERSION&&n.body.event==='memo'&&(task.type==='code'?n.body.releaseTaskId===task.id:n.body.sourceActionKey===task.action?.key));
+    const target={pulse:'baseline',gaze:'pursuit',measurement:'session',research:'research'}[task.domain]||'session';
+    const memo=existing||await annotate(row,'action',{workflow:NLDatasetWorkflow.VERSION,event:'memo',title:task.title,target,note:task.rationale,metrics:task.metrics||task.validationPlan,validationPlan:task.validationPlan,
+      sourceActionKey:task.action?.key,releaseTaskId:task.type==='code'?task.id:null,releaseSha:task.entry?.sha||null,codePrompt:task.type==='code'?task.prompt:null,
+      engineVersion:row.audit?.versions||row.meta?.versions,status:'reviewing'},true);
+    await select(row);tell('실측 개선 메모에 연결했습니다. Gemini 프롬프트를 작성합니다…');
+    try{await NLDatasetWorkflow.generatePrompt(row,memo.id);tell('실측 근거와 개발 과제를 연결한 프롬프트를 저장했습니다.');}finally{render();if(selected===row)renderDetail();}
+  }});
   render();local();access();
 })();

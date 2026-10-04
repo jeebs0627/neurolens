@@ -39,7 +39,8 @@ const server=http.createServer((req,response)=>{const file=path.resolve(root,'.'
     local=await page.evaluate(()=>NLResearchStore.all());assert.ok(local[0].pk===null,JSON.stringify({status:local[0].status,error:local[0].error}));
     console.log('PASS consent exclusion, completed-attempt capture, durable retry after reload, idempotent identity, raw outbox cleanup');
     const demo=await page.evaluate(async({rec,res,consent})=>{await __condition.researchSubmit({...rec,attemptId:'demo',demo:true,researchConsent:consent},res);return (await NLResearchStore.all()).length;},{rec,res,consent});assert.equal(demo,1);
-    await page.goto(base+'/dataset.html');await page.waitForFunction(()=>document.querySelector('#loginForm').hidden===false);assert.equal(await page.locator('#sessions button').count(),0);
+    await context.route('https://raw.githubusercontent.com/**',r=>r.abort());
+    await page.goto(base+'/dataset.html#measurements');await page.waitForFunction(()=>document.querySelector('#loginForm').hidden===false);assert.equal(await page.locator('#sessions button').count(),0);
     await page.evaluate(()=>localStorage.datasetTestRole='reviewer');await page.reload();await page.locator('[data-session]').first().click();await page.locator('#noteForm').waitFor();
     await page.locator('#noteText').fill('프레임 누락 재현 · 버전 비교 후 후속 검증');await page.locator('#noteForm button').click();await page.waitForFunction(()=>document.querySelector('.notes').textContent.includes('프레임 누락 재현'));assert.equal(annotateCount,1);
     const csv='t_ms,bpm,quality\n'+Array.from({length:31},(_,i)=>`${i*1000},72,1`).join('\n');

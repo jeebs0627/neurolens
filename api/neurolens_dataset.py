@@ -146,10 +146,12 @@ def retry_delay(error, attempt):
     return delay
 
 
-def generate(context, instruction, api_key):
+def generate(context, instruction, api_key, json_output=False):
     payload = {'systemInstruction': {'parts': [{'text': SYSTEM}]},
                'contents': [{'role': 'user', 'parts': [{'text': instruction + '\n\n[연구 자료 JSON]\n' + canonical(context)}]}],
                'generationConfig': {'temperature': 0.3, 'maxOutputTokens': 8192}}
+    if json_output:
+        payload['generationConfig']['responseMimeType'] = 'application/json'
     req = urllib.request.Request(
         'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent',
         data=canonical(payload).encode('utf-8'),

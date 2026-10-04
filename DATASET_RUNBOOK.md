@@ -19,6 +19,29 @@ values ('연구관리자-auth-UUID') on conflict do nothing;
 
 ## 검사 메모 → AI 개선 프롬프트 → 조치 이력
 
+### 개발 워크스페이스와 GitHub 자동 축적
+
+페이지는 **개발 과제 / 실측 검토 / 변경·배포 이력 / 검증·축적 지표**로 구성됩니다. 로그인하면 불러온 연구 세션의 메모·조치 이력을 자동으로 조회합니다. 실측 자동 후보와 코드 변경 후속 과제에서 **실측에 연결·AI 프롬프트**를 누르면 기존 검사에 연결 메모를 만들고 Gemini가 측정 근거를 포함한 프롬프트를 생성합니다. 같은 과제를 같은 검사에 다시 연결해도 메모는 중복 생성하지 않습니다. 실패 시 메모는 남고 기존 생성 버튼으로 재시도할 수 있습니다.
+
+`.github/workflows/dataset-evolution.yml`은 main push, GitHub deployment_status 이벤트, 30분 주기(매시 17·47분), 수동 실행에 반응합니다. GitHub 스케줄은 지연될 수 있습니다. `tools/dataset_evolution_sync.py`가 main의 전체 커밋을 SHA별로 수집하고 `dataset-evolution-log.json`을 GitHub에 누적합니다. 이 로그만 바뀐 커밋은 후속 코드 과제로 재등록하지 않습니다. 기록에 실제 변화가 없으면 새 기록 커밋을 만들지 않습니다.
+
+- 코드와 배포는 별도 근거입니다. 변경 파일·증감·일부 diff, 커밋 부모, 공개 코드 출처를 보존합니다. Vercel commit status 성공은 **체크 성공**, `production_environment=true`인 실제 deployment 상태는 **운영 배포**로 구분합니다. 후속 과제에 커밋이 연결되거나 배포가 성공해도 측정 검증 완료로 바꾸지 않습니다.
+- 배포 조회 범위는 최신 12개 코드 커밋과 수신한 deployment_status 이벤트입니다. 과거 전 기간 배포를 모두 확인했다고 주장하지 않습니다. 상세 diff는 24,000자 발췌이며 생략 여부를 기록합니다. API에서 파일 목록이 페이지를 넘으면 생략 표시를 남깁니다.
+- 관련 코드 변경에는 즉시 규칙 기반 기본 검증 과제가 생깁니다. 한 실행에서 최신 미분석 커밋 최대 3개를 Gemini로 분석해 구체적인 요약·후속 과제·프롬프트로 보완합니다. 초기 이력은 순차 보완하므로 기본 프롬프트와 Gemini 작성본이 명확히 구분됩니다.
+- 실패한 Gemini 분석은 원래 과제를 유지하고 다음 실행에서 재시도합니다. 실패 간격은 최소 1시간, 커밋별 자동 시도는 5번까지입니다. GitHub Actions의 **Run workflow → retry_failed**로 대기·실패 항목을 다시 시도할 수 있습니다. 각 호출 내부의 일시 오류 재시도는 앞서 정의한 제한을 따릅니다.
+- 각 과제 ID는 `evo-<원인 커밋 앞 12자>-<영역>`입니다. 생성 프롬프트는 개발 AI에게 후속 커밋 본문에 `Dataset-Task: <ID>`를 기록하도록 지시합니다. 다음 수집에서 이 표식을 연결하되 독립 검증으로 간주하지 않습니다. 실측 메모와 직접 연결한 SHA·과제 ID는 Supabase의 기존 append-only 조치 기록에 저장합니다.
+- 공개 로그는 코드에서 나온 근거만 포함합니다. 실측값·참가 코드·개인 메모는 GitHub Actions/API에 보내지 않습니다. 원시 자료와 연구 검토 기록은 기존 Supabase 권한·철회 규칙을 그대로 따릅니다. 기존 수동 개발 기록은 별도 보존합니다.
+
+자동 분석 API는 `POST /api/dataset_evolution`입니다. 호출에는 GitHub Actions OIDC 서명이 필요하며 issuer·audience·repository ID·main 브랜치·고정 workflow 경로를 검사합니다. 입력은 커밋 SHA 한 개뿐이고 서버가 고정된 저장소의 공개 변경을 다시 조회합니다. GitHub에 Gemini 키를 새로 등록할 필요가 없습니다. 기존 Vercel **neurolens_dataset** 키로 **gemini-3.6-flash**를 사용합니다. GitHub 기본 `GITHUB_TOKEN`은 로그 파일 갱신에 사용됩니다. 추가 SQL은 없습니다.
+
+페이지는 배포본 로그를 먼저 표시한 뒤 공개 GitHub 최신 로그를 조회하므로 기록 전용 커밋의 Vercel 배포가 지연되어도 누적 기록을 읽을 수 있습니다. 열린 페이지는 2분마다 갱신하며 **GitHub 기록 새로고침**은 이미 수집된 기록을 조회합니다. Actions 실행 자체를 브라우저에서 임의로 시작하지 않습니다.
+
+자동화 검증: `py -3 tools/dataset_evolution_test.py` (requirements.txt 의존성 필요), `node dataset-workflow.browser.test.cjs`, 기존 dataset 회귀 검사. OIDC 서명·만료·저장소 경계, 중복 이벤트, 자기 기록 루프 방지, AI 장애 시 기본 과제 보존, 대형 로그 조회, 실측-과제 연결과 모바일 레이아웃을 검증합니다.
+
+자동화 근거: [GitHub OIDC](https://docs.github.com/en/actions/reference/security/oidc), [GITHUB_TOKEN 이벤트 동작](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow), [Vercel Python 의존성](https://vercel.com/docs/functions/runtimes/python).
+
+### 검사별 기록 사용법
+
 `dataset.html`에서 검사를 선택하면 **내 메모와 알고리즘 개선** 영역이 표시됩니다.
 
 1. 메모 제목, 대상 검사, 관찰한 문제, 보정 지표·기대 결과, 재검증 계획을 저장합니다.
