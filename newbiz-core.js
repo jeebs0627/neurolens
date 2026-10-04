@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.0';
+  const VERSION = 'In_mind core 1.1';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -275,7 +275,9 @@
     let last = -Infinity;
     for (let i = i0; i <= i1; i++) {
       const lo=Math.max(0,i-Math.ceil(fs*.75)), hi=Math.min(bvp.length,i+Math.ceil(fs*.75));
-      if(!bvp.subarray(lo,hi).every(finite) || sig.repaired?.subarray(lo,hi).some(Boolean))continue;
+      // 정점 위치 계산(포물선 보간)에 쓰는 i-1..i+1 이 실제 관측 표본이면 박동 시각은 정확하다. 주변 1.5초 전체에
+      // 보간 표본이 하나도 없기를 요구하면, 30fps에서 한 프레임씩 빠지는 흔한 기록에서 박동의 80%가 버려졌다(2026-10-04 실측)
+      if(!bvp.subarray(lo,hi).every(finite) || sig.repaired?.subarray(i-1,i+2).some(Boolean) || (sig.repaired && sig.repaired.subarray(lo,hi).reduce((a,b)=>a+b,0)>(hi-lo)*.25))continue;
       if (bvp[i] > bvp[i - 1] && bvp[i] >= bvp[i + 1] && bvp[i] > thr) {
         const a = bvp[i - 1], b = bvp[i], c = bvp[i + 1], den = a - 2 * b + c;
         const idx = i + (den !== 0 ? clamp(0.5 * (a - c) / den, -0.5, 0.5) : 0);
