@@ -6077,9 +6077,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:22:47.289240+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "400adf1f77422b82f45259b081a85d1f826ea042",
@@ -7091,9 +7094,12 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-04T10:22:52.118553+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "3a10c002a73447e1e7381dc810720ff015a6ad55",
@@ -8221,7 +8227,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "38688bdb0256baf2403ffc6c12ce23f5989c7c94"
+    "sourceHead": "04e4cc1a33644ccb582bfa7a08d3ec6db3820794"
   },
-  "updatedAt": "2026-10-04T10:22:22.512585+00:00"
+  "updatedAt": "2026-10-04T10:22:57.424332+00:00"
 }
