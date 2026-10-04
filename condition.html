@@ -1159,6 +1159,7 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 <script src="auth.js"></script>
 <script src="condition-signal.js"></script>
 <script src="condition-camera.js"></script>
+<script src="condition-fusion.js"></script>
 <script src="newbiz-core.js"></script>
 <script src="newbiz-battery.js"></script>
 <script src="newbiz-report.js"></script>
@@ -1487,7 +1488,7 @@ function pushFrame(fr) {
   while (S.fpsTimes.length && S.fpsTimes[0] < fr.t - 2000) S.fpsTimes.shift();
 }
 function startLoop() { S.camera.start(); }
-window.addEventListener('pagehide', () => { S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });
+window.addEventListener('pagehide', () => { S.supportWorker?.terminate(); S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });
 
 function drawOverlay() {
   const cv = $('overlay'), ctx = cv.getContext('2d');
@@ -1661,6 +1662,31 @@ function startHud() {
   }, 300);
 }
 /* 과제 진행 막대: 시간 기반(task(label, ms)) 또는 시행 기반(taskSet(i, n)) */
+function pulseSupport(key) {
+  if (S.demo || typeof Worker !== 'function') return () => {};
+  if (!S.supportWorker) {
+    try { S.supportWorker=new Worker('condition-analysis-worker.js'); }
+    catch (_) { return () => {}; }
+    S.supportWorker.onmessage=({data:m})=>{
+      S.supportBusy=false;
+      if(m.error || S.phases[m.key]?.start!==m.start)return;
+      S.phaseEvidence=S.phaseEvidence||{}; S.phaseEvidence[m.key]=m.evidence;
+      if(S.cur===m.key && !S.phases[m.key].end){
+        const sec=Math.round(m.evidence.validSeconds||0);
+        $('taskName').textContent=(m.key==='baseline'?'안정 기준선':'회복 호흡')+(sec?' · 활용 가능한 신호 '+sec+'초 확보':' · 신호를 모으고 있어요');
+      }
+    };
+    S.supportWorker.onerror=()=>{S.supportWorker?.terminate();S.supportWorker=null;S.supportBusy=false;};
+  }
+  const update=()=>{
+    const ph=S.phases[key]; if(!ph || S.supportBusy || !S.supportWorker)return;
+    const end=ph.end||now(); S.supportBusy=true; S.supportSeq=(S.supportSeq||0)+1;
+    const hidden=t=>S.hidden.some(h=>t>=h.start-500&&t<=h.end+1500)||(S.hideStart!==null&&t>=S.hideStart-500);
+    const frames=S.frames.filter(f=>f.t>=ph.start&&f.t<=end).map(f=>({t:f.t,ok:!hidden(f.t)&&f.ok,ppgOk:!hidden(f.t)&&(f.ppgOk??f.ok),r:f.r,g:f.g,b:f.b,rr:f.rr,rq:f.rq,skinQ:f.skinQ,lum:f.lum}));
+    S.supportWorker.postMessage({id:S.supportSeq,key,start:ph.start,end,frames});
+  };
+  const stop=every(4000,update); return ()=>{stop();update();};
+}
 function task(label, ms) {
   $('taskbar').hidden = false; $('taskName').textContent = label;
   const t0 = now();
@@ -1752,8 +1778,9 @@ function stepSummary(key) {
     if (key === 'calibration') return S.calib && S.calib.errPct != null ? { cls: S.calib.grade === 'good' ? '' : 'warn', text: `시선 보정 완료 · 오차 ${S.calib.errPct}%` } : { cls: 'warn', text: '시선 보정 생략 · 시선 지표 제외' };
     if (key === 'baseline') {
       const ph = S.phases.baseline, fr = S.frames.filter(f => ph && f.t >= ph.start && f.t <= ph.end);
-      const q = S.demo ? 'good' : (N.liveHr(fr, 20) || {}).quality;
-      return { cls: q === 'good' ? '' : 'warn', text: `기준선 완료 · 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함' }[q] || '부족'}` };
+      const evidence=S.phaseEvidence?.baseline;
+      const q = S.demo ? 'good' : (evidence || N.liveHr(fr, 20) || {}).quality;
+      return { cls: q === 'good' ? '' : 'warn', text: `기준선 완료 · 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함' }[q] || '부족'}${evidence?.validSeconds ? ' · '+Math.round(evidence.validSeconds)+'초 활용' : ''}` };
     }
     if (key === 'pursuit' && S.pursuit) { const n = S.pursuit.samples.length, e = S.pursuit.dur / 1000 * 25; return { cls: n / e >= 0.5 ? '' : 'warn', text: `원활 추적 완료 · 시선 표본 ${Math.min(100, Math.round(n / e * 100))}%` }; }
     if (key === 'saccade') {
@@ -1829,7 +1856,7 @@ async function runStep(key, fn) {
   }
 }
 async function runSession() {
-  Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null });
+  Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null, phaseEvidence: {} });
   Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 } });
   chooseForm(S.mode);
   S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';
@@ -2105,7 +2132,8 @@ async function phaseBaseline(sec) {
   body.innerHTML = (await calmPhoto(sec)) || calmScene();
   await wait(1500);                                   // 화면 전환 직후 1.5초는 적응 구간 (기준선에 넣지 않음)
   const stop = task('안정 기준선', sec * 1000);
-  mark('baseline', 'start'); await wait(sec * 1000); mark('baseline', 'end');
+  mark('baseline', 'start'); const support=pulseSupport('baseline');
+  await wait(sec * 1000); mark('baseline', 'end'); support();
   stop();
 }
 
@@ -2430,7 +2458,9 @@ async function phaseSart(d) {
  * 피드백은 화면 밝기를 바꾸지 않도록 글자로만 */
 async function phaseStress(sec) {
   const P = B.PROTOCOL.stress;
+  mark('preStress','start');
   await brief('stress');
+  mark('preStress','end');
   if (document.activeElement) document.activeElement.blur();
   await countdown('암산 과제가 곧 시작돼요');
   mark('stress', 'start');
@@ -2521,13 +2551,13 @@ async function phaseRecovery(sec) {
   await brief('recovery');
   await countdown('천천히 호흡을 준비하세요');
   body.innerHTML = pacerHtml('rp', { cycles: Math.round(sec * 1000 / BREATH_T) });
-  mark('recovery', 'start');
+  mark('recovery', 'start'); const support=pulseSupport('recovery');
   const stopP = startPacer('rp', now());
   S.cleanup.push(stopP);
   const stopT = task('공명 호흡', sec * 1000);
   await wait(sec * 1000);
   stopT(); stopP();
-  mark('recovery', 'end');
+  mark('recovery', 'end'); support();
 }
 
 /* ---------- 분석 · 리포트 ---------- */

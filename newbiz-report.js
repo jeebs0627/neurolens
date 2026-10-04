@@ -177,7 +177,7 @@
 
   function timelineSvg(r) {
     const ph = r.phaseTimes || {}, keys = Object.keys(ph).filter(k => finite(ph[k].start) && finite(ph[k].end));
-    const tl = r.timeline.filter(w => w.snr >= -2);
+    const tl = r.timeline.filter(w => w.usable ?? w.snr >= -2);
     if (tl.length < 5 || !keys.length) return '<p class="muted small">심박 신호가 충분하지 않아 그래프를 그리지 않았어요.</p>';
     const t0 = Math.min(...keys.map(k => ph[k].start)), t1 = Math.max(...keys.map(k => ph[k].end));
     const W = 860, H = 210, px = 40, py = 14, iw = W - px - 10, ih = H - py - 34;
@@ -292,6 +292,16 @@
   }
 
   /* NL-QC: 우리 보정 원칙과 이번 측정에 실제로 적용된 내역 */
+  function pulseEvidence(r) {
+    const phases=r.evidence?.phases;
+    if(!phases)return '';
+    const labels={baseline:'안정 기준선',stress:'압박 과제',recovery:'회복 호흡',recoveryLate:'회복 후반'};
+    const rows=Object.entries(labels).map(([k,label])=>{
+      const p=phases[k]; if(!p)return '';
+      return `<tr><td>${label}</td><td class="num">${fmt(p.bpm,1)}</td><td class="num">${fmt(p.validSeconds)}초</td><td>${p.rangeBpm ? p.rangeBpm.map(v=>fmt(v,1)).join('–')+' bpm' : '—'}</td><td>${p.bpm===null?'신호 미확보':p.status==='limited'?'제한된 신호 활용':'측정됨'}</td></tr>`;
+    }).join('');
+    return `<div class="group-t">이번 결과에 활용한 맥파</div><p class="small">잠깐 끊긴 경우에도 확인된 구간을 합쳐 활용했어요. 활용 시간은 겹치는 구간을 한 번만 셌어요. 범위는 구간 내 추정값의 10–90% 범위이며, 정확도 보증이나 의학적 정상 범위가 아닙니다.</p><div class="tbl-wrap"><table class="itbl"><thead><tr><th>단계</th><th>심박(bpm)</th><th>활용 시간</th><th>추정값 범위</th><th>측정 상태</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
   function qcSection(b, C) {
     const q = b.qc;
     if (!q) return '';
@@ -762,13 +772,14 @@
         <div class="group-t">케어 근거</div>
         <ul class="qlist">${b.care.map(t => `<li><b>${esc(t.title)}</b> — ${t.items.map(it => esc(it.text) + C.cite(it.refs)).join(' / ')}</li>`).join('')}</ul></details>
       <details class="ax"><summary>D. 측정 품질과 방법</summary>${qcSection(b, C)}
+        ${pulseEvidence(r)}
         <div class="group-t">단계별 수행 상태</div><div class="mchips">${mods}</div>
         <div class="steps" style="margin-top:6px">${Object.keys(STEP_NAMES).filter(k => b.steps[k]).map(k => `<span class="mchip m-${b.steps[k].status}">${STEP_NAMES[k]} · ${STEP_LABEL[b.steps[k].status] || esc(b.steps[k].status)}</span>`).join('') || '<span class="muted small">—</span>'}</div>
         <div class="group-t">신호 품질</div>
         <ul class="qlist">
           <li>얼굴 관측 시간 ${r.quality.faceCoverage}% · 영상은 브라우저 안에서만 처리${C.cite(['mediapipe'])}</li>
           ${r.quality.skinCoverage !== undefined ? `<li>피부 신호 활용 시간 ${r.quality.skinCoverage}% · 맥파 처리 구간 중 짧은 손실 보간 ${Math.round((r.quality.recoveredFraction || 0)*100)}%. 피부·눈 신호를 각각 활용하며, 긴 손실 구간은 결과에서 제외합니다.</li>` : ''}
-          <li>원격 심박: 이마·양 볼 다중 영역 융합, 10초 창 신호 대 잡음비로 품질 판정 — 기준선 ${{ good: '양호', fair: '보통', poor: '약함', none: '측정 안 됨' }[r.hr.baseline.quality]}${C.cite(['pos'])}</li>
+          <li>원격 심박: 이마·양 볼의 여러 색 신호 추정법을 비교하고, 6–16초 구간의 반복성·일치도·복원 비율로 활용도를 조절 — 기준선 ${{ good: '양호', fair: '보통', poor: '약함', none: '측정 안 됨' }[r.hr.baseline.quality]}${C.cite(['pos'])}</li>
           <li>시선: 9점 응시 + 추적 보정 · ${esc(calText)}${C.cite(['pfeuffer', 'casiez'])}${r.resized ? ' · 측정 중 화면 크기 변경으로 정확도 저하 가능' : ''}${C.cite(['webcamET'])}</li>
         </ul>
         <div class="group-t">해석상 한계</div>

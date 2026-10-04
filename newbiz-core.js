@@ -6,13 +6,14 @@
  * 브라우저: window.NLNewbiz · Node 테스트: module.exports */
 (function (root, factory) {
   const signal = typeof module === 'object' && module.exports ? require('./condition-signal.js') : root && root.NLSignal;
-  const api = factory(signal);
+  const fusion = typeof module === 'object' && module.exports ? require('./condition-fusion.js') : root && root.NLFusionFactory;
+  const api = factory(signal, fusion);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.NLNewbiz = api;
-})(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal) {
+})(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 0.5';
+  const VERSION = 'In_mind core 0.6';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -119,6 +120,17 @@
     return H;
   }
 
+  /* CHROM projection (de Haan & Jeanne, 2013, doi:10.1109/TBME.2013.2266196).
+   * Filtering and colour normalization are confined to each observed continuous segment. */
+  function chrom(r,g,b,fs) {
+    const mr=mean(Array.from(r)),mg=mean(Array.from(g)),mb=mean(Array.from(b));
+    if(!(mr>0&&mg>0&&mb>0))return new Float64Array(r.length);
+    const x=bandpass(Float64Array.from(r,(v,i)=>3*v/mr-2*g[i]/mg),fs);
+    const y=bandpass(Float64Array.from(r,(v,i)=>1.5*v/mr+g[i]/mg-1.5*b[i]/mb),fs);
+    const sy=std(Array.from(y)),alpha=sy>1e-12?std(Array.from(x))/sy:0;
+    return Float64Array.from(x,(v,i)=>v-alpha*y[i]);
+  }
+
   /* ---------- FFT 파워 스펙트럼 ---------- */
   function nextPow2(n) { let p = 1; while (p < n) p <<= 1; return p; }
   function powerSpectrum(x, nfft) {
@@ -183,17 +195,24 @@
     const ok = frames.filter(f => (f.ppgOk ?? f.ok) && [f.t,f.r,f.g,f.b].every(finite)).sort((a,b)=>a.t-b.t);
     if (ok.length < 40 || ok.at(-1).t-ok[0].t < 5000) return null;
     const t0=ok[0].t, length=Math.floor((ok.at(-1).t-t0)*fs/1000)+1;
-    const channel = pick => {
-      const rows=ok.map(f=>({t:f.t,v:pick(f)})).filter(p=>p.v && p.v.every(finite));
+    const channel = (pick,qualityOf) => {
+      const rows=ok.map(f=>({t:f.t,v:pick(f),q:qualityOf(f)})).filter(p=>p.v && p.v.every(finite));
       const dt=median(rows.slice(1).map((p,i)=>p.t-rows[i].t).filter(v=>v>0));
-      const bvp=new Float64Array(length).fill(NaN), repaired=new Uint8Array(length);
-      if(rows.length<40 || !(dt<=150))return {bvp,repaired};
+      const bvp=new Float64Array(length).fill(NaN), repaired=new Uint8Array(length), chromWave=new Float64Array(length).fill(NaN), greenWave=new Float64Array(length).fill(NaN), qualityTrace=new Float32Array(length), jitterTrace=new Float32Array(length);
+      if(rows.length<40 || !(dt<=150))return {bvp,repaired,chromWave,greenWave,quality:qualityTrace,jitter:jitterTrace};
       // Only isolated RGB impulses with matching neighbours are removed. Raw rows are untouched.
       const clean=rows.filter((p,i)=>{
         const a=rows[i-1],b=rows[i+1];
         if(!a||!b||b.t-a.t>150)return true;
         const near=Math.max(...a.v.map((v,k)=>Math.abs(v-b.v[k])))<2;
         return !(near && Math.max(...p.v.map((v,k)=>Math.abs(v-(a.v[k]+b.v[k])/2)))>8);
+      });
+      clean.forEach((p,i)=>{
+        const prev=clean[i-1];p.jitter=0;
+        if(prev&&p.t-prev.t<=200){
+          const ratio=(v,k)=>v[k]/Math.max(1,v[1]);
+          p.jitter=Math.max(...[0,2].map(k=>Math.abs(ratio(p.v,k)/Math.max(.01,ratio(prev.v,k))-1)));
+        }
       });
       const rgb=[0,1,2].map(()=>new Float64Array(length).fill(NaN));
       let j=0;
@@ -202,9 +221,9 @@
         while(j+1<clean.length&&clean[j+1].t<t)j++;
         const a=clean[j],b=clean[j+1];
         if(!a || t<a.t-.001)continue;
-        if(Math.abs(t-a.t)<.001){for(let k=0;k<3;k++)rgb[k][i]=a.v[k];continue;}
+        if(Math.abs(t-a.t)<.001){for(let k=0;k<3;k++)rgb[k][i]=a.v[k];qualityTrace[i]=a.q;jitterTrace[i]=a.jitter;continue;}
         if(!b||b.t-a.t>200||b.t<=a.t)continue;
-        const q=(t-a.t)/(b.t-a.t);
+        const q=(t-a.t)/(b.t-a.t);qualityTrace[i]=a.q+(b.q-a.q)*q;jitterTrace[i]=a.jitter+(b.jitter-a.jitter)*q;
         for(let k=0;k<3;k++)rgb[k][i]=a.v[k]+(b.v[k]-a.v[k])*q;
         if(b.t-a.t>dt*1.6)repaired[i]=1;
       }
@@ -212,51 +231,30 @@
       for(let a=0;a<length;){
         while(a<length&&!finite(rgb[0][a]))a++;
         let b=a;while(b<length&&finite(rgb[0][b]))b++;
-        if(b-a>=fs*5){const wave=bandpass(pos(...rgb.map(x=>x.subarray(a,b)),fs),fs);bvp.set(wave,a);}
+        if(b-a>=fs*5){const colors=rgb.map(x=>x.subarray(a,b));bvp.set(bandpass(pos(...colors,fs),fs),a);chromWave.set(chrom(...colors,fs),a);greenWave.set(bandpass(colors[1],fs),a);}
         a=b+1;
       }
-      return {bvp,repaired};
+      return {bvp,repaired,chromWave,greenWave,quality:qualityTrace,jitter:jitterTrace};
     };
-    const aggregate=channel(f=>[f.r,f.g,f.b]);
-    const regions=[0,1,2].map(k=>channel(f=>f.rr?.[k]));
+    const aggregate=channel(f=>[f.r,f.g,f.b],f=>f.skinQ??1);
+    const regions=[0,1,2].map(k=>channel(f=>f.rr?.[k],f=>f.rq?.[k]??1));
+    const candidates=[aggregate,...regions].flatMap((c,i)=>['pos','chrom','green'].map(method=>({roi:['aggregate','forehead','right-cheek','left-cheek'][i],method,wave:method==='pos'?c.bvp:method==='chrom'?c.chromWave:c.greenWave,repairs:c.repaired,quality:c.quality,jitter:c.jitter})));
     const usable=regions.filter(c=>c.bvp.some(finite));
     const observed=aggregate.bvp.reduce((n,v)=>n+(finite(v)?1:0),0);
-    return {t0,fs,bvp:aggregate.bvp,chans:usable.map(c=>c.bvp),repaired:aggregate.repaired,
+    return {t0,fs,candidates,bvp:aggregate.bvp,chans:usable.map(c=>c.bvp),repaired:aggregate.repaired,
       channelRepairs:usable.map(c=>c.repaired),coverage:Signal.timeCoverage(ok,frames[0]?.t??t0,frames.at(-1)?.t??ok.at(-1).t),
       recoveredFraction:observed?aggregate.repaired.reduce((n,v,i)=>n+(finite(aggregate.bvp[i])?v:0),0)/observed:0};
   }
 
-  /* 10초 창·1초 간격으로 심박 시계열 */
-  /* 창 단위 융합 (영역 일치 투표): 맥박은 모든 피부 영역에 같은 주파수로 나타나지만, 움직임·그림자 잡음은 영역마다 다르다.
-   * 그래서 SNR 이 가장 높은 채널이 아니라 ‘가장 많은 영역이 동의하는’ 주파수(±5bpm)를 고른다 — 순수한 사인파 같은
-   * 움직임 잡음은 SNR 이 높아 보여도 한 영역에만 있으면 진다. 전체 평균 채널은 0.5표, 영역 채널은 1표. 동점이면 SNR 합 */
-  function hrWindows(sig, winSec = 10, stepSec = 1) {
-    if (!sig) return [];
-    const { bvp, fs, t0 } = sig, wl = Math.round(winSec * fs), st = Math.round(stepSec * fs), out = [];
-    const chans = [{ x: bvp, repairs: sig.repaired, w: (sig.chans || []).length ? 0.5 : 1 }, ...(sig.chans || []).map((x,i) => ({ x, repairs: sig.channelRepairs?.[i], w: 1 }))];
-    for (let s = 0; s + wl <= bvp.length; s += st) {
-      const pks = chans.map(c => { const seg=c.x.subarray(s,s+wl); if(!seg.every(finite))return null; const recovered=c.repairs ? c.repairs.subarray(s,s+wl).reduce((a,b)=>a+b,0)/wl : 0; if(recovered>.25)return null; const p = spectralPeak(seg, fs); return p ? { ...p, recovered, w: c.w*(1-recovered) } : null; }).filter(Boolean);
-      if (!pks.length) continue;
-      let best = null;
-      pks.forEach(c => {
-        const cl = pks.filter(p => Math.abs(p.bpm - c.bpm) <= 5);
-        const score = cl.reduce((a, p) => a + p.w, 0) + 0.01 * cl.reduce((a, p) => a + clamp(p.snrDb + 10, 0, 30), 0);
-        if (!best || score > best.score) best = { score, cl };
-      });
-      const votes = best.cl.reduce((a, p) => a + p.w, 0), snr = Math.max(...best.cl.map(p => p.snrDb));
-      out.push({ t: t0 + (s + wl / 2) * 1000 / fs, bpm: median(best.cl.map(p => p.bpm)), snr: votes >= 1.5 || pks.length === 1 ? snr : snr - 1.5, n: best.cl.length, recovered: mean(best.cl.map(p=>p.recovered)) });
-    }
-    return out;
+  /* 6–16초 관측 창을 1초 간격으로 평가한다. 색 신호 추정법·피부 영역의 일치와
+   * 반복성을 함께 확인하며, 겹치는 창의 관측 시간은 Fusion.summarize에서 한 번만 센다. */
+  function hrWindows(sig, winSec = 10, stepSec = 1, opt = {}) {
+    return Fusion.windows(sig,winSec,stepSec,opt);
   }
-
-  /* 구간 대표 심박: 창 중심이 구간 안에 있는 창들의 중앙값 (품질 낮은 창은 제외, 모두 낮으면 전체 사용) */
-  function phaseHr(wins, start, end) {
-    const inside = wins.filter(w => w.t >= start && w.t <= end);
-    if (!inside.length) return { bpm: null, snr: null, quality: 'none', n: 0 };
-    const usable = inside.filter(w => w.snr >= SNR_FAIR);
-    const use = usable.length >= Math.max(2, inside.length * 0.3) ? usable : inside;
-    const snr = median(inside.map(w => w.snr));
-    return { bpm: round(median(use.map(w => w.bpm)), 1), snr: round(snr, 1), quality: quality(snr), n: inside.length, recovered: round(mean(use.map(w=>w.recovered||0)),3) };
+  function phaseHr(wins,start,end) { return Fusion.summarize(wins,start,end); }
+  function measureEvidence(frames,start,end) {
+    const selected=frames.filter(f=>f.t>=start&&f.t<=end),sig=buildBvp(selected);
+    return phaseHr(hrWindows(sig,10,1,{start,end,jumps:lumJumps(selected)}),start,end);
   }
 
   /* ---------- 박동 검출 → 박동 간격(IBI) ---------- */
@@ -266,6 +264,8 @@
     const i0 = Math.max(1, Math.floor((start - t0) * fs / 1000)), i1 = Math.min(bvp.length - 2, Math.ceil((end - t0) * fs / 1000));
     const minGap = 0.6 * 60 / hrBpm * fs;
     const seg = Array.from(bvp.subarray(i0, i1 + 1)).filter(finite);
+    // A rescued chrominance HR does not turn numerical noise in the POS waveform into beats.
+    if(seg.length<fs*4 || std(seg)<1e-9)return [];
     const thr = quantile(seg, 0.5);
     const out = [];
     let last = -Infinity;
@@ -699,19 +699,28 @@
     const sig = buildBvp(rec.frames);
     const jumps = lumJumps(rec.frames);
     /* 10초 창이 조명 급변 시각을 포함하면 그 창은 버린다 */
-    const wins = hrWindows(sig).filter(w => !jumps.some(j => Math.abs(w.t - j) < 5500));
+    const wins = hrWindows(sig,10,1,{jumps});
+    const phaseCache=new Map();
+    const phaseWindows=(start,end)=>{
+      if(!finite(start)||!finite(end)||end<=start)return [];
+      const key=start+':'+end;if(!phaseCache.has(key))phaseCache.set(key,hrWindows(sig,10,1,{start,end,jumps}));
+      return phaseCache.get(key);
+    };
+    const summarizePhase=(start,end)=>phaseHr(phaseWindows(start,end),start,end);
     const ph = rec.phases;
     const span = n => ph[n] ? [ph[n].start, ph[n].end] : [NaN, NaN];
     const hr = {};
-    ['baseline', 'neu', 'neg', 'pos', 'recovery'].forEach(n => { hr[n] = phaseHr(wins, ...span(n)); });
+    ['baseline', 'neu', 'neg', 'pos', 'recovery'].forEach(n => { hr[n] = summarizePhase(...span(n)); });
     /* 압박: 심박은 과제 시작 후 수 초에 걸쳐 오르므로 첫 8초를 빼고 잰다 */
     const [ss, se] = span('stress');
-    hr.stress = phaseHr(wins, se - ss > 20000 ? ss + 8000 : ss, se);
+    hr.stress = summarizePhase(se - ss > 20000 ? ss + 8000 : ss, se);
     /* 과제 직전 안정 구간(안내 읽기·카운트다운, 시작 3~25초 전): 기준선이 약하거나 오래전이면 이쪽을 비교 기준으로 */
-    hr.pre = phaseHr(wins, ss - 25000, ss - 3000);
+    hr.pre = ph.preStress ? summarizePhase(Math.max(ph.preStress.start,ph.preStress.end-25000),ph.preStress.end)
+      : rec.capture ? phaseHr([],NaN,NaN) : summarizePhase(ss - 25000, ss - 3000);
+    hr.pre.context=ph.preStress?'pre-task-instructions':'legacy-pre-task';
     /* 회복: 회복 구간 후반 절반 심박 */
     const [rs, re] = span('recovery');
-    hr.recoveryLate = phaseHr(wins, (rs + re) / 2, re);
+    hr.recoveryLate = summarizePhase((rs + re) / 2, re);
 
     const usableHr = q => q && q.bpm !== null && q.quality !== 'poor' && q.quality !== 'none';
     const QR = { good: 2, fair: 1, poor: 0, none: -1 };
@@ -727,7 +736,7 @@
      * 반응이 큰 경우에는 고전적 정의(정점 대비 되돌아온 비율)와 같다 */
     let recovery = null, recoveryResid = null, recoverySrc = null;
     const lateHr = usableHr(hr.recoveryLate) ? (recoverySrc = 'late', hr.recoveryLate) : usableHr(hr.recovery) ? (recoverySrc = 'whole', hr.recovery) : null;
-    const stressWins = wins.filter(w => w.t >= (se - ss > 20000 ? ss + 8000 : ss) && w.t <= se && w.snr >= SNR_FAIR);
+    const stressWins = phaseWindows(se - ss > 20000 ? ss + 8000 : ss,se).filter(w=>w.usable);
     const peak = stressWins.length >= 2 ? quantile(stressWins.map(w => w.bpm), 0.75) : usableHr(hr.stress) ? hr.stress.bpm : null;
     hr.stressPeak = finite(peak) ? round(peak, 1) : null;
     if (ref && lateHr) {
@@ -780,7 +789,8 @@
       blink, motion, expr, exprNeg,
       profile: { code, ...PROFILES[code], biasHigh, bodyHigh },
       care: CARE[code], mismatch,
-      timeline: wins.map(w => ({ t: Math.round(w.t), bpm: round(w.bpm, 1), snr: round(w.snr, 1) })),
+      timeline: wins.map(w => ({ t: Math.round(w.t), start: w.start, end: w.end, bpm: round(w.bpm, 1), snr: round(w.snr, 1), confidence:w.confidence, usable:w.usable, status:w.status, methods:w.methods, regions:w.regions, recovered:w.recovered, spreadBpm:w.spread, reason:w.reason })),
+      evidence: {version:Fusion.VERSION, phases:Object.fromEntries(Object.entries(hr).filter(([,v])=>v&&typeof v==='object')), windows:wins},
     };
   }
 
@@ -791,8 +801,8 @@
     const recent = frames.filter(f => f.t >= end - winSec * 1000);
     const sig = buildBvp(recent);
     if (!sig) return null;
-    const pk = hrWindows(sig,8,1).at(-1);
-    return pk && end-pk.t<5000 ? { bpm: round(pk.bpm, 0), snr: round(pk.snr, 1), quality: quality(pk.snr) } : null;
+    const pk = hrWindows(sig,8,1).filter(w=>w.usable).at(-1);
+    return pk && end-pk.t<5000 ? { bpm: round(pk.bpm, 0), snr: round(pk.snr, 1), quality: pk.quality, confidence:pk.confidence, validSeconds:pk.windowSec, status:pk.status } : null;
   }
 
   /* ---------- 시뮬레이션 (카메라 없는 데모·테스트용) ----------
@@ -826,11 +836,13 @@
     return out;
   }
 
-  return {
-    VERSION, THRESH, LM, PROFILES, CARE, Signal,
+  const api = {
+    VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
-    buildBvp, hrWindows, phaseHr, beats, ibis, rmssd, breathingCoupling,
+    buildBvp, hrWindows, phaseHr, measureEvidence, beats, ibis, rmssd, breathingCoupling,
     faceFeatures, fitGaze, predictGaze, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, synthFrames,
   };
+  const Fusion = createFusion(api); api.Fusion = Fusion;
+  return api;
 });

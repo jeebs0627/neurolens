@@ -26,7 +26,7 @@ test('A 100 ms missing interval is bounded and marked as recovered',()=>{
 test('A long gap creates no interpolated pulse or HR window crossing the gap',()=>{
   const frames=N.synthFrames(0,42000,()=>72,{noise:.04}).filter(f=>f.t<15000||f.t>19000);
   const sig=N.buildBvp(frames),wins=N.hrWindows(sig);
-  assert.ok(wins.length>10);assert.ok(!wins.some(w=>w.t>10000&&w.t<24000));
+  assert.ok(wins.length>10);assert.ok(!wins.some(w=>w.start<19000&&w.end>15000));
   assert.ok(Number.isNaN(sig.bvp[Math.round((17000-sig.t0)*sig.fs/1000)]));
 });
 test('An isolated RGB impulse is repaired without rewriting captured data',()=>{

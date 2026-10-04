@@ -1,0 +1,823 @@
+{
+  "kind": "synthetic-regression",
+  "baselineRef": "a7e980b",
+  "algorithm": "condition-fusion-1",
+  "recordSeconds": 40,
+  "limitations": [
+    "No human webcam recordings or clinical reference sensor.",
+    "Noise/flat acceptance is reported explicitly.",
+    "ROI mean RGB fixtures do not model all camera/skin/lighting effects."
+  ],
+  "rows": [
+    {
+      "scenario": "clean",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 72,
+        "maeBpm": 0.05
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72,
+        "maeBpm": 0.06
+      }
+    },
+    {
+      "scenario": "low_fps",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 71.99,
+        "maeBpm": 0.13
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 71.94,
+        "maeBpm": 0.16
+      }
+    },
+    {
+      "scenario": "weak",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 39,
+        "windows": 25,
+        "medianBpm": 71.87,
+        "maeBpm": 0.68
+      },
+      "current": {
+        "usableSeconds": 37,
+        "windows": 21,
+        "medianBpm": 72.14,
+        "maeBpm": 0.79
+      }
+    },
+    {
+      "scenario": "forehead_missing",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 71.98,
+        "maeBpm": 0.06
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72,
+        "maeBpm": 0.08
+      }
+    },
+    {
+      "scenario": "interrupted",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 24.9,
+        "windows": 5,
+        "medianBpm": 71.84,
+        "maeBpm": 0.17
+      }
+    },
+    {
+      "scenario": "chrom_rescue",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72,
+        "maeBpm": 0
+      }
+    },
+    {
+      "scenario": "flat",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "noise",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 30,
+        "windows": 7,
+        "medianBpm": 90.94,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "quiet_noise",
+      "seed": 5,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 30,
+        "windows": 16,
+        "medianBpm": 83.69,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "clean",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 72,
+        "maeBpm": 0.06
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72,
+        "maeBpm": 0.06
+      }
+    },
+    {
+      "scenario": "low_fps",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 39,
+        "windows": 30,
+        "medianBpm": 72.01,
+        "maeBpm": 0.11
+      },
+      "current": {
+        "usableSeconds": 39,
+        "windows": 34,
+        "medianBpm": 72,
+        "maeBpm": 0.08
+      }
+    },
+    {
+      "scenario": "weak",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 28,
+        "medianBpm": 71.86,
+        "maeBpm": 8.11
+      },
+      "current": {
+        "usableSeconds": 28.9,
+        "windows": 10,
+        "medianBpm": 71.57,
+        "maeBpm": 1.12
+      }
+    },
+    {
+      "scenario": "forehead_missing",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 72.02,
+        "maeBpm": 0.07
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72.04,
+        "maeBpm": 0.08
+      }
+    },
+    {
+      "scenario": "interrupted",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 24.9,
+        "windows": 5,
+        "medianBpm": 71.86,
+        "maeBpm": 0.15
+      }
+    },
+    {
+      "scenario": "chrom_rescue",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 12,
+        "windows": 3,
+        "medianBpm": 97.66,
+        "maeBpm": 25.7
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72,
+        "maeBpm": 0
+      }
+    },
+    {
+      "scenario": "flat",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "noise",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 33,
+        "windows": 7,
+        "medianBpm": 81.41,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "quiet_noise",
+      "seed": 19,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 19,
+        "windows": 3,
+        "medianBpm": 68.55,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "clean",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 71.99,
+        "maeBpm": 0.05
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 71.99,
+        "maeBpm": 0.07
+      }
+    },
+    {
+      "scenario": "low_fps",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 39,
+        "windows": 30,
+        "medianBpm": 71.98,
+        "maeBpm": 0.1
+      },
+      "current": {
+        "usableSeconds": 39,
+        "windows": 34,
+        "medianBpm": 72.01,
+        "maeBpm": 0.13
+      }
+    },
+    {
+      "scenario": "weak",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 19,
+        "medianBpm": 71.28,
+        "maeBpm": 2.39
+      },
+      "current": {
+        "usableSeconds": 13,
+        "windows": 3,
+        "medianBpm": 70.17,
+        "maeBpm": 1.79
+      }
+    },
+    {
+      "scenario": "forehead_missing",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 72,
+        "maeBpm": 0.06
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 71.99,
+        "maeBpm": 0.13
+      }
+    },
+    {
+      "scenario": "interrupted",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 24.9,
+        "windows": 5,
+        "medianBpm": 72.23,
+        "maeBpm": 0.26
+      }
+    },
+    {
+      "scenario": "chrom_rescue",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 21,
+        "windows": 3,
+        "medianBpm": 105.5,
+        "maeBpm": 40.69
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72,
+        "maeBpm": 0
+      }
+    },
+    {
+      "scenario": "flat",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "noise",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 35,
+        "windows": 11,
+        "medianBpm": 86.48,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "quiet_noise",
+      "seed": 47,
+      "partition": "development",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 29,
+        "windows": 5,
+        "medianBpm": 82.01,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "clean",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 72,
+        "maeBpm": 0.06
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 71.97,
+        "maeBpm": 0.08
+      }
+    },
+    {
+      "scenario": "low_fps",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 39,
+        "windows": 30,
+        "medianBpm": 71.99,
+        "maeBpm": 0.12
+      },
+      "current": {
+        "usableSeconds": 39,
+        "windows": 34,
+        "medianBpm": 72.02,
+        "maeBpm": 0.1
+      }
+    },
+    {
+      "scenario": "weak",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 39,
+        "windows": 27,
+        "medianBpm": 72.27,
+        "maeBpm": 4.34
+      },
+      "current": {
+        "usableSeconds": 31.9,
+        "windows": 15,
+        "medianBpm": 72.1,
+        "maeBpm": 1.06
+      }
+    },
+    {
+      "scenario": "forehead_missing",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 72.01,
+        "maeBpm": 0.05
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 71.97,
+        "maeBpm": 0.1
+      }
+    },
+    {
+      "scenario": "interrupted",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 24.9,
+        "windows": 5,
+        "medianBpm": 71.89,
+        "maeBpm": 0.16
+      }
+    },
+    {
+      "scenario": "chrom_rescue",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 19,
+        "windows": 3,
+        "medianBpm": 106.6,
+        "maeBpm": 40.79
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72,
+        "maeBpm": 0
+      }
+    },
+    {
+      "scenario": "flat",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "noise",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 19,
+        "windows": 5,
+        "medianBpm": 83.26,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "quiet_noise",
+      "seed": 101,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 23,
+        "windows": 9,
+        "medianBpm": 119.05,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "clean",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 71.99,
+        "maeBpm": 0.07
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 71.96,
+        "maeBpm": 0.09
+      }
+    },
+    {
+      "scenario": "low_fps",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 39,
+        "windows": 30,
+        "medianBpm": 72,
+        "maeBpm": 0.12
+      },
+      "current": {
+        "usableSeconds": 39,
+        "windows": 34,
+        "medianBpm": 71.99,
+        "maeBpm": 0.1
+      }
+    },
+    {
+      "scenario": "weak",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 27,
+        "medianBpm": 72.03,
+        "maeBpm": 1.02
+      },
+      "current": {
+        "usableSeconds": 39,
+        "windows": 29,
+        "medianBpm": 72.19,
+        "maeBpm": 1.04
+      }
+    },
+    {
+      "scenario": "forehead_missing",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 40,
+        "windows": 31,
+        "medianBpm": 71.99,
+        "maeBpm": 0.07
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72.02,
+        "maeBpm": 0.1
+      }
+    },
+    {
+      "scenario": "interrupted",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 24.9,
+        "windows": 5,
+        "medianBpm": 71.96,
+        "maeBpm": 0.15
+      }
+    },
+    {
+      "scenario": "chrom_rescue",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": 72,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 40,
+        "windows": 35,
+        "medianBpm": 72,
+        "maeBpm": 0
+      }
+    },
+    {
+      "scenario": "flat",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "noise",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 29,
+        "windows": 11,
+        "medianBpm": 71.87,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    },
+    {
+      "scenario": "quiet_noise",
+      "seed": 509,
+      "partition": "synthetic-holdout",
+      "groundTruthBpm": null,
+      "baseline": {
+        "usableSeconds": 35,
+        "windows": 7,
+        "medianBpm": 96.47,
+        "maeBpm": null
+      },
+      "current": {
+        "usableSeconds": 0,
+        "windows": 0,
+        "medianBpm": null,
+        "maeBpm": null
+      }
+    }
+  ]
+}

@@ -47,6 +47,14 @@ async function main(){
     },lm);
     assert.deepEqual(partial,{face:true,eye:true,gaze:true,skin:false,seen:1});
     console.log('PASS unavailable skin and one occluded eye retain gaze calibration samples');
+    const support=await page.evaluate(()=>new Promise((resolve,reject)=>{
+      const worker=new Worker('condition-analysis-worker.js'),timer=setTimeout(()=>{worker.terminate();reject(new Error('numeric analysis timeout'));},15000);
+      worker.onerror=e=>{clearTimeout(timer);worker.terminate();reject(new Error(e.message));};
+      worker.onmessage=({data:m})=>{clearTimeout(timer);worker.terminate();m.error?reject(new Error(m.error)):resolve(m.evidence);};
+      worker.postMessage({id:1,key:'baseline',start:0,end:20000,frames:NLNewbiz.synthFrames(0,20000,()=>72,{noise:.05})});
+    }));
+    assert.ok(support.validSeconds>15);assert.ok(Math.abs(support.bpm-72)<3);
+    console.log('PASS numeric analysis worker accumulates unique support independently of video capture');
     await page.evaluate(()=>__condition.S.camera.fallback('test-worker-failure'));
     await page.waitForFunction(()=>__condition.S.camera.info.backend==='main-thread');
     const before=await page.evaluate(()=>__condition.S.camera.info.inferred);
