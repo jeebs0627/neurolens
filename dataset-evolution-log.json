@@ -3,6 +3,161 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "679009b7c05a5105da15b03e738aa641c5cbb8bb",
+      "parents": [
+        "bd5f477b12d7862a4c1f4eda8e310679c83cf0b4"
+      ],
+      "committedAt": "2026-10-04T19:13:32+09:00",
+      "subject": "Build dataset development workspace and automatic GitHub evolution ledger",
+      "url": "https://github.com/jeebs0627/neurolens/commit/679009b7c05a5105da15b03e738aa641c5cbb8bb",
+      "files": [
+        {
+          "path": ".github/workflows/dataset-evolution.yml",
+          "status": "modified",
+          "additions": 39,
+          "deletions": 0
+        },
+        {
+          "path": "DATASET_RUNBOOK.md",
+          "status": "modified",
+          "additions": 23,
+          "deletions": 0
+        },
+        {
+          "path": "api/dataset_evolution.py",
+          "status": "modified",
+          "additions": 100,
+          "deletions": 0
+        },
+        {
+          "path": "api/neurolens_dataset.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "condition-dataset.browser.test.cjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "dataset-engine-log.json",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "dataset-evolution-log.json",
+          "status": "modified",
+          "additions": 7227,
+          "deletions": 0
+        },
+        {
+          "path": "dataset-workflow.browser.test.cjs",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 2
+        },
+        {
+          "path": "dataset-workflow.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "dataset-workspace.js",
+          "status": "modified",
+          "additions": 90,
+          "deletions": 0
+        },
+        {
+          "path": "dataset.css",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "dataset.html",
+          "status": "modified",
+          "additions": 34,
+          "deletions": 14
+        },
+        {
+          "path": "dataset.js",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 1
+        },
+        {
+          "path": "dataset_evolution_core.py",
+          "status": "modified",
+          "additions": 103,
+          "deletions": 0
+        },
+        {
+          "path": "requirements.txt",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "tools/dataset_evolution_sync.py",
+          "status": "modified",
+          "additions": 229,
+          "deletions": 0
+        },
+        {
+          "path": "tools/dataset_evolution_test.py",
+          "status": "modified",
+          "additions": 127,
+          "deletions": 0
+        },
+        {
+          "path": "vercel.json",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1
+        }
+      ],
+      "domains": [
+        "research"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/api/dataset_evolution.py b/api/dataset_evolution.py\nnew file mode 100644\nindex 0000000..1192b18\n--- /dev/null\n+++ b/api/dataset_evolution.py\n@@ -0,0 +1,100 @@\n+\"\"\"GitHub Actions OIDC-authenticated public-code analysis. No participant data.\"\"\"\n+import json\n+import os\n+import re\n+import urllib.request\n+from datetime import datetime, timezone\n+from http.server import BaseHTTPRequestHandler\n+\n+import jwt\n+from api.neurolens_dataset import RequestError, generate\n+from dataset_evolution_core import REPOSITORY, REPOSITORY_ID, changes, validate_analysis, domains\n+\n+AUDIENCE = 'neurolens_dataset_evolution'\n+ISSUER = 'https://token.actions.githubusercontent.com'\n+WORKFLOW = REPOSITORY + '/.github/workflows/dataset-evolution.yml@refs/heads/main'\n+JWKS = jwt.PyJWKClient(ISSUER + '/.well-known/jwks', timeout=10)\n+\n+\n+def authorize(token):\n+    try:\n+        key = JWKS.get_signing_key_from_jwt(token).key\n+        claims = jwt.decode(token, key, algorithms=['RS256'], audience=AUDIENCE, issuer=ISSUER,\n+                            options={'require': ['exp', 'iat', 'nbf', 'sub', 'repository_id', 'repository', 'ref', 'workflow_ref']})\n+        if (claims['repository_id'] != REPOSITORY_ID or claims['repository'] != REPOSITORY\n+                or claims['ref'] != 'refs/heads/main' or claims['workflow_ref'] != WORKFLOW\n+                or claims['sub'] != 'repo:' + REPOSITORY + ':ref:refs/heads/main'\n+                or claims.get('event_name') not in ('push', 'schedule', 'deployment_status', 'workflow_dispatch')):\n+            raise ValueError('untrusted workflow')\n+        return claims\n+    except Exception:\n+        raise RequestError(403, '등록된 GitHub 자동화만 호출할 수 있습니다.', 'EVOLUTION_WORKFLOW_DENIED') from None\n+\n+\n+def commit_evidence(sha):\n+    if not isinstance(sha, str) or not re.fullmatch('[a-f0-9]{40}', sha):\n+        raise RequestError(400, '유효한 커밋 SHA가 필요합니다.')\n+    # Fixed repository and URL. The request body cannot supply a diff, URL or prompt.\n+    req = urllib.request.Request(f'https://api.github.com/repos/{REPOSITORY}/commits/{sha}?per_page=100',\n+                                 headers={'User-Agent': 'NeuroLens-dataset-evolution', 'Accept': 'application/vnd.github+json'})\n+    with urllib.request.urlopen(req, timeout=12) as response:\n+        data = json.load(response)\n+        truncated = 'rel=\"next\"' in response.headers.get('Link', '')\n+    files = data.get('files', [])\n+    commit = {'sha': data['sha'], 'parents': [p['sha'] for p in data.get('parents', [])],\n+              'committedAt': data['commit']['committer']['date'], 'message': data['commit']['message'], 'filesTruncated': truncated}\n+    patch = '\\n'.join(f\"FILE {f['filename']}\\n{f.get('patch', '[patch unavailable]')}\" for f in files\n+                      if domains([{'path': f['filename']}]) and f['filename'].rsplit('.', 1)[-1] in ('js', 'py', 'html', 'sql'))\n+    return changes(commit, [{'path': f['filename'], 'status': f['status'], 'additions': f['additions'], 'deletions': f['deletions']} for f in files], patch)\n+\n+\n+def analyze(sha, claims):\n+    entry = commit_evidence(sha)\n+    if not entry['domains']:\n+        raise RequestError(400, '분석할 알고리즘·연구 영역 변경이 없습니다.')\n+    key = os.environ.get('neurolens_dataset', '').strip()\n+    if not key:\n+        raise RequestError(503, 'neurolens_dataset 환경변수가 없습니다.', 'DATASET_KEY_MISSING')\n+    instruction = '''공개 GitHub 코드 변경을 근거로 후속 개발·검증 과제를 작성하라. JSON 객체만 반환한다.\n+형식: {\"summary\":\"관측된 변경과 미검증 영향 요약\", \"tasks\":[{\"domain\":\"제공된 domains 중 하나\", \"title\":\"후속 과제\", \"rationale\":\"변경 근거와 가설 구분\", \"validationPlan\":\"회귀·실측 검증 계획\", \"prompt\":\"개발 AI에 전달할 완결된 한국어 프롬프트\"}]}.\n+domain별 최대 한 과제, 전체 1~4개. summary는 4000자, title 160자, rationale 2000자, validationPlan 3000자, prompt 14000자 이하.\n+실제 변경 파일과 제공된 diff 범위만 근거로 사용한다. diff 생략은 명시하라. 커밋 제목을 검증된 성과로 취급하지 마라.\n+프롬프트에는 현재 코드 확인, 부분 유효 신호 활용량과 오차를 함께 평가하는 변경·검증 과제, 성공/회귀 기준, 결과 보고 양식을 포함하라.\n+실측은 이 자료에 포함되어 있지 않다. dataset에서 관련 실측·메모를 연결해 판단하도록 요구하고 실측 성능 수치를 만들어내지 마라.'''\n+    text, provenance = generate({'publicCodeChange': entry}, instruction, key, json_output=True)\n+    try:\n+        result = validate_analysis(json.loads(text), entry)\n+    except (ValueError, TypeError):\n+        raise RequestError(502, '자동 과제 JSON 검증에 실패했습니다.', 'EVOLUTION_INVALID_AI_OUTPUT') from None\n+    result.update({'provenance': provenance, 'generatedAt': datetime.now(timezone.utc).isoformat(),\n+                   'sourceSha': sha, 'sourceEvidence': entry, 'workflowRunId': claims.get('run_id')})\n+    return result\n+\n+\n+class handler(BaseHTTPRequestHandler):\n+    def do_POST(self):\n+        try:\n+            auth = self.headers.get('Authorization', '')\n+            if not re.fullmatch(r'Bearer [A-Za-z0-9_.-]{20,16000}', auth):\n+                raise RequestError(401, 'GitHub 자동화 인증이 필요합니다.')\n+            claims = authorize(auth[7:])\n+            length = int(self.headers.get('Content-Length', '0'))\n+            if not 0 < length <= 200:\n+                raise RequestError(400, '요청 크기가 올바르지 않습니다.')\n+            body = json.loads(self.rfile.read(length))\n+            if not isinstance(body, dict) or set(body) != {'sha'}:\n+                raise RequestError(400, '커밋 SHA만 전송하세요.')\n+            self.send_json(200, analyze(body['sha'], claims))\n+        except RequestError as error:\n+            self.send_json(error.status, {'error': error.message, 'code': error.code, 'retryable': error.retryable})\n+        except Exception:\n+            self.send_json(502, {'error': '변경 분석에 실패했습니다. 다음 자동 동기화에서 재시도합니다.', 'code': 'EVOLUTION_ANALYSIS_FAILED'})\n+\n+    def send_json(self, status, data):\n+        body = json.dumps(data, ensure_ascii=False).encode()\n+        self.send_response(status)\n+        self.send_header('Content-Type', 'application/json; charset=utf-8')\n+        self.send_header('Cache-Control', 'no-store')\n+        self.send_header('Content-Length', str(len(body)))\n+        self.end_headers()\n+        self.wfile.write(body)\ndiff --git a/api/neurolens_dataset.py b/api/neurolens_dataset.py\nindex 127cccb..6554301 100644\n--- a/api/neurolens_dataset.py\n+++ b/api/neurolens_dataset.py\n@@ -147,8 +147,10 @@ def retry_delay(error, attempt):\n \n \n-def generate(context, instruction, api_key):\n+def generate(context, instruction, api_key, json_output=False):\n     payload = {'systemInstruction': {'parts': [{'text': SYSTEM}]},\n                'contents': [{'role': 'user', 'parts': [{'text': instruction + '\\n\\n[연구 자료 JSON]\\n' + canonical(context)}]}],\n                'generationConfig': {'temperature': 0.3, 'maxOutputTokens': 8192}}\n+    if json_output:\n+        payload['generationConfig']['responseMimeType'] = 'application/json'\n     req = urllib.request.Request(\n         'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent',\ndiff --git a/dataset-workflow.js b/dataset-workflow.js\nindex f0b300c..81b8b5a 100644\n--- a/dataset-workflow.js\n+++ b/dataset-workflow.js\n@@ -82,4 +82,4 @@\n     host.querySelectorAll('[data-ledger-session]').forEach(b=>b.onclick=()=>onSelect(rows.find(r=>r.id===b.dataset.ledgerSession)));\n   }\n-  root.NLDatasetWorkflow={VERSION,mount,ledger,cases,clearDrafts:()=>{drafts.clear();messages.clear();}};\n+  root.NLDatasetWorkflow={VERSION,mount,ledger,cases,generatePrompt:(row,id)=>ai(row,'prompt',id),clearDrafts:()=>{drafts.clear();messages.clear();}};\n })(typeof globalThis!=='undefined'?globalThis:this);\ndiff --git a/dataset-workspace.js b/dataset-workspace.js\nnew file mode 100644\nindex 0000000..1eeddac\n--- /dev/null\n+++ b/dataset-workspace.js\n@@ -0,0 +1,90 @@\n+(function(root){\n+  'use strict';\n+  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\n+  const labels={pulse:'맥파·융합',gaze:'시선·획득',measurement:'검사·해석',research:'데이터·연구'};\n+  const safeURL=url=>{try{const u=new URL(url);return u.protocol==='https:'&&['github.com','vercel.com','neurolens-xi.vercel.app'].includes(u.hostname)?u.href:null;}catch(_){return null;}};\n+  let ledger={entries:[]},state={rows:[],allowed:false},hooks={},taskLimit=12,releaseLimit=15,loading=false;\n+  const date=v=>v?new Date(v).toLocaleString('ko-KR'):'미기록';\n+  function activate(view){\n+    if(!['work','measurements','releases','validation'].includes(view))view='work';\n+    document.querySelectorAll('.workspace-pane').forEach(p=>p.hidden=p.id!=='pane-'+view);\n+    document.querySelectorAll('[data-view]').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});\n+  }\n+  function domain(target){return ['pulse','baseline','recovery'].includes(target)?'pulse':['gaze','capture','calibration','pursuit','saccade'].includes(target)?'gaze':target==='research'?'research':'measurement';}\n+  function privateCases(){return state.rows.flatMap(row=>NLDatasetWorkflow.cases(row).map(c=>({...c,row})));}\n+  function tasks(){\n+    const cases=privateCases(),out=cases.map(c=>({id:'memo-'+c.memo.id,type:'memo',domain:domain(c.memo.body.target),title:c.memo.body.title,\n+      rationale:c.memo.body.note,validationPlan:c.memo.body.validationPlan,metrics:c.memo.body.metrics,prompt:c.prompts.at(-1)?.body.text||'',\n+      generator:c.prompts.length?'gemini':'pending',row:c.row,memo:c.memo,review:c.review,\n+      status:({reviewing:'개발·검증 대기',implemented:'조치 적용 · 검증 대기',validated:'연구자 검증 기록',dismissed:'보류'})[c.status]}));\n+    for(const row of state.rows)for(const action of row.audit?.actions||[]){\n+      if(cases.some(c=>c.row.id===row.id&&c.memo.body.sourceActionKey===action.key))continue;\n+      const title=action.next,prompt=`NeuroLens 실측 후속 검토\\n검사 코드: ${row.code}\\n대상: ${action.test}\\n관측 근거: ${JSON.stringify(action.evidence)}\\n요청: ${title}\\n현재 엔진 ${JSON.stringify(row.audit.versions)}의 관련 코드를 확인하라. 유효 신호 활용량과 오차를 함께 평가하고 없는 정답이나 정상값을 만들지 말라. 관련 검사·메모와 변경 커밋·전후 지표를 dataset에 기록하라.`;\n+      out.push({id:'observation-'+row.id+'-'+action.key,type:'observation',domain:domain(action.test),title,rationale:JSON.stringify(action.evidence),validationPlan:title,prompt,generator:'rule',row,action,status:'실측 자동 검토 후보'});\n+    }\n+    const linked=new Set(ledger.entries.flatMap(e=>e.linkedTaskIds||[]));\n+    for(const entry of ledger.entries)for(const task of entry.tasks||[]){\n+      const related=cases.filter(c=>c.memo.body.releaseTaskId===task.id);\n+      out.push({...task,type:'code',entry,related,status:linked.has(task.id)?'후속 코드 연결 · 실측 검증 필요':related.length?'실측 메모 연결됨':'후속 검토 후보'});\n+    }\n+    return out;\n+  }\n+  function render(){\n+    const all=tasks(),cases=privateCases(),ai=ledger.entries.filter(e=>e.analysisState==='generated'),pending=ledger.entries.filter(e=>e.domains?.length&&e.analysisState!=='generated');\n+    $('evolutionStats').innerHTML=[['실측 개선 메모',cases.length,'불러온 검사 범위'],['코드 변경 기록',ledger.entries.length,'GitHub SHA 기준'],['Gemini 분석 완료',ai.length,`분석 대기·재시도 ${pending.length}건`],['연구자 검증 기록',cases.filter(c=>c.status==='validated').length,'검증 범위는 근거에서 확인']].map(([a,b,c])=>`<div class=\"metric\"><small>${a}</small><strong>${b}</strong><small>${c}</small></div>`).join('');\n+    const source=$('taskSource').value,scope=$('taskDomain').value,query=$('taskSearch').value.toLowerCase().trim();\n+    const visible=all.filter(t=>(!source||t.type===source)&&(!scope||t.domain===scope)&&(!query||[t.title,t.rationale,t.metrics,t.id,t.entry?.sha].join(' ').toLowerCase().includes(query)));\n+    $('boardSummary').textContent=`현재 조건 ${visible.length}개 과제 · 실측 후보는 관측 근거이며 자동 확정 진단이 아닙니다.`;\n+    $('workBoard').innerHTML=visible.slice(0,taskLimit).map(taskCard).join('')||'<p class=\"empty\">표시할 과제가 없습니다. 연구자 로그인 후 실측 기록을 불러오거나 GitHub 기록을 확인하세요.</p>';\n+    $('moreTasks').hidden=visible.length<=taskLimit;\n+    $('workBoard').querySelectorAll('[data-open-session]').forEach(b=>b.onclick=()=>hooks.select(state.rows.find(r=>r.id===b.dataset.openSession)));\n+    $('workBoard').querySelectorAll('[data-copy-task]').forEach(b=>b.onclick=async()=>{const t=all.find(t=>t.id===b.dataset.copyTask);try{await navigator.clipboard.writeText(t.prompt);hooks.tell('개발 프롬프트를 복사했습니다.');}catch(_){download(t.prompt,t.id+'.txt');hooks.tell('프롬프트 파일을 다운로드했습니다.');}});\n+    $('workBoard').querySelectorAll('[data-promote]').forEach(b=>b.onclick=async()=>{const task=all.find(t=>t.id===b.dataset.promote),card=b.closest('.task-card'),id=card.querySelector('[data-link-session]')?.value,row=task.row||state.rows.find(r=>r.id===id);if(!row)return hooks.tell('연결할 실측 검사를 선택하세요.',true);b.disabled=true;try{await hooks.promote(row,task);}catch(e){hooks.tell(e.message,true);}finally{b.disabled=false;}});\n+    releases(cases);metrics(cases);\n+  }\n+  function taskCard(t){\n+    const source={memo:'내 개선 메모',observation:'실측 자동 후보',code:'코드 변경 후속'}[t.type];\n+    const sessions=state.rows.filter(r=>!r.local);\n+    return `<article class=\"task-card\"><div class=\"task-tags\"><span>${esc(source)}</span><span>${esc(labels[t.domain]||t.domain)}</span></div><h3>${esc(t.title)}</h3><p class=\"task-rationale\">${esc(t.rationale)}</p><p class=\"muted\">${esc(t.status)}${t.entry?' · '+esc(t.entry.sha.slice(0,8)):''}${t.row?' · '+esc(t.row.code):''}</p><details><summary>검증 계획·개발 프롬프트</summary><p>${esc(t.validationPlan||t.metrics||'미기록')}</p><p class=\"muted\">${t.generator==='gemini'?'Gemini 작성 · 검토 필요':t.generator==='rule'?'규칙 기반 기본 프롬프트 · Gemini 보완 대기':'Gemini 프롬프트 생성 대기'}</p><pre>${esc(t.prompt||'해당 검사 메모에서 AI 개선 프롬프트를 생성하세요.')}</pre></details><div class=\"tools\">${t.prompt?`<button data-copy-task=\"${esc(t.id)}\">프롬프트 복사</button>`:''}${t.row?`<button data-open-session=\"${esc(t.row.id)}\">실측·메모 열기</button>`:''}</div>\n+      ${t.type==='observation'?`<button data-promote=\"${esc(t.id)}\" ${!state.allowed||t.row.local?'disabled':''}>개선 메모 등록·AI 프롬프트</button>`:''}\n+      ${t.type==='code'?`<div class=\"task-link\"><label>검증에 사용할 실측<select data-link-session aria-label=\"연결할 실측 검사\"><option value=\"\">검사 선택</option>${sessions.map(r=>`<option value=\"${esc(r.id)}\">${esc(r.code)}</option>`).join('')}</select></label><button data-promote=\"${esc(t.id)}\" ${!state.allowed?'disabled':''}>실측에 연결·AI 프롬프트</button></div><p class=\"muted\">연결된 개선 메모 ${t.related.length}건 · 개인 데이터는 공개 저장소에 전송하지 않습니다.</p>`:''}</article>`;\n+  }\n+  function eventLabel(e){\n+    const states={success:'성공',failure:'실패',error:'오류',pending:'대기',queued:'대기',in_progress:'진행 중',inactive:'비활성'};\n+    return (e.type==='deployment'?`${e.production?'운영 배포':'배포'} · ${e.environment||'환경 미기록'}`:`${e.context||'GitHub'} 체크`)+': '+(states[e.state]||e.state);\n+  }\n+  function releases(cases){\n+    $('releaseScope').textContent=`${ledger.entries.length}개 코드 커밋 · 갱신 ${date(ledger.updatedAt)} · 배포 상태는 최신 12개 커밋과 수신한 배포 이벤트에서 수집`;\n+    $('releaseTimeline').innerHTML=ledger.entries.slice(0,releaseLimit).map(entry=>{\n+      const explicit=cases.filter(c=>c.memo.body.releaseSha===entry.sha||[...(c.row.annotations||[])].some(n=>n.body?.memoId===c.memo.id&&new RegExp('\\\\b'+entry.sha.slice(0,7)+'[a-f0-9]{0,33}\\\\b').test(n.body?.evidence||'')));\n+      const events=entry.deploymentEvents||[],latest=events.at(-1),url=safeURL(entry.url);\n+      return `<article class=\"release-entry\"><div class=\"release-marker\"></div><div class=\"toolbar\"><h3>${url?`<a href=\"${esc(url)}\" target=\"_blank\" rel=\"noopener\">${esc(entry.sha.slice(0,8))}</a>`:esc(entry.sha.slice(0,8))} · ${esc(entry.subject)}</h3><small>${esc(date(entry.committedAt))}</small></div><p>${esc(entry.analysis?.summary||'변경 파일을 수집했습니다. 영향과 정확도 개선 여부는 아직 검증하지 않았습니다.')}</p><div class=\"task-tags\">${(entry.domains||[]).map(d=>`<span>${esc(labels[d])}</span>`).join('')}<span>${esc(latest?eventLabel(latest):'배포 상태 미확인')}</span><span>${entry.analysisState==='generated'?'Gemini 분석 완료':entry.analysisState==='not-applicable'?'일반 코드 변경':'AI 분석 대기·재시도'}</span></div><p class=\"muted\">후속 과제 ${entry.tasks?.length||0}개 · 연결 실측 메모 ${explicit.length}건${entry.linkedTaskIds?.length?' · 후속 코드 표식 '+esc(entry.linkedTaskIds.join(', ')):''}</p><details><summary>변경 파일·배포 증거·분석 출처</summary><ul>${entry.files.map(f=>`<li>${esc(f.path)} <small>+${f.additions??'—'} / −${f.deletions??'—'}</small></li>`).join('')}</ul><p class=\"muted\">${entry.patchTruncated?'diff 발췌에 생략이 있습니다.':''} ${entry.filesTruncated?'변경 파일 목록에 생략이 있습니다.':''}</p>${events.map(e=>`<p>${esc(eventLabel(e))} · ${esc(date(e.at))}${safeURL(e.url)?` · <a href=\"${esc(safeURL(e.url))}\" target=\"_blank\" rel=\"noopener\">원문</a>`:''}</p>`).join('')||'<p>배포 이벤트 미확인</p>'}<pre>${esc(JSON.stringify({analysisState:entry.analysisState,attempts:entry.analysisAttempts,error:entry.analysisError,sourceHash:entry.analysis?.evidenceHash,provenance:entry.analysis?.provenance},null,2))}</pre></details></article>`;\n+    }).join('')||'<p class=\"empty\">코드 변경 이력을 불러오고 있습니다.</p>';\n+    $('moreReleases').hidden=ledger.entries.length<=releaseLimit;\n+  }\n+  function metrics(cases){\n+    const linked=cases.filter(c=>c.memo.body.releaseSha),reports=cases.filter(c=>c.latestResult),verified=cases.filter(c=>c.status==='validated');\n+    $('accumulationMetrics').innerHTML=`<h3>재현 가능한 개선 근거</h3><div class=\"workflow-counts\"><span>실측·코드 직접 연결 <b>${linked.length}</b></span><span>개발 결과 원문 <b>${reports.length}</b></span><span>전후 버전 기재 <b>${reports.filter(c=>c.latestResult.body.fromVersion&&c.latestResult.body.toVersion).length}</b></span><span>연구자 검증 근거 <b>${verified.length}</b></span><span>배포 이벤트 기록 <b>${ledger.entries.reduce((n,e)=>n+(e.deploymentEvents||[]).filter(v=>v.type==='deployment').length,0)}</b></span></div><p class=\"muted\">실측·코드 직접 연결은 연결 버튼으로 등록한 메모 수입니다. 숫자가 많다는 이유로 측정 정확도나 기술적 독점성을 확정하지 않습니다.</p>`;\n+    $('validationQueue').innerHTML=cases.filter(c=>c.status!=='dismissed').map(c=>`<div class=\"validation-row\"><button data-validate-session=\"${esc(c.row.id)}\">${esc(c.row.code)} · ${esc(c.memo.body.title)}</button><p>${esc(c.review?.body.followup||c.latestResult?.body.followup||c.memo.body.validationPlan||'후속 검증 계획을 기록하세요.')}</p></div>`).join('')||'<p class=\"muted\">연결된 실측 개선 메모가 없습니다. 개발 과제에서 실측을 연결하세요.</p>';\n+    $('validationQueue').querySelectorAll('[data-validate-session]').forEach(b=>b.onclick=()=>hooks.select(state.rows.find(r=>r.id===b.dataset.validateSession)));\n+  }\n+  function download(text,name){const u=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}\n+  async function read(url){const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('HTTP '+r.status);const v=await r.json();if(v.schema!=='dataset-evolution-1'||!Array.isArray(v.entries))throw Error('invalid ledger');return v;}\n+  async function refresh(){\n+    if(loading)return;loading=true;$('syncEvolution').disabled=true;\n+    try{\n+      let origin='배포본';try{const local=await read('dataset-evolution-log.json');if(!ledger.updatedAt||local.updatedAt>=ledger.updatedAt)ledger=local;}catch(_){}\n+      render();\n+      try{const latest=await read('https://raw.githubusercontent.com/jeebs0627/neurolens/main/dataset-evolution-log.json');if(!ledger.updatedAt||latest.updatedAt>=ledger.updatedAt){ledger=latest;origin='GitHub 최신 기록';}}catch(_){origin='배포본 · GitHub 최신 기록 연결 대기';}\n+      $('evolutionStatus').textContent=`${origin} · ${date(ledger.updatedAt)} · push·배포 이벤트 및 30분 주기 자동 동기화. 새로고침은 수집된 기록을 조회합니다.`;render();\n+    }finally{loading=false;$('syncEvolution').disabled=false;}\n+  }\n+  function init(options){\n+    hooks=options;document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>activate(b.dataset.view));\n+    ['taskSource','taskDomain','taskSearch'].forEach(id=>$(id).oninput=()=>{taskLimit=12;render();});\n+    $('moreTasks').onclick=()=>{taskLimit+=12;render();};$('moreReleases').onclick=()=>{releaseLimit+=15;render();};$('syncEvolution').onclick=refresh;\n+    activate(location.hash==='#local'?'measurements':location.hash.slice(1)||'work');\n+    refresh();setInterval(()=>{if(!document.hidden)refresh();},120000);\n+  }\n+  root.NLDatasetWorkspace={init,activate,update:value=>{state=value;render();},eventLabel};\n+})(globalThis);\ndiff --git a/dataset.html b/dataset.html\nindex 5d04eac..e83b679 100644\n--- a/dataset.html\n+++ b/dataset.html\n@@ -1,19 +1,39 @@\n <!doctype html>\n-<html lang=\"ko\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"robots\" content=\"noindex,nofollow\"><title>Dataset · NeuroLens 알고리즘 연구</title><link rel=\"stylesheet\" href=\"dataset.css\"></head>\n+<html lang=\"ko\">\n+<head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"robots\" content=\"noindex,nofollow\"><title>Dataset · NeuroLens 알고리즘 개발실</title><link rel=\"stylesheet\" href=\"dataset.css\"></head>\n <body>\n <header><a class=\"brand\" href=\"index.html\">Neuro<span>Lens</span><small>ALGORITHM LAB</small></a><nav><a href=\"condition.html\">컨디션 검사</a><a href=\"admin.html\">관리자</a><button id=\"logout\" hidden>로그아웃</button></nav></header>\n <main>\n-<div class=\"intro\"><div><p class=\"eyebrow\">MEASUREMENT → EVIDENCE → IMPROVEMENT</p><h1>측정 근거와 개선 기록</h1><p>각 검사의 실측값, 보정 근거, 조치와 후속 과제를 연결합니다.<br>기준 측정이 없는 결과는 정확도 미검증으로 남깁니다.</p></div><span class=\"pill\">Dataset · v1</span></div>\n-<section class=\"panel\" id=\"gate\"><h2>연구 데이터 연결</h2><p id=\"accessStatus\" role=\"status\">연구자 권한을 확인하고 있습니다.</p><form id=\"loginForm\" hidden><label>이메일<input id=\"email\" type=\"email\" autocomplete=\"username\" required></label><label>비밀번호<input id=\"password\" type=\"password\" autocomplete=\"current-password\" required></label><button class=\"primary\">로그인</button></form><p class=\"muted\">서버 기록은 등록된 연구 관리자만 열 수 있습니다. 계정 권한은 서버에서 확인합니다.</p></section>\n-<section class=\"panel toolbar\"><div><h2>연구 기록</h2><p class=\"muted\" id=\"sourceLabel\">아직 불러온 기록이 없습니다.</p></div><div class=\"tools\"><button id=\"refresh\">서버 새로고침</button><label class=\"file\">연구 JSON 가져오기<input id=\"import\" type=\"file\" accept=\".json,application/json\" multiple></label><button id=\"export\">현재 기록 내보내기</button></div></section>\n-<p class=\"notice\" id=\"message\" role=\"status\" aria-live=\"polite\">동의한 실측 시도만 집계합니다. 자동 과제는 검토 후보이며 진단이나 적용 완료를 뜻하지 않습니다.</p>\n-<div class=\"metrics\" id=\"metrics\"></div>\n-<details class=\"panel\"><summary>엔진 개발 이력과 후속 검증</summary><div id=\"engineLog\"></div></details>\n-<section class=\"panel\"><div class=\"toolbar\"><div><h2>실측에서 이어진 엔진 개선 이력</h2><p class=\"muted\">메모·개발 결과·전후 지표·후속 검증을 검사별로 추적합니다.</p></div><button id=\"loadWorkflowLedger\">불러온 검사 이력 집계</button></div><div id=\"workflowLedger\"><p class=\"muted\">집계를 누르면 현재 불러온 검사들의 개선 이력을 조회합니다.</p></div></section>\n-<section class=\"panel\"><div class=\"filters\"><label>검사<select id=\"testFilter\"><option value=\"\">전체 검사</option></select></label><label>완료 상태<select id=\"outcomeFilter\"><option value=\"\">전체 상태</option><option value=\"complete\">완료</option><option value=\"incomplete\">중단·실패</option></select></label><label>엔진 버전<select id=\"versionFilter\"><option value=\"\">전체 버전</option></select></label><label>참가 코드<input id=\"search\" type=\"search\" placeholder=\"코드 검색\"></label></div><div class=\"table-wrap\"><table><thead><tr><th>측정 기록</th><th>상태</th><th>획득 FPS</th><th>기준 비교</th><th>자동 검토 후보</th><th>엔진</th></tr></thead><tbody id=\"sessions\"></tbody></table></div><button id=\"more\" hidden>이전 50건 더 보기</button></section>\n-<section class=\"panel\" id=\"detail\" hidden></section>\n-<section class=\"panel\"><h2>축적 지표의 해석</h2><p>완료율은 불러온 동의 세션의 완료 비율입니다. 정확도는 기준 장비·동기화 근거를 확인한 세션에서만 별도로 계산합니다. 서로 겹치는 분석 창을 독립 표본으로 세지 않으며, 아래 비교는 심박 측정 오차입니다. 피로·스트레스 등 해석의 진단 정확도는 별도 검증이 필요합니다.</p><p class=\"muted\">서버 연결이 안 되면 기록이 없다는 의미가 아닙니다. 내보낸 연구 JSON으로 로컬 검토를 계속할 수 있습니다. 로컬 가져오기·검토 결과는 서버에 자동 업로드하지 않습니다.</p></section>\n-<section class=\"panel\" id=\"local\"><div class=\"toolbar\"><div><h2>이 기기의 전송·철회 관리</h2><p class=\"muted\">다른 참가자의 서버 데이터는 표시되지 않습니다. 대기 원자료는 최대 7일간 보관하고 연결 시 재시도합니다.</p></div><button id=\"retryLocal\">전송 재시도</button></div><div id=\"localRows\"></div></section>\n-</main><footer>NeuroLens · 알고리즘 연구 기록 · 영상과 사진은 수집하지 않습니다.</footer>\n-<script src=\"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js\"></script><script src=\"supabase-config.js",
+      "patchTruncated": true,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-679009b7c05a-research",
+          "domain": "research",
+          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-679009b7c05a-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 679009b7c05a5105da15b03e738aa641c5cbb8bb\n변경 제목: Build dataset development workspace and automatic GitHub evolution ledger\n관련 파일: .github/workflows/dataset-evolution.yml, DATASET_RUNBOOK.md, api/dataset_evolution.py, api/neurolens_dataset.py, condition-dataset.browser.test.cjs, dataset-engine-log.json, dataset-evolution-log.json, dataset-workflow.browser.test.cjs, dataset-workflow.js, dataset-workspace.js, dataset.css, dataset.html, dataset.js, dataset_evolution_core.py, requirements.txt, tools/dataset_evolution_sync.py, tools/dataset_evolution_test.py, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-679009b7c05a-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55544164356",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T10:13:42Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/A61CbSTbRhRyTsgyLm5gdbsTWqZq",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-04T10:14:01.625337+00:00",
+      "analysisError": "HTTP_404"
+    },
+    {
       "sha": "bd5f477b12d7862a4c1f4eda8e310679c83cf0b4",
       "parents": [
         "45237e249601fddd2f4e6d391a9416d9d59103d3"
@@ -91,9 +246,41 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55543913095",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T10:02:50Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/Af9qtgFL6jPBwYU1YXHKiwYm4NsD",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55543927422",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T10:03:26Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/Af9qtgFL6jPBwYU1YXHKiwYm4NsD",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6839574167-19240275073",
+          "type": "deployment",
+          "deploymentId": 6839574167,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T10:03:26Z",
+          "url": "https://neurolens-ahlo0rir9-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-04T10:14:01.906264+00:00",
+      "analysisError": "HTTP_404"
     },
     {
       "sha": "45237e249601fddd2f4e6d391a9416d9d59103d3",
@@ -156,9 +343,41 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
-      "deploymentEvents": []
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55543732726",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T09:55:07Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/FYQ8CCRPN6Jf2DBRvnPe7n4HAzG9",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55543745298",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T09:55:40Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/FYQ8CCRPN6Jf2DBRvnPe7n4HAzG9",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6839504829-19240119025",
+          "type": "deployment",
+          "deploymentId": 6839504829,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T09:55:41Z",
+          "url": "https://neurolens-bad2dfdgs-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-04T10:14:02.194125+00:00",
+      "analysisError": "HTTP_404"
     },
     {
       "sha": "e875f1340c672f795a51600afb5ad89c462a2b19",
@@ -222,7 +441,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55542000669",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T08:38:58Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/F9yDuMAdwJc7rWCSNftLReQwX1mD",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55542016562",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T08:39:41Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/F9yDuMAdwJc7rWCSNftLReQwX1mD",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6838826485-19238574233",
+          "type": "deployment",
+          "deploymentId": 6838826485,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T08:39:41Z",
+          "url": "https://neurolens-ib5q1yn4o-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "537333a33e3d9a38c5cae42033faa37197799a5f",
@@ -315,7 +564,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55541991601",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T08:38:34Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/9YicsgTd5BP2vCLLqPJHd7VwWUnB",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55542005015",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T08:39:10Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/9YicsgTd5BP2vCLLqPJHd7VwWUnB",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6838822296-19238564778",
+          "type": "deployment",
+          "deploymentId": 6838822296,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T08:39:10Z",
+          "url": "https://neurolens-i0gfpng3x-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "fe5b940f824a9d39d5421ecf6f3e6c46bb31b172",
@@ -410,7 +689,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55541325514",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T08:09:20Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2FcZgc44iyEK8ViwMyoZDrNiWSmM",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55541339156",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T08:09:57Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2FcZgc44iyEK8ViwMyoZDrNiWSmM",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6838560612-19237961690",
+          "type": "deployment",
+          "deploymentId": 6838560612,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T08:09:57Z",
+          "url": "https://neurolens-3ianlznkx-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "d61afb939c0002c4469f41f4cdb2efd65daca5bf",
@@ -491,7 +800,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55541271531",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T08:06:58Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/ASduLWfmtWX9wz9W4iHTJuJ69CPu",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55541283170",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T08:07:29Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/ASduLWfmtWX9wz9W4iHTJuJ69CPu",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6838536344-19237908777",
+          "type": "deployment",
+          "deploymentId": 6838536344,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T08:07:29Z",
+          "url": "https://neurolens-5nuelw4t1-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e",
@@ -680,7 +1019,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55540252087",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T07:20:06Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/4VuxyEohbbWmbGHobcu1VfaQRRo8",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55540263873",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T07:20:37Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/4VuxyEohbbWmbGHobcu1VfaQRRo8",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6838144343-19237023866",
+          "type": "deployment",
+          "deploymentId": 6838144343,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T07:20:37Z",
+          "url": "https://neurolens-dvq0jvmfb-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "3df0a657cff15ebe000a8fa9321617626313a807",
@@ -826,7 +1195,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55538277327",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T05:46:08Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/Gpbxsmye81U32RqvEdJHapWUWkWm",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55538287554",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T05:46:37Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/Gpbxsmye81U32RqvEdJHapWUWkWm",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6837394713-19235308655",
+          "type": "deployment",
+          "deploymentId": 6837394713,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T05:46:38Z",
+          "url": "https://neurolens-d53ozkiee-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "a7e980b47e37b92484d20f70371466e87736a60b",
@@ -972,7 +1371,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55537796462",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T05:21:27Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/HtqimAnfh7pVzdXAKjy21aqDtLxf",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55537806949",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T05:21:58Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/HtqimAnfh7pVzdXAKjy21aqDtLxf",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6837207431-19234881424",
+          "type": "deployment",
+          "deploymentId": 6837207431,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T05:21:59Z",
+          "url": "https://neurolens-hn1rskitn-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "a831959ece1364a95d98766083eb78ffce60a97b",
@@ -1094,7 +1523,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55537213005",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T04:52:10Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/7BJ6xsAp98pomTf3MVaxENQjFPUW",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55537223134",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T04:52:42Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/7BJ6xsAp98pomTf3MVaxENQjFPUW",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6836987114-19234388196",
+          "type": "deployment",
+          "deploymentId": 6836987114,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T04:52:42Z",
+          "url": "https://neurolens-mcxjsbvs6-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "dc2a2a8ff88078f5552cdd03bcd02a3c7ab30265",
@@ -1193,7 +1652,37 @@
       ],
       "analysisState": "pending",
       "analysisAttempts": 0,
-      "deploymentEvents": []
+      "deploymentEvents": [
+        {
+          "key": "check-55535914805",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-04T03:47:21Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2uaWfY3ferqES8rzFKDaSfKHxoAw",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55535925484",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-04T03:47:54Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2uaWfY3ferqES8rzFKDaSfKHxoAw",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6836503622-19233277864",
+          "type": "deployment",
+          "deploymentId": 6836503622,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-04T03:47:55Z",
+          "url": "https://neurolens-25jih4lxz-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
     },
     {
       "sha": "4d1f5d7848db5bf6fecdd5e9247272d73937b2be",
@@ -7221,7 +7710,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "bd5f477b12d7862a4c1f4eda8e310679c83cf0b4"
+    "sourceHead": "679009b7c05a5105da15b03e738aa641c5cbb8bb"
   },
-  "updatedAt": "2026-10-04T10:05:58.488637+00:00"
+  "updatedAt": "2026-10-04T10:14:02.896339+00:00"
 }
