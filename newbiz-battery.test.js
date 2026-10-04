@@ -199,7 +199,7 @@ for (const [p, e] of Object.entries(expect)) {
   assert.equal(r.battery.care[0].domain, 'safety');
   const html = checkReport(r, 'phq');
   assert.ok(html.includes('PHQ-8') && html.includes('상담 권장'));
-  assert.ok(!/우울증/.test(html.split('<section class="card refs">')[0]));      // 본문에 진단명 없음 (참고문헌 제목은 예외)
+  assert.ok(!/우울증/.test(html.split('id="r-app"')[0]));      // 본문에 진단명 없음 (참고문헌 제목은 예외)
   const none = B.simulate('balanced'); none.checkin.phq = null;
   assert.ok(checkReport(B.run(none), 'phq-skip').includes('응답하지 않았어요'));
 }
@@ -334,7 +334,7 @@ for (const [p, e] of Object.entries(expect)) {
   const r = B.run(B.simulate('fatigue'));
   assert.ok(r.battery.integrated.context.some(c => c.key === 'sleep-short-low'));
   const html = checkReport(r, 'context');
-  assert.ok(html.includes('측정 맥락') && html.includes('점수 구성'));
+  assert.ok(html.includes('오늘의 측정 환경') && html.includes('점수 구성'));
 }
 
 /* 19) 점수 분해: 기여의 합 = 영역 점수, 비중 합 = 100%, 저하 지표에는 다음 단계 목표 */
@@ -365,16 +365,15 @@ for (const [p, e] of Object.entries(expect)) {
   assert.equal(RS.browserFamily('Mozilla/5.0 (Windows NT 10.0) AppleWebKit Chrome/141.0 Safari/537.36').browser, 'chrome');
 }
 
-/* 21) 간편 보고서: 네 영역 카드 · 날씨 · 오늘 할 일, 잘못된 값 없음, 전문 용어 대신 쉬운 이름 */
+/* 21) 통합 리포트 본문: 쉬운 이름 · 점수 구성 · 케어 체크 · 부록 분리, 본문에 인용·전문 용어·AI 표기 없음, 예시 해설 고정 */
 for (const p of Object.keys(B.PERSONAS)) {
   const r = B.run(B.simulate(p, { seed: 7 }));
-  const h = R.renderSimple(r, { ai: '테스트 한마디' });
-  assert.ok(!/undefined|NaN|\[object/.test(h), `${p}: simple 잘못된 값`);
-  assert.equal((h.match(/class="sp-dom /g) || []).length, 4);
-  assert.ok(h.includes('오늘의 마음 날씨') && h.includes('오늘부터 해볼 3가지') && h.includes('id="spBio"'));
-  ['또렷함', '집중 조절', '마음의 시선', '몸의 회복력'].forEach(n => assert.ok(h.includes(n), `${p}: ${n}`));
-  assert.ok(!/PERCLOS|사카드|SART|rPPG/.test(h), `${p}: 전문 용어 노출`);
+  const h = R.render(r, { history: [] }), body = h.split('id="r-app"')[0];
+  assert.ok(!/undefined|NaN/.test(h) && !h.includes('[object'), `${p}: 잘못된 값`);
+  ['또렷함', '집중 조절', '마음의 시선', '몸의 회복력', '점수 구성', '나를 위한 케어 플랜', 'data-todo', '부록'].forEach(n => assert.ok(h.includes(n), `${p}: ${n}`));
+  assert.ok(!/class="cite"|PERCLOS|사카드|SART|rPPG|[^A-Za-z]AI[^A-Za-z]|Gemini|gemini/.test(body), `${p}: 본문에 인용·전문 용어·AI 표기`);
+  assert.ok(Array.isArray(R.SAMPLE_SUMMARY[p]) && R.SAMPLE_SUMMARY[p].length >= 4, `${p}: 예시 해설`);
 }
-assert.equal(R.weatherOf(90).key, 'sun'); assert.equal(R.weatherOf(70).key, 'partly'); assert.equal(R.weatherOf(50).key, 'cloud'); assert.equal(R.weatherOf(30).key, 'rain');
+assert.ok(R.render(B.run(B.simulate('overload', { seed: 7 })), {}).includes('감정/스트레스 과부하형'));
 
 console.log('newbiz-battery tests passed');

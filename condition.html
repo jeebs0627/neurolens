@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="description" content="웹캠 8분으로 오늘의 마음 컨디션 — 또렷함·집중 조절·마음의 시선·몸의 회복력을 측정하고 맞춤 케어로 이어 주는 NeuroLens 마인드 컨디션 검사 (In_mind 엔진)." />
+<meta name="description" content="웹캠으로 약 8분, 오늘의 마음 컨디션을 확인해 보세요. 또렷함·집중 조절·마음의 시선·몸의 회복력을 재고, 결과에 맞춘 케어 플랜까지 알려 드리는 NeuroLens 마인드 컨디션 검사." />
 <title>마인드 컨디션 검사 | NeuroLens</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E1A33'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,6 +14,7 @@
   In_mind 엔진: 신호처리 newbiz-core.js · 채점·통합 해석·품질 관리 newbiz-battery.js · 리포트 newbiz-report.js · 연구 데이터 newbiz-research.js
   (newbiz.html 은 이 페이지로 이동하는 이전 MVP 주소)
   테스트: node newbiz-core.test.js && node newbiz-battery.test.js
+  배경 이미지: img/condition-hero.webp|jpg (원본 bgimage001.png)
 -->
 <style>
 :root{
@@ -91,8 +92,6 @@ h3{font-size:16px;margin:0 0 8px}
 .modes label:has(input:checked){border-color:var(--blue);background:var(--blue-soft)}
 .modes input{accent-color:var(--blue)}
 .est{font-size:13.5px;color:var(--ink-2);margin-top:10px}
-.consent{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border-radius:13px;background:#F7F9FC;border:1px solid var(--line);color:var(--ink-2);font-size:13.5px;margin-top:18px}
-.consent input{margin-top:4px;width:18px;height:18px;accent-color:var(--blue)}
 .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
 .btn{border:0;border-radius:12px;padding:13px 24px;font-weight:800;font-size:15px;background:var(--blue);color:#fff;box-shadow:0 6px 16px rgba(31,79,216,.22);transition:background .15s}
 .btn:hover:not(:disabled){background:var(--blue-2)}
@@ -342,66 +341,6 @@ html.staging,html.staging body{overflow:hidden}
 .bio .hrbig span{font-size:13.5px;color:var(--muted)}
 .bio svg.spark{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(520px,86vw);height:70px}
 .bio .cue{bottom:8%}
-/* ---------- 간편 보고서 ---------- */
-.vt{display:flex;gap:6px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:16px;margin:0 0 14px;box-shadow:var(--shadow)}
-.vt button{flex:1;border:0;background:transparent;border-radius:11px;padding:11px 10px;font-weight:800;font-size:15px;color:var(--muted)}
-.vt button[aria-selected="true"]{background:var(--ink);color:#fff}
-.sp{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;animation:fadeIn .4s ease}
-.sp>*,.sp-grid>*,.sp-two>*{min-width:0}
-.sp-todo label span{min-width:0;word-break:keep-all;overflow-wrap:anywhere}
-#sReport{min-width:0;overflow-wrap:anywhere}
-.sp-k{display:block;font-size:12.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin-bottom:6px}
-.sp-hero{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-radius:26px;padding:30px 32px;color:#0E1A33;overflow:hidden;position:relative}
-.sp-sun{background:linear-gradient(135deg,#FFF4D6,#FFE3A3 55%,#FFD27A)}
-.sp-partly{background:linear-gradient(135deg,#EAF3FF,#D7E8FF 55%,#FFE9B8)}
-.sp-cloud{background:linear-gradient(135deg,#EEF1F6,#DCE3EE)}
-.sp-rain{background:linear-gradient(135deg,#E3EAF5,#C9D6EA)}
-.sp-na{background:#EEF1F6}
-.sp-hero h2{font-size:42px;margin:2px 0 4px;letter-spacing:-.03em}
-.sp-hero p{margin:0;font-size:16px;color:#2B3754}
-.sp-score{display:flex;align-items:baseline;gap:8px;margin-top:16px}
-.sp-score b{font-family:var(--font-num);font-size:54px;line-height:1}
-.sp-score span{font-size:13px;color:#4A5672;font-weight:700}
-.sp-type{display:inline-block;margin-top:10px;background:rgba(255,255,255,.7);border-radius:999px;padding:5px 14px;font-weight:800;font-size:14px}
-.w-ico{width:min(190px,36vw);height:auto}
-.w-sun{transform-origin:80px 80px;animation:orbit 30s linear infinite}
-.w-cloud{animation:cloudBob 5s ease-in-out infinite}
-@keyframes cloudBob{50%{transform:translateY(-4px)}}
-.w-rain line{animation:rainDrop 1.1s linear infinite}
-@keyframes rainDrop{from{transform:translateY(-6px);opacity:0}50%{opacity:1}to{transform:translateY(8px);opacity:0}}
-.sp-safe{padding:14px 16px;border-radius:16px;background:#FCEEF1;border:1px solid #F2C9D3;color:#7A2238;font-size:14.5px}
-.sp-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 20px;box-shadow:var(--shadow)}
-.sp-ai p{margin:0;font-size:16px;line-height:1.8;word-break:keep-all}
-.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.sp-dom{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow);border-top:5px solid var(--dc)}
-.sp-dom-h{display:flex;gap:10px;align-items:flex-start}
-.sp-emo{font-size:30px;line-height:1}
-.sp-dom-h b{display:block;font-size:18px}
-.sp-dom-h small{display:block;font-size:12px;color:var(--muted);line-height:1.45;word-break:keep-all}
-.sp-meter{display:flex;gap:5px;margin:14px 0 6px}
-.sp-meter i{flex:1;height:12px;border-radius:6px;background:#EEF1F6}
-.sp-meter i.on{background:var(--dc);animation:meterIn .5s cubic-bezier(.2,.8,.2,1) both}
-@keyframes meterIn{from{transform:scaleY(.2);opacity:0}}
-.sp-st-watch .sp-meter i.on{opacity:.85}.sp-st-concern .sp-meter i.on{opacity:.75}
-.sp-lv{display:flex;justify-content:space-between;align-items:baseline}
-.sp-lv b{font-size:17px}.sp-lv span{font-family:var(--font-num);color:var(--muted);font-weight:700}
-.sp-dom p{margin:8px 0 0;font-size:14.5px;color:var(--ink-2);word-break:keep-all}
-.sp-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.sp-chips{display:flex;gap:6px;flex-wrap:wrap}
-.sp-chips span{background:#E9F6EF;color:#1C6E49;border-radius:999px;padding:7px 13px;font-weight:800;font-size:14px}
-.sp-chips.warm span{background:#FFF3DF;color:#8A5508}
-.sp-m{margin:8px 0 0;font-size:13px;color:var(--muted);word-break:keep-all}
-.sp-feel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px;font-weight:700;padding:8px 0;border-bottom:1px dashed var(--line)}
-.sp-feel i{font-style:normal;color:var(--muted)}
-.sp-todo ul{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:8px}
-.sp-todo label{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;font-size:15px;transition:background .15s,border-color .15s}
-.sp-todo input{width:22px;height:22px;accent-color:var(--care);flex:none}
-.sp-todo label:has(input:checked){background:var(--care-soft);border-color:var(--care-line)}
-.sp-todo label:has(input:checked) span{text-decoration:line-through;color:var(--muted)}
-.sp-next{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
-.sp-next b{font-size:22px}
-.sp-disc{text-align:center;font-size:12px;color:var(--muted);margin:4px 0 10px}
-@media (max-width:820px){.sp-hero{grid-template-columns:1fr;padding:24px 20px}.sp-hero-v{justify-self:center;order:-1}.sp-grid,.sp-two{grid-template-columns:1fr}.sp-hero h2{font-size:34px}}
 /* ---------- 리포트 대시보드 ---------- */
 #sReport{animation:fadeIn .4s ease}
 .rnav{position:sticky;top:61px;z-index:15;display:flex;gap:4px;overflow-x:auto;padding:8px;margin:0 0 14px;background:rgba(243,245,249,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;scrollbar-width:none}
@@ -464,7 +403,6 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .dcard.wide{grid-column:span 2}
 .dcard-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .dcard-h h3{margin:0;font-size:16px}
-.radar{max-width:440px;margin:auto}
 .split{display:grid;grid-template-columns:1.05fr 1fr;gap:26px;align-items:center}
 .dlist{display:grid;gap:10px}
 .dl-r{display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#FAFBFD;transition:border-color .15s,transform .15s}
@@ -493,15 +431,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .legend i{width:12px;height:12px;border-radius:4px;display:inline-block}
 .legend i.dash{border-top:2px dashed #8A93A8;height:0;border-radius:0;width:16px}
 .legend i.hollow{border:2.5px solid #4a3aa7;border-radius:50%;background:#fff;width:11px;height:11px}
-.imap{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
-.imap-h{display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:4px}
-.imap-r{display:grid;grid-template-columns:150px 1fr 82px;gap:10px;align-items:center;padding:4px 0;font-size:12.5px}
-.imap-l{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.imap-l em{font-style:normal;font-size:9.5px;font-weight:800;color:#4a3aa7;background:#F0EDFF;border-radius:4px;padding:0 4px;margin-left:4px}
-.imap-t{height:8px;border-radius:9px;background:#EEF1F6;overflow:hidden;position:relative}
-.imap-t i{display:block;height:100%;border-radius:9px;animation:barIn .9s cubic-bezier(.2,.8,.2,1)}
 @keyframes barIn{from{width:0}}
-.imap-v{font-size:11.5px;font-weight:700;color:var(--ink-2);text-align:right;white-space:nowrap}
 /* 영역 섹션 */
 .card.dom{border-top:3px solid var(--dc,var(--line))}
 .dom-ring{flex:none}
@@ -515,20 +445,10 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .st-b-ok{border-left-color:#2F9E6A}.st-b-watch{border-left-color:#C98A12}.st-b-concern{border-left-color:#D2486A}
 .dtl{margin-top:16px}
 .qtag.nx{color:#1F5E52}
-.xpl{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 14px;background:#FCFDFE}
-.xpl-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:13.5px}
-.xpl-bar{display:flex;height:12px;border-radius:9px;overflow:hidden;background:#EEF1F6;margin:8px 0 10px;gap:2px}
-.xpl-bar i{display:block;height:100%}
-.xpl-lost{display:block;height:100%;background:repeating-linear-gradient(135deg,#EEF1F6 0 4px,#E1E6EE 4px 8px)}
-.xpl-rows{display:grid;gap:4px}
-.xpl-r{display:grid;grid-template-columns:10px 1.4fr 70px 76px 1.3fr;gap:10px;align-items:center;font-size:12.5px}
-.xdot{width:10px;height:10px;border-radius:3px}
-.xl{color:var(--ink-2)}.xs{color:var(--muted)}.xp{font-family:var(--font-num);color:var(--muted)}.xp b{color:var(--ink)}
-.xn{color:#1F5E52;font-size:12px}
 .ctx{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .ctx-c{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#FAFBFD}
 .ctx-c span{display:block;font-size:11.5px;color:var(--muted);font-weight:700}.ctx-c b{font-size:14px}
-@media (max-width:820px){.xpl-r{grid-template-columns:10px 1fr 64px;}.xpl-r .xs,.xpl-r .xn{display:none}.ctx{grid-template-columns:1fr}}
+@media (max-width:820px){.ctx{grid-template-columns:1fr}}
 /* 케어 */
 .tracks{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
 .tracks .track{margin:0}
@@ -542,8 +462,6 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .rs-phq{display:block;margin-top:6px;font-size:13px}
 .rs-banner{margin-top:12px;padding:12px 15px;border-radius:12px;background:var(--care-soft);border:1px solid var(--care-line);font-size:13.5px;color:#1F5E52;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .rs-banner code{font-size:13px;background:#fff}
-.ai-opt{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:13px;background:#F5F3FF;border:1px solid #DDD5FF;color:var(--ink-2);font-size:13.5px;margin-top:10px}
-.ai-opt input{margin-top:4px;width:18px;height:18px;accent-color:#4a3aa7}
 @media (max-width:820px){
   .rhero{padding:24px 20px}.rhero-main{grid-template-columns:1fr;justify-items:center;text-align:center}.rhero-t{font-size:26px}
   .rdoms,.rmeta{grid-template-columns:1fr 1fr}.dgrid,.imap,.split{grid-template-columns:1fr}.dcard.wide{grid-column:auto}
@@ -739,6 +657,241 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
   .brief h2{font-size:21px}
 }
 @media print{.nav,.btns,.no-print,.qa{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid-page}.method{break-inside:avoid}}
+/* ================= 2026-10 개편: 첫 화면 · 자기보고 · 통합 리포트 ================= */
+.eyebrow{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-num);font-size:11.5px;font-weight:800;letter-spacing:.12em;color:var(--blue);text-transform:uppercase}
+/* 첫 화면: 사진을 오른쪽에 두고 왼쪽 밝은 바탕으로 자연스럽게 번지게 */
+.lp-hero{position:relative;overflow:hidden;border-radius:28px;background:linear-gradient(120deg,#F7FAFF 0%,#EEF4FD 45%,#E4EEFB 100%);color:var(--ink);padding:0;margin-bottom:16px;min-height:540px;box-shadow:0 24px 60px rgba(14,26,51,.10);border:1px solid #E1E8F4}
+.lp-hero::after{display:none}
+.lp-bg{position:absolute;top:0;right:0;bottom:0;width:62%}
+.lp-bg picture,.lp-bg img{display:block;width:100%;height:100%}
+.lp-bg img{object-fit:cover;object-position:50% 24%;-webkit-mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.55) 22%,#000 46%);mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.55) 22%,#000 46%)}
+.lp-in{position:relative;z-index:1;max-width:520px;padding:58px 0 50px 52px}
+.lp-hero .kicker{color:var(--blue)}
+.lp-hero h1{font-size:40px;line-height:1.28;margin:14px 0 16px;color:var(--ink);letter-spacing:-.03em}
+.lp-hero h1 em{font-style:normal;background:linear-gradient(90deg,#1F4FD8,#1baf7a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lp-hero .lead{color:var(--ink-2);font-size:16.5px;line-height:1.75}
+.lp-stats{display:grid;grid-template-columns:repeat(4,auto);gap:10px;justify-content:start;margin:24px 0 28px}
+.lp-stats div{background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid rgba(214,224,240,.9);border-radius:14px;padding:10px 14px;box-shadow:0 4px 14px rgba(14,26,51,.05)}
+.lp-stats div b{display:block;font-size:17px;color:var(--ink);line-height:1.2;font-family:var(--font-kr);font-weight:800}
+.lp-stats div span{font-size:12px;color:var(--muted)}
+.lp-cta .btn{background:var(--blue);color:#fff;box-shadow:0 10px 24px rgba(31,79,216,.28);padding:15px 28px;font-size:16px}
+.lp-cta .btn:hover{background:var(--blue-2)}
+.lp-cta .btn.ghost{background:rgba(255,255,255,.85);color:var(--blue);border-color:#C7D4F7;box-shadow:none}
+.lp-cta .btn.ghost:hover{background:#fff}
+.gets{grid-template-columns:repeat(4,1fr)}
+.get h3{font-size:17px}
+.gain{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.gain div{background:linear-gradient(180deg,#fff,#F8FAFD);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+.gain b{display:block;font-size:14px}
+.gain span{font-size:12.5px;color:var(--muted)}
+.loop{grid-template-columns:repeat(4,1fr)}
+.prep{grid-template-columns:repeat(3,1fr)}
+.modes label{flex:1;min-width:220px;padding:14px 16px;border-radius:14px;align-items:flex-start}
+.modes label span b{display:block;font-size:15px}
+.modes label span small{display:block;font-size:12.5px;color:var(--muted)}
+.modes input{margin-top:4px}
+.cfg{margin-top:14px;border:1px solid var(--line);border-radius:13px;padding:10px 16px;background:#FAFBFD}
+.cfg summary{cursor:pointer;font-weight:800;font-size:14px;color:var(--ink-2)}
+.cfg .btbl{margin-top:8px}
+.notice{display:flex;gap:12px;align-items:flex-start;margin-top:16px;padding:14px 16px;border-radius:14px;background:#F2F6FC;border:1px solid #DCE5F3;color:var(--ink-2)}
+.notice svg{width:22px;height:22px;flex:none;color:var(--blue);margin-top:2px}
+.notice p{margin:0;font-size:13.5px;line-height:1.7;word-break:keep-all}
+/* 진행 단계 */
+.flow{list-style:none;display:flex;gap:6px;margin:0 0 16px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow-x:auto}
+.flow li{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;font-size:13.5px;font-weight:700;color:var(--muted);padding:9px 12px;border-radius:11px}
+.flow li i{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-num);font-size:11.5px;background:#EEF1F6;color:var(--muted)}
+.flow li.on{background:var(--ink);color:#fff}.flow li.on i{background:#fff;color:var(--ink)}
+.flow li.done{color:var(--care)}.flow li.done i{background:var(--care-soft);color:var(--care)}
+/* 자기보고 */
+.ck{padding:34px 38px}
+.ck-head{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;padding-bottom:22px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+.ck-head h2{font-size:25px;margin:8px 0 8px}
+.ck-prog{display:flex;align-items:center;gap:12px;background:#F7F9FC;border:1px solid var(--line);border-radius:18px;padding:12px 18px}
+.ck-prog svg{width:58px;height:58px}
+.ck-prog #ckRing{transition:stroke-dasharray .4s cubic-bezier(.2,.8,.2,1)}
+.ck-prog b{display:block;font-family:var(--font-num);font-size:22px;line-height:1.1}
+.ck-prog span{font-size:12px;color:var(--muted);font-weight:700}
+.ck-q{padding:22px 0 20px;border-bottom:1px solid #EEF1F6}
+.ck-qh{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.ck-qh b{font-size:16.5px;word-break:keep-all}
+.ck-n{font-family:var(--font-num);font-size:12px;font-weight:800;color:var(--blue);background:var(--blue-soft);border-radius:8px;padding:3px 8px}
+.ck-pick{margin-left:auto;font-style:normal;font-size:13px;font-weight:800;color:var(--blue);background:var(--blue-soft);border-radius:999px;padding:4px 12px;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s}
+.ck-pick.on{opacity:1;transform:none}
+.scale{display:grid;gap:8px}
+.scale.s9{grid-template-columns:repeat(9,1fr)}
+.scale.s5{grid-template-columns:repeat(5,1fr);max-width:640px}
+.scale button{aspect-ratio:auto;max-height:none;min-height:58px;padding:8px 4px;border-radius:14px;border:1.5px solid #DCE3EE;background:linear-gradient(180deg,#fff,#F7F9FC);font-family:var(--font-num);font-weight:700;font-size:18px;color:var(--ink-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 1px 2px rgba(14,26,51,.04);transition:transform .15s,box-shadow .15s,border-color .15s,background .15s,color .15s;position:relative}
+.scale button small{font-family:var(--font-kr);font-size:11.5px;font-weight:700;color:var(--muted);line-height:1.25;word-break:keep-all}
+.scale button:hover{transform:translateY(-2px);border-color:#A9BCE8;box-shadow:0 6px 14px rgba(31,79,216,.10)}
+.scale button[aria-pressed="true"]{background:var(--sel,linear-gradient(135deg,#2a78d6,#1F4FD8));border-color:transparent;color:#fff;transform:translateY(-2px);box-shadow:0 10px 22px rgba(31,79,216,.24)}
+.scale button[aria-pressed="true"] small{color:rgba(255,255,255,.9)}
+.scale button[aria-pressed="true"]::after{content:'✓';position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#fff;color:var(--ink);font-size:11px;display:grid;place-items:center;box-shadow:0 2px 6px rgba(14,26,51,.18)}
+.scale.hue button::before{content:'';width:22px;height:5px;border-radius:9px;background:var(--hc);margin-bottom:3px;opacity:.9}
+.scale.hue button[aria-pressed="true"]::before{background:rgba(255,255,255,.8)}
+.ends{font-size:12.5px;margin-top:8px}
+.choice{gap:8px}
+.choice button{border:1.5px solid #DCE3EE;background:linear-gradient(180deg,#fff,#F7F9FC);border-radius:13px;padding:11px 18px;font-size:14.5px;font-weight:700;color:var(--ink-2);transition:transform .15s,box-shadow .15s,border-color .15s,background .15s}
+.choice button:hover{transform:translateY(-1px);border-color:#A9BCE8;box-shadow:0 6px 14px rgba(31,79,216,.10)}
+.choice button[aria-pressed="true"]{background:linear-gradient(135deg,#2a78d6,#1F4FD8);border-color:transparent;color:#fff;box-shadow:0 8px 18px rgba(31,79,216,.24)}
+.choice button[aria-pressed="true"]::before{content:'✓ '}
+.phq{margin-top:26px;padding:22px 24px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#FAFBFE,#fff)}
+.phq-h h3{margin:4px 0 0;font-size:17px}
+.phq-item{border-bottom:1px solid #EEF1F6}
+.phq-opts{gap:8px}
+.phq-opts button{border:1.5px solid #DCE3EE;background:#fff;border-radius:12px;padding:10px 6px;font-size:13px;font-weight:700;transition:transform .15s,box-shadow .15s,border-color .15s,background .15s}
+.phq-opts button:hover{transform:translateY(-1px);border-color:#A9BCE8}
+.phq-opts button[aria-pressed="true"]{background:linear-gradient(135deg,#2a78d6,#1F4FD8);border-color:transparent;color:#fff;box-shadow:0 6px 14px rgba(31,79,216,.22)}
+.phq-opts button small{display:none}
+.ck-foot{justify-content:space-between;border-top:1px solid var(--line);padding-top:20px}
+/* 리포트 · 첫머리 */
+.rhero{background:radial-gradient(900px 380px at 88% -20%,rgba(116,149,255,.38),transparent 60%),radial-gradient(600px 300px at 0% 120%,rgba(27,175,122,.18),transparent 60%),linear-gradient(135deg,#0B1530 0%,#162B57 60%,#1D3A73 100%)}
+.rhero-main{grid-template-columns:auto 1fr}
+.rhero-gauge{position:relative}
+.rhero-cap{font-size:12px;font-weight:800;color:#9FB0D6;letter-spacing:.06em}
+.rhero-type p{font-size:15px;line-height:1.75}
+.rdom{display:flex;flex-direction:column;gap:8px}
+.rdom-h{display:flex;gap:9px;align-items:center}
+.rdom-h b{font-size:14.5px}
+.rdom-b{display:flex;align-items:baseline;gap:10px;margin:0}
+.rdom-s{font-family:var(--font-num);font-size:30px;line-height:1}
+.rdom-bar{height:5px;border-radius:9px;background:rgba(255,255,255,.12);overflow:hidden}
+.rdom-bar i{display:block;height:100%;border-radius:9px;animation:barIn .9s cubic-bezier(.2,.8,.2,1)}
+.rdom p{margin:0;font-size:12.5px;color:#C9D5F2;line-height:1.55;word-break:keep-all}
+/* 종합 해설 */
+.ai-h h2{font-size:21px}
+.ai-ico svg{width:22px;height:22px}
+.ai-body p:first-child{font-size:16.5px}
+.ai-f{margin:6px 0 0;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.ai-body .err .sbtn{margin-left:6px}
+/* 네 영역 한눈에 */
+.zb{display:grid;gap:4px}
+.zb-r{display:grid;grid-template-columns:minmax(180px,250px) 1fr 76px;gap:18px;align-items:center;padding:12px 10px;border-radius:14px;text-decoration:none;color:inherit;transition:background .15s}
+.zb-r:hover{background:#F6F8FC}
+.zb-l{display:flex;gap:10px;align-items:center;min-width:0}
+.zb-l b{display:block;font-size:15px}
+.zb-l small{display:block;font-size:12px;color:var(--muted);line-height:1.4;word-break:keep-all}
+.zb-t{position:relative;display:flex;height:14px;border-radius:9px;overflow:visible;margin-top:14px}
+.zb-t>span{height:100%}
+.zb-t .z1{width:40%;background:#FBE3E9;border-radius:9px 0 0 9px}.zb-t .z2{width:30%;background:#FDF0D5}.zb-t .z3{width:30%;background:#DDF2E8;border-radius:0 9px 9px 0}
+.zb-pin{position:absolute;top:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:var(--c);box-shadow:0 0 0 4px #fff,0 6px 14px rgba(14,26,51,.25);animation:pinIn .8s cubic-bezier(.2,.8,.2,1) both}
+.zb-pin b{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);font-family:var(--font-num);font-size:13px;font-weight:800;color:#fff;background:var(--c);border-radius:8px;padding:1px 7px;white-space:nowrap}
+.zb-prev{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed #8A93A8;transform:translateX(-1px)}
+@keyframes pinIn{from{left:0;opacity:0}}
+.zb-ax{display:grid;grid-template-columns:minmax(180px,250px) 1fr 76px;gap:18px;padding:0 10px;font-size:11px;color:var(--muted);font-weight:700}
+.zb-ax>div{display:flex}.zb-ax>div span{text-align:center}.zb-ax>div span:nth-child(1){width:40%}.zb-ax>div span:nth-child(2),.zb-ax>div span:nth-child(3){width:30%}
+.legend i.pin{width:12px;height:12px;border-radius:50%;background:#2a78d6;box-shadow:0 0 0 2px #fff,0 0 0 3px #CCD5E5}
+/* 느끼는 나 vs 측정한 나 */
+.svm{gap:16px}
+.svm-r{grid-template-columns:150px 1fr;gap:16px}
+.svm-l span{font-size:11.5px;color:var(--muted);font-weight:700}
+.svm-l span.big{color:#A2304A}
+.svm-t{height:10px;background:linear-gradient(90deg,#F4F6FA,#EAF0F8)}
+.svm-gap{background:#C9D2E2}
+.svm-m{width:18px;height:18px;box-shadow:0 0 0 3px #fff,0 4px 10px rgba(14,26,51,.2)}
+.note-l{margin-top:10px;padding:11px 14px;border-radius:12px;background:#F5F7FB;border:1px solid var(--line);font-size:13.5px;color:var(--ink-2);word-break:keep-all;line-height:1.65}
+.note-l.hi{background:#F5F2FF;border-color:#DDD5FF;color:#3E2E8F}
+.note-l b{margin-right:4px}
+/* 영역별 결과 */
+.dom-h h2{font-size:24px;margin:6px 0 6px}
+.dom-say{margin:4px 0 18px;padding:14px 18px;border-radius:14px;font-size:15.5px;font-weight:700;background:#F7F9FC;border-left:5px solid #A3ABBD;word-break:keep-all}
+.dom-say.st-b-ok{background:#EFF8F3;border-left-color:#2F9E6A;color:#1C5E40}.dom-say.st-b-watch{background:#FFF8EA;border-left-color:#C98A12;color:#6B4708}.dom-say.st-b-concern{background:#FCEFF2;border-left-color:#D2486A;color:#7A2238}
+.sb{border:1px solid var(--line);border-radius:18px;padding:18px 20px;background:linear-gradient(180deg,#FCFDFF,#fff)}
+.sb-h b{font-size:15.5px}
+.sb-h p{margin:4px 0 14px;font-size:13px;color:var(--muted);word-break:keep-all}
+.sb-rows{display:grid;gap:10px}
+.sb-r{display:grid;grid-template-columns:minmax(150px,230px) 1fr 82px;gap:16px;align-items:center;padding:8px 10px;border-radius:12px}
+.sb-r.worst{background:#FFF6F7;box-shadow:inset 0 0 0 1px #F6D3DB}
+.sb-l b{display:block;font-size:14px}
+.sb-l small{display:block;font-size:11.5px;color:var(--muted);line-height:1.4;word-break:keep-all}
+.sb-slot{display:block;height:16px;border-radius:9px;background:repeating-linear-gradient(135deg,#EEF1F6 0 5px,#E5E9F0 5px 10px);overflow:hidden;box-shadow:inset 0 1px 2px rgba(14,26,51,.08)}
+.sb-slot i{display:block;height:100%;border-radius:9px;animation:barIn 1s cubic-bezier(.2,.8,.2,1)}
+.sb-v{text-align:right;white-space:nowrap}
+.sb-v b{font-family:var(--font-num);font-size:18px}
+.sb-v small{font-size:12px;color:var(--muted);margin-left:3px}
+.sb-sum{display:grid;grid-template-columns:minmax(150px,230px) 1fr 82px;gap:16px;align-items:center;margin-top:12px;padding:12px 10px 0;border-top:1.5px dashed var(--line)}
+.sb-sum>span{font-weight:800;font-size:14px}
+.sb-total{height:20px;border-radius:10px;background:#EEF1F6;overflow:hidden}
+.sb-total i{display:block;height:100%;border-radius:10px;animation:barIn 1.1s cubic-bezier(.2,.8,.2,1)}
+.sb-sum b{text-align:right;font-family:var(--font-num);font-size:22px;white-space:nowrap}
+.sb-sum b small{font-size:12px;color:var(--muted)}
+.sb-tip{margin:12px 0 0;font-size:13.5px;color:#8C2440;word-break:keep-all}
+.sb-tip.ok{color:#1C6E49}
+.dom-try{margin-top:16px;padding:14px 18px;border-radius:14px;background:var(--care-soft);border:1px solid var(--care-line)}
+.dom-try span{font-size:11.5px;font-weight:800;color:var(--care);letter-spacing:.04em}
+.dom-try b{display:block;font-size:15px;margin-top:2px;color:#124F45}
+.dom-try p{margin:4px 0 0;font-size:13.5px;color:var(--ink-2);word-break:keep-all}
+/* 2축 유형 (입체) */
+.q3-wrap{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;align-items:center;margin-top:18px;padding:18px;border-radius:20px;background:radial-gradient(500px 260px at 30% 0%,#F3F6FD,#fff 70%);border:1px solid var(--line)}
+.q3{max-width:520px;margin:auto;overflow:visible}
+.q3-t{transition:transform .3s}
+.q3-me{animation:q3float 3.2s ease-in-out infinite}
+@keyframes q3float{50%{transform:translateY(-4px)}}
+.q3-pulse{transform-box:fill-box;transform-origin:center;animation:q3pulse 2.2s ease-out infinite}
+@keyframes q3pulse{from{transform:scale(.6);opacity:.9}to{transform:scale(1.8);opacity:0}}
+.q3-txt b{display:block;font-size:22px;margin:6px 0 2px;letter-spacing:-.02em}
+.q3-txt em{display:block;font-style:normal;font-weight:700;color:var(--violet);font-size:14px}
+.q3-txt p{font-size:14px;color:var(--ink-2);word-break:keep-all;margin:10px 0 0}
+/* 케어 플랜 */
+.card.care{background:linear-gradient(180deg,#F6FBF9,#fff 260px);border-color:var(--care-line)}
+.tracks{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:6px}
+.ct{border:1px solid var(--line);border-top:4px solid var(--dc);border-radius:18px;padding:18px 20px;background:#fff;box-shadow:var(--shadow)}
+.ct.safe{background:#FFF8FA;border-color:#F2C9D3;border-top-color:#D2486A}
+.ct-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ct-h b{font-size:17px}
+.ct-rank{font-size:12px;font-weight:800;color:#fff;background:var(--dc);border-radius:8px;padding:3px 9px}
+.ct.safe .ct-rank{background:#B23A57}
+.ct-why{margin:10px 0 12px;font-size:13.5px;color:var(--ink-2);word-break:keep-all;background:#F7F9FC;border-radius:10px;padding:9px 12px}
+.ct-items{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ct-items label{display:grid;grid-template-columns:22px 28px 1fr;gap:10px;align-items:start;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;transition:background .15s,border-color .15s}
+.ct-items input{width:20px;height:20px;margin:3px 0 0;accent-color:var(--care)}
+.ct-n{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-family:var(--font-num);font-weight:800;font-size:13px;color:var(--dc);background:#F2F5FA}
+.ct-b b{font-size:14.5px}
+.ct-b em{font-style:normal;font-size:11.5px;font-weight:800;color:var(--care);background:var(--care-soft);border-radius:999px;padding:2px 8px;margin-left:6px;white-space:nowrap}
+.ct-b small{display:block;font-size:13px;color:var(--ink-2);margin-top:3px;line-height:1.6;word-break:keep-all}
+.ct-items label:has(input:checked){background:var(--care-soft);border-color:var(--care-line)}
+.ct-items label:has(input:checked) .ct-b b{text-decoration:line-through;color:var(--muted)}
+.ct-f{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;color:#1F5E52}
+.next-m{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:18px;padding:18px 20px;border-radius:16px;background:#fff;border:1px solid var(--care-line)}
+.next-m b{display:block;font-size:22px;margin-top:2px}
+.roadmap li{background:#fff}
+/* 부록 */
+.appx h2{margin-top:6px}
+.ax{border:1px solid var(--line);border-radius:14px;margin-top:10px;background:#FAFBFD;overflow:hidden}
+.ax>summary{cursor:pointer;padding:14px 18px;font-weight:800;font-size:14.5px;color:var(--ink-2);list-style:none;display:flex;justify-content:space-between;align-items:center}
+.ax>summary::-webkit-details-marker{display:none}
+.ax>summary::after{content:'+';font-family:var(--font-num);font-size:18px;color:var(--muted)}
+.ax[open]>summary::after{content:'−'}
+.ax[open]{background:#fff}
+.ax>:not(summary){margin-left:18px;margin-right:18px}
+.ax>:last-child{margin-bottom:16px}
+.ax-d{padding:14px 0;border-top:1px solid var(--line)}
+.ax-d h4{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;font-size:15px}
+.ainfo{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 0}
+.ainfo div{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#FAFBFD}
+.ainfo dt{font-size:11.5px;color:var(--muted);font-weight:700}.ainfo dd{margin:2px 0 0;font-size:13.5px;font-weight:700}
+ol.refs{padding-left:22px;margin:8px 0 0}
+ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word-break:break-word}
+@media (max-width:980px){.gets,.gain{grid-template-columns:1fr 1fr}.lp-bg{width:70%}}
+@media (max-width:820px){
+  .lp-hero{min-height:0}
+  .lp-bg{position:relative;width:100%;height:300px}
+  .lp-bg img{object-position:50% 20%;-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 100%);mask-image:linear-gradient(180deg,#000 55%,transparent 100%)}
+  .lp-in{padding:0 20px 30px;margin-top:-40px}
+  .lp-hero h1{font-size:28px}
+  .lp-stats{grid-template-columns:1fr 1fr}
+  .gets,.gain,.loop,.prep{grid-template-columns:1fr}
+  .ck{padding:24px 18px}.ck-head{grid-template-columns:1fr}.ck-prog{justify-self:start}
+  .scale.s9{grid-template-columns:repeat(5,1fr)}
+  .scale button small{font-size:10.5px}
+  .ck-pick{margin-left:0}
+  .zb-r,.zb-ax{grid-template-columns:1fr 64px}.zb-l{grid-column:1/-1}.zb-ax>span:first-child{display:none}
+  .sb-r,.sb-sum{grid-template-columns:1fr 70px}.sb-l{grid-column:1/-1}.sb-sum>span{grid-column:1/-1}
+  .svm-r{grid-template-columns:1fr}
+  .q3-wrap{grid-template-columns:1fr;padding:12px}
+  .ainfo{grid-template-columns:1fr 1fr}
+  .flow li{flex:none}
+}
+@media print{.ax{break-inside:avoid}.ax>summary::after{display:none}}
 </style>
 </head>
 <body>
@@ -752,108 +905,87 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 <!-- 1. 소개 -->
 <section id="sIntro">
   <div class="lp-hero">
-    <div class="lp-grid">
-      <div>
-        <div class="kicker">Mind Condition Test · Powered by In_mind</div>
-        <div class="lp-name">마인드 컨디션 검사</div>
-        <h1>웹캠 8분으로<br><em>지친 건지, 흔들린 건지,<br>긴장한 건지</em> 구분해 드립니다</h1>
-        <p class="lead">자체 엔진 <b style="color:#fff">In_mind</b>가 눈꺼풀 · 시선 · 반응 속도 · 얼굴 심박을 학술 표준 과제 7종으로 측정해 <b style="color:#fff">또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력</b> 네 영역을 하나의 모델로 해석하고, 가장 먼저 다룰 영역에 맞춘 케어와 재측정 목표까지 정해 드려요.</p>
-        <div class="lp-stats">
-          <div><b>4</b><span>자기조절 영역</span></div>
-          <div><b>7</b><span>검증된 검사 패러다임</span></div>
-          <div><b>19</b><span>판정 지표 · 근거 문헌 연결</span></div>
-          <div><b>0</b><span>서버로 보내는 영상</span></div>
-        </div>
-        <div class="lp-cta">
-          <button class="btn" type="button" id="toSetup">검사 구성하고 시작하기 ↓</button>
-          <button class="btn ghost" type="button" id="toSample">예시 리포트 보기</button>
-        </div>
+    <div class="lp-bg" aria-hidden="true"><picture><source srcset="img/condition-hero.webp" type="image/webp"><img src="img/condition-hero.jpg" alt="" fetchpriority="high"></picture></div>
+    <div class="lp-in">
+      <div class="kicker">Mind Condition Test</div>
+      <h1>오늘 내 마음 컨디션,<br><em>눈과 심박으로</em> 확인해 보세요</h1>
+      <p class="lead">웹캠으로 눈의 움직임과 반응 속도, 얼굴에 비치는 심박을 재서 지금의 피로도·집중력·마음 상태·긴장 회복력을 알려 드려요. 결과에 맞춘 관리 방법까지 함께 정리해 드립니다.</p>
+      <div class="lp-stats">
+        <div><b>약 8분</b><span>측정 시간</span></div>
+        <div><b>4가지</b><span>컨디션 영역</span></div>
+        <div><b>7종</b><span>검증된 검사 과제</span></div>
+        <div><b>저장 없음</b><span>카메라 영상</span></div>
       </div>
-      <div class="lp-vis" aria-hidden="true">
-        <svg viewBox="0 0 340 340">
-          <defs><radialGradient id="lpg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#3D5FA8" stop-opacity=".55"/><stop offset="1" stop-color="#3D5FA8" stop-opacity="0"/></radialGradient></defs>
-          <circle cx="170" cy="170" r="160" fill="url(#lpg)"/>
-          <circle cx="170" cy="170" r="128" fill="none" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 6"/>
-          <g class="lp-orbit">
-            <circle cx="170" cy="42" r="15" fill="#3C6FE0"/><text x="170" y="47" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">01</text>
-            <circle cx="298" cy="170" r="15" fill="#6A4FD8"/><text x="298" y="175" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">02</text>
-            <circle cx="170" cy="298" r="15" fill="#C9577A"/><text x="170" y="303" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">03</text>
-            <circle cx="42" cy="170" r="15" fill="#1E8A7A"/><text x="42" y="175" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="Sora">04</text>
-          </g>
-          <path d="M100 166 Q170 108 240 166 Q170 224 100 166Z" fill="rgba(255,255,255,.08)" stroke="#fff" stroke-width="3"/>
-          <g class="lp-iris"><circle cx="170" cy="166" r="22" fill="#9DB6FF"/><circle cx="170" cy="166" r="9" fill="#0E1A33"/><circle cx="176" cy="160" r="3.5" fill="#fff"/></g>
-          <path class="lp-ecg" d="M78 236 H130 L140 222 L150 252 L160 214 L170 236 H262" fill="none" stroke="#7FE0C8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle class="lp-node" cx="96" cy="92" r="4" fill="#9DB6FF"/><circle class="lp-node" cx="250" cy="96" r="4" fill="#7FE0C8" style="animation-delay:1s"/><circle class="lp-node" cx="252" cy="250" r="4" fill="#F0A3B8" style="animation-delay:2s"/>
-        </svg>
+      <div class="lp-cta">
+        <button class="btn" type="button" id="toSetup">검사 시작하기</button>
+        <button class="btn ghost" type="button" id="toSample">예시 리포트 보기</button>
       </div>
     </div>
   </div>
 
-  <div class="sec-h"><div><div class="kicker">What you get</div><h2>이 검사로 얻는 것</h2></div><p>“요즘 왜 이렇게 집중이 안 되지?”에 대한 답을, 느낌이 아니라 측정으로 드립니다.</p></div>
+  <div class="sec-h"><div><div class="kicker">What you'll see</div><h2>이 검사로 알 수 있는 것</h2></div><p>“요즘 왜 이렇게 집중이 안 될까?” 느낌만으로는 알기 어려운 부분을 네 가지 영역으로 나눠 살펴봐요.</p></div>
   <div class="gets">
-    <div class="get"><div class="gi" style="background:#EDF2FE"><svg viewBox="0 0 24 24" fill="none" stroke="#1F4FD8" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></div>
-      <h3>네 영역 점수와 통합 유형</h3><p>또렷함(각성) · 집중 조절(주의 통제) · 마음의 시선(정서 주의) · 몸의 회복력(자율신경 조절)을 0–100점으로 환산하고, ‘피로 회복 우선형’ ‘집중 흔들림형’ 같은 하나의 유형으로 요약해요.</p><div class="eg">예) 또렷함 52 · 집중 조절 61 → 피로 회복 우선형</div></div>
-    <div class="get"><div class="gi" style="background:#F0EDFF"><svg viewBox="0 0 24 24" fill="none" stroke="#6A4FD8" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 11 16.7 6M7.3 13l9.4 5"/></svg></div>
-      <h3>왜 그런지 — 영역 간 연결</h3><p>피로가 주의를 끌어내리는지, 걱정이 몸의 긴장을 늘리는지 등 영역 사이의 원인 경로를 학술 모델로 해석해요.</p><div class="eg">피로 게이팅 · 주의 통제 이론 · 신경내장 통합 · 지속 인지 가설</div></div>
-    <div class="get"><div class="gi" style="background:#FCEEF1"><svg viewBox="0 0 24 24" fill="none" stroke="#C93C5C" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M5 8l-3 4 3 4M19 8l3 4-3 4"/></svg></div>
-      <h3>느끼는 나 vs 측정된 나</h3><p>스스로 느끼는 졸림·긴장·최근 2주 기분(PHQ)과 실제 측정의 차이를 보여 줘요. 자각보다 먼저 나타나는 신호를 잡아냅니다.</p><div class="eg">예) “안 졸린데요” → 경과 반응 9회 · PERCLOS 14%</div></div>
-    <div class="get"><div class="gi" style="background:var(--care-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#167A6B" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-4.4-9-9C1.5 8.3 3.6 5 7 5c2 0 3.6 1.2 5 3 1.4-1.8 3-3 5-3 3.4 0 5.5 3.3 4 7-2 4.6-9 9-9 9z"/></svg></div>
-      <h3>우선순위 케어 플랜</h3><p>가장 먼저 다룰 1·2순위 영역에 근거 기반 루틴 3가지씩을 배정하고, 목표 지표(KPI)를 숫자로 정해요.</p><div class="eg">수면 규칙화 · 주의 훈련 · 주의 전환 · 공명 호흡</div></div>
-    <div class="get"><div class="gi" style="background:var(--amber-soft)"><svg viewBox="0 0 24 24" fill="none" stroke="#B87508" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></div>
-      <h3>재측정으로 효과 확인</h3><p>매일 같은 시간대에 재서 ‘평소의 나’ 대비 변화를 확인해요. 결과지 안에서 1분 호흡 케어의 즉시 효과도 잴 수 있어요.</p><div class="eg">개인 기준선 · 측정–케어–재측정 폐루프</div></div>
-    <div class="get"><div class="gi" style="background:#EEF1F6"><svg viewBox="0 0 24 24" fill="none" stroke="#2B3754" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
-      <h3>믿을 수 있는 정도까지</h3><p>지표마다 신호 품질과 오차 범위를 함께 보여 줘요. 측정이 불안정하면 판정하지 않거나 ‘잠정’으로 표시하는 In_mind 자체 품질 관리 원칙(In_mind QC)을 적용해요.</p><div class="eg">신뢰도 가중 · 오차 띠 · 수렴 원칙 · 타당도 검사</div></div>
+    <div class="get"><div class="gi" style="background:#E8F1FC"><svg viewBox="0 0 24 24" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linecap="round"><path d="M12 3v3M12 18v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M3 12h3M18 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/><circle cx="12" cy="12" r="3.6"/></svg></div>
+      <h3>또렷함</h3><p>지금 얼마나 깨어 있는지 봐요. 반응 속도와 눈꺼풀의 움직임으로 피로가 얼마나 쌓였는지 알 수 있어요.</p></div>
+    <div class="get"><div class="gi" style="background:#EFEDFA"><svg viewBox="0 0 24 24" fill="none" stroke="#4a3aa7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg></div>
+      <h3>집중 조절</h3><p>하려던 일에 집중을 붙잡아 두는 힘이에요. 멈추기·따라 보기 같은 짧은 과제로 확인해요.</p></div>
+    <div class="get"><div class="gi" style="background:#FCEEF4"><svg viewBox="0 0 24 24" fill="none" stroke="#d2588a" stroke-width="2" stroke-linecap="round"><path d="M12 20.5s-7.5-4.6-9.2-9.1C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.4 0 5.6 3.4 4.2 6.9-1.7 4.5-9.2 9.1-9.2 9.1z"/></svg></div>
+      <h3>마음의 시선</h3><p>불편한 정보에 마음이 얼마나 오래 머무는지 살펴봐요. 사진을 볼 때 시선이 어디로 가는지가 단서가 돼요.</p></div>
+    <div class="get"><div class="gi" style="background:#E6F6EF"><svg viewBox="0 0 24 24" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linecap="round"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div>
+      <h3>몸의 회복력</h3><p>긴장한 뒤 몸이 얼마나 빨리 편안해지는지 알아봐요. 카메라로 읽은 심박 변화를 이용해요.</p></div>
+  </div>
+  <div class="gain">
+    <div><b>종합 컨디션 점수와 유형</b><span>오늘 상태를 한 문장으로 정리해요</span></div>
+    <div><b>쉽게 풀어 쓴 결과 해설</b><span>느낌과 측정이 어떻게 다른지까지</span></div>
+    <div><b>나에게 맞춘 케어 플랜</b><span>오늘부터 해 볼 수 있는 방법</span></div>
+    <div><b>다시 측정해 비교</b><span>2주 뒤 변화를 그래프로 확인</span></div>
   </div>
 
-  <div class="sec-h"><div><div class="kicker">From result to care</div><h2>결과는 이렇게 케어로 이어집니다</h2></div><p>저하된 영역이 곧 케어의 출발점입니다. 각성이 떨어졌다면 다른 영역보다 각성을 먼저 다뤄요(피로 게이팅).</p></div>
-  <div class="carewrap"><div class="caremap" id="careMap"></div></div>
+  <div class="sec-h"><div><div class="kicker">How it works</div><h2>이렇게 진행돼요</h2></div><p>단계마다 안내를 읽고 직접 시작해요. 중간에 언제든 쉬거나 그만둘 수 있어요.</p></div>
   <div class="loop">
-    <div><em>01 · 1분</em><b>자기보고</b>지금 상태 4문항 + 최근 2주 기분(선택)</div>
-    <div><em>02 · 1분</em><b>카메라 확인</b>얼굴 위치·조명·심박 신호 점검</div>
-    <div><em>03 · 약 8분</em><b>측정 9단계</b>단계마다 안내를 읽고 직접 시작</div>
-    <div><em>04 · 즉시</em><b>통합 리포트</b>영역 점수 · 원인 경로 · 품질</div>
-    <div><em>05 · 매일</em><b>케어 · 매일 측정</b>같은 시간대에 재며 변화를 비교</div>
+    <div><em>01 · 1분</em><b>지금 상태 답하기</b>기분·긴장·활력·졸림과 어젯밤 수면</div>
+    <div><em>02 · 1분</em><b>카메라 확인</b>얼굴 위치와 조명, 심박 신호 점검</div>
+    <div><em>03 · 약 8분</em><b>측정</b>화면 속 짧은 과제 9가지</div>
+    <div><em>04 · 바로</em><b>결과 리포트</b>점수 · 해설 · 케어 플랜</div>
   </div>
 
   <div class="card" id="setupCard" style="margin-top:22px">
-    <div class="kicker">Configure</div>
-    <h2 style="margin-bottom:4px">검사 구성과 동의</h2>
+    <div class="kicker">Before you start</div>
+    <h2 style="margin-bottom:4px">시작하기 전에</h2>
     <div class="prep" style="margin-top:14px">
-      <div><b>조명</b>얼굴 정면이 밝고 균일하게</div>
-      <div><b>거리</b>화면에서 50~70cm, 정면 자세</div>
-      <div><b>환경</b>방해 없는 곳에서 약 10분 (측정 8분)</div>
-      <div><b>입력</b>키보드 스페이스바 · 숫자 키</div>
-      <div><b>안경</b>반사가 심하면 화면 밝기 낮추기</div>
-      <div><b>브라우저</b>PC 크롬 · 엣지 권장</div>
+      <div><b>밝은 곳에서</b>얼굴 정면이 고르게 밝으면 심박이 더 잘 읽혀요</div>
+      <div><b>화면에서 50~70cm</b>바른 자세로 화면 정면을 봐 주세요</div>
+      <div><b>조용한 곳에서 10분</b>PC 크롬·엣지 브라우저를 권장해요</div>
     </div>
-    <div class="sec-t"><h3>검사 구성</h3><span class="small muted">포함할 모듈을 고르세요 · 시선 보정과 기준선은 항상 포함</span></div>
-    <table class="btbl">
-      <thead><tr><th></th><th>모듈 · 검사</th><th>평가 영역</th><th>학술 근거</th><th>시간</th></tr></thead>
-      <tbody id="modTable"></tbody>
-    </table>
     <div class="modes" role="radiogroup" aria-label="측정 길이">
-      <label><input type="radio" name="mode" value="quick" checked> 표준 측정 (약 8분)</label>
-      <label><input type="radio" name="mode" value="full"> 정밀 측정 (시행 수 확대)</label>
+      <label><input type="radio" name="mode" value="quick" checked><span><b>표준 측정</b><small>약 8분 · 처음이라면 이 방식을 권해요</small></span></label>
+      <label><input type="radio" name="mode" value="full"><span><b>정밀 측정</b><small>과제 수를 늘려 더 정확하게 재요</small></span></label>
     </div>
     <div class="est" id="estTime"></div>
-    <label class="consent"><input type="checkbox" id="agree">
-      <span>카메라 영상은 <b>이 브라우저 안에서만</b> 처리되며 서버로 전송·저장되지 않습니다. 결과는 이 기기에 남고, 아래에서 AI 총평을 선택하면 영역 점수와 판정 지표 수치만 AI 서버로 보내 해설을 받습니다(저장하지 않음). 이 평가는 의학적 진단이 아닌 <b>웰니스 참고 지표</b>이며, 판정 기준은 문헌 보고 범위를 웹캠 환경에 맞춘 잠정값입니다. 정서 검사에는 일부 불쾌감을 줄 수 있는 사진이 포함되며 언제든 건너뛸 수 있습니다. 체크인의 최근 2주 기분 문항(PHQ)은 건강 관련 민감정보로, 이 기기 밖으로 전송되지 않으며 답하지 않아도 됩니다. 위 내용을 확인했습니다.</span>
-    </label>
-    <label class="ai-opt"><input type="checkbox" id="aiOpt" checked>
-      <span><b>AI 종합 총평 받기</b> — 리포트 첫머리에 결과를 쉬운 말로 풀어 주는 해설을 붙여요. 보내는 것은 영역 점수·판정 지표 수치·지금 상태 4문항뿐이며, 영상과 최근 2주 기분(PHQ) 응답은 보내지 않아요.</span></label>
+    <details class="cfg">
+      <summary>검사 구성 바꾸기 <span class="muted small">(선택 · 기본은 전체 포함)</span></summary>
+      <table class="btbl">
+        <thead><tr><th></th><th>검사</th><th>살펴보는 영역</th><th>학술 근거</th><th>시간</th></tr></thead>
+        <tbody id="modTable"></tbody>
+      </table>
+    </details>
+    <div class="notice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+      <p>카메라 영상은 <b>이 브라우저 안에서만</b> 처리되며 서버로 전송하거나 저장하지 않아요. 결과는 이 기기에 저장되고, 결과 해설을 만들 때는 점수와 측정 수치만 사용해요(저장하지 않음). 이 검사는 의학적 진단이 아닌 <b>웰니스 참고용</b>이에요. 마음의 시선 검사에는 다소 불편할 수 있는 사진이 포함되며 언제든 건너뛸 수 있어요. 최근 2주 기분 문항은 답하지 않아도 되고, 이 기기 밖으로 전송되지 않아요.</p>
+    </div>
     <details class="rsopt" id="rsBox">
-      <summary><label onclick="event.stopPropagation()"><input type="checkbox" id="rsOpt"> <b>연구 데이터 제공에 동의 (선택)</b></label> <span class="small muted">— 검사 정확도를 높이는 연구에 측정 데이터를 보탭니다 · 자세히</span></summary>
+      <summary><label onclick="event.stopPropagation()"><input type="checkbox" id="rsOpt" checked> <b>연구 데이터 제공에 동의 (선택)</b></label> <span class="small muted">— 검사 정확도를 높이는 연구에 측정 데이터를 보탭니다 · 자세히</span></summary>
       <div class="rs-d">
         <p><b>목적</b> 웹캠 기반 시선·심박·반응 측정 알고리즘의 고도화, 규준(참고 범위) 수립, 기계학습 모델 학습</p>
         <p><b>보내는 것</b> 영역 점수·지표·측정 품질, 지금 상태와 측정 맥락 응답, 그리고 측정 신호 원자료 — 프레임별 피부색 평균값·얼굴 위치·눈 열림·시선 특징, 눈과 홍채의 <b>좌표</b>(이미지 아님), 시행별 시선 좌표와 반응 시간. 화면 크기·카메라 해상도·브라우저 종류.</p>
         <p><b>보내지 않는 것</b> 카메라 영상·사진, 이름·연락처·계정. 최근 2주 기분(PHQ) 응답은 아래에서 따로 동의한 경우에만.</p>
         <p><b>보관과 철회</b> 연구 목적으로만 쓰고 5년 보관 후 파기합니다. 제출 후 리포트에 나오는 <b>참가 코드</b>로 언제든 철회할 수 있고, 이 기기에서는 ‘제출 철회’ 버튼으로 즉시 삭제됩니다. 동의하지 않아도 검사와 결과에는 아무 영향이 없습니다.</p>
-        <label class="rs-phq"><input type="checkbox" id="rsPhq" disabled> 최근 2주 기분(PHQ) 응답도 연구에 포함 (선택)</label>
+        <label class="rs-phq"><input type="checkbox" id="rsPhq"> 최근 2주 기분(PHQ) 응답도 연구에 포함 (선택)</label>
       </div>
     </details>
     <div class="btns">
-      <button class="btn" id="goCheckin" disabled>평가 시작</button>
-      <button class="btn ghost" id="goDemo" disabled>카메라 없이 데모 진행</button>
+      <button class="btn" id="goCheckin" disabled>검사 시작</button>
+      <button class="btn ghost" id="goDemo" disabled>카메라 없이 체험하기</button>
     </div>
     <details class="qa" id="qaBox" hidden>
       <summary>검증 도구 — 피험자가 되지 않고 단계·리포트 확인하기</summary>
@@ -870,47 +1002,47 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 
 <!-- 2. 체크인 -->
 <section id="sCheckin" hidden>
-  <div class="flowbar"><span class="done">개요</span><span class="on">1 · 자기보고</span><span>2 · 카메라 준비</span><span>3 · 측정</span><span>4 · 리포트</span></div>
-  <div class="card">
-    <div class="kicker">Self-Report · 자기보고</div>
-    <h2>지금 스스로 느끼는 상태를 알려 주세요</h2>
-    <p class="lead">측정 결과와 비교해 ‘느끼는 나’와 ‘몸·시선·수행이 보여 주는 나’의 차이를 찾아 드려요. 정답은 없으니 지금 이 순간의 느낌대로 골라 주세요.</p>
-    <div class="q"><div class="lbl">지금 기분은 어떤가요? <span class="small muted" style="font-weight:500">(자기평가 마네킹 정서가 척도)</span></div>
-      <div class="scale" id="qValence" style="grid-template-columns:repeat(9,1fr)"></div>
-      <div class="ends"><span>매우 나쁨</span><span>매우 좋음</span></div></div>
-    <div class="q"><div class="lbl">지금 얼마나 긴장되거나 스트레스를 느끼나요?</div>
-      <div class="scale" id="qTension" style="grid-template-columns:repeat(5,1fr);max-width:360px"></div>
-      <div class="ends" style="max-width:360px"><span>전혀 없음</span><span>매우 큼</span></div></div>
-    <div class="q"><div class="lbl">에너지는 어느 정도인가요?</div>
-      <div class="scale" id="qEnergy" style="grid-template-columns:repeat(5,1fr);max-width:360px"></div>
-      <div class="ends" style="max-width:360px"><span>방전</span><span>충만</span></div></div>
-    <div class="q"><div class="lbl">지금 얼마나 졸린가요? <span class="small muted" style="font-weight:500">(카롤린스카 졸림 척도)</span></div>
-      <div class="scale" id="qKss" style="grid-template-columns:repeat(9,1fr)"></div>
-      <div class="ends"><span>매우 또렷함</span><span>중간</span><span>매우 졸림 · 버티기 힘듦</span></div></div>
-    <div class="q"><div class="lbl">어젯밤 몇 시간 잤나요? <span class="small muted" style="font-weight:500">(각성 결과를 해석하는 맥락)</span></div>
+  <ol class="flow"><li class="done"><i>✓</i>안내</li><li class="on"><i>1</i>지금 상태</li><li><i>2</i>카메라 준비</li><li><i>3</i>측정</li><li><i>4</i>리포트</li></ol>
+  <div class="card ck">
+    <div class="ck-head">
+      <div><div class="eyebrow">Step 1 · 자기보고</div>
+        <h2>지금 스스로 느끼는 상태를 알려 주세요</h2>
+        <p class="lead" style="margin:0">측정 결과와 비교해 ‘느끼는 나’와 ‘측정한 나’의 차이를 찾아 드려요. 정답은 없으니 지금 이 순간의 느낌대로 골라 주세요.</p></div>
+      <div class="ck-prog" aria-live="polite"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="#E6EAF1" stroke-width="6"/><circle id="ckRing" cx="32" cy="32" r="27" fill="none" stroke="url(#ckg)" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 170" transform="rotate(-90 32 32)"/><defs><linearGradient id="ckg" x1="0" x2="1"><stop offset="0" stop-color="#2a78d6"/><stop offset="1" stop-color="#1baf7a"/></linearGradient></defs></svg><div><b id="ckCount">0/6</b><span>답변 완료</span></div></div>
+    </div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">01</span><b>지금 기분은 어떤가요?</b><em class="ck-pick" id="pk-valence"></em></div>
+      <div class="scale s9 hue" id="qValence"></div>
+      <div class="ends"><span>매우 나쁨</span><span>보통</span><span>매우 좋음</span></div></div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">02</span><b>지금 얼마나 긴장되거나 스트레스를 느끼나요?</b><em class="ck-pick" id="pk-tension"></em></div>
+      <div class="scale s5" id="qTension"></div></div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">03</span><b>현재 느껴지는 활력(에너지)는 어느 정도인가요?</b><em class="ck-pick" id="pk-energy"></em></div>
+      <div class="scale s5" id="qEnergy"></div></div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">04</span><b>지금 얼마나 졸리고 피곤한가요?</b><em class="ck-pick" id="pk-kss"></em></div>
+      <div class="scale s9" id="qKss"></div>
+      <div class="ends"><span>매우 또렷함</span><span>중간</span><span>매우 졸림</span></div></div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">05</span><b>어젯밤 몇 시간 잤나요?</b></div>
       <div class="choice" id="qSleep" data-key="sleep"></div></div>
-    <div class="q"><div class="lbl">커피·에너지음료 등 카페인을 마지막으로 마신 때는?</div>
+    <div class="ck-q"><div class="ck-qh"><span class="ck-n">06</span><b>커피·에너지음료 등 카페인을 마지막으로 마신 때는?</b></div>
       <div class="choice" id="qCaf" data-key="caffeine"></div></div>
     <div class="phq" id="phq">
-      <div class="phq-h"><h3 style="margin:0">최근 2주 · 환자 건강 질문지 (PHQ)</h3><span class="small muted">약 30초 · 응답에 따라 6문항이 추가될 수 있어요</span></div>
-      <p class="small muted" style="margin:6px 0 0">지금의 상태(위)와 함께 최근 2주의 흐름을 보면, 오늘 측정이 일시적인 컨디션인지 지속되는 패턴인지 구분할 수 있어요. 응답은 이 기기에만 남습니다.</p>
+      <div class="phq-h"><div><span class="eyebrow">선택 문항</span><h3>최근 2주간의 마음 상태</h3></div><span class="small muted">약 30초 · 응답에 따라 6문항이 추가될 수 있어요</span></div>
+      <p class="small muted" style="margin:6px 0 0">지금의 상태와 함께 최근 2주의 흐름을 보면, 오늘 결과가 일시적인 컨디션인지 이어지고 있는 패턴인지 구분할 수 있어요. 응답은 이 기기에만 남아요.</p>
       <div class="phq-stem" id="phqStem"></div>
       <div id="phqItems"></div>
-      <div class="phq-more" id="phqMore" hidden>최근 2주 동안 기분 부담이 있었던 것 같아요. 조금 더 정확히 살펴보기 위해 <b>6문항</b>을 더 여쭐게요.</div>
+      <div class="phq-more" id="phqMore" hidden>최근 2주 동안 마음의 부담이 있었던 것 같아요. 조금 더 정확히 살펴보기 위해 <b>6문항</b>을 더 여쭐게요.</div>
       <div id="phqItems2"></div>
       <label class="phq-skip"><input type="checkbox" id="phqSkip"> 이 문항들에는 답하지 않을래요 (측정은 그대로 진행돼요)</label>
-      <div class="phq-copy" id="phqCopy"></div>
     </div>
-    <div class="btns">
-      <button class="btn" id="goSetup" disabled>다음 · 카메라 준비</button>
+    <div class="btns ck-foot">
       <button class="btn ghost" data-back="sIntro">이전</button>
+      <button class="btn" id="goSetup" disabled>다음 · 카메라 준비 →</button>
     </div>
   </div>
 </section>
 
 <!-- 3. 카메라 준비 -->
 <section id="sSetup" hidden>
-  <div class="flowbar"><span class="done">개요</span><span class="done">1 · 자기보고</span><span class="on">2 · 카메라 준비</span><span>3 · 측정</span><span>4 · 리포트</span></div>
+  <ol class="flow"><li class="done"><i>✓</i>안내</li><li class="done"><i>✓</i>지금 상태</li><li class="on"><i>2</i>카메라 준비</li><li><i>3</i>측정</li><li><i>4</i>리포트</li></ol>
   <div class="card">
     <div class="kicker">Signal Check · 측정 환경 확인</div>
     <h2>얼굴이 화면 가운데에 오도록 앉아 주세요</h2>
@@ -945,8 +1077,8 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 <section id="sAnalyze" hidden>
   <div class="card" style="text-align:center;padding:64px 30px">
     <div class="kicker">Analyzing</div>
-    <h2>In_mind 엔진이 검사별 지표를 계산하고 하나의 모델로 통합하고 있어요</h2>
-    <p class="muted">원격 심박(POS) · 눈꺼풀(PERCLOS) · 사카드·추적 · 반응시간 → 영역 점수 → 영역 간 연결 해석 → 케어 정렬</p>
+    <h2>결과를 정리하고 있어요</h2>
+    <p class="muted">눈의 움직임 · 반응 속도 · 심박 변화를 영역 점수로 바꾸고, 나에게 맞는 케어를 고르는 중이에요.</p>
   </div>
 </section>
 
@@ -954,7 +1086,7 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 <section id="sReport" hidden></section>
 </main>
 
-<footer class="site-foot"><span>NeuroLens · 마인드 컨디션 검사 · In_mind engine — 웰니스 참고 지표이며 의학적 진단이 아닙니다</span><span><a href="/">메인</a> · <a href="/#tests">시선추적 AI 성향검사</a> · 정신건강 위기상담 109</span></footer>
+<footer class="site-foot"><span>NeuroLens · 마인드 컨디션 검사 — 웰니스 참고 지표이며 의학적 진단이 아닙니다</span><span><a href="/">메인</a> · <a href="/#tests">시선추적 AI 성향검사</a> · 정신건강 위기상담 109</span></footer>
 <!-- 측정 무대 -->
 <div class="stage" id="stage" aria-live="polite">
   <div class="st-top">
@@ -1014,7 +1146,7 @@ const S = {
   model: null, affine: null, gaze: null, view: null, euro: null, rawG: null, drift: { dx: 0, dy: 0 }, feat: null, lastLm: null, rois: null, lastFace: 0, lastTs: 0, fpsTimes: [],
   onFeature: null, onResp: null, onKey: null, onGo: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
   stim: null, stimAll: null, stimMeta: null, stimMode: 'schematic',
-  aiText: null, hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
+  hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
 };
 const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
 /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */
@@ -1109,46 +1241,48 @@ function refreshIntro() {
   });
   const any = MOD_ORDER.some(k => S.mods[k]);
   $('estTime').innerHTML = any ? `측정 약 <b>${Math.round(total / 60)}분</b> · 단계 안내를 읽는 시간은 별도 · 각 단계는 직접 시작하며 건너뛸 수 있어요` : '<span style="color:var(--rose)">모듈을 하나 이상 선택해 주세요</span>';
-  $('goCheckin').disabled = $('goDemo').disabled = !($('agree').checked && any);
+  $('goCheckin').disabled = $('goDemo').disabled = !any;
   $('simReport').disabled = !any;
   $('stimInfo').textContent = stimInfoText();
 }
 document.querySelectorAll('[data-mod], input[name=mode]').forEach(el => el.addEventListener('change', () => { chooseForm(modeVal()); refreshIntro(); }));
-$('agree').addEventListener('change', refreshIntro);
 $('simPersona').innerHTML = Object.keys(B.PERSONAS).map(k => `<option value="${k}">${esc(B.PERSONAS[k].label)}</option>`).join('');
 refreshIntro();
 loadStimuli().then(refreshIntro);
-/* 결과 → 케어 연결 지도 (리포트의 케어 플랜과 같은 정의를 씀) */
-{
-  const short = t => { const x = t.split(/ — | \(/)[0]; return x.length > 34 ? x.slice(0, 33) + '…' : x; };
-  const row = (cls, ico, n, name, sub, title, items, kpi) => `<div class="cm-row ${cls}"><div class="cm-d"><i class="${ico}">${n}</i><div><b>${esc(name)}</b><span>${esc(sub)}</span></div></div><div class="arr">→</div><div class="cm-t"><b>${esc(title)}</b><p>${esc(items)}</p></div><div class="cm-k"><b>목표</b> ${esc(kpi)}</div></div>`;
-  $('careMap').innerHTML = [['alert', 'd1', '01'], ['control', 'd2', '02'], ['emotion', 'd3', '03'], ['autonomic', 'd4', '04']].map(([k, ico, n]) => {
-    const D = B.DOMAINS[k], T = B.CARE_PLAN[k];
-    return row('', ico, n, `${D.name} 저하`, D.network, T.title, T.items.map(i => short(i.text)).join(' · '), T.kpi);
-  }).join('')
-    + row('safe', '', '!', '최근 2주 기분 부담 높음', 'PHQ-8 10점 이상', '전문가 상담 연결 (최우선)', '정신건강복지센터·정신건강의학과 안내 · 위기상담 109 · 루틴 병행', '2~4주 후 같은 문항으로 재확인').replace('<i class="">', '<i style="background:#C93C5C">')
-    + row('', '', '✓', '모든 영역 양호', '개인 기준선', B.CARE_PLAN.balanced.title, B.CARE_PLAN.balanced.items.map(i => short(i.text)).join(' · '), B.CARE_PLAN.balanced.kpi).replace('<i class="">', '<i style="background:#7C88A2">');
-}
 $('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
-$('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full'); });
+$('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full', { seed: 7, all: true }); });
 $('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) $('rsPhq').checked = false; });
 $('goCheckin').addEventListener('click', () => { S.demo = false; S.mode = modeVal(); show('sCheckin'); });
 $('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
 $('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
-function openSimReport(persona, mode) {
+function openSimReport(persona, mode, opt = {}) {
   S.demo = true; S.mode = mode; S.persona = persona;
   show('sAnalyze');
-  setTimeout(() => finishWith(B.simulate(persona, { mode, include: { ...S.mods }, seed: Date.now() % 100000 })), 60);
+  const include = opt.all ? { alert: true, oculo: true, sustain: true, core: true } : { ...S.mods };
+  setTimeout(() => finishWith(B.simulate(persona, { mode, include, seed: opt.seed ?? Date.now() % 100000 })), 60);
 }
 
 /* ---------- 체크인 ---------- */
+const SCALE_LABELS = {
+  valence: ['매우 나쁨', '나쁨', '조금 나쁨', '약간 나쁨', '보통', '약간 좋음', '조금 좋음', '좋음', '매우 좋음'],
+  tension: ['전혀 없음', '조금', '보통', '꽤 큼', '매우 큼'],
+  energy: ['방전', '낮음', '보통', '높음', '충만'],
+  kss: ['매우 또렷함', '또렷함', '꽤 또렷함', '약간 또렷함', '중간', '약간 졸림', '졸리지만 버틸 만함', '졸려서 힘듦', '매우 졸림'],
+};
+const CK_KEYS = ['valence', 'tension', 'energy', 'kss', 'sleep', 'caffeine'];
+/* 기분 척도는 나쁨(빨강) → 좋음(초록) 색으로 단서를 준다 */
+const hueOf = (i, n) => `hsl(${Math.round(352 + (148 - 352 + 360) % 360 * (i - 1) / (n - 1)) % 360} 62% 52%)`;
 function scale(el, n, key) {
+  const L = SCALE_LABELS[key] || [], short = n === 9 && key !== 'valence';
   for (let i = 1; i <= n; i++) {
     const b = document.createElement('button');
-    b.type = 'button'; b.textContent = i; b.setAttribute('aria-pressed', 'false');
+    b.type = 'button'; b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', `${i} · ${L[i - 1] || ''}`);
+    b.innerHTML = `${i}${L[i - 1] && (!short || i % 2) ? `<small>${esc(L[i - 1])}</small>` : ''}`;
+    if (el.classList.contains('hue')) { const c = hueOf(i, n); b.style.setProperty('--hc', c); b.style.setProperty('--sel', `linear-gradient(135deg, ${c}, ${c})`); }
     b.addEventListener('click', () => {
       el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
       S.checkin[key] = i;
+      const pk = $('pk-' + key); if (pk) { pk.textContent = `${i} · ${L[i - 1] || ''}`; pk.classList.add('on'); }
       checkinReady();
     });
     el.appendChild(b);
@@ -1169,7 +1303,6 @@ scale($('qValence'), 9, 'valence'); scale($('qTension'), 5, 'tension'); scale($(
 const PQ = B.PHQ;
 let phqAns = [];
 $('phqStem').textContent = PQ.stem;
-$('phqCopy').textContent = PQ.copyright;
 function phqRow(i) {
   return `<div class="phq-item" data-q="${i}"><div class="t"><b>${i + 1}</b>${esc(PQ.items[i])}</div><div class="phq-opts" role="radiogroup" aria-label="${i + 1}번 문항">${PQ.options.map((o, v) => `<button type="button" data-v="${v}" aria-pressed="false">${esc(o)}<small>${v}</small></button>`).join('')}</div></div>`;
 }
@@ -1199,7 +1332,10 @@ function phqDone() {
   return phqAns[0] + phqAns[1] < PQ.screenCut || [2, 3, 4, 5, 6, 7].every(i => Number.isFinite(phqAns[i]));
 }
 function checkinReady() {
-  const base = S.checkin.valence && S.checkin.tension && S.checkin.energy && S.checkin.kss && S.checkin.sleep && S.checkin.caffeine;
+  const n = CK_KEYS.filter(k => S.checkin[k]).length;
+  $('ckCount').textContent = `${n}/${CK_KEYS.length}`;
+  $('ckRing').setAttribute('stroke-dasharray', `${(n / CK_KEYS.length * 169.6).toFixed(1)} 170`);
+  const base = n === CK_KEYS.length;
   S.checkin.phq = $('phqSkip').checked || !Number.isFinite(phqAns[1]) ? null : phqAns.slice(0, phqAns[0] + phqAns[1] >= PQ.screenCut ? 8 : 2);
   $('goSetup').disabled = !(base && phqDone());
 }
@@ -2397,23 +2533,19 @@ function finishWith(rec) {
   S.result = res;
   const hist = loadHistory();
   saveHistory(res);
-  S.aiText = null;
-  $('sReport').innerHTML = `<div class="vt no-print" role="tablist" aria-label="보고서 보기 방식"><button type="button" role="tab" id="vtSimple" aria-selected="false">🌤 간편 보고서</button><button type="button" role="tab" id="vtFull" aria-selected="true">📊 전문가 보고서</button></div>
-    <div id="rptSimple" hidden></div><div id="rptFull">${R.render(res, { history: hist.slice(0, 5) })}</div>`;
-  renderSimpleView(res);
-  $('vtSimple').onclick = () => setView('simple'); $('vtFull').onclick = () => setView('full');
+  $('sReport').innerHTML = R.render(res, { history: hist.slice(0, 5) });
   bindReport(res);
   show('sReport');
-  aiSummary(res, false);
+  summary(res, false);
   return res;
 }
-/* ---------- AI 종합 총평 (/rppg → Gemini) ----------
- * 허용된 구조화 지표만 보낸다(R.summaryPayload). 같은 측정의 총평은 이 기기에 캐시해 다시 열어도 호출하지 않는다. */
+/* ---------- 종합 해설 (/rppg) ----------
+ * 허용된 구조화 지표만 보낸다(R.summaryPayload). 같은 측정의 해설은 이 기기에 캐시해 다시 열어도 호출하지 않는다.
+ * 예시(시뮬레이션) 리포트는 서버를 부르지 않고 고정 해설(R.SAMPLE_SUMMARY)을 쓴다 */
 const AI_KEY = 'nlNewbiz:ai:';
-function aiRender(text, model, animate) {
+function summaryRender(text, animate) {
   const el = $('aiBody'); if (!el) return;
-  const paras = String(text).split(/\n\s*\n|\n/).map(t => t.trim()).filter(Boolean);
-  $('aiModel').textContent = model ? `AI 해설 · ${model}` : 'AI 해설';
+  const paras = (Array.isArray(text) ? text : String(text).split(/\n\s*\n|\n/)).map(t => t.trim()).filter(Boolean);
   const html = paras.map(t => `<p>${esc(t)}</p>`).join('');
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!animate || reduce) { el.innerHTML = html; return; }
@@ -2422,20 +2554,19 @@ function aiRender(text, model, animate) {
   let n = 0;
   const id = setInterval(() => {
     n = Math.min(full.length, n + step);
-    el.innerHTML = full.slice(0, n).split('\n').map((t, i, a) => `<p${i === a.length - 1 && n < full.length ? ' class="ai-cursor"' : ''}>${esc(t)}</p>`).join('');
+    el.innerHTML = full.slice(0, n).split('\n').map(t => `<p>${esc(t)}</p>`).join('');
     if (n >= full.length) { clearInterval(id); el.innerHTML = html; }
   }, 18);
 }
-async function aiSummary(res, force) {
-  const el = $('aiBody'), btn = $('aiRetry');
+async function summary(res, force) {
+  const el = $('aiBody');
   if (!el) return;
-  const key = AI_KEY + (res.measuredAt || '') + (res.battery.sim ? ':' + res.battery.sim.persona : '');
-  if (btn) btn.onclick = () => aiSummary(res, true);
+  const sim = res.battery.sim && R.SAMPLE_SUMMARY[res.battery.sim.persona];
+  if (sim) { summaryRender(sim, false); return; }
+  const key = AI_KEY + (res.measuredAt || '');
   if (!force) {
-    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.text) { aiRender(c.text, c.model, false); S.aiText = c.text; renderSimpleView(res); return; } } catch (_) {}
-    if (!$('aiOpt').checked) { el.innerHTML = '<p class="err">AI 총평을 받지 않도록 선택했어요. ‘다시 생성’을 누르면 지금 만들 수 있어요.</p>'; if (btn) btn.textContent = 'AI 총평 만들기'; return; }
+    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.text) { summaryRender(c.text, false); return; } } catch (_) {}
   }
-  if (btn) { btn.disabled = true; btn.textContent = '작성 중…'; }
   el.innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk s2"></div>';
   try {
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
@@ -2443,13 +2574,12 @@ async function aiSummary(res, force) {
     clearTimeout(to);
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.text) throw new Error(j.error || `HTTP ${r.status}`);
-    try { localStorage.setItem(key, JSON.stringify({ text: j.text, model: j.model || null })); } catch (_) {}
-    aiRender(j.text, j.model, true);
-    S.aiText = j.text; renderSimpleView(res);
+    try { localStorage.setItem(key, JSON.stringify({ text: j.text })); } catch (_) {}
+    summaryRender(j.text, true);
   } catch (e) {
-    el.innerHTML = `<p class="err">AI 총평을 불러오지 못했어요 (${esc(e.name === 'AbortError' ? '시간 초과' : e.message || '연결 오류')}). 아래 대시보드와 영역별 결과는 그대로 확인할 수 있어요. 잠시 뒤 ‘다시 생성’을 눌러 주세요.</p>`;
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '다시 생성'; }
+    console.warn('summary failed', e);
+    el.innerHTML = '<p class="err">해설을 불러오지 못했어요. 아래 영역별 결과와 케어 플랜은 그대로 확인할 수 있어요. <button class="sbtn" type="button" id="sumRetry">다시 시도</button></p>';
+    $('sumRetry').onclick = () => summary(res, true);
   }
 }
 /* ---------- 연구 데이터 제출 (동의한 실측 세션만) ---------- */
@@ -2460,7 +2590,7 @@ async function rsRpc(fn, body) {
 }
 const rsList = () => { try { return JSON.parse(localStorage.getItem(RS_KEY) || '[]'); } catch (_) { return []; } };
 function rsBanner(html) {
-  const host = $('r-qc'); if (!host) return;
+  const host = $('r-app'); if (!host) return;
   let el = $('rsBanner');
   if (!el) { el = document.createElement('div'); el.id = 'rsBanner'; el.className = 'rs-banner'; host.appendChild(el); }
   el.innerHTML = html;
@@ -2503,35 +2633,20 @@ function saveHistory(r) {
     localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0, 20)));
   } catch (_) {}
 }
-/* 간편 보고서: 쉬운 말·날씨 비유·카드. AI 총평이 오면 첫 문단을 ‘AI가 정리한 한마디’로 함께 보여 준다 */
 const TODO_KEY = 'nlNewbiz:todo:';
-function renderSimpleView(res) {
-  const el = $('rptSimple'); if (!el) return;
-  let first = S.aiText ? String(S.aiText).split(/\n\s*\n|\n/).map(t => t.trim()).filter(Boolean)[0] || null : null;
-  if (first) first = first.split(/(?<=[.!?])\s+/).filter((x, i) => !(i === 0 && /시뮬레이션|예시 데이터/.test(x))).join(' ') || null;
-  el.innerHTML = R.renderSimple(res, { ai: first });
-  const key = TODO_KEY + (res.measuredAt || '');
+function bindReport(r) {
+  $('bioStart').addEventListener('click', runBio);
+  $('printBtn').addEventListener('click', () => { document.querySelectorAll('#sReport details.ax').forEach(d => { d.open = true; }); window.print(); });
+  /* 케어 실천 체크: 측정마다 이 기기에 기억 */
+  const key = TODO_KEY + (r.measuredAt || '');
   let done = {}; try { done = JSON.parse(localStorage.getItem(key) || '{}'); } catch (_) {}
-  el.querySelectorAll('[data-todo]').forEach(cb => {
+  document.querySelectorAll('#sReport [data-todo]').forEach(cb => {
     cb.checked = !!done[cb.dataset.todo];
     cb.addEventListener('change', () => { done[cb.dataset.todo] = cb.checked; try { localStorage.setItem(key, JSON.stringify(done)); } catch (_) {} });
   });
-  const bio = $('spBio'); if (bio) bio.addEventListener('click', runBio);
-}
-function setView(v) {
-  $('rptSimple').hidden = v !== 'simple'; $('rptFull').hidden = v === 'simple';
-  $('vtSimple').setAttribute('aria-selected', String(v === 'simple')); $('vtFull').setAttribute('aria-selected', String(v !== 'simple'));
-  if (v === 'simple') {                                   // 종합 점수 카운트업
-    const b = document.querySelector('#rptSimple [data-count]'), to = b ? +b.dataset.count : NaN;
-    if (b && Number.isFinite(to)) { const t0 = performance.now(); const step = ts => { const k = Math.min(1, (ts - t0) / 900); b.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
-  }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-function bindReport(r) {
-  $('bioStart').addEventListener('click', runBio);
-  $('printBtn').addEventListener('click', () => window.print());
   $('again').addEventListener('click', () => {
-    S.checkin = {}; phqAns = []; $('phqSkip').checked = false; phqRender(); document.querySelectorAll('.scale button, .choice button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('goSetup').disabled = true;
+    S.checkin = {}; phqAns = []; $('phqSkip').checked = false; phqRender(); document.querySelectorAll('.scale button, .choice button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    document.querySelectorAll('.ck-pick').forEach(p => { p.textContent = ''; p.classList.remove('on'); }); checkinReady();
     show('sIntro');
   });
   $('dl').addEventListener('click', () => {
