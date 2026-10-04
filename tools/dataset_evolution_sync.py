@@ -152,9 +152,17 @@ def enrich(ledger, limit=3, retry_failed=False):
             entry['analysis'], entry['analysisState'] = result, 'generated'
             entry['tasks'] = result['tasks']
             entry.pop('analysisError', None)
+            entry.pop('analysisErrorCode', None)
         except urllib.error.HTTPError as error:
             # Persist a safe machine status, never provider text, tokens or identity claims.
             entry['analysisState'], entry['analysisError'] = 'retry-pending', 'HTTP_' + str(error.code)
+            try:
+                import re
+                code = json.loads(error.read(4096)).get('code', '')
+                if isinstance(code, str) and re.fullmatch('[A-Z_]{1,80}', code):
+                    entry['analysisErrorCode'] = code
+            except (ValueError, AttributeError):
+                pass
         except Exception:
             entry['analysisState'], entry['analysisError'] = 'retry-pending', 'ANALYSIS_UNAVAILABLE'
         print('analysis', entry['sha'][:12], entry['analysisState'])

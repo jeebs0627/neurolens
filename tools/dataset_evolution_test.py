@@ -71,9 +71,10 @@ class EvolutionTests(unittest.TestCase):
 
     def test_ai_failure_preserves_rule_prompt_and_stops_after_five(self):
         ledger = {'entries': [entry()]}
-        with patch.object(collector, 'ai_analyze', side_effect=urllib.error.HTTPError('url', 503, 'secret response', {}, io.BytesIO())) as call:
+        with patch.object(collector, 'ai_analyze', side_effect=urllib.error.HTTPError('url', 503, 'secret response', {}, io.BytesIO(b'{"code":"GEMINI_UNAVAILABLE","error":"secret response"}'))) as call:
             collector.enrich(ledger)
             self.assertEqual(ledger['entries'][0]['analysisError'], 'HTTP_503')
+            self.assertEqual(ledger['entries'][0]['analysisErrorCode'], 'GEMINI_UNAVAILABLE')
             self.assertTrue(ledger['entries'][0]['tasks'][0]['prompt'])
             self.assertNotIn('secret response', json.dumps(ledger))
             ledger['entries'][0]['analysisAttempts'] = 5
@@ -105,6 +106,12 @@ class EvolutionTests(unittest.TestCase):
             for field, value in [('repository_id','other'),('workflow_ref','other'),('ref','refs/heads/evil'),('aud','other'),('exp',int(time.time())-5),('event_name','pull_request')]:
                 with self.assertRaises(api.RequestError): api.authorize(jwt.encode({**claims,field:value},key,algorithm='RS256'))
             with self.assertRaises(api.RequestError): api.authorize(jwt.encode(claims, 'a'*40, algorithm='HS256'))
+            deployment_claims = {**claims, 'event_name': 'deployment_status', 'sub': 'repo:'+core.REPOSITORY+':environment:Production', 'ref': SHA, 'sha': SHA, 'run_id': '123', 'workflow_ref': api.WORKFLOW.split('@')[0]+'@'+SHA}
+            run = {'head_branch': 'main', 'path': '.github/workflows/dataset-evolution.yml', 'event': 'deployment_status', 'head_sha': SHA, 'repository': {'id': int(core.REPOSITORY_ID)}}
+            with patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(run).encode())):
+                self.assertEqual(api.authorize(jwt.encode(deployment_claims,key,algorithm='RS256'))['sha'], SHA)
+            with patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps({**run,'head_branch':'evil'}).encode())):
+                with self.assertRaises(api.RequestError): api.authorize(jwt.encode(deployment_claims,key,algorithm='RS256'))
 
     def test_endpoint_unauthorized_and_wrong_sha(self):
         handler = object.__new__(api.handler)

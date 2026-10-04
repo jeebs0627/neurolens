@@ -22,10 +22,24 @@ def authorize(token):
         claims = jwt.decode(token, key, algorithms=['RS256'], audience=AUDIENCE, issuer=ISSUER,
                             options={'require': ['exp', 'iat', 'nbf', 'sub', 'repository_id', 'repository', 'ref', 'workflow_ref']})
         if (claims['repository_id'] != REPOSITORY_ID or claims['repository'] != REPOSITORY
-                or claims['ref'] != 'refs/heads/main' or claims['workflow_ref'] != WORKFLOW
-                or claims['sub'] != 'repo:' + REPOSITORY + ':ref:refs/heads/main'
+                or not claims['sub'].startswith('repo:' + REPOSITORY + ':')
                 or claims.get('event_name') not in ('push', 'schedule', 'deployment_status', 'workflow_dispatch')):
             raise ValueError('untrusted workflow')
+        if claims['ref'] != 'refs/heads/main' or claims['workflow_ref'] != WORKFLOW:
+            # Deployment events can identify the deployed commit, rather than a branch ref.
+            # Resolve the signed run ID against GitHub; never trust a caller-supplied branch.
+            if claims['event_name'] != 'deployment_status' or claims['workflow_ref'].split('@')[0] != WORKFLOW.split('@')[0]:
+                raise ValueError('untrusted workflow ref')
+            run_id = str(claims.get('run_id', ''))
+            if not run_id.isdigit():
+                raise ValueError('invalid run ID')
+            req = urllib.request.Request(f'https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}', headers={'User-Agent': 'NeuroLens-OIDC'})
+            with urllib.request.urlopen(req, timeout=12) as response:
+                run = json.load(response)
+            if (run.get('head_branch') != 'main' or run.get('path') != '.github/workflows/dataset-evolution.yml'
+                    or run.get('event') != 'deployment_status' or run.get('head_sha') != claims.get('sha')
+                    or str(run.get('repository', {}).get('id')) != REPOSITORY_ID):
+                raise ValueError('untrusted deployment run')
         return claims
     except Exception:
         raise RequestError(403, '등록된 GitHub 자동화만 호출할 수 있습니다.', 'EVOLUTION_WORKFLOW_DENIED') from None

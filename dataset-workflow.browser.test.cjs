@@ -41,7 +41,7 @@ const server=http.createServer(async(req,res)=>{
     context.setDefaultTimeout(12000);page.on('pageerror',e=>errors.push(e.message));
     await context.route('**/supabase.min.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
     await context.route('**/auth.js',r=>r.fulfill({contentType:'text/javascript',body:auth}));
-    await context.route('**/dataset-evolution-log.json',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(evolution)}));
+    await context.route('**/dataset-evolution-log.json*',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(evolution)}));
     await page.goto('http://127.0.0.1:'+server.address().port+'/dataset.html#measurements');
     await page.locator(`[data-session="${sessionId}"]`).click();
     await page.locator('#memoTitle').fill('안경 반사 <img src=x onerror=alert(1)>');await page.locator('#memoTarget').selectOption('pursuit');
