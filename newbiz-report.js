@@ -175,9 +175,45 @@
     </svg>`;
   }
 
+  const median2 = a => { const v = a.filter(finite).sort((x, y) => x - y); return v.length ? (v[(v.length - 1) >> 1] + v[v.length >> 1]) / 2 : NaN; };
+  /* 호흡 흐름: 회복 호흡 구간에서 카메라로 잰 호흡 파형(머리의 미세한 오르내림)과 안내(5초 들숨·5초 날숨)를 겹쳐 보인다.
+   * 카메라 신호의 위·아래 방향은 사람·자세마다 달라 안내와 가장 잘 맞는 부호·지연(0~2.5초)을 골라 맞춤 정도를 함께 표시한다 */
+  function breathSvg(r) {
+    const segs = r.breath && r.breath.recovery, ph = r.phaseTimes && r.phaseTimes.recovery;
+    if (!segs || !segs.length || !ph) return '';
+    const t0 = ph.start, t1 = ph.end, W = 860, H = 150, px = 14, iw = W - 2 * px, mid = H / 2 - 8, amp = 46;
+    const guide = t => -Math.cos(2 * Math.PI * (t - t0) / 10000);
+    let bestR = 0, bestSign = 1, bestLag = 0;
+    for (const sign of [1, -1]) for (let lag = 0; lag <= 2500; lag += 250) {
+      const a = [], b = [];
+      segs.forEach(g => g.y.forEach((v, i) => { const t = g.t0 + i * 1000 / g.fs; if (t >= t0 && t <= t1) { a.push(sign * v); b.push(guide(t - lag)); } }));
+      if (a.length < 20) continue;
+      const ma = a.reduce((x, y) => x + y, 0) / a.length, mb = b.reduce((x, y) => x + y, 0) / b.length;
+      let xy = 0, xx = 0, yy = 0; a.forEach((v, i) => { xy += (v - ma) * (b[i] - mb); xx += (v - ma) ** 2; yy += (b[i] - mb) ** 2; });
+      const rr = xx * yy > 0 ? xy / Math.sqrt(xx * yy) : 0;
+      if (rr > bestR) { bestR = rr; bestSign = sign; bestLag = lag; }
+    }
+    const xs = t => px + (t - t0) / (t1 - t0) * iw;
+    let g = '';
+    for (let t = t0; t <= t1; t += 250) g += (t === t0 ? 'M' : 'L') + xs(t).toFixed(1) + ' ' + (mid - amp * 0.8 * guide(t - bestLag)).toFixed(1) + ' ';
+    const m = segs.map(sg => sg.y.map((v, i) => { const t = sg.t0 + i * 1000 / sg.fs; return t >= t0 && t <= t1 ? (i && sg.t0 + (i - 1) * 1000 / sg.fs >= t0 ? 'L' : 'M') + xs(t).toFixed(1) + ' ' + (mid - amp * Math.max(-1.6, Math.min(1.6, bestSign * v)) / 1.6).toFixed(1) : ''; }).join(' ')).join(' ');
+    const fit = Math.round(Math.max(0, bestR) * 100);
+    return `<div class="group-t">회복 호흡 구간의 호흡 흐름</div><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="호흡 안내와 측정된 호흡 흐름">
+      <line x1="${px}" x2="${px + iw}" y1="${mid}" y2="${mid}" stroke="#E3E8F1"/>
+      <path d="${g}" fill="none" stroke="#A3ABBD" stroke-width="2" stroke-dasharray="6 5"/>
+      <path d="${m}" fill="none" stroke="#1baf7a" stroke-width="2.4" stroke-linejoin="round"/>
+      <text x="${px}" y="${H - 6}" font-size="11" fill="#647089">회색 점선: 호흡 안내(5초 들숨·5초 날숨) · 초록: 카메라로 잰 호흡 흐름</text></svg>
+      <p class="muted small" style="margin:4px 0 0">안내와 맞춘 정도 <b>${fit}%</b> · ${fit >= 60 ? '안내 리듬을 잘 따라 호흡했어요.' : fit >= 35 ? '안내 리듬을 대체로 따라갔어요.' : '카메라로 본 호흡 흐름이 안내와 잘 맞지 않았어요. 움직임이 많았거나 호흡이 얕았을 수 있어요.'}</p>`;
+  }
   function timelineSvg(r) {
     const ph = r.phaseTimes || {}, keys = Object.keys(ph).filter(k => finite(ph[k].start) && finite(ph[k].end));
-    const tl = r.timeline.filter(w => w.usable ?? w.snr >= -2);
+    /* 연속 흐름 표시: 확실한 창(실선) + 약한 신호 창(점선, 확실한 값들의 흐름에서 12bpm 이내일 때만) + 15초 미만 끊김은 옅은 연결선.
+     * 연결선은 ‘측정값’이 아니라 흐름을 읽기 쉽게 하는 표시이며, 지표 계산에는 쓰지 않는다 */
+    const all = (r.timeline || []).filter(w => finite(w.bpm));
+    const sure = all.filter(w => w.usable ?? w.snr >= -2);
+    const near = w => { const ref = sure.filter(v => Math.abs(v.t - w.t) <= 20000).map(v => v.bpm); return ref.length >= 2 && Math.abs(w.bpm - median2(ref)) <= 12; };
+    const weak = all.filter(w => !(w.usable ?? w.snr >= -2) && near(w));
+    const tl = [...sure.map(w => ({ ...w, kind: 'sure' })), ...weak.map(w => ({ ...w, kind: 'weak' }))].sort((a, b) => a.t - b.t);
     if (tl.length < 5 || !keys.length) return '<p class="muted small">심박 신호가 충분하지 않아 그래프를 그리지 않았어요.</p>';
     const t0 = Math.min(...keys.map(k => ph[k].start)), t1 = Math.max(...keys.map(k => ph[k].end));
     const W = 860, H = 210, px = 40, py = 14, iw = W - px - 10, ih = H - py - 34;
@@ -188,10 +224,23 @@
       const x0 = xs(ph[k].start), w = xs(ph[k].end) - x0;
       return `<rect x="${x0}" y="${py}" width="${w}" height="${ih}" fill="${L[k][1]}"/>${w > 26 ? `<text x="${x0 + w / 2}" y="${H - 8}" text-anchor="middle" font-size="10.5" fill="#647089">${L[k][0]}</text>` : ''}`;
     }).join('');
-    let d = '', prev = null;
-    tl.filter(w => w.t >= t0 && w.t <= t1).forEach(w => { d += (prev && w.t - prev.t < 3500 ? 'L' : 'M') + xs(w.t).toFixed(1) + ' ' + ys(w.bpm).toFixed(1) + ' '; prev = w; });
+    const pts = tl.filter(w => w.t >= t0 && w.t <= t1);
+    let dS = '', dW = '', dG = '', prev = null;
+    pts.forEach(w => {
+      const p = xs(w.t).toFixed(1) + ' ' + ys(w.bpm).toFixed(1);
+      const join = prev && w.t - prev.t < 3500, bridge = prev && !join && w.t - prev.t < 15000;
+      if (bridge) dG += 'M' + xs(prev.t).toFixed(1) + ' ' + ys(prev.bpm).toFixed(1) + ' L' + p + ' ';
+      if (w.kind === 'sure') dS += (join && prev.kind === 'sure' ? 'L' : 'M') + p + ' ';
+      else dW += (join ? 'M' + xs(prev.t).toFixed(1) + ' ' + ys(prev.bpm).toFixed(1) + ' L' : 'M') + p + ' ';
+      prev = w;
+    });
+    const span = (t1 - t0) / 1000, covered = new Set(pts.map(w => Math.round(w.t / 1000))).size;
     const ticks = [lo, Math.round((lo + hi) / 2), hi].map(v => `<text x="${px - 6}" y="${ys(v) + 4}" text-anchor="end" font-size="10.5" fill="#8A93A8">${v}</text>`).join('');
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="측정 구간별 원격 심박 변화">${bands}${ticks}<path d="${d}" fill="none" stroke="#D2486A" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="측정 구간별 원격 심박 변화">${bands}${ticks}
+      <path d="${dG}" fill="none" stroke="#E7A3B3" stroke-width="1.6" stroke-dasharray="2 5"/>
+      <path d="${dW}" fill="none" stroke="#D2486A" stroke-width="2" stroke-dasharray="5 4" opacity=".55"/>
+      <path d="${dS}" fill="none" stroke="#D2486A" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      <div class="legend"><span><i style="background:#D2486A"></i>측정된 심박</span><span><i class="dash" style="border-color:#D2486A"></i>약한 신호(참고)</span><span><i class="dash" style="border-color:#E7A3B3"></i>잠깐 끊긴 구간 연결(표시용)</span><span class="muted">심박 값이 있는 시간 약 ${Math.min(100, Math.round(covered / Math.max(1, span) * 100))}%</span></div>`;
   }
 
   /* 영역 정체성 색 (색각 이상 검증 통과: dataviz validate_palette) — 상태 색(양호·주의·관리 필요)과는 따로 쓴다 */
@@ -603,15 +652,26 @@
       ${(I.context || []).map(m => `<div class="note-l"><b>${esc(m.title.replace(/\s*↔\s*/, ' · '))}</b> ${esc(m.text)}</div>`).join('') || '<p class="muted small" style="margin:8px 0 0">결과 해석에 영향을 줄 만한 요인은 없었어요.</p>'}`;
   }
 
+  /* 마음의 시선 · 점수에 넣지 않은 추가 반응 (참고) */
+  function emoExtra(r) {
+    const g = r.gaze || {}, rows = [];
+    if (r.quality.gazeOk && finite(g.revisitsNeg)) rows.push(['불편한 사진 다시 보기', `시행당 ${g.revisitsNeg}회`, g.revisitsNeg >= 1 ? '한 번 벗어난 뒤에도 다시 돌아가 보는 편이에요' : '한 번 본 뒤에는 잘 돌아가지 않았어요']);
+    if (r.quality.gazeOk && finite(g.glanceNeg)) rows.push(['불편한 사진 한 번 볼 때 머문 시간', `${(g.glanceNeg / 1000).toFixed(1)}초`, g.glanceNeg >= 1600 ? '한 번 보면 오래 머무는 편이에요' : '짧게 보고 넘어가는 편이에요']);
+    if (finite(r.exprPos)) rows.push(['기쁜 사진을 볼 때 미소 반응', `${r.exprPos > 0 ? '+' : ''}${r.exprPos}`, r.exprPos >= 2 ? '기쁜 장면에 얼굴도 함께 반응했어요' : '표정 변화는 크지 않았어요']);
+    if (finite(r.blinkEmo)) rows.push(['불편한 사진을 볼 때 깜빡임 변화', `${r.blinkEmo > 0 ? '+' : ''}${r.blinkEmo}회/분`, Math.abs(r.blinkEmo) < 4 ? '평소와 비슷했어요' : r.blinkEmo > 0 ? '평소보다 자주 깜빡였어요' : '평소보다 덜 깜빡였어요(집중·긴장 신호일 수 있어요)']);
+    if (!rows.length) return '';
+    return `<div class="emo-x"><div class="group-t">더 살펴본 반응 <span class="muted small">(참고 · 점수에는 넣지 않았어요)</span></div><div class="emo-xg">${rows.map(([a, b, c]) => `<div><span>${esc(a)}</span><b>${esc(b)}</b><small>${esc(c)}</small></div>`).join('')}</div></div>`;
+  }
+
   /* 영역별 결과 (본문): 점수 · 한 줄 해석 · 점수 구성 · 쉬운 그래프 · 바로 해볼 것 */
   function domainCard(k, idx, r, b) {
     const d = b.domains[k], care = CARE_EASY[k].items[0];
     let extra = '';
     if (k === 'emotion' && d.status !== 'na') {
-      extra = emoTimeSvg(r) + `<div class="q3-wrap"><div class="q3-fig">${quadrantSvg(r)}</div><div class="q3-txt"><span class="eyebrow">마음 × 몸 반응 유형</span><b>${esc(r.profile.title)}</b><em>${esc(r.profile.tag)}</em><p>${esc(r.profile.desc)}</p>
+      extra = emoTimeSvg(r) + emoExtra(r) + `<div class="q3-wrap"><div class="q3-fig">${quadrantSvg(r)}</div><div class="q3-txt"><span class="eyebrow">마음 × 몸 반응 유형</span><b>${esc(r.profile.title)}</b><em>${esc(r.profile.tag)}</em><p>${esc(r.profile.desc)}</p>
         <p class="muted small">불편한 사진에 시선이 머문 정도(세로)와 긴장할 때 심박이 오른 정도(가로)로 네 가지 유형을 나눠요.</p></div></div>`;
     }
-    if (k === 'autonomic' && d.status !== 'na') extra = `<div class="group-t">검사하는 동안의 심박 흐름</div>${timelineSvg(r)}<p class="muted small" style="margin:4px 0 0">압박 구간에서 심박이 올랐다가 회복 호흡 구간에서 얼마나 내려오는지가 몸의 회복력을 보여 줘요.</p>`;
+    if (k === 'autonomic' && d.status !== 'na') extra = `<div class="group-t">검사하는 동안의 심박 흐름</div>${timelineSvg(r)}${breathSvg(r)}<p class="muted small" style="margin:4px 0 0">압박 구간에서 심박이 올랐다가 회복 호흡 구간에서 얼마나 내려오는지가 몸의 회복력을 보여 줘요.</p>`;
     return `<section class="card dom" id="dom-${k}" style="--dc:${DCOLOR[k]}">
       <div class="dom-h"><div><div class="eyebrow" style="color:${DCOLOR[k]}"><span class="dic sm" style="color:${DCOLOR[k]};background:${DCOLOR[k]}1A">${icon(k)}</span> 영역 ${idx}</div><h2>${esc(d.name)}</h2>
         <p class="muted" style="margin:0">${esc(d.what)}</p></div>

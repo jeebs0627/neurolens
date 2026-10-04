@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 0.7';
+  const VERSION = 'In_mind core 0.8';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -348,6 +348,23 @@
     const best = out.sort((a, b) => b.conc - a.conc)[0];
     return { ...best, clear: best.conc >= 0.4 };
   }
+  /* 호흡 파형 (그래프용): 얼굴 중심 세로 위치(cy)를 4Hz로 다시 표본화해 0.05~0.6Hz 대역만 남긴다.
+   * 1초 넘게 끊긴 곳은 이어 붙이지 않고 나눠서(segment) 돌려준다 — 끊긴 곳을 그럴듯하게 채우지 않는다 */
+  function breathWave(frames, start, end) {
+    const s = (frames || []).filter(f => (f.faceOk ?? f.ok) && f.t >= start && f.t <= end && finite(f.cy)).sort((a, b) => a.t - b.t);
+    if (s.length < 40 || end - start < 15000) return null;
+    const fs = 4, segs = [];
+    let cur = [s[0]];
+    for (let i = 1; i < s.length; i++) { if (s[i].t - s[i - 1].t > 1000) { segs.push(cur); cur = []; } cur.push(s[i]); }
+    segs.push(cur);
+    const out = [];
+    segs.filter(g => g.length >= 20 && g[g.length - 1].t - g[0].t >= 8000).forEach(g => {
+      const rs = resample(g.map(f => f.t), [g.map(f => f.cy)], fs), x = Float64Array.from(rs.data[0]);
+      const y = bandpass(x, fs, 0.05, 0.6), sd = std(Array.from(y)) || 1;
+      out.push({ t0: rs.t0, fs, y: Array.from(y, v => round(v / sd, 2)) });
+    });
+    return out.length ? out : null;
+  }
   /* 조명 급변: 2초 창 평균 피부 밝기가 직전 창보다 12% 넘게 바뀐 시각 (rPPG 창을 이 근처에서 제외) */
   function lumJumps(frames) {
     const s = (frames || []).filter(f => f.ok && finite(f.lum));
@@ -424,17 +441,20 @@
   }
   /* samples: [{f, x, y, w?}] (x,y = 화면 px, w = 표본 가중치) → 표준화 + 릿지 회귀 모델.
    * 홍채 위치(u,v)의 제곱항을 더해 화면 가장자리에서 시선이 덜 따라가는 비선형을 보정한다 */
-  const gazeVec = (f, mu, sd, quad) => {
-    const z = GAZE_KEYS.map(k => (f[k] - mu[k]) / sd[k]);
+  /* 눈꺼풀 열림(open)은 위를 보면 커지고 아래를 보면 작아져 웹캠에서 약한 세로 시선 추정을 보강한다.
+   * 보정 표본 모두에 값이 있을 때만 특징으로 쓰고(model.keys), 예측 때 없으면 평균값(z=0)으로 둔다 */
+  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS) => {
+    const z = keys.map(k => (finite(f[k]) ? (f[k] - mu[k]) / sd[k] : 0));
     return quad ? [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]] : [1, ...z];
   };
   function fitGaze(samples, lambda = 0.5, opt = {}) {
     const S = samples.filter(s => s.f && GAZE_KEYS.every(k => finite(s.f[k])));
     if (S.length < 20) return null;
     const quad = opt.quad !== false && S.length >= 120;
+    const keys = opt.open !== false && S.every(s => finite(s.f.open)) ? [...GAZE_KEYS, 'open'] : GAZE_KEYS;
     const mu = {}, sd = {};
-    GAZE_KEYS.forEach(k => { mu[k] = mean(S.map(s => s.f[k])); sd[k] = std(S.map(s => s.f[k])) || 1; });
-    const X = S.map(s => gazeVec(s.f, mu, sd, quad)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));
+    keys.forEach(k => { mu[k] = mean(S.map(s => s.f[k])); sd[k] = std(S.map(s => s.f[k])) || 1; });
+    const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));
     const wsum = W.reduce((a, b) => a + b, 0);
     const fit = key => {
       const XtX = Array.from({ length: d }, () => new Array(d).fill(0)), Xty = new Array(d).fill(0);
@@ -442,12 +462,12 @@
         const w = W[i];
         for (let a = 0; a < d; a++) { Xty[a] += w * row[a] * S[i][key]; for (let b = 0; b < d; b++) XtX[a][b] += w * row[a] * row[b]; }
       });
-      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > GAZE_KEYS.length ? 4 : 1);   // 제곱항은 더 강하게 수축
+      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 : 1);   // 제곱항은 더 강하게 수축
       return solve(XtX, Xty);
     };
     const wx = fit('x'), wy = fit('y');
     if(!wx || !wy)return null;
-    const model={mu,sd,wx,wy,quad};
+    const model={mu,sd,wx,wy,quad,keys};
     if(!opt.singleEye){
       model.eyes={};
       for(const side of ['left','right']){
@@ -482,7 +502,7 @@
         f = { ...f, eyes: null, u: e.u, v: e.v };                      // 한쪽 눈 모델이 없으면 그 눈 특징으로 양안 모델 사용
       }
     }
-    const v = gazeVec(f, model.mu, model.sd, model.quad);
+    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS);
     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);
     return { x: dot(model.wx), y: dot(model.wy) };
   }
@@ -596,6 +616,27 @@
     const kept = fs.filter(f => Math.abs(f.u - mu) <= 3 * su && Math.abs(f.v - mv) <= 3 * sv);
     return kept.length >= Math.max(4, fs.length * 0.4) ? kept : fs;
   }
+  /* 잔차 보정: 축별 보정 뒤에도 화면 위치마다 남는 오차(예: 위쪽은 아래로, 오른쪽 아래는 왼쪽으로 쏠림)를
+   * 쌍선형 면 dx = a + b·x + c·y + d·x·y 로 맞춘다 (표본은 화면 폭·높이로 정규화, 능선 회귀로 과적합 억제, 보정량 상한 화면의 12%) */
+  function fitResidual(pairs, W, H, lambda = 0.15) {
+    const P = (pairs || []).filter(p => [p.x, p.y, p.gx, p.gy].every(finite));
+    if (P.length < 6) return null;
+    const row = p => { const x = p.gx / W - 0.5, y = p.gy / H - 0.5; return [1, x, y, x * y]; };
+    const fitAxis = (key, scale) => {
+      const A = Array.from({ length: 4 }, () => new Array(4).fill(0)), b = new Array(4).fill(0);
+      P.forEach(p => { const v = row(p), e = (key === 'x' ? p.x - p.gx : p.y - p.gy) / scale; for (let i = 0; i < 4; i++) { b[i] += v[i] * e; for (let j = 0; j < 4; j++) A[i][j] += v[i] * v[j]; } });
+      for (let i = 1; i < 4; i++) A[i][i] += lambda * P.length / 10;
+      return solve(A, b);
+    };
+    const cx = fitAxis('x', W), cy = fitAxis('y', H);
+    return cx && cy ? { W, H, cx, cy, n: P.length } : null;
+  }
+  function applyResidual(R, g) {
+    if (!R || !g) return g;
+    const x = g.x / R.W - 0.5, y = g.y / R.H - 0.5, v = [1, x, y, x * y];
+    const dx = clamp(v.reduce((s, a, i) => s + a * R.cx[i], 0), -0.12, 0.12) * R.W, dy = clamp(v.reduce((s, a, i) => s + a * R.cy[i], 0), -0.12, 0.12) * R.H;
+    return { ...g, x: g.x + dx, y: g.y + dy };
+  }
   /* 축별 1차 보정 두 개를 겹친다: 먼저 A, 그다음 B */
   const composeAffine = (A, Bm) => (!A ? Bm : !Bm ? A : { x: { a: Bm.x.a * A.x.a, b: Bm.x.a * A.x.b + Bm.x.b }, y: { a: Bm.y.a * A.y.a, b: Bm.y.a * A.y.b + Bm.y.b } });
 
@@ -628,7 +669,7 @@
   const LATE_MS = 1500, BIN_MS = 1000;
   function trialStats(tr, W) {
     let emo = 0, other = 0, first = null, firstVisit = null, visitStart = null, lapse = 0, lapseStart = null;
-    let lateEmo = 0, lateAll = 0, switches = 0, lastSide = null, latency = null;
+    let lateEmo = 0, lateAll = 0, switches = 0, lastSide = null, latency = null, visits = 0, onEmo = false;
     const bins = [[0, 0], [0, 0], [0, 0], [0, 0]];
     const s = Signal.cleanGaze(tr.samples,{task:'dwell',W}).filter(p => p.t >= tr.onset && p.t <= tr.end);
     for (let i = 0; i < s.length; i++) {
@@ -640,6 +681,7 @@
         bins[b][1] += dt; if (side === tr.emoSide) bins[b][0] += dt;
         if (rel >= LATE_MS) { lateAll += dt; if (side === tr.emoSide) lateEmo += dt; }
         if (lastSide && side !== lastSide) switches++;
+        if (side === tr.emoSide && !onEmo) { visits++; onEmo = true; } else if (side !== tr.emoSide) onEmo = false;
         lastSide = side;
         if (latency === null && !s[i].recovered && side === tr.emoSide && rel >= ONSET_SKIP) latency = rel;
       }
@@ -658,7 +700,8 @@
     const valid = total >= dur * 0.3;
     return { valid, emoShare: valid ? emo / total : null, first: valid ? first : null, firstVisitMs: valid ? firstVisit : null,
       lateShare: valid && lateAll >= (dur - LATE_MS) * 0.3 ? lateEmo / lateAll : null, bins: valid ? bins.map(([e, a]) => (a >= 250 ? e / a : null)) : null,
-      switches: valid ? switches : null, latencyMs: valid ? latency : null };
+      switches: valid ? switches : null, latencyMs: valid ? latency : null,
+      visits: valid ? visits : null, glanceMs: valid && visits ? emo / visits : null };
   }
   /* 좌우 균형 가중(NL-QC 5): 유효 시행이 한쪽에 몰리면 개인의 좌우 시선 치우침이 편향처럼 보이므로,
    * 정서 자극이 왼쪽·오른쪽에 있던 시행을 따로 평균한 뒤 두 평균을 같은 비중으로 합친다 (양쪽 2시행 이상일 때) */
@@ -683,6 +726,8 @@
       lateShare: balMean('lateShare'),
       bins: st.length ? [0, 1, 2, 3].map(b => { const v = st.map(s => s.bins && s.bins[b]).filter(finite); return v.length ? round(mean(v), 3) : null; }) : null,
       switches: st.length ? round(mean(st.map(s => s.switches)), 2) : null,
+      revisits: st.length ? round(mean(st.map(s => Math.max(0, (s.visits || 0) - 1))), 2) : null,
+      glanceMs: (() => { const v = st.map(s => s.glanceMs).filter(finite); return v.length >= 2 ? round(median(v), 0) : null; })(),
       latencyMs: (() => { const v = st.map(s => s.latencyMs).filter(finite); return v.length >= 2 ? round(median(v), 0) : null; })(),
       halfGap: finite(h0) && finite(h1) && st.length >= 6 ? round(Math.abs(h0 - h1), 3) : null,
       firstEmoRate: firsts.length ? round(firsts.filter(s => s.first === 'emo').length / firsts.length, 2) : null,
@@ -809,6 +854,10 @@
     const motion = { baseline: motionIndex(face, ...span('baseline')), all: motionIndex(face, ...all) };
     const expr = { neu: expression(face, ...span('neu')), neg: expression(face, ...span('neg')), pos: expression(face, ...span('pos')) };
     const exprNeg = expr.neu && expr.neg ? round((expr.neg.frown - expr.neu.frown) * 100, 1) : null;
+    /* 정서 반응 보조 지표: 기쁜 사진에서 미소 근육 반응(웹캠 표정 추정, EMG 대리) · 불편한 사진에서 깜빡임 변화 */
+    const exprPos = expr.neu && expr.pos ? round((expr.pos.smile - expr.neu.smile) * 100, 1) : null;
+    const blinkNeu = blinkRate(face, ...span('neu')), blinkNeg = blinkRate(face, ...span('neg'));
+    const blinkEmo = finite(blinkNeu) && finite(blinkNeg) ? round(blinkNeg - blinkNeu, 1) : null;
 
     const gazeOk = !!rec.calibration && rec.calibration.grade !== 'poor' && rec.calibration.grade !== 'none' && blocks.neg.n > 0 && blocks.neg.valid >= Math.ceil(blocks.neg.n / 2);
     const bodyOk = stressDelta !== null;
@@ -831,8 +880,10 @@
       quality: { skinCoverage: sig ? round(sig.coverage*100,0) : 0, recoveredFraction: sig ? round(sig.recoveredFraction,3) : 0, faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },
       hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),
       gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate,
-        lateNeg: blocks.neg.lateShare, binsNeg: blocks.neg.bins, binsPos: blocks.pos.bins, switches: blocks.neg.switches, latencyNeg: blocks.neg.latencyMs, halfGapNeg: blocks.neg.halfGap },
-      blink, motion, expr, exprNeg,
+        lateNeg: blocks.neg.lateShare, binsNeg: blocks.neg.bins, binsPos: blocks.pos.bins, switches: blocks.neg.switches, latencyNeg: blocks.neg.latencyMs, halfGapNeg: blocks.neg.halfGap,
+        revisitsNeg: blocks.neg.revisits, glanceNeg: blocks.neg.glanceMs, glanceNeu: blocks.neu.glanceMs },
+      breath: { baseline: breathWave(rec.frames, ...span('baseline')), recovery: breathWave(rec.frames, ...span('recovery')) },
+      blink, motion, expr, exprNeg, exprPos, blinkEmo,
       profile: { code, ...PROFILES[code], biasHigh, bodyHigh },
       care: CARE[code], mismatch,
       timeline: wins.map(w => ({ t: Math.round(w.t), start: w.start, end: w.end, bpm: round(w.bpm, 1), snr: round(w.snr, 1), confidence:w.confidence, usable:w.usable, status:w.status, methods:w.methods, regions:w.regions, recovered:w.recovered, spreadBpm:w.spread, reason:w.reason })),
@@ -911,7 +962,7 @@
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, measureEvidence, beats, ibis, rmssd, breathingCoupling,
     faceFeatures, fitGaze, predictGaze, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
-    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
+    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };
   const Fusion = createFusion(api); api.Fusion = Fusion;
   return api;

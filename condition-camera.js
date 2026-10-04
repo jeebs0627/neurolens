@@ -6,7 +6,7 @@
     constructor(video,opt){
       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;
       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});
-      this.info={version:'condition-camera-3',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
+      this.info={version:'condition-camera-4',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
     }
     async init(){
       /* 기본은 주 스레드 GPU 추론(동영상 프레임마다 직접 추론). 워커 경로는 기기에 따라 초당 7회 수준까지 떨어져
@@ -86,7 +86,11 @@
         }).catch(e=>this.fallback(String(e.message||e)));
       }else if(this.detector){
         // 주 스레드: 카메라 프레임마다 추론(최대 약 33Hz). 밝기가 충분하면 영상 요소를 그대로 넣어 복사 비용을 없앤다
-        if(t-(this.lastInfer||0)<28){this.info.skipped++;return;}this.lastInfer=t;
+        /* 얼굴 추론(약 40~60ms)은 프레임마다 돌리면 카메라 콜백 자체가 밀려 피부색 표본까지 초당 16장으로 줄어든다(실측 세션 e5db61d8).
+         * 그래서 피부색(심박·호흡) 표본은 매 프레임 그대로 받고, 추론은 직전 추론 시간의 1.2배 이상 간격을 두고 돌린다 */
+        const gap=Math.min(110,Math.max(40,(this.inferMs||35)*1.2));   // 상한 110ms: 느린 기기에서도 시선 표본 초당 9회 이상
+        if(t-(this.lastInfer||0)<gap){this.info.skipped++;return;}this.lastInfer=t;
+        const i0=performance.now();
         try{
           const g0=NLSignal.exposureGain(this.ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20;
           let result;
@@ -97,6 +101,8 @@
           } else result=this.detector.detectForVideo(this.video,t);
           const lm=result.faceLandmarks?.[0];
           const eyes=lm?{left:NLSignal.eyeQuality(this.ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(this.ctx,lm,[33,133,159,145])}:null;
+          const took=Math.min(150,performance.now()-i0);this.inferN=(this.inferN||0)+1;   // 처음 3번(GPU 준비)은 간격 계산에서 뺀다
+          if(this.inferN>3){this.inferMs=this.inferMs==null?took:this.inferMs+.2*(took-this.inferMs);this.info.inferMs=Math.round(this.inferMs);}
           this.deliver({fr,context},{t,result,skin:NLSignal.sampleSkin(this.ctx,lm),eyes,gain});
           this.consecutiveErrors=0;
         }catch(e){

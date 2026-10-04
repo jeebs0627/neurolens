@@ -903,6 +903,13 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 .sb-val.st-ok{background:#E4F4EC;color:#1C6E49}.sb-val.st-watch{background:var(--amber-soft);color:#7A4E06}.sb-val.st-concern{background:var(--rose-soft);color:#A2304A}
 .sb-v small{font-size:11.5px}
 .emo-t{margin-top:16px}
+.emo-x{margin-top:14px}
+.emo-xg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.emo-xg div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#FCFCFE}
+.emo-xg span{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.emo-xg b{display:block;font-family:var(--font-num);font-size:18px;margin:2px 0}
+.emo-xg small{display:block;font-size:12px;color:var(--ink-2);word-break:keep-all}
+.legend i.dash{border-top:2px dashed;height:0;width:16px;border-radius:0;background:none}
 .emo-t svg{max-width:620px;display:block}
 /* 지난 측정과 비교 */
 .card.cmp{border-top:3px solid #6A4FD8;background:linear-gradient(180deg,#FAF9FF,#fff 220px)}
@@ -1205,7 +1212,7 @@ window.addEventListener('online',()=>NLResearchStore.flush().catch(()=>{}));
 NLResearchStore.flush().catch(()=>{});
 const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
 /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */
-const resetEuro = () => { S.euro = { x: N.oneEuro({ minCutoff: 0.5, beta: 0.004 }), y: N.oneEuro({ minCutoff: 0.5, beta: 0.004 }) }; S.view = null; S.gstab = null; };
+const resetEuro = () => { const c = (S.gazeNoise || 0) > 0.025 ? 0.35 : 0.5; S.euro = { x: N.oneEuro({ minCutoff: c, beta: 0.004 }), y: N.oneEuro({ minCutoff: c, beta: 0.004 }) }; S.view = null; S.gstab = null; };
 resetEuro();
 const GAZE_STEPS = ['pursuit', 'saccade', 'freeview'];
 const FIX_MS = 700;
@@ -1480,11 +1487,11 @@ function processResult(fr, packet, context) {
   if (S.lmRec && S.landmarks) { const row = [t]; for (const i of LM_IDX) row.push(Math.round(lm[i].x * 1e4), Math.round(lm[i].y * 1e4)); S.landmarks.rows.push(row); }
   if (fr.gazeOk && context.feature && context.feature === S.onFeature) S.onFeature(t, f);
   if (S.model) {
-    const pred = N.predictGaze(S.model, f), g0 = N.applyAffine(S.affine, pred);
+    const pred = N.predictGaze(S.model, f), g0 = N.applyResidual(S.resid, N.applyAffine(S.affine, pred));
     if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) return;
     const g = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy };
     /* 안정화: 화면 밖 제한 → 확인되지 않은 큰 점프 차단 → 5표본 중앙값. 차단된 튐은 분석에서도 뺀다(bl) */
-    if (!S.gstab) S.gstab = N.gazeStabilizer({ W: stage.clientWidth || innerWidth, H: stage.clientHeight || innerHeight });
+    if (!S.gstab) { const noisy = (S.gazeNoise || 0) > 0.025; S.gstab = N.gazeStabilizer({ W: stage.clientWidth || innerWidth, H: stage.clientHeight || innerHeight, n: noisy ? 7 : 5, span: noisy ? 260 : 200 }); }
     const st = fr.gazeOk ? S.gstab.push(g, t) : null;
     const bl = !fr.gazeOk || !st || st.held;
     S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };
@@ -1755,9 +1762,9 @@ const V = {
 function stepInfo(key) {
   const d = B.DUR[S.mode], P = B.PROTOCOL;
   const I = {
-    calibration: { tag: '측정 준비 · Gaze calibration', title: '시선 보정 · 영점 조정', vis: V.cal, time: '약 1분 10초', resp: '눈으로 바라보기 · 따라가기',
-      what: '눈과 머리 자세를 화면 좌표에 맞춰, 화면의 어느 곳을 보고 있는지 추정할 수 있게 합니다. 이후 모든 시선 검사의 정확도를 좌우하는 단계라 세 가지 방법을 겹쳐 씁니다.',
-      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면을 천천히 돌아다니는 파란 점을 12초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 원 가까이 가면 커서가 원 쪽으로 끌려 들어가 떨림 없이 멈출 수 있어요'],
+    calibration: { tag: '측정 준비 · Gaze calibration', title: '시선 보정 · 영점 조정', vis: V.cal, time: '약 1분 25초', resp: '눈으로 바라보기 · 따라가기',
+      what: '눈과 머리 자세를 화면 좌표에 맞춰, 화면의 어느 곳을 보고 있는지 추정할 수 있게 합니다. 이후 모든 시선 검사의 정확도를 좌우하는 단계라 네 가지 방법을 겹쳐 쓰고, 검사 중에도 응시점이 나올 때마다 영점을 자동으로 다시 맞춥니다.',
+      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면을 천천히 돌아다니는 파란 점을 12초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 원 가까이 가면 커서가 원 쪽으로 끌려 들어가 떨림 없이 멈출 수 있어요', '<b>정밀 보정</b> — 새 위치의 파란 점 8개를 바라봐요. 이 점들로 지금까지의 보정을 평가해 화면 위치별로 남은 오차까지 바로잡아요'],
       orig: '응시 보정만 쓰면 점 9개 사이의 공간이 부정확해지기 쉬워요. 움직이는 점을 따라가는 <b>추적 보정</b>으로 화면 전체의 자료를 더하고, 두 모델 중 검증 오차가 작은 쪽을 고른 뒤, 축별 <b>영점 조정</b>으로 남은 치우침을 없앱니다. 커서는 떨림과 지연을 함께 줄이는 One Euro 필터로 표시해요.',
       ref: 'Semmelmann & Weigelt, 2018 · Pfeuffer et al., 2013 (추적 보정) · Casiez et al., 2012 (One Euro 필터)' },
     baseline: { tag: '측정 준비 · Resting baseline', title: '안정 기준선', vis: V.calm, time: `${d.baseline}초`, resp: '편안히 바라보기',
@@ -1945,6 +1952,24 @@ async function runSession() {
 }
 
 /* 가운데 점 응시로 현재 시선의 치우침(drift)을 재서 보정 (과제마다 시작 직전) */
+/* 암묵 보정(자동 영점 유지): 과제 중 사용자가 반드시 보는 응시점(정서 사진 사이의 +, 사카드 시작 응시점)이 나올 때마다
+ * 그 동안의 시선을 모아 영점을 조금씩(25%) 옮긴다. 표본이 흩어져 있거나(다른 곳을 봄) 너무 멀면 쓰지 않는다 */
+async function anchorFix(ms, tx, ty) {
+  if (S.demo || !S.model) { await wait(ms); return; }
+  const W = stage.clientWidth, H = stage.clientHeight; tx = tx ?? W / 2; ty = ty ?? H / 2;
+  const xs = [], ys = [], t0 = now();
+  let last = -1;
+  const stop = every(33, () => { if (now() - t0 > 250 && S.rawG && S.rawG.t > last && now() - S.rawG.t < 250 && !S.rawG.bl) { last = S.rawG.t; xs.push(S.rawG.x); ys.push(S.rawG.y); } });
+  await wait(ms);
+  stop();
+  if (xs.length < 4) return;
+  const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));
+  const mdx = mx - tx, mdy = my - ty;
+  if (madX > W * 0.035 || madY > H * 0.05 || Math.abs(mdx - S.drift.dx) > W * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35) return;
+  const k = 0.25;
+  S.drift = { dx: S.drift.dx + k * (mdx - S.drift.dx), dy: S.drift.dy + k * (mdy - S.drift.dy) };
+  S.telemetry?.drift.push({ t: now(), key: S.cur, samples: xs.length, measuredDx: mdx, measuredDy: mdy, dx: S.drift.dx, dy: S.drift.dy, weight: k, applied: true, source: 'implicit-task-fixation' });
+}
 async function driftCheck() {
   if (S.demo || !S.model) return;
   const H = stage.clientHeight, W = stage.clientWidth;
@@ -1958,7 +1983,10 @@ async function driftCheck() {
   /* 표본 4개 이상이면 적용하되, 표본이 적을수록 직전 영점과 더 많이 섞는다(지수 평활) — 한 번의 흔들린 측정이 영점을 크게 옮기지 않게 */
   if (xs.length >= 4) {
     const mdx = N.median(xs) - W / 2, mdy = N.median(ys) - H / 2;
-    const applied=Math.abs(mdx) < W * 0.25 && Math.abs(mdy) < H * 0.3;
+    const madX = N.median(xs.map(v => Math.abs(v - N.median(xs)))), madY = N.median(ys.map(v => Math.abs(v - N.median(ys))));
+    const tight = xs.length >= 8 && madX < W * 0.03 && madY < H * 0.04;
+    /* 보통은 화면의 25~30% 안쪽 치우침만 받아들이지만, 표본이 한곳에 촘촘히 모여 있으면(머리 위치가 바뀐 경우) 45%까지 받아들인다 */
+    const applied=(Math.abs(mdx) < W * 0.25 && Math.abs(mdy) < H * 0.3) || (tight && Math.abs(mdx) < W * 0.45 && Math.abs(mdy) < H * 0.45);
     const k = Math.min(1, 0.35 + xs.length / 30), dx = S.drift.dx + k * (mdx - S.drift.dx), dy = S.drift.dy + k * (mdy - S.drift.dy);
     S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,measuredDx:mdx,measuredDy:mdy,dx,dy,weight:k,applied,source:'instructed-center-fixation'});
     if (applied) { S.drift = { dx, dy }; S.gaze = null; }
@@ -2025,8 +2053,8 @@ async function calCollect(points, label) {
   }
   return out;
 }
-const predAt = (model, A, pt) => {
-  const g = pt.fs.map(f => N.applyAffine(A, N.predictGaze(model, f))).filter(Boolean);
+const predAt = (model, A, pt, R = null) => {
+  const g = pt.fs.map(f => N.applyResidual(R, N.applyAffine(A, N.predictGaze(model, f)))).filter(Boolean);
   return g.length >= 4 ? { ...pt, gx: N.median(g.map(q => q.x)), gy: N.median(g.map(q => q.y)) } : { ...pt, gx: null, gy: null };
 };
 /* 영점 조정 오차는 한 점을 빼고 맞춘 보정으로 그 점을 예측하는 방식(leave-one-out)으로 정직하게 잰다 */
@@ -2049,7 +2077,7 @@ async function cursorTask(zones, W, H) {
   for (let i = 0; i < zones.length; i++) {
     const z = zones[i];
     body.innerHTML = `<div class="zone-a" style="left:${z.x}px;top:${z.y}px;width:${W * 0.28}px;height:${W * 0.28}px"></div><div class="zone" id="zn" style="left:${z.x}px;top:${z.y}px;width:${2 * R}px;height:${2 * R}px"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#D3D9E5" stroke-width="5"/><circle id="znP" cx="50" cy="50" r="46" fill="none" stroke="#2F9E6A" stroke-width="5" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 50 50)"/></svg></div>
-      <div class="gcur" id="gc"></div><div class="cue">원 쪽을 편하게 바라보세요 — 가까이 가면 커서(●)가 원 안으로 끌려 들어가요 · 영역 ${i + 1}/${zones.length} · 3단계 시선 이동 확인</div>`;
+      <div class="gcur" id="gc"></div><div class="cue">원 쪽을 편하게 바라보세요 — 가까이 가면 커서(●)가 원 안으로 끌려 들어가요 · 영역 ${i + 1}/${zones.length} · 3단계 시선 이동 확인 (다음은 4단계 정밀 보정)</div>`;
     const zn = $('zn'), gc0 = $('gc'), zp = $('znP');
     const t0 = now();
     let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0, disp = null, lastTick = null;
@@ -2099,7 +2127,7 @@ async function calibrate() {
   await brief('calibration');
   while (true) {
     const W = stage.clientWidth, H = stage.clientHeight;
-    S.screenW = W; S.drift = { dx: 0, dy: 0 }; S.affine = null; S.model = null; S.gaze = null; resetEuro();
+    S.screenW = W; S.drift = { dx: 0, dy: 0 }; S.affine = null; S.resid = null; S.model = null; S.gaze = null; S.gazeNoise = null; resetEuro();
     S.calibLog = { screen: { w: W, h: H }, targets: [] };
     const s9 = await cal9(W, H);
     const sp = await calPursuit(W, H);
@@ -2148,13 +2176,43 @@ async function calibrate() {
         if (e1.errPct !== null && e0.errPct !== null && e1.errPct < e0.errPct) { S.affine = A1; ctl.biasApplied = true; }
       }
       acc = { ...acc, before: before.errPct, model: cands[0].key, affine: !!S.affine, control: ctl };
+      /* 4단계 · 정밀 보정: 앞 단계에서 쓰지 않은 새 위치 8곳을 커서 없이 바라보게 한 뒤, 이 점들을 ‘처음 보는 평가 자료’로 써서
+       *   ① 지금까지의 보정  ② 모든 보정 표본으로 다시 학습한 모델  ③ ①·②에 잔차 보정(화면 위치별 남은 오차 면)을 더한 것
+       * 중 오차가 가장 작은 조합을 고른다. 학습에 쓰지 않은 점으로 평가하므로 고른 결과의 오차가 실제 정확도에 가깝다 */
+      let fine = null;
+      if (acc.grade !== 'poor') {
+        const fpts = [[0.12, 0.5], [0.88, 0.5], [0.5, 0.12], [0.5, 0.88], [0.32, 0.38], [0.68, 0.62], [0.36, 0.8], [0.64, 0.22]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
+        const fp = await calCollect(fpts, '파란 점을 바라봐 주세요 · 4단계 정밀 보정');
+        const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })));
+        const m2 = N.fitGaze([...s9, ...feat(val), ...feat(zc)]);
+        if (m2) N.validateGazeEyes(m2, val, W, H);
+        const cand = [{ key: '기존 보정', model: S.model, A: S.affine, R: null }];
+        if (m2) cand.push({ key: '전체 표본 재학습', model: m2, A: N.fitAffine([...val, ...zc].map(p => predAt(m2, null, p))), R: null });
+        cand.slice().forEach(c0 => {
+          const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);
+          if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R });
+        });
+        cand.forEach(c => { c.acc = N.gazeAccuracy(fp.map(p => predAt(c.model, c.A, p, c.R)), W, H); });
+        const ok = cand.filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);
+        if (ok.length) {
+          const b0 = ok[0];
+          S.model = b0.model; S.affine = b0.A; S.resid = b0.R;
+          fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
+          acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };
+          /* 적응형 안정화: 정밀 보정 점을 바라보는 동안의 시선 흔들림(점별 MAD 중앙값)으로 화면 시선 평활 강도를 정한다 */
+          const noise = N.median(fp.map(p => { const g = p.fs.map(f => N.applyResidual(S.resid, N.applyAffine(S.affine, N.predictGaze(S.model, f)))).filter(Boolean); if (g.length < 4) return NaN; const mx = N.median(g.map(q => q.x)); return N.median(g.map(q => Math.abs(q.x - mx))) * 1.4826 / W; }).filter(Number.isFinite));
+          S.gazeNoise = Number.isFinite(noise) ? Math.round(noise * 1000) / 1000 : null;
+        }
+      }
+      S.calibLog.fine = fine;
+      resetEuro();
       S.calibLog.model = { key: cands[0].key, quad: !!S.model.quad, coefficients: S.model }; S.calibLog.affine = S.affine; S.calibLog.cursor = ctl;
       S.calibLog.pairs = [...val, ...zc].map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length }));
       S.calibLog.evaluation={kind:'internal-model-selection',before,after,affineApplied:!!S.affine,
         candidates:cands.map(c=>({name:c.key,accuracy:c.acc})),
         points:pairs.map(p=>({x:p.x,y:p.y,gx:p.gx,gy:p.gy,n:p.fs.length})),
         eyes:Object.fromEntries(Object.entries(S.model.eyes||{}).map(([side,m])=>[side,m?.validation||null]))};
-      info = `<div class="calsum"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>영점 조정 후</span><b>${S.affine ? acc.errPct + '%' : '조정 불필요'}</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div></div>`;
+      info = `<div class="calsum"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div><div><span>정밀 보정 후</span><b>${fine ? fine.after + '%' : '—'}</b></div></div>${fine ? `<p class="small muted" style="margin:8px 0 0">새 위치 ${fine.points}곳으로 평가해 ‘${esc(fine.chosen)}’을 골랐어요 (적용 전 ${fine.before}% → ${fine.after}%)</p>` : ''}`;
       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다
     }
     S.calib = { ...acc, samples: s9.length + sp.length };
@@ -2298,7 +2356,7 @@ async function sacBlock(type, n, practice) {
     const tr = { type, side: sides[i], practice, onset: null, end: null, samples: [], cal: S.sacCal || null };
     S.curTrial = tr;
     const stop = S.demo ? every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y })) : null;
-    await wait(P.fixMin + Math.random() * (P.fixMax - P.fixMin));
+    await anchorFix(P.fixMin + Math.random() * (P.fixMax - P.fixMin));
     body.innerHTML = `<div class="sac-tgt" style="left:${50 + (sides[i] === 'R' ? 1 : -1) * P.ecc * 100}%"></div>`;
     tr.onset = await nextFrame();
     await wait(P.targetMs);
@@ -2413,7 +2471,7 @@ async function phaseFreeview(d) {
     for (let i = 0; i < list.length; i++) {
       taskSet('정서 자유 보기', done, total);
       body.innerHTML = '<div class="fix">+</div>';
-      await wait(FIX_MS);
+      await anchorFix(FIX_MS);
       const emoSide = sides[i], L = emoSide === 'L' ? 25 : 75, Rr = emoSide === 'L' ? 75 : 25;
       if (photo) {
         const t = list[i], base = S.stim.base;

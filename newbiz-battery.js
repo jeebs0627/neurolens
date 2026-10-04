@@ -65,6 +65,7 @@
     pos: 'Wang W, den Brinker AC, Stuijk S, de Haan G. Algorithmic principles of remote PPG. IEEE Trans Biomed Eng. 2017;64(7):1479–1491.',
     mediapipe: 'Kartynnik Y, Ablavatski A, Grishchenko I, Grundmann M. Real-time facial surface geometry from monocular video on mobile GPUs. CVPR Workshop on Computer Vision for AR/VR; 2019. arXiv:1907.06724.',
     webcamET: 'Semmelmann K, Weigelt S. Online webcam-based eye tracking in cognitive science: a first look. Behav Res Methods. 2018;50(2):451–465.',
+    larsen: 'Larsen JT, Norris CJ, Cacioppo JT. Effects of positive and negative affect on electromyographic activity over zygomaticus major and corrugator supercilii. Psychophysiology. 2003;40(5):776–785.',
     mogg: 'Mogg K, Bradley BP, Miles F, Dixon R. Time course of attentional bias for threat scenes: testing the vigilance-avoidance hypothesis. Cogn Emot. 2004;18(5):689–700.',
     winer: 'Winer ES, Salem T. Reward devaluation: dot-probe meta-analytic evidence of avoidance of positive information in depressed persons. Psychol Bull. 2016;142(1):18–78.',
     kellough: 'Kellough JL, Beevers CG, Ellis AJ, Wells TT. Time course of selective attention in clinically depressed young adults: an eye tracking study. Behav Res Ther. 2008;46(11):1238–1243.',
@@ -405,6 +406,12 @@
     for (let i = 0; i < a.length; i++) { const x = a[i] - ma, y = b[i] - mb; sab += x * y; saa += x * x; sbb += y * y; }
     return saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : 0;
   }
+  /* 추적 과제용 시선 평활: 표적은 0.25~0.4Hz로 천천히 움직이므로, 그보다 훨씬 빠른 프레임 단위 떨림(웹캠 추정 잡음)은
+   * 5표본 중앙값 → 250ms 이동 평균으로 지운다(0.4Hz 원형 표적에서 진폭 손실 1% 미만). 원자료는 그대로 두고 분석용 사본만 만든다 */
+  function smoothTrack(s, key) {
+    const m5 = s.map((z, i) => { const w = s.slice(Math.max(0, i - 2), i + 3).map(q => q[key]); return median(w); });
+    return s.map((z, i) => { const w = []; for (let j = i; j >= 0 && z.t - s[j].t <= 125; j--) w.push(m5[j]); for (let j = i + 1; j < s.length && s[j].t - z.t <= 125; j++) w.push(m5[j]); return mean(w); });
+  }
   /* 원활 추적: 최적 지연(0~500ms)에서의 이득(기울기)과 이득 보정 후 잔차 SD */
   function pursuitStats(p, calOk = true) {
     if (!p || !Array.isArray(p.samples) || !finite(p.t0)) return null;
@@ -413,7 +420,7 @@
     const s = N.Signal.cleanGaze(p.samples,{task:'pursuit',W}).filter(z => z.t >= t0 + skip && z.t <= t0 + dur);
     const coverage = round(N.Signal.timeCoverage(s,t0+skip,t0+dur),2);
     if (s.length < 60) return { ok: false, reason: '시선 표본이 부족해요', coverage };
-    const g = s.map(z => z.x);
+    const g = smoothTrack(s, 'x');
     let best = null;
     for (let L = 0; L <= 500; L += 10) {
       const tg = s.map(z => tgt(z.t - L)), r = corr(tg, g);
@@ -443,17 +450,26 @@
     const s = N.Signal.cleanGaze(c.samples,{task:'pursuit',W}).filter(z => z.t >= t0 + skip && z.t <= t0 + dur && finite(z.x) && finite(z.y));
     const coverage = round(N.Signal.timeCoverage(s,t0+skip,t0+dur),2);
     if (s.length < 50) return { ok: false, reason: '시선 표본이 부족해요', coverage };
-    const gx = s.map(z => z.x), gy = s.map(z => z.y);
+    /* 떨림 평활 후, 첫 맞춤의 잔차가 3 MAD를 넘는 표본(순간 튐·깜빡임 직후)을 빼고 다시 맞춘다 */
+    let gx = smoothTrack(s, 'x'), gy = smoothTrack(s, 'y');
     let best = null;
     for (let L = 0; L <= 400; L += 10) {
       const tp = s.map(z => tgt(z.t - L)), rx = corr(tp.map(p => p[0]), gx), ry = corr(tp.map(p => p[1]), gy);
       if (!best || rx + ry > best.rx + best.ry) best = { L, rx, ry, tp };
     }
     const fit = (tv, gv) => { const mt = mean(tv), mg = mean(gv); let cov = 0, vt = 0; for (let i = 0; i < gv.length; i++) { cov += (tv[i] - mt) * (gv[i] - mg); vt += (tv[i] - mt) ** 2; } const k = cov / vt; return { k, res: gv.map((v, i) => v - (mg + k * (tv[i] - mt))) }; };
-    const fx = fit(best.tp.map(p => p[0]), gx), fy = fit(best.tp.map(p => p[1]), gy);
+    let fx = fit(best.tp.map(p => p[0]), gx), fy = fit(best.tp.map(p => p[1]), gy);
+    {
+      const e = fx.res.map((v, i) => Math.hypot(v, fy.res[i])), me = median(e), mad = median(e.map(v => Math.abs(v - me))) || 1;
+      const keep = e.map(v => v <= me + 3 * 1.4826 * mad);
+      if (keep.filter(Boolean).length >= 40) {
+        const sel = a => a.filter((_, i) => keep[i]), tp = sel(best.tp);
+        fx = fit(tp.map(p => p[0]), sel(gx)); fy = fit(tp.map(p => p[1]), sel(gy));
+      }
+    }
     const errPct = Math.sqrt(std(fx.res) ** 2 + std(fy.res) ** 2) / W * 100;
     const step = Math.max(1, Math.floor(s.length / 200));
-    const trace = s.filter((_, i) => i % step === 0).map(z => ({ x: round((z.x - cx) / r, 2), y: round((z.y - cy) / r, 2) }));
+    const trace = s.map((z, i) => ({ x: gx[i], y: gy[i] })).filter((_, i) => i % step === 0).map(z => ({ x: round((z.x - cx) / r, 2), y: round((z.y - cy) / r, 2) }));
     let reason = null;
     if (!calOk) reason = '시선 보정이 불안정해 원형 추적 지표를 판정하지 않았어요';
     else if (coverage < 0.5) reason = '얼굴·시선 인식 구간이 부족해요';
@@ -918,6 +934,10 @@
         ...emoSub(rec, W, base.quality.gazeOk),
         { label: '부정 자극 첫 체류', value: base.quality.gazeOk ? base.gaze.dwellNeg : null, unit: 'ms', refs: ['armstrong'] },
         { label: '부정 자극까지 걸린 시간 (첫 도달)', value: base.quality.gazeOk ? base.gaze.latencyNeg : null, unit: 'ms', refs: ['armstrong'] },
+        { label: '불편한 사진 재방문 (시행당)', value: base.quality.gazeOk ? base.gaze.revisitsNeg : null, unit: '회', refs: ['armstrong'] },
+        { label: '불편한 사진 한 번 응시 길이 (중앙값)', value: base.quality.gazeOk ? base.gaze.glanceNeg : null, unit: 'ms', refs: ['armstrong', 'kellough'] },
+        { label: '기쁜 사진 미소 반응 (중립 대비)', value: base.exprPos, unit: '×100', refs: ['larsen'] },
+        { label: '불편한 사진 깜빡임 변화 (중립 대비)', value: base.blinkEmo, unit: '회/분', refs: ['larsen'] },
         { label: '사진 사이 시선 전환 (시행당)', value: base.quality.gazeOk ? base.gaze.switches : null, unit: '회', refs: ['mogg'] },
         { label: '시간 흐름별 부정 응시 (0–1 · 1–2 · 2–3 · 3초+)', value: base.quality.gazeOk && base.gaze.binsNeg ? base.gaze.binsNeg.map(v => (finite(v) ? Math.round(v * 100) : '—')).join(' · ') : null, unit: '%', refs: ['mogg', 'kellough'] },
         { label: '반분 안정성 (홀·짝 시행 응시 비율 차)', value: base.quality.gazeOk && finite(base.gaze.halfGapNeg) ? round(base.gaze.halfGapNeg * 100, 1) : null, unit: '%p', refs: ['waechter'] },
