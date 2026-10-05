@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.3';   // 1.3 (2026-10-05): 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
+  const VERSION = 'In_mind battery 1.4';   // 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -192,6 +192,9 @@
       desc: '반대쪽을 봐야 할 때 표적 쪽으로 먼저 시선이 간 비율. 반사적 반응 억제의 직접 지표', get: a => a.saccade && a.saccade.ok ? a.saccade.anti.errorRate * 100 : null },
     { key: 'sartCommission', domain: 'control', w: 2, label: 'SART 억제 실패', unit: '%', d: 0, band: BAND('low', 10, 40, 60, 90), refs: ['robertson'],
       desc: '숫자 3에서 멈추지 못한 비율. 일상적 주의 실수와 관련', get: a => a.sart && a.sart.commission * 100, count: a => a.sart ? `${a.sart.commits}/${a.sart.nogo}회` : null },
+    { key: 'sartDprime', domain: 'control', w: 1, ref: true, label: 'SART 변별력 (d′)', unit: '', d: 2, band: BAND('high', 4, 3, 2.2, 1), refs: ['robertson'],
+      desc: '반응 숫자에는 누르고 3에서는 멈추는 구분 능력(신호탐지 d′). 억제 실패율과 달리 빨리 누르는 응답 성향의 영향을 덜 받는다 — 참고 지표',
+      get: a => a.sart && !a.sart.invalid ? a.sart.dprime : null, count: a => a.sart && finite(a.sart.criterion) ? `응답 기준 c ${a.sart.criterion}` : null },
     { key: 'sartCv', domain: 'control', w: 2, label: '반응시간 변동성 (CV)', unit: '', d: 2, band: BAND('low', 0.12, 0.25, 0.35, 0.6), refs: ['kofler'],
       desc: '반응시간 표준편차 ÷ 평균. 주의가 순간순간 흔들리는 정도', get: a => a.sart && a.sart.cv },
     { key: 'sartOmission', domain: 'control', w: 1, label: 'SART 누락', unit: '%', d: 1, band: BAND('low', 0, 5, 10, 30), refs: ['robertson'],
@@ -630,6 +633,17 @@
     let gi = 0;
     return Array.from({ length: n }, (_, i) => (places.has(i) ? nogo : go[gi++ % go.length]));
   }
+  /* 표준정규 역함수 (Acklam 근사, 상대오차 < 1.2e-9) */
+  function zInv(p) {
+    const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239],
+      b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572],
+      c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783],
+      d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416], pl = 0.02425;
+    if (p < pl) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    if (p > 1 - pl) return -zInv(1 - p);
+    const q = p - 0.5, r = q * q;
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  }
   function sartStats(sart) {
     const T = sart && Array.isArray(sart.trials) ? sart.trials : [];
     if (T.length < 18) return null;
@@ -642,9 +656,13 @@
      * 거부 시행 수보다 훨씬 많은 반응 시행을 쓰므로 실패율보다 안정적이다. 양수 = 실패 직전에 빨라짐(자동 반응) */
     const pre = [];
     T.forEach((t, i) => { if (t.digit === PROTOCOL.sart.nogo && finite(t.rt)) T.slice(Math.max(0, i - 4), i).forEach(p => { if (p.digit !== PROTOCOL.sart.nogo && finite(p.rt) && p.rt >= 100) pre.push(p.rt); }); });
-    const commits = nogo.filter(t => finite(t.rt)).length;
+    const commits = nogo.filter(t => finite(t.rt)).length, hits = go.filter(t => finite(t.rt)).length;
+    /* 신호탐지 (Stanislaw & Todorov, 1999; 로그-선형 보정 Hautus, 1995): 반응 숫자에 누른 비율 H, 3에 누른 비율 F.
+     * 변별력 d′ = z(H) − z(F) — 억제 실패율만 보면 '빨리 누르는 응답 성향'과 '멈추지 못함'이 섞인다(Helton, 2009; Seli et al., 2012).
+     * 응답 기준 c = −(z(H) + z(F))/2, 음수일수록 '일단 누르는' 쪽 */
+    const zH = zInv((hits + 0.5) / (go.length + 1)), zF = zInv((commits + 0.5) / (nogo.length + 1));
     return {
-      n: T.length, nogo: nogo.length, go: go.length, commits,
+      n: T.length, nogo: nogo.length, go: go.length, commits, dprime: round(zH - zF, 2), criterion: round(-(zH + zF) / 2, 2),
       preErrorSpeedup: pre.length >= 4 && rts.length >= 10 ? round(m - mean(pre)) : null,
       invalid: omission > QC.sartOmitMax ? `반응해야 할 숫자의 ${Math.round(omission * 100)}%에 반응하지 않았어요 — 과제를 따라가지 못한 것으로 보여 판정에서 뺐어요` : null,
       commission: round(commits / nogo.length, 3),
@@ -969,7 +987,7 @@
       antiError: rOf.anti, sartCommission: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, sartCv: rOf.sart,   // 억제 실패는 거부 시행(3) 수로 신뢰도를 정한다: 빠른 모드 6회면 1회가 17%p sartOmission: () => sart ? clamp(sart.n / 54, 0, 1) : 0,
       /* 이득은 머리가 표적을 따라 돌수록(머리 동조 |r| 0.3→0.7) 신뢰도를 낮춘다 — 눈 대신 머리가 움직이면 시선 폭이 작게 잡힌다 */
       pursuitGain: () => rOf.pursuit() * (pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
-      pursuitSpeed: rOf.pursuit, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,
+      pursuitSpeed: rOf.pursuit, sartDprime: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,
       bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)) * infF(base.hr.neu, base.hr.neg),
       stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로
       recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)) * infF(refHr, base.hr.recoveryLate), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)
@@ -1005,6 +1023,9 @@
 
     const domains = {};
     DOMAIN_KEYS.forEach(k => { domains[k] = aggregateDomain(k, indicators); });
+    /* SART 속도-정확성: 억제 실패가 많아도 응답 기준이 매우 관대하고(c < −0.6) 반응이 빠르면(평균 < 330ms) '빨리 누르는 전략'의 몫이 크다 */
+    if (sart && !sart.invalid && sart.commission >= 0.4 && finite(sart.criterion) && sart.criterion < -0.6 && sart.meanRt < 330 && domains.control.status !== 'na')
+      domains.control.notes.push(`SART에서 숫자 3을 놓친 비율이 높지만 반응이 빠르고(평균 ${sart.meanRt}ms) ‘일단 누르는’ 쪽이었어요(응답 기준 c ${sart.criterion}). 실패의 일부는 주의 저하보다 빠르게 누르는 전략에서 왔을 수 있어요 · 변별력 d′ ${sart.dprime}`);
     if (domains.autonomic.status !== 'na') {
       if (base.hrRef === 'pre') domains.autonomic.notes.push(base.hr.pre.context === 'pre-task-rest' ? '압박 과제 직전 30초 안정 구간의 심박을 비교 기준으로 썼어요 (몇 분 전 기준선보다 바로 직전 상태가 더 정확한 비교라서)' : base.hr.pre.context === 'pre-task-instructions' ? '안정 기준선의 심박 신호가 약해, 압박 과제 직전 안내 구간을 비교 기준으로 썼어요' : '안정 기준선의 심박 신호가 약해, 압박 과제 직전 구간을 비교 기준으로 썼어요');
       const PH = { baseline: '안정 기준선', neu: '정서 보기(중립)', neg: '정서 보기(부정)', pos: '정서 보기(긍정)', stress: '압박 과제', recovery: '회복 호흡', recoveryLate: '회복 후반' };

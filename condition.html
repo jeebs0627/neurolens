@@ -1847,17 +1847,27 @@ async function unlockCamera(why) {
   try { await track.applyConstraints({ advanced: [adv] }); } catch (_) {}
   L.released = { at: now(), why };
 }
+async function unlockExposure(why) {
+  const track = S.stream && S.stream.getVideoTracks()[0], L = S.camera && S.camera.info.lock;
+  if (!track || !L || L.exposure !== 'manual') return;
+  try { await track.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] }); L.exposure = 'continuous'; L.exposureReleased = { at: now(), why }; } catch (_) {}
+}
 function startCameraLock() {
   if (S.demo || !S.stream) return;
   setTimeout(async () => {
     if (!S.camera || !stage.classList.contains('on')) return;
+    const fpsBefore = S.fpsTimes.length / 2;
     S.camera.info.lock = await lockCamera();
     if (!S.camera.info.lock.applied) return;
-    let bad = 0;
+    S.camera.info.lock.fpsBefore = fpsBefore;
+    let bad = 0, slow = 0, ticks = 0;
     S.lockWatch = setInterval(() => {
-      const t = now(), lum = N.median(S.buf.filter(f => f.ok && f.t > t - 2000 && Number.isFinite(f.lum)).map(f => f.lum));
+      const t = now(), lum = N.median(S.buf.filter(f => f.ok && f.t > t - 2000 && Number.isFinite(f.lum)).map(f => f.lum)), fps = S.fpsTimes.length / 2;
       bad = Number.isFinite(lum) && (lum < 60 || lum > 225) ? bad + 1 : 0;
+      /* 노출을 길게 고정하면 프레임 속도가 묶인다(실측 NLR-6E80…: 노출 2500 고정 뒤 23.6 → 15.5fps). 고정 뒤 4초 동안 20% 넘게 떨어지면 노출만 되돌린다 */
+      ticks++; slow = fpsBefore > 0 && fps < fpsBefore * 0.8 ? slow + 1 : 0;
       if (bad >= 3) unlockCamera(`luminance ${Math.round(lum)}`);
+      else if (ticks <= 8 && slow >= 3 && S.camera.info.lock.exposure === 'manual') unlockExposure(`fps ${fps.toFixed(1)} < ${fpsBefore.toFixed(1)}`);
     }, 1000);
   }, 2500);
 }
@@ -2008,6 +2018,9 @@ async function runStep(key, fn) {
   if(S.telemetry)S.telemetry.steps[key]={start:now()};
   S.cur = key; S.stepPhases = [];
   S.lmRec = !S.demo && (key === 'calibration' || GAZE_STEPS.includes(key));
+  /* 심박 단계는 얼굴 추론을 줄여 카메라 프레임·피부색 표본을 최대로: 기준선 15Hz(눈 깜빡임 기준값 유지), 압박·회복 10Hz.
+   * 피부 영역은 묵은 랜드마크(≤0.6초)도 품질만 낮춰 쓰므로 위치 추적에는 충분하다 */
+  if (S.camera) S.camera.minGap = { baseline: 66, stress: 100, recovery: 100 }[key] || 25;
   renderStepper();
   $('skip').hidden = false;
   const stopAnchor = key === 'pvt' || key === 'sart' ? startAutoAnchor() : () => {};

@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.8';   // 1.8 (2026-10-05): 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 1.9';   // 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -410,7 +410,8 @@
     const s = (frames || []).filter(f => (f.faceOk ?? f.ok) && finite(f.cx) && finite(f.cy) && f.fw > 0);
     const out = [];
     if (s.length < 60) return out;
-    const at = t => { const w = s.filter(f => Math.abs(f.t - t) <= 80); return w.length ? { x: median(w.map(f => f.cx)), y: median(w.map(f => f.cy)), w: median(w.map(f => f.fw)) } : null; };
+    /* 심박 단계는 얼굴 추론이 10~15Hz 라 ±130ms 안의 얼굴 위치를 쓴다 */
+    const at = t => { const w = s.filter(f => Math.abs(f.t - t) <= 130); return w.length ? { x: median(w.map(f => f.cx)), y: median(w.map(f => f.cy)), w: median(w.map(f => f.fw)) } : null; };
     for (let t = s[0].t + 250; t <= s.at(-1).t - 250; t += 250) {
       const a = at(t - 250), b = at(t + 250);
       if (!a || !b) continue;

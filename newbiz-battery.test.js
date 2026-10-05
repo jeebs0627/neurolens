@@ -438,3 +438,17 @@ console.log('newbiz-battery tests passed');
   assert.ok(Math.abs(B.pursuitSec(B.DUR.quick) - 26) <= 3 && Math.abs(B.pursuitSec(B.DUR.full) - 45) <= 3, `${B.pursuitSec(B.DUR.quick)} ${B.pursuitSec(B.DUR.full)}`);
   console.log('PASS pursuit v2: reversal latency, ref indicators outside domain score, head-follow reliability, legacy v1 record, duration');
 }
+
+/* SART 신호탐지 (2026-10-05): d′ 가 응답 성향과 분리되는지 — 같은 억제 실패율이라도 반응 숫자를 자주 놓치면 d′ 가 낮다 */
+{
+  const seq = B.sartSequence(108, () => 0.5), mk = (failNogo, missGo) => seq.map((digit, i) => ({ digit, onset: i * 1150, rt: digit === 3 ? (i % 10 < failNogo ? 300 : null) : (i % 20 < missGo ? null : 380) }));
+  const a = B.sartStats({ trials: mk(4, 0) }), b = B.sartStats({ trials: mk(4, 3) });
+  assert.ok(Math.abs(a.commission - b.commission) < 0.15, 'similar commission');
+  assert.ok(a.dprime > b.dprime + 0.4, `d′ separates go misses ${a.dprime} vs ${b.dprime}`);
+  assert.ok(a.criterion < b.criterion, 'criterion more liberal when pressing everything');
+  const perfect = B.sartStats({ trials: mk(0, 0) });
+  assert.ok(Number.isFinite(perfect.dprime) && perfect.dprime > 3, `log-linear keeps finite d′ ${perfect.dprime}`);
+  const r = B.run(B.simulate('balanced')).battery.indicators.find(i => i.key === 'sartDprime');
+  assert.ok(r.ref && Number.isFinite(r.value), 'reference indicator present');
+  console.log('PASS SART signal detection: d′ and criterion');
+}

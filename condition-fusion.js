@@ -5,7 +5,7 @@
   if(root)root.NLFusionFactory=factory;
 })(typeof globalThis!=='undefined'?globalThis:null,function(N){
   'use strict';
-  const VERSION='condition-fusion-5',finite=Number.isFinite;
+  const VERSION='condition-fusion-6',finite=Number.isFinite;
   // 'aggregate'(전체 피부 평균)와 'combined'(영역 파형 합성)는 영역들과 픽셀을 공유하므로 독립 영역으로 세지 않는다
   const SHARED=new Set(['aggregate','combined']),physicalRoi=p=>!SHARED.has(p.roi);
   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
@@ -116,18 +116,18 @@
     const lower=finite(opt.start)?Math.max(0,Math.ceil((opt.start-t0)*fs/1000)):0;
     const upper=finite(opt.end)?Math.min(bvp.length,Math.floor((opt.end-t0)*fs/1000)+1):bvp.length;
     const sources=sig.candidates||[{roi:'aggregate',method:'pos',wave:bvp,repairs:sig.repaired}];
-    const out=[];
+    const out=[],skips=[];
     for(let s=lower;s+6*fs<=upper;s+=step){
-      let chosen=null;
+      let chosen=null,why=null;   // why: 이 1초 위치에 창이 하나도 없을 때의 첫 이유(진단 기록용)
       // Weak but continuous observations can gain frequency resolution with a longer window.
       // This uses already captured data; the test duration and phase boundaries stay fixed.
       for(const sec of [...new Set([winSec,16,6])].filter(v=>v>=6)){
         const wl=Math.round(sec*fs);if(s+wl>upper)continue;
         const start=t0+s*1000/fs,end=t0+(s+wl-1)*1000/fs;
-        if((opt.jumps||[]).some(t=>start<t+750&&end>t-750))continue;
+        if((opt.jumps||[]).some(t=>start<t+750&&end>t-750)){why=why||'light-jump';continue;}
         // 머리 움직임 구간이 창의 25%를 넘으면 버리고, 그보다 적으면 그만큼 후보 가중치를 낮춘다
         const moving=(opt.motion||[]).reduce((a,[m0,m1])=>a+Math.max(0,Math.min(end,m1)-Math.max(start,m0)),0)/Math.max(1,end-start);
-        if(moving>.4)continue;
+        if(moving>.4){why=why||'head-motion';continue;}
         const candidates=[],raw=[];
         // 움직임 구간 표본은 0으로 비운다(블랭킹): 맥박보다 수십 배 센 흔들림이 한 창의 스펙트럼을 차지하는 것을 막는다.
         // 대역통과된 파형이라 평균이 0 이므로 비운 자리는 '신호 없음'과 같다. 비운 비율은 보간처럼 신뢰도에서 뺀다
@@ -135,12 +135,12 @@
         for(const c of sources){
           let seg=c.wave.subarray(s,s+wl);
           if(mask&&seg.every(finite)){seg=Float64Array.from(seg);mask.forEach(([a,b])=>seg.fill(0,a,b));}
-          if(!seg.every(finite)||N.std(Array.from(seg))<1e-9)continue;
+          if(!seg.every(finite)||N.std(Array.from(seg))<1e-9){why=why||'no-signal';continue;}
           // Large frame-to-frame colour-ratio jumps are optical artefacts, not a weak pulse.
           // Common brightness changes cancel in the ratios; small noisy observations remain usable.
-          if(c.jitter&&N.mean(Array.from(c.jitter.subarray(s,s+wl)))>.08)continue;
+          if(c.jitter&&N.mean(Array.from(c.jitter.subarray(s,s+wl)))>.08){why=why||'color-jitter';continue;}
           const recovered=Math.min(1,(c.repairs?c.repairs.subarray(s,s+wl).reduce((a,b)=>a+b,0)/wl:0)+moving);
-          if(recovered>.25)continue;
+          if(recovered>.25){why=why||(moving>0?'head-motion':'frame-gaps');continue;}
           const pk=N.spectralPeak(seg,fs);if(!pk)continue;
           const ac=periodicity(seg,fs),peaks=[pk];
           // Resolve a doubled spectral peak only when a full-period candidate is also observed.
@@ -164,11 +164,11 @@
         if(!chosen||(!chosen.usable&&result.usable)||result.confidence>chosen.confidence+.12||(result.usable&&sec>chosen.windowSec&&result.confidence>=chosen.confidence-.04))chosen=result;
         if(result.usable&&(result.snr>=3||sec===16))break;
       }
-      if(chosen)out.push(chosen);
+      if(chosen)out.push(chosen);else skips.push({t:t0+(s+5*fs)*1000/fs,why:why||'no-candidate'});
     }
     // Weak support must recur at a distinct time, or have strong spatial/period evidence.
     // This changes acceptance, never the measured BPM or an actual rapid transition.
-    return track(out.map(w=>{
+    const result=track(out.map(w=>{
       if(!w.usable){
         const nearby=out.filter(v=>Math.abs(v.t-w.t)<=16000);
         const matches=(v,bpm)=>v.alternatives.filter(p=>physicalRoi(p)&&p.snr>=-7&&p.period>=.2&&Math.abs(p.bpm-bpm)<=5);
@@ -193,6 +193,8 @@
       const supported=out.some(v=>v!==w&&v.usable&&Math.abs(v.t-w.t)>=1800&&Math.abs(v.t-w.t)<=12000&&Math.abs(v.bpm-w.bpm)<=8);
       return supported?w:{...w,usable:false,quality:'poor',status:'uncertain',confidence:Math.min(w.confidence,.29),reason:'unconfirmed-weak-window'};
     }).sort((a,b)=>a.t-b.t));
+    Object.defineProperty(result,'skips',{value:skips});   // 배열 내용은 그대로, 진단용 건너뜀 기록만 덧붙인다
+    return result;
   }
   /* 시간 연속성 추적(tracked): 심박은 몇 초 사이에 크게 뛰지 않는다는 생리적 연속성을 이용한다.
    * 채택 기준에 못 미친 창이라도, 그 창 안에서 실제로 관측된 색차 기반(POS·CHROM) 후보 주파수 가운데
@@ -251,8 +253,18 @@
     }
     return {seconds,effective,weighted:[...weights].map(([i,weight])=>({...rows[i],weight}))};
   }
+  /* 구간 진단: 창이 없던 1초 위치의 이유(건너뜀)와 채택되지 못한 창의 이유(탈락) 개수 — 심박이 약한 원인을 다음 개선에 쓰기 위해 */
+  function diagnose(wins,inside,start,end){
+    const out={};const add=k=>{out[k]=(out[k]||0)+1;};
+    (wins.skips||[]).filter(x=>x.t>=start&&x.t<=end).forEach(x=>add('skip:'+x.why));
+    inside.filter(w=>!(w.usable??w.snr>=-2)).forEach(w=>add('reject:'+(w.reason||'weak')));
+    return out;
+  }
   function summarize(wins,start,end){
     const inside=wins.filter(w=>(w.start??w.t)>=start-.01&&(w.end??w.t)<=end+.01&&finite(w.bpm));
+    return {...summarizeCore(wins,inside,start,end),diagnosis:diagnose(wins,inside,start,end)};
+  }
+  function summarizeCore(wins,inside,start,end){
     const valid=inside.filter(w=>w.usable??w.snr>=-2),s=support(valid,start,end);
     const empty={bpm:null,snr:null,quality:'none',n:0,validSeconds:0,effectiveSeconds:0,coverage:0,confidence:0,spreadBpm:null,rangeBpm:null,recovered:0,status:'unavailable',candidateWindows:inside.length};
     if(!valid.length){
