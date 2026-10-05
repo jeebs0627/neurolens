@@ -5,7 +5,9 @@
   if(root)root.NLFusionFactory=factory;
 })(typeof globalThis!=='undefined'?globalThis:null,function(N){
   'use strict';
-  const VERSION='condition-fusion-3',finite=Number.isFinite;
+  const VERSION='condition-fusion-4',finite=Number.isFinite;
+  // 'aggregate'(전체 피부 평균)와 'combined'(영역 파형 합성)는 영역들과 픽셀을 공유하므로 독립 영역으로 세지 않는다
+  const SHARED=new Set(['aggregate','combined']),physicalRoi=p=>!SHARED.has(p.roi);
   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
   function weightedQuantile(rows,key,q=.5){
     const sorted=rows.filter(r=>finite(r[key])&&r.weight>0).slice().sort((a,b)=>a[key]-b[key]);
@@ -23,6 +25,46 @@
     }
     return best;
   }
+  /* 지정한 박동 주기(lag)에서의 자기상관: 유도 후보가 그 영역 파형 안에서 실제로 반복되는지 확인한다 */
+  function periodAt(x,fs,bpm){
+    const m=N.mean(Array.from(x)),L=Math.round(60*fs/bpm);let best=0;
+    for(let lag=Math.max(1,L-1);lag<=L+1&&lag<x.length/2;lag++){
+      let xy=0,xx=0,yy=0;
+      for(let i=lag;i<x.length;i++){const a=x[i]-m,b=x[i-lag]-m;xy+=a*b;xx+=a*a;yy+=b*b;}
+      best=Math.max(best,xx*yy>1e-20?xy/Math.sqrt(xx*yy):0);
+    }
+    return best;
+  }
+  /* 영역 합성 + 유도 검증 (DistancePPG: Kumar et al., 2015 의 SNR 가중 결합):
+   * 약한 신호에서는 영역마다 잡음 피크가 제각각 최대가 되어 '영역 불일치'로 창이 버려진다. 영역 파형(같은 추정법)을 표준화해
+   * 각자의 SNR 로 가중 합하면 독립 잡음은 상쇄되고 공통 맥박은 남는다. 합성 파형의 주파수가 자기상관과도 맞을 때만,
+   * 그 주파수 ±0.1Hz 에서 각 영역이 가진 근거(스펙트럼 SNR·그 주기의 자기상관)를 후보로 더한다.
+   * 값을 만들지 않는다: 영역 후보는 각 영역 자료에서 잰 것이고, 채택은 기존 융합 기준(2영역 이상·주기성·SNR)을 그대로 거친다 */
+  function guided(rows,fs,opt={}){
+    const out=[];
+    for(const method of ['pos','chrom']){
+      const set=rows.filter(r=>r.method===method&&physicalRoi(r));
+      if(set.length<2)continue;
+      const len=Math.min(...set.map(r=>r.seg.length)),comb=new Float64Array(len);
+      for(const r of set){
+        const a=Array.from(r.seg.subarray(0,len)),m=N.mean(a),sd=N.std(a)||1,w=clamp((r.pk.snrDb+10)/16,.05,1)*(.5+.5*r.pixelQ);
+        for(let i=0;i<len;i++)comb[i]+=w*(a[i]-m)/sd;
+      }
+      const pkC=N.spectralPeak(comb,fs);if(!pkC||pkC.snrDb<(opt.guideSnr??-2))continue;
+      const acC=periodicity(comb,fs);if(!acC.bpm||Math.abs(acC.bpm-pkC.bpm)>6||acC.r<(opt.guideR??.3))continue;
+      out.push({roi:'combined',method,bpm:pkC.bpm,snr:pkC.snrDb,period:acC.r,recovered:N.mean(set.map(r=>r.recovered)),pixelQ:N.mean(set.map(r=>r.pixelQ)),
+        weight:.3*(.2+.8*clamp((pkC.snrDb+10)/16))*(.25+.75*acC.r),_wave:comb,guided:true});
+      const f=pkC.bpm/60;
+      for(const r of set){
+        if(Math.abs(r.pk.bpm-pkC.bpm)<=1.5)continue;                       // 이미 같은 주파수가 그 영역의 최대 피크
+        const g=N.spectralPeak(r.seg,fs,Math.max(.7,f-.1),Math.min(3,f+.1));if(!g)continue;
+        const period=periodAt(r.seg,fs,g.bpm);
+        out.push({roi:r.roi,method,bpm:g.bpm,snr:g.snrDb,period,recovered:r.recovered,pixelQ:r.pixelQ,
+          weight:.85*(.2+.8*clamp((g.snrDb+10)/16))*(.25+.75*period)*(.5+.5*r.pixelQ)*(1-r.recovered),_wave:r.seg,guided:true});
+      }
+    }
+    return out;
+  }
   function fuse(candidates){
     if(!candidates.length)return null;
     let best=null;
@@ -35,7 +77,7 @@
       const rows=[...groups.values()],score=rows.reduce((s,p)=>s+p.weight,0);
       if(!best||score>best.score)best={rows,cluster,score};
     }
-    const rows=best.rows,rois=rows.filter(p=>p.roi!=='aggregate'),spatial=rois.length||1;
+    const rows=best.rows,rois=rows.filter(physicalRoi),spatial=rois.length||1;
     const physical=rois.length?rois:rows;
     const coherence=[];
     for(let i=0;i<physical.length;i++)for(let j=0;j<i;j++){
@@ -63,8 +105,8 @@
       status:usable?(snr>=3?'measured':'supported'):'uncertain',recovered,agreement,spread,
       regions:physical.map(p=>p.roi),methods,n:physical.length,
       reason:usable?null:agreement<.5?'conflicting-regions':'weak-periodicity',
-      alternatives:candidates.map(({roi,method,bpm,snr,period,weight,pixelQ,recovered,_wave})=>{
-        const value={roi,method,bpm,snr,period,weight,pixelQ,recovered};Object.defineProperty(value,'_wave',{value:_wave});return value;
+      alternatives:candidates.map(({roi,method,bpm,snr,period,weight,pixelQ,recovered,_wave,guided})=>{
+        const value={roi,method,bpm,snr,period,weight,pixelQ,recovered};if(guided)value.guided=true;Object.defineProperty(value,'_wave',{value:_wave});return value;
       })};
   }
   function avgSquared(rows,m){const den=rows.reduce((s,r)=>s+r.weight,0);return rows.reduce((s,r)=>s+r.weight*(r.bpm-m)**2,0)/den;}
@@ -83,7 +125,7 @@
         const wl=Math.round(sec*fs);if(s+wl>upper)continue;
         const start=t0+s*1000/fs,end=t0+(s+wl-1)*1000/fs;
         if((opt.jumps||[]).some(t=>start<t+750&&end>t-750))continue;
-        const candidates=[];
+        const candidates=[],raw=[];
         for(const c of sources){
           const seg=c.wave.subarray(s,s+wl);
           if(!seg.every(finite)||N.std(Array.from(seg))<1e-9)continue;
@@ -100,6 +142,7 @@
             if(half)peaks.push(half);
           }
           const pixelQ=c.quality?N.mean(Array.from(c.quality.subarray(s,s+wl))):1;
+          raw.push({roi:c.roi,method:c.method,seg,pk,pixelQ,recovered});
           for(const p of peaks){
             const agreement=ac.bpm?clamp(1-Math.abs(ac.bpm-p.bpm)/15):0;
             const period=ac.r*(.45+.55*agreement);
@@ -107,6 +150,7 @@
             candidates.push({roi:c.roi,method:c.method,bpm:p.bpm,snr:p.snrDb,period,recovered,pixelQ,weight,_wave:seg});
           }
         }
+        if(opt.guided!==false)candidates.push(...guided(raw,fs,opt));
         const fused=fuse(candidates);if(!fused)continue;
         if(sec<8&&fused.period<.55){fused.usable=false;fused.recoverable=false;fused.quality='poor';fused.status='uncertain';fused.confidence=Math.min(fused.confidence,.29);fused.reason='short-window-ambiguity';}
         const result={...fused,start,end,t:(start+end)/2,windowSec:sec};
@@ -120,7 +164,7 @@
     return track(out.map(w=>{
       if(!w.usable){
         const nearby=out.filter(v=>Math.abs(v.t-w.t)<=16000);
-        const matches=(v,bpm)=>v.alternatives.filter(p=>p.roi!=='aggregate'&&p.snr>=-7&&p.period>=.2&&Math.abs(p.bpm-bpm)<=5);
+        const matches=(v,bpm)=>v.alternatives.filter(p=>physicalRoi(p)&&p.snr>=-7&&p.period>=.2&&Math.abs(p.bpm-bpm)<=5);
         let accumulated=null;
         for(const anchor of w.alternatives.filter(p=>p.method!=='green')){
           const current=matches(w,anchor.bpm);
@@ -151,24 +195,37 @@
   function track(rows){
     const sure=rows.filter(w=>w.usable&&finite(w.bpm));
     const wmed=list=>{const s=list.slice().sort((a,b)=>a.bpm-b.bpm),tot=s.reduce((a,v)=>a+v.weight,0);let acc=0;for(const v of s){acc+=v.weight;if(acc>=tot/2)return v.bpm;}return null;};
+    /* 국소 심박 사전값: 창마다 색차 후보(POS·CHROM, SNR≥-8)를 1bpm 칸에 가중치로 쌓고, 앞뒤 30초를 합쳐 ±3bpm 질량이 가장 큰 곳을 찾는다.
+     * 잡음 피크는 시점마다 흩어지고 맥박은 한 곳에 쌓인다. 균등 분포 기대치의 3배 이상이고 서로 다른 10초 구간 3곳 이상이 지지할 때만 쓴다 */
+    const LO=40,NB=141,hist=rows.map(w=>{const h=new Float64Array(NB);(w.alternatives||[]).forEach(p=>{if(p.method!=='green'&&!p.guided&&finite(p.bpm)&&p.snr>=-8&&p.weight>0){const b=Math.round(p.bpm)-LO;if(b>=0&&b<NB)h[b]+=p.weight;}});return h;});
+    const localPrior=t=>{
+      const idx=rows.map((v,i)=>i).filter(i=>Math.abs(rows[i].t-t)<=30000);if(idx.length<12)return null;
+      const sum=new Float64Array(NB);idx.forEach(i=>{for(let b=0;b<NB;b++)sum[b]+=hist[i][b];});
+      const total=sum.reduce((a,b)=>a+b,0);if(!(total>0))return null;
+      let bb=-1,bm=0;for(let b=0;b<NB;b++){let m=0;for(let k=Math.max(0,b-3);k<=Math.min(NB-1,b+3);k++)m+=sum[k];if(m>bm){bm=m;bb=b;}}
+      if(bm<3*total*7/NB)return null;
+      const epochs=new Set(idx.filter(i=>{let m=0;for(let k=Math.max(0,bb-3);k<=Math.min(NB-1,bb+3);k++)m+=hist[i][k];return m>0;}).map(i=>Math.floor(rows[i].t/10000)));
+      return epochs.size>=3?bb+LO:null;
+    };
     return rows.map(w=>{
       if(w.usable||!finite(w.bpm))return w;
       const near=sure.filter(v=>Math.abs(v.t-w.t)<=20000);
-      let ref=null,anchored=false;
+      let ref=null,anchored=false,viaPrior=false;
       if(near.length>=2){ref=wmed(near.map(v=>({bpm:v.bpm,weight:1/(1+Math.abs(v.t-w.t)/5000)})));anchored=true;}
       else{
-        const agree=rows.filter(v=>v!==w&&finite(v.bpm)&&Math.abs(v.t-w.t)<=8000&&Math.abs(v.bpm-w.bpm)<=5);
-        if(agree.length>=3)ref=N.median([w.bpm,...agree.map(v=>v.bpm)]);
+        // 1초 간격으로 겹친 이웃 창끼리의 일치는 같은 자료의 같은 잡음 피크일 수 있어(합성 실험: 심박 62 에서 77~95 채택) 쓰지 않는다.
+        // 대신 앞뒤 30초 창들의 관측 후보가 서로 다른 10초 구간 3곳 이상에서 한 주파수에 모이는 경우(국소 심박 사전값)만 기준으로 쓴다
+        const pr=localPrior(w.t);if(pr!==null){ref=pr;viaPrior=true;}
       }
       if(ref===null)return w;
       const cands=(w.alternatives||[]).filter(p=>p.method!=='green'&&finite(p.bpm)&&p.snr>=-8&&p.period>=.15);
       const pick=cands.slice().sort((a,b)=>Math.abs(a.bpm-ref)-Math.abs(b.bpm-ref))[0];
       if(!pick||Math.abs(pick.bpm-ref)>6)return w;
-      const rois=new Set(cands.filter(p=>Math.abs(p.bpm-pick.bpm)<=5&&p.roi!=='aggregate').map(p=>p.roi)).size;
-      if(!anchored&&rois<2)return w;
-      const confidence=clamp(.3+.05*rois+.015*(pick.snr+8),.3,.55);
+      const rois=new Set(cands.filter(p=>Math.abs(p.bpm-pick.bpm)<=5&&physicalRoi(p)).map(p=>p.roi)).size;
+      if(!anchored&&(rois<2||Math.abs(pick.bpm-ref)>4))return w;
+      const confidence=clamp(.3+.05*rois+.015*(pick.snr+8),.3,.55)*(anchored?1:.85);
       return {...w,bpm:pick.bpm,rawBpm:w.bpm,usable:true,quality:'fair',status:'tracked',confidence,reason:'temporal-continuity',
-        correction:{kind:'temporal-continuity',reference:Math.round(ref*10)/10,anchored,differenceBpm:Math.round((pick.bpm-ref)*10)/10,regions:rois,method:pick.method}};
+        correction:{kind:'temporal-continuity',reference:Math.round(ref*10)/10,anchored,prior:viaPrior,differenceBpm:Math.round((pick.bpm-ref)*10)/10,regions:rois,method:pick.method}};
     });
   }
   // Integrate support on unique time intervals. Overlapping windows add no extra seconds.

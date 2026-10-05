@@ -110,7 +110,9 @@ const R = require('./newbiz-report.js');
 for (const n of [54, 108, 225]) for (const r of [() => 0, () => 0.5, () => 0.999, Math.random]) {
   const seq = B.sartSequence(n, r), idx = seq.map((d, i) => (d === 3 ? i : -1)).filter(i => i >= 0);
   assert.equal(seq.length, n);
-  for (let d = 1; d <= 9; d++) assert.equal(seq.filter(x => x === d).length, Math.floor(n / 9) + (d <= n % 9 ? 1 : 0), `digit ${d} count`);
+  const k = B.sartCount(n), go = [1, 2, 4, 5, 6, 7, 8, 9];
+  assert.equal(idx.length, k, 'nogo count'); assert.ok(k / n > 1 / 9 + 0.05 && k / n < 1 / 9 + 0.10, `nogo ratio ${k / n}`);
+  go.forEach((d, j) => assert.equal(seq.filter(x => x === d).length, Math.floor((n - k) / 8) + (j < (n - k) % 8 ? 1 : 0), `digit ${d} count`));
   assert.ok(idx.every((i, k) => i >= 2 && (k === 0 || i - idx[k - 1] >= 3)), `spacing ${idx}`);
   assert.ok(Math.abs(idx.filter(i => i < n / 2).length - idx.filter(i => i >= n / 2).length) <= 1, `halves ${idx}`);
 }
@@ -120,15 +122,15 @@ for (const n of [54, 108, 225]) for (const r of [() => 0, () => 0.5, () => 0.999
   const trials = seq.map((digit, i) => ({ digit, onset: i * 1150, rt: digit === 3 ? 300 : (seq.slice(i + 1, i + 5).includes(3) ? 300 : 400) }));
   const s = B.sartStats({ trials });
   assert.equal(s.commits, s.nogo);
-  assert.ok(s.preErrorSpeedup > 50, `speedup ${s.preErrorSpeedup}`);
+  assert.ok(s.preErrorSpeedup >= 40, `speedup ${s.preErrorSpeedup}`);   // 3 비율 18%: 반응 시행의 절반가량이 실패 직전 창에 들어가 전체 평균과의 차가 100ms 의 절반 수준
 }
 /* 6) SART: 억제 실패·누락·변동성 */
 {
   const seq = B.sartSequence(90, () => 0.5);
-  assert.equal(seq.filter(d => d === 3).length, 10);
+  assert.equal(seq.filter(d => d === 3).length, B.sartCount(90));
   const trials = seq.map((digit, i) => ({ digit, onset: i * 1150, rt: digit === 3 ? (i % 2 ? 300 : null) : (i % 40 === 0 ? null : 350 + (i % 5) * 20) }));
   const s = B.sartStats({ trials });
-  assert.equal(s.nogo, 10);
+  assert.equal(s.nogo, B.sartCount(90));
   assert.ok(s.commission > 0.3 && s.commission < 0.7, `com ${s.commission}`);
   assert.ok(s.omission > 0 && s.omission < 0.05, `om ${s.omission}`);
   assert.ok(s.cv > 0 && s.cv < 0.1, `cv ${s.cv}`);

@@ -1524,14 +1524,14 @@ function processResult(fr, packet, context) {
   if (S.model) {
     const pred = N.predictGaze(S.model, f), g0 = N.applyResidual(S.resid, N.applyAffine(S.affine, pred));
     if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) return;
-    const g = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy };
+    const gr = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy }, g = N.softBound(gr, stage.clientWidth || innerWidth, stage.clientHeight || innerHeight);   // 화면 밖 가속 억제
     /* 안정화: 화면 밖 제한 → 확인되지 않은 큰 점프 차단 → 5표본 중앙값. 차단된 튐은 분석에서도 뺀다(bl) */
     if (!S.gstab) { const noisy = (S.gazeNoise || 0) > 0.025; S.gstab = N.gazeStabilizer({ W: stage.clientWidth || innerWidth, H: stage.clientHeight || innerHeight, n: noisy ? 7 : 5, span: noisy ? 260 : 200 }); }
     const st = fr.gazeOk ? S.gstab.push(g, t) : null;
     const bl = !fr.gazeOk || !st || st.held;
     S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };
     /* 시선 이탈 감시: 시선 과제 중 보정 좌표가 화면에서 25% 넘게 벗어난 비율. 높으면 보정이 무너진 것이라 시선 지표를 판정하지 않는다 */
-    if (fr.gazeOk && S.gazeOut && GAZE_STEPS.includes(S.cur)) { const W = stage.clientWidth || innerWidth, H = stage.clientHeight || innerHeight; S.gazeOut.n++; if (g.x < -0.25 * W || g.x > 1.25 * W || g.y < -0.25 * H || g.y > 1.25 * H) S.gazeOut.off++; }
+    if (fr.gazeOk && S.gazeOut && GAZE_STEPS.includes(S.cur)) { const W = stage.clientWidth || innerWidth, H = stage.clientHeight || innerHeight; S.gazeOut.n++; if (gr.x < -0.25 * W || gr.x > 1.25 * W || gr.y < -0.25 * H || gr.y > 1.25 * H) S.gazeOut.off++; }   // 판정은 압축 전 좌표로
     if (st) S.gaze = { x: st.x, y: st.y };
     if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };
     if (!bl && S.onGaze) S.onGaze({ x: st.x, y: st.y, rx: g.x, ry: g.y }, t);
@@ -1843,7 +1843,7 @@ function stepInfo(key) {
       how: ['숫자 1~9가 <b>잠깐 나타났다 사라지고</b>, 1.15초마다 다음 숫자가 나와요 (크기는 매번 달라져요)', '<b>3을 뺀 모든 숫자</b>에 스페이스바 · <b>3이 나오면 누르지 않아요</b>', `연습 ${d.sartPractice}개는 매번 정답 여부를 알려 주고, 본 검사 ${d.sart}개는 누를 때마다 <b>입력 확인 점</b>만 켜져요`],
       orig: '<b>원판 그대로</b> 1.15초 간격의 빠른 속도, 다섯 가지 숫자 크기, 본 검사 중 정답을 알려 주지 않는 것은 Robertson 등(1997)의 원판 설정이에요. 원판은 숫자 뒤에 원 안의 × 모양 가림 화면이 나오는데, ‘틀렸다’는 표시로 오인되기 쉬워 빈 화면으로 바꿨어요. 빠른 리듬에 맞춰 습관적으로 누르다가 3에서 멈출 수 있는지가 측정의 핵심이라, 정오를 알려 주면 다른 검사가 돼요. 속도와 정확성을 똑같이 중요하게 생각해 주세요.',
       ref: 'Robertson et al., 1997 · SART' },
-    stress: { tag: 'Domain 4 · 자율신경 조절', title: '압박 과제 (MIST 암산)', vis: V.math, time: `연습 4문제 · 쉬기 ${B.PROTOCOL.stress.restSec}초 · 본 과제 ${d.stress}초`, resp: '숫자 키 0~9 · 클릭',
+    stress: { tag: 'Domain 4 · 자율신경 조절', title: '압박 과제 (MIST 암산)', vis: V.math, time: `연습 4문제 · 본 과제 ${d.stress}초`, resp: '숫자 키 0~9 · 클릭',
       what: '수행에 맞춰 점점 짧아지는 제한 시간 안에 암산하는 압박 상황에서 심박이 얼마나 오르는지로 스트레스 반응성을 봅니다.',
       how: ['난이도 1~5의 <b>덧셈·뺄셈</b> 문제가 무작위로 나와요 · 답은 항상 <b>0~9 한 자리</b>', '키보드 숫자 키 또는 화면의 숫자 버튼으로 답해요', '먼저 <b>연습 4문제</b>(시간 제한 없음)로 내 속도를 재고, <b>30초</b> 편히 쉰 뒤 본 과제를 시작해요', '맞히면 제한 시간이 줄고 틀리면 늘어나, 누구나 <b>절반쯤 틀리는</b> 속도로 맞춰져요 — 일부러 어렵게 만든 과제이니 틀려도 괜찮아요'],
       orig: '<b>원판 구성</b> 몬트리올 영상 스트레스 과제(MIST)처럼 난이도 무작위 혼합(한 자리 2항 → 두 자리 3항), 적응형 제한 시간, 목표 대비 성적 막대를 씁니다. 곱셈·나눗셈은 빼서 계산 실력보다 시간 압박이 반응을 만들게 했어요. 원판의 ‘가짜 평균 비교’ 대신 실제 목표 정답률 80%를 보여 줘요. 압박 반응을 비교하려면 과제 종류를 고정하는 것이 표준이라 다른 과제는 섞지 않았어요.',
@@ -2705,11 +2705,7 @@ async function phaseStress(sec) {
   await brief('stress');
   if (document.activeElement) document.activeElement.blur();
   const practiceRts = await mistPractice(P);
-  /* 압박 직전 안정 구간: 몇 분 전 기준선 대신 바로 직전 심박을 비교 기준으로 쓴다(PVT·SART 뒤 달라진 각성 수준 반영) */
-  body.innerHTML = `<div class="sac-fix" style="width:16px;height:16px;margin:-8px 0 0 -8px"></div><div class="cue">편안히 화면 가운데를 보며 쉬어 주세요 · ${P.restSec}초 뒤 본 과제가 시작돼요</div>`;
-  mark('preStress', 'start');
-  await wait(P.restSec * 1000);
-  mark('preStress', 'end');
+  /* 압박 직전 30초 쉬기 구간은 2026-10-05 삭제(운영 결정). 직전 안정 구간이 없으면 엔진은 안정 기준선 심박을 비교 기준으로 쓴다 */
   await countdown('암산 과제가 곧 시작돼요');
   mark('stress', 'start');
   const end = now() + sec * 1000, stopT = task('MIST 암산', sec * 1000);

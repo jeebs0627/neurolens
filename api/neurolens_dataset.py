@@ -126,7 +126,7 @@ def provider_error(status):
     if status == 429:
         return RequestError(429, 'Gemini 요청 한도에 도달했습니다(HTTP 429). 잠시 후 재시도하거나 Google AI Studio에서 해당 API 키의 할당량·결제를 확인하세요.', 'GEMINI_RATE_LIMIT', True)
     if status in (401, 403):
-        return RequestError(502, f'Gemini 키 또는 API 접근 권한을 확인하세요(HTTP {status}). Vercel의 neurolens_dataset 값과 Google 프로젝트의 API 설정을 확인해야 합니다.', 'GEMINI_ACCESS_DENIED')
+        return RequestError(502, f'Gemini 키 또는 API 접근 권한을 확인하세요(HTTP {status}). Vercel의 neurolens_after 값과 Google 프로젝트의 API 설정을 확인해야 합니다.', 'GEMINI_ACCESS_DENIED')
     if status == 404:
         return RequestError(502, f'현재 키에서 {MODEL} 모델을 찾지 못했습니다(HTTP 404). 모델 제공 여부와 프로젝트 접근 권한을 확인하세요.', 'GEMINI_MODEL_NOT_FOUND')
     return RequestError(502, f'Gemini가 요청을 거절했습니다(HTTP {status}). 저장한 메모와 개발 결과는 유지됩니다.', 'GEMINI_REQUEST_REJECTED')
@@ -206,9 +206,9 @@ def process(body, token):
                   and n['body'].get('sourceId') == source_id and n['body'].get('inputHash') == fingerprint), None)
     if prior:
         return {'annotation': prior, 'reused': True}
-    api_key = os.environ.get('neurolens_dataset', '').strip()
+    api_key = os.environ.get('neurolens_after', '').strip()
     if not api_key:
-        raise RequestError(503, '현재 배포에 neurolens_dataset 키가 없습니다. Vercel 환경변수 이름과 Production 적용 여부를 확인한 뒤 재배포하세요.', 'DATASET_KEY_MISSING')
+        raise RequestError(503, '현재 배포에 neurolens_after 키가 없습니다. Vercel 환경변수 이름과 Production 적용 여부를 확인한 뒤 재배포하세요.', 'DATASET_KEY_MISSING')
     text, provenance = generate(context, instruction, api_key)
     created_at = datetime.now(timezone.utc).isoformat()
     measurement_hash = digest(context['measurement'])
@@ -223,7 +223,7 @@ def process(body, token):
         'resultId': source_id if operation == 'summary' else None,
         'note': 'AI 개선 프롬프트' if operation == 'prompt' else 'AI 조치 요약 · 검토 대기',
         'text': text, 'status': 'reviewing', 'inputHash': fingerprint, 'measurementHash': measurement_hash,
-        'promptVersion': PROMPT_VERSION, 'callName': 'neurolens_dataset',
+        'promptVersion': PROMPT_VERSION, 'callName': 'neurolens_after',
         'generatedAt': created_at, 'provenance': provenance,
         'evidenceSnapshot': context, 'generatedBy': 'ai', 'humanVerified': False}
     ident = rpc(token, 'dataset_annotate', {'p_session': session_id, 'p_kind': 'action', 'p_body': annotation_body})

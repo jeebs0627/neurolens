@@ -738,7 +738,7 @@
       body += b.circle ? `<div class="group-t">원형 추적 · 시선 궤적</div>${circleSvg(b.circle)}${b.circle.ok ? '' : `<p class="warn-line">${esc(b.circle.reason)} — 원형 추적 지표를 판정에서 제외했어요.</p>`}` : '';
       body += b.sart ? `<div class="group-t">SART · 시행별 반응</div>${sartSvg(b.sart)}${b.sart.invalid ? `<p class="warn-line">${esc(b.sart.invalid)}</p>` : ''}` : '';
       body += methodBox('oculo', b, C, `<p><b>프로토콜</b> 응시점 ${P.saccade.fixMin / 1000}~${P.saccade.fixMax / 1000}초 무작위 후 응시점이 사라지며 표적이 화면 중심에서 폭의 ${Math.round(P.saccade.ecc * 100)}% 위치에 1초 제시(단계 패러다임). 원활 추적은 ${P.pursuit.freq}Hz 수평 정현파(진폭 폭의 ${Math.round(P.pursuit.amp * 100)}%), 첫 ${P.pursuit.skipMs / 1000}초 제외 후 최적 지연에서의 이득과 잔차 SD를 계산.${C.cite(['antoniades', 'maruta'])}</p>`);
-      body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + ${P.sart.mask ? '마스크' : '빈 화면'} ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 11%)에서 반응 억제.${C.cite(['robertson'])}</p>`);
+      body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + ${P.sart.mask ? '마스크' : '빈 화면'} ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 ${Math.round((1 / 9 + (P.sart.nogoBoost || 0)) * 100)}%)에서 반응 억제.${C.cite(['robertson'])}</p>`);
     } else if (k === 'emotion') {
       const photo = r.stimMode === 'photo';
       body += `<p class="small"><b>2축 유형 판정 기준</b> 부정 자극 주의 편향 ${N.THRESH.biasHigh} 이상 · 압박 심박 반응 ${N.THRESH.stressHigh}bpm 이상을 ‘높음’으로 봅니다.${C.cite(['armstrong', 'kreibig'])}</p>`;

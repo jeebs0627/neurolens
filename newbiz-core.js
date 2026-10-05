@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.2';
+  const VERSION = 'In_mind core 1.3';   // 1.3 (2026-10-05): 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -453,9 +453,14 @@
    * 이후 자세가 조금만 바뀌어도 수 σ로 외삽돼 시선이 화면 밖으로 튄다(2026-10-04 실측: 세로 +3,000px).
    * 하한(HEAD_SD_MIN)·머리 특징 강한 수축(HEAD_RIDGE, fitGaze)·예측 z ±4 제한으로 외삽을 묶는다 */
   const HEAD_SD_MIN = { yaw: 0.01, pitch: 0.01, cx: 0.01, cy: 0.01 }, Z_MAX = 4, HEAD_RIDGE = 100;
-  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS) => {
+  /* 제곱항 접선 연장(zr): 홍채 위치(u,v)가 보정 때 본 범위를 벗어나면 제곱항이 위치의 제곱으로 커져 시선이 화면 밖에서 가속하듯 튄다.
+   * 범위 안은 그대로, 범위 밖은 경계에서의 접선(1차)으로 이어 붙여 같은 눈 움직임에 같은 만큼만 움직이게 한다 */
+  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS, zr = null) => {
     const z = keys.map(k => (finite(f[k]) ? clamp((f[k] - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0));
-    return quad ? [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]] : [1, ...z];
+    if (!quad) return [1, ...z];
+    if (!zr) return [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]];
+    const c0 = clamp(z[0], zr.lo[0], zr.hi[0]), c1 = clamp(z[1], zr.lo[1], zr.hi[1]), e0 = z[0] - c0, e1 = z[1] - c1;
+    return [1, ...z, c0 * c0 + 2 * c0 * e0, c1 * c1 + 2 * c1 * e1, c0 * c1 + c1 * e0 + c0 * e1];
   };
   function fitGaze(samples, lambda = 0.5, opt = {}) {
     const S = samples.filter(s => s.f && GAZE_KEYS.every(k => finite(s.f[k])));
@@ -465,6 +470,7 @@
     const mu = {}, sd = {};
     keys.forEach(k => { mu[k] = mean(S.map(s => s.f[k])); sd[k] = std(S.map(s => s.f[k])) || 1; });
     const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));
+    const zr = quad ? { lo: [0, 1].map(j => Math.min(...X.map(r => r[1 + j]))), hi: [0, 1].map(j => Math.max(...X.map(r => r[1 + j]))) } : null;
     const wsum = W.reduce((a, b) => a + b, 0);
     const fit = key => {
       const XtX = Array.from({ length: d }, () => new Array(d).fill(0)), Xty = new Array(d).fill(0);
@@ -479,7 +485,7 @@
     };
     const wx = fit('x'), wy = fit('y');
     if(!wx || !wy)return null;
-    const model={mu,sd,wx,wy,quad,keys};
+    const model={mu,sd,wx,wy,quad,keys,zr};
     if(!opt.singleEye){
       model.eyes={};
       for(const side of ['left','right']){
@@ -514,7 +520,7 @@
         f = { ...f, eyes: null, u: e.u, v: e.v };                      // 한쪽 눈 모델이 없으면 그 눈 특징으로 양안 모델 사용
       }
     }
-    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS);
+    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS, model.zr);
     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);
     return { x: dot(model.wx), y: dot(model.wy) };
   }
@@ -533,6 +539,14 @@
     return { x: axis(P.map(p => p.x), P.map(p => p.gx)), y: axis(P.map(p => p.y), P.map(p => p.gy)) };
   }
   const applyAffine = (A, g) => (A && g ? { x: A.x.a * g.x + A.x.b, y: A.y.a * g.y + A.y.b } : g);
+  /* 화면 밖 완만한 압축: 화면 안(0~W, 0~H)은 그대로, 밖으로 나간 거리 e 는 M·tanh(e/M)(M = 화면의 35%)로 줄인다.
+   * 화면 밖 웹캠 시선은 정확도가 낮고 작은 특징 변화에도 크게 움직여, 그대로 두면 속도·가속이 비현실적으로 커진다.
+   * 가장자리에서 기울기 1로 이어져 화면 안쪽 판정은 바뀌지 않는다. 연구용 원출력(px·py)은 압축하지 않는다 */
+  function softBound(g, W, H, k = 0.35) {
+    if (!g || !finite(g.x) || !finite(g.y)) return g;
+    const sb = (v, L) => { const M = k * L; return v < 0 ? -M * Math.tanh(-v / M) : v > L ? L + M * Math.tanh((v - L) / M) : v; };
+    return { ...g, x: sb(g.x, W), y: sb(g.y, H) };
+  }
 
   /* One Euro 필터 (Casiez, Roussel & Vogel, 2012): 시선이 머물 때는 강하게, 빠르게 움직일 때는 약하게 평활해
    * 떨림과 지연을 함께 줄인다. 화면 표시용 시선 커서에 쓴다 */
@@ -977,7 +991,7 @@
     VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, measureEvidence, beats, ibis, rmssd, breathingCoupling,
-    faceFeatures, fitGaze, predictGaze, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
+    faceFeatures, fitGaze, predictGaze, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };
   const Fusion = createFusion(api); api.Fusion = Fusion;

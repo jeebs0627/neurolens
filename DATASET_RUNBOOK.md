@@ -34,7 +34,7 @@ values ('연구관리자-auth-UUID') on conflict do nothing;
 - 각 과제 ID는 `evo-<원인 커밋 앞 12자>-<영역>`입니다. 생성 프롬프트는 개발 AI에게 후속 커밋 본문에 `Dataset-Task: <ID>`를 기록하도록 지시합니다. 다음 수집에서 이 표식을 연결하되 독립 검증으로 간주하지 않습니다. 실측 메모와 직접 연결한 SHA·과제 ID는 Supabase의 기존 append-only 조치 기록에 저장합니다.
 - 공개 로그는 코드에서 나온 근거만 포함합니다. 실측값·참가 코드·개인 메모는 GitHub Actions/API에 보내지 않습니다. 원시 자료와 연구 검토 기록은 기존 Supabase 권한·철회 규칙을 그대로 따릅니다. 기존 수동 개발 기록은 별도 보존합니다.
 
-자동 분석 API는 `POST /api/dataset_evolution`입니다. 호출에는 GitHub Actions OIDC 서명이 필요하며 issuer·audience·repository ID·main 브랜치·고정 workflow 경로를 검사합니다. 입력은 커밋 SHA 한 개뿐이고 서버가 고정된 저장소의 공개 변경을 다시 조회합니다. GitHub에 Gemini 키를 새로 등록할 필요가 없습니다. 기존 Vercel **neurolens_dataset** 키로 **gemini-3.6-flash**를 사용합니다. GitHub 기본 `GITHUB_TOKEN`은 로그 파일 갱신에 사용됩니다. 추가 SQL은 없습니다.
+자동 분석 API는 `POST /api/dataset_evolution`입니다. 호출에는 GitHub Actions OIDC 서명이 필요하며 issuer·audience·repository ID·main 브랜치·고정 workflow 경로를 검사합니다. 입력은 커밋 SHA 한 개뿐이고 서버가 고정된 저장소의 공개 변경을 다시 조회합니다. GitHub에 Gemini 키를 새로 등록할 필요가 없습니다. Vercel **neurolens_after** 키(2026-10-05 교체)로 **gemini-3.6-flash**를 사용합니다. GitHub 기본 `GITHUB_TOKEN`은 로그 파일 갱신에 사용됩니다. 추가 SQL은 없습니다.
 
 페이지는 배포본 로그를 먼저 표시한 뒤 공개 GitHub 최신 로그를 조회하므로 기록 전용 커밋의 Vercel 배포가 지연되어도 누적 기록을 읽을 수 있습니다. 열린 페이지는 2분마다 갱신하며 **GitHub 기록 새로고침**은 이미 수집된 기록을 조회합니다. Actions 실행 자체를 브라우저에서 임의로 시작하지 않습니다.
 

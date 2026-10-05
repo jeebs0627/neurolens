@@ -182,3 +182,31 @@ const N = require('./newbiz-core.js');
 }
 
 console.log('newbiz-core tests passed');
+
+/* 시선 화면 밖 가속 억제 (2026-10-05): ① 제곱항 모델이 보정 범위 밖에서 1차로 이어지는지 ② 화면 밖 압축이 화면 안은 그대로, 밖은 단조·유계인지 */
+{
+  const samples = [];
+  for (let i = 0; i < 200; i++) {
+    const u = 0.35 + 0.3 * (i % 20) / 19, v = 0.4 + 0.2 * Math.floor(i / 20) / 9;
+    const f = { u, v, yaw: 0, pitch: 0, cx: 0.5, cy: 0.5, open: 0.3 };
+    samples.push({ f, x: 1440 * (u - 0.35) / 0.3 + 300 * (u - 0.5) ** 2 * 10, y: 900 * (v - 0.4) / 0.2 });
+  }
+  const m = N.fitGaze(samples);
+  assert.ok(m && m.quad && m.zr, 'quad model with range');
+  const at = u => N.predictGaze(m, { u, v: 0.5, yaw: 0, pitch: 0, cx: 0.5, cy: 0.5, open: 0.3 }).x;
+  /* 범위 안 예측은 연장 전과 같다(같은 입력에서 zr 를 빼도 동일) */
+  const inside = N.predictGaze({ ...m, zr: null }, { u: 0.5, v: 0.5, yaw: 0, pitch: 0, cx: 0.5, cy: 0.5, open: 0.3 }).x;
+  assert.ok(Math.abs(at(0.5) - inside) < 1e-6, 'inside range unchanged');
+  /* 범위 밖: 같은 간격 이동에 같은 변화(2차 차분 ≈ 0), 연장 전에는 가속 */
+  const d2 = (fn, a, h) => fn(a + 2 * h) - 2 * fn(a + h) + fn(a);
+  const old = u => N.predictGaze({ ...m, zr: null }, { u, v: 0.5, yaw: 0, pitch: 0, cx: 0.5, cy: 0.5, open: 0.3 }).x;
+  assert.ok(Math.abs(d2(at, 0.7, 0.05)) < 1e-6, `linear beyond range ${d2(at, 0.7, 0.05)}`);
+  assert.ok(Math.abs(d2(old, 0.7, 0.05)) > 1, 'old model accelerates');
+  /* 화면 밖 압축 */
+  const W = 1440, H = 900, sb = x => N.softBound({ x, y: 450 }, W, H).x;
+  assert.equal(sb(700), 700); assert.equal(sb(0), 0); assert.equal(sb(W), W);
+  assert.ok(sb(W + 100) < W + 100 && sb(W + 100) > W + 90, 'gentle near edge');
+  assert.ok(sb(W + 5000) < W + 0.35 * W + 1e-9 && sb(W + 5000) > sb(W + 1000), 'bounded and monotonic');
+  assert.ok(sb(-5000) > -0.35 * W - 1e-9, 'bounded left');
+  console.log('PASS gaze: quadratic tangent extension beyond calibration range, soft off-screen bound');
+}

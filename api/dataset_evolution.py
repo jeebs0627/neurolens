@@ -66,9 +66,9 @@ def analyze(sha, claims):
     entry = commit_evidence(sha)
     if not entry['domains']:
         raise RequestError(400, '분석할 알고리즘·연구 영역 변경이 없습니다.')
-    key = os.environ.get('neurolens_dataset', '').strip()
+    key = os.environ.get('neurolens_after', '').strip()
     if not key:
-        raise RequestError(503, 'neurolens_dataset 환경변수가 없습니다.', 'DATASET_KEY_MISSING')
+        raise RequestError(503, 'neurolens_after 환경변수가 없습니다.', 'DATASET_KEY_MISSING')
     instruction = '''공개 GitHub 코드 변경을 근거로 후속 개발·검증 과제를 작성하라. JSON 객체만 반환한다.
 형식: {"summary":"관측된 변경과 미검증 영향 요약", "tasks":[{"domain":"제공된 domains 중 하나", "title":"후속 과제", "rationale":"변경 근거와 가설 구분", "validationPlan":"회귀·실측 검증 계획", "prompt":"개발 AI에 전달할 완결된 한국어 프롬프트"}]}.
 domain별 최대 한 과제, 전체 1~4개. summary는 4000자, title 160자, rationale 2000자, validationPlan 3000자, prompt 14000자 이하.

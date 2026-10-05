@@ -43,7 +43,7 @@ class DatasetTests(unittest.TestCase):
         return api.process({'operation': operation, 'sessionId': SESSION, 'sourceId': source}, 'user.jwt.token')
 
     def test_prompt_snapshot_persistence_and_retry(self):
-        with patch.object(api, 'rpc', side_effect=self.rpc), patch.object(api, 'generate', return_value=('개선 작업 지시', {'model': api.MODEL})) as generate, patch.dict(os.environ, {'neurolens_dataset': 'fixture-key'}):
+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.object(api, 'generate', return_value=('개선 작업 지시', {'model': api.MODEL})) as generate, patch.dict(os.environ, {'neurolens_after': 'fixture-key'}):
             result = self.run_operation()
             body = result['annotation']['body']
             self.assertEqual(body['memoId'], MEMO)
@@ -63,7 +63,7 @@ class DatasetTests(unittest.TestCase):
             self.assertNotEqual(changed['annotation']['body']['inputHash'], body['inputHash'])
 
     def test_summary_links_result_prompt_and_memo(self):
-        with patch.object(api, 'rpc', side_effect=self.rpc), patch.object(api, 'generate', return_value=('근거 부족 · 후속 검증 필요', {'model': api.MODEL})), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}):
+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.object(api, 'generate', return_value=('근거 부족 · 후속 검증 필요', {'model': api.MODEL})), patch.dict(os.environ, {'neurolens_after': 'fixture'}):
             prompt = self.run_operation()['annotation']
             result = note('result', memoId=MEMO, promptId=prompt['id'], note='필터 변경. 합성 시험만 실시', evidence='commit fixture', toVersion='v2')
             self.detail['annotations'].append(result)
@@ -89,11 +89,11 @@ class DatasetTests(unittest.TestCase):
             generate.assert_not_called()
 
     def test_missing_key_and_provider_failure_leave_original(self):
-        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_dataset': ''}):
+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_after': ''}):
             with self.assertRaises(api.RequestError) as err:
                 self.run_operation()
             self.assertEqual(err.exception.status, 503)
-        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}), patch.object(api, 'generate', side_effect=api.RequestError(502, 'quota')):
+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_after': 'fixture'}), patch.object(api, 'generate', side_effect=api.RequestError(502, 'quota')):
             with self.assertRaises(api.RequestError):
                 self.run_operation()
         self.assertEqual(self.detail['annotations'], [self.memo])
@@ -125,7 +125,7 @@ class DatasetTests(unittest.TestCase):
             if name == 'dataset_annotate':
                 raise api.RequestError(502, 'save failed')
             return self.rpc(token, name, args)
-        with patch.object(api, 'rpc', side_effect=failing_rpc), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}), patch.object(api, 'generate', return_value=('text', {'model': api.MODEL})):
+        with patch.object(api, 'rpc', side_effect=failing_rpc), patch.dict(os.environ, {'neurolens_after': 'fixture'}), patch.object(api, 'generate', return_value=('text', {'model': api.MODEL})):
             with self.assertRaises(api.RequestError):
                 self.run_operation()
             self.assertEqual(len(self.detail['annotations']), 1)
@@ -133,7 +133,7 @@ class DatasetTests(unittest.TestCase):
     def test_transient_503_recovers_without_duplicate_annotation(self):
         response = {'candidates': [{'finishReason': 'STOP', 'content': {'parts': [{'text': 'recovered'}]}}]}
         errors = [urllib.error.HTTPError('https://provider.invalid', 503, 'busy', {}, io.BytesIO(b'private provider body')) for _ in range(2)]
-        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}), patch.object(api.urllib.request, 'urlopen', side_effect=[*errors, io.BytesIO(json.dumps(response).encode())]) as request, patch.object(api.time, 'sleep') as sleep, patch.object(api.random, 'uniform', return_value=0):
+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_after': 'fixture'}), patch.object(api.urllib.request, 'urlopen', side_effect=[*errors, io.BytesIO(json.dumps(response).encode())]) as request, patch.object(api.time, 'sleep') as sleep, patch.object(api.random, 'uniform', return_value=0):
             result = self.run_operation()
             self.assertEqual(result['annotation']['body']['provenance']['attempts'], 3)
             self.assertEqual(request.call_count, 3)
@@ -143,7 +143,7 @@ class DatasetTests(unittest.TestCase):
 
     def test_persistent_503_preserves_memo_and_reports_retryable(self):
         errors = [urllib.error.HTTPError('https://provider.invalid', 503, 'busy', {}, io.BytesIO()) for _ in range(3)]
-        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}), patch.object(api.urllib.request, 'urlopen', side_effect=errors) as request, patch.object(api.time, 'sleep'):
+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_after': 'fixture'}), patch.object(api.urllib.request, 'urlopen', side_effect=errors) as request, patch.object(api.time, 'sleep'):
             with self.assertRaises(api.RequestError) as caught:
                 self.run_operation()
             self.assertEqual(caught.exception.code, 'GEMINI_UNAVAILABLE')

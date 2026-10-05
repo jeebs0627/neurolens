@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.0';
+  const VERSION = 'In_mind battery 1.1';   // 1.1 (2026-10-05): SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -99,7 +99,7 @@
   /* ---------- 프로토콜 (문헌 패러다임을 웹캠·브라우저용으로 단축) ---------- */
   const PROTOCOL = {
     pvt: { isiMin: 1000, isiMax: 4000, lapseMs: 355, falseMs: 100, timeoutMs: 3000 },          // PVT-B (Basner et al., 2011)
-    sart: { digitMs: 250, maskMs: 900, mask: false, nogo: 3, sizes: [48, 72, 94, 100, 120] },   // SART (Robertson et al., 1997) — 마스크 대신 빈 화면 (아래 MODULES 참고)
+    sart: { digitMs: 250, maskMs: 900, mask: false, nogo: 3, nogoBoost: 0.07, sizes: [48, 72, 94, 100, 120] },   // nogoBoost: 3의 비율을 원판 1/9(11.1%)에서 +7%p(약 18%) — 거부 시행 수를 늘려 억제 실패율의 신뢰도를 높인다 (2026-10-05 운영 결정)   // SART (Robertson et al., 1997) — 마스크 대신 빈 화면 (아래 MODULES 참고)
     saccade: { fixMin: 1000, fixMax: 2000, targetMs: 1200, gapMs: 400, ecc: 0.35, window: 1000 }, // 단계 패러다임 (Antoniades et al., 2013 참고)
     pursuit: { freq: 0.25, amp: 0.36, skipMs: 1500 },
     /* 원형 추적 (Maruta et al., 2010): 원을 그리며 도는 점을 따라간다. 수평·수직 추적과 예측적 동기화를 함께 본다 */
@@ -111,7 +111,7 @@
     /* MIST (Dedovic et al., 2005): 난이도 1~5 무작위, 답은 항상 0~9 한 자리.
      * 시작 제한 시간 = 연습 문제 정답 평균 시간 × 0.9 (원판 규칙). 이후 정답마다 8% 단축·오답/시간 초과마다 12% 연장 —
      * 가중 계단법(Kaernbach, 1991)이라 정답률 약 60%로 수렴한다(0.08×0.6 = 0.12×0.4). 실패 경험이 압박이 되는 구간 */
-    stress: { limitMs: 4000, minMs: 1200, maxMs: 6500, down: 0.08, up: 0.12, startFactor: 0.9, practice: 4, practiceMs: 8000, target: 0.8, hardAt: [0.35, 0.72], restSec: 30 },
+    stress: { limitMs: 4000, minMs: 1200, maxMs: 6500, down: 0.08, up: 0.12, startFactor: 0.9, practice: 4, practiceMs: 8000, target: 0.8, hardAt: [0.35, 0.72] },
     /* 개인 기기 지연 보정: 가장 빠른 10% 반응이 이 값보다 느린 만큼을 입력·표시 지연으로 보고 빼 준다 (상한 maxMs) */
     latency: { fastRef: 210, maxMs: 60, minTrials: 10 },
   };
@@ -523,12 +523,12 @@
   }
 
   /* SART: trials [{digit, onset, rt|null}] — 응답 창은 숫자+빈 화면 1150ms */
-  /* 숫자 비율은 원판대로(1~9 같은 수), 순서는 무작위. 다만 3은 연속으로 나오지 않고 앞에 반응 숫자가 2개 이상 오며,
+  /* 3의 비율 = 1/9 + nogoBoost(반올림), 나머지 반응 숫자 8개는 같은 수. 순서는 무작위. 다만 3은 연속으로 나오지 않고 앞에 반응 숫자가 2개 이상 오며,
    * 전반·후반에 같은 수로 나눈다 — 위치에 따른 우연한 변동(예: 후반 3연속)을 줄여 적은 거부 시행에서도 비교가 안정적이게 */
+  function sartCount(n) { return Math.round(n * (1 / 9 + (PROTOCOL.sart.nogoBoost || 0))); }
   function sartSequence(n, rand = Math.random) {
-    const nogo = PROTOCOL.sart.nogo, digits = [];
-    for (let i = 0; i < n; i++) digits.push(1 + (i % 9));
-    const go = digits.filter(d => d !== nogo), k = digits.length - go.length;
+    const nogo = PROTOCOL.sart.nogo, k = sartCount(n), goDigits = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(d => d !== nogo);
+    const go = Array.from({ length: n - k }, (_, i) => goDigits[i % goDigits.length]);
     for (let i = go.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [go[i], go[j]] = [go[j], go[i]]; }
     const places = new Set(), halves = [[0, Math.floor(n / 2), Math.ceil(k / 2)], [Math.floor(n / 2), n, Math.floor(k / 2)]];
     for (const [a, b, m] of halves) {
@@ -1145,6 +1145,6 @@
 
   return {
     VERSION, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
-    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, mistStart, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,
+    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, mistStart, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartCount, sartSequence, sartStats, integrate, run, simulate,
   };
 });
