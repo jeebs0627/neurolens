@@ -3,6 +3,100 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "bbe64b395137fc71773711a03fa3e4f2615bc7e3",
+      "parents": [
+        "4585618f2cdffb138a7c592db0bf35aa4fa27d91"
+      ],
+      "committedAt": "2026-10-05T18:52:31+09:00",
+      "subject": "Condition core 1.5 / camera-5: compositor-driven target motion, full-rate gaze inference, cursor fixation lock, camera WB/exposure lock",
+      "url": "https://github.com/jeebs0627/neurolens/commit/bbe64b395137fc71773711a03fa3e4f2615bc7e3",
+      "files": [
+        {
+          "path": "condition-camera.js",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 2
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 77,
+          "deletions": 33
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 25,
+          "deletions": 2
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse",
+        "gaze",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition-camera.js b/condition-camera.js\nindex 321edeb..02891c6 100644\n--- a/condition-camera.js\n+++ b/condition-camera.js\n@@ -7,5 +7,5 @@\n       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;\n       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});\n-      this.info={version:'condition-camera-4',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n+      this.info={version:'condition-camera-5',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n     }\n     async init(){\n@@ -107,5 +107,7 @@\n         /* 얼굴 추론(약 40~60ms)은 프레임마다 돌리면 카메라 콜백 자체가 밀려 피부색 표본까지 초당 16장으로 줄어든다(실측 세션 e5db61d8).\n          * 그래서 피부색(심박·호흡) 표본은 매 프레임 그대로 받고, 추론은 직전 추론 시간의 1.2배 이상 간격을 두고 돌린다 */\n-        const gap=Math.min(110,Math.max(40,(this.inferMs||35)*1.2));   // 상한 110ms: 느린 기기에서도 시선 표본 초당 9회 이상\n+        // 하한 25ms: 추론이 빠른 기기(≈16ms)는 30fps 카메라의 모든 프레임을 추론한다. 하한 40ms 에서는 프레임 간격 32ms 일 때\n+        // 한 장씩 건너뛰어 시선 표본이 초당 15회로 반토막 났다(2026-10-05 실측 NLR-15ED…: 추론 16ms, 건너뜀 33%)\n+        const gap=Math.min(110,Math.max(25,(this.inferMs||35)*1.2));   // 상한 110ms: 느린 기기에서도 시선 표본 초당 9회 이상\n         if(t-(this.lastInfer||0)<gap){this.info.skipped++;return;}this.lastInfer=t;\n         const i0=performance.now();\ndiff --git a/condition.html b/condition.html\nindex 0d74988..75dbf62 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -1786,5 +1786,46 @@ function task(label, ms) {\n function taskSet(label, i, n) { $('taskbar').hidden = false; $('taskName').textContent = label; $('taskBar').style.width = (i / n * 100) + '%'; $('taskLeft').textContent = `${i} / ${n}`; }\n function taskHide() { $('taskbar').hidden = true; }\n+/* 카메라 색·노출 고정 (rPPG 보강): 웹캠의 자동 화이트밸런스·자동 노출은 측정 중에도 계속 조정되며 피부색을 흔든다 — 맥파보다 큰 잡음원.\n+ * 측정 화면으로 바뀐 뒤 밝기가 자리 잡으면(2.5초) 지원하는 카메라에서만 지금 값으로 고정한다(Media Capture Image: whiteBalanceMode·exposureMode).\n+ * 고정 뒤 얼굴 밝기가 60 미만·225 초과로 3초 이상 벗어나면 자동으로 되돌리고, 적용·해제 기록은 capture.lock 에 남겨 실측 비교에 쓴다 */\n+async function lockCamera() {\n+  const track = S.stream && S.stream.getVideoTracks()[0];\n+  if (!track || !track.getCapabilities) return { applied: false, reason: 'no-capabilities' };\n+  const cap = track.getCapabilities(), set = track.getSettings(), adv = {};\n+  if ((cap.whiteBalanceMode || []).includes('manual')) { adv.whiteBalanceMode = 'manual'; if (Number.isFinite(set.colorTemperature)) adv.colorTemperature = set.colorTemperature; }\n+  if ((cap.exposureMode || []).includes('manual')) { adv.exposureMode = 'manual'; if (Number.isFinite(set.exposureTime)) adv.exposureTime = set.exposureTime; }\n+  if (!Object.keys(adv).length) return { applied: false, reason: 'unsupported' };\n+  try {\n+    await track.applyConstraints({ advanced: [adv] });\n+    const s2 = track.getSettings();\n+    return { applied: true, at: now(), whiteBalance: s2.whiteBalanceMode || null, exposure: s2.exposureMode || null, colorTemperature: s2.colorTemperature ?? null, exposureTime: s2.exposureTime ?? null };\n+  } catch (e) { return { applied: false, reason: String(e && e.message || e).slice(0, 120) }; }\n+}\n+async function unlockCamera(why) {\n+  clearInterval(S.lockWatch); S.lockWatch = null;\n+  const track = S.stream && S.stream.getVideoTracks()[0], L = S.camera && S.camera.info.lock;\n+  if (!track || !L || !L.applied || L.released) return;\n+  const adv = {};\n+  if (L.whiteBalance === 'manual') adv.whiteBalanceMode = 'continuous';\n+  if (L.exposure === 'manual') adv.exposureMode = 'continuous';\n+  try { await track.applyConstraints({ advanced: [adv] }); } catch (_) {}\n+  L.released = { at: now(), why };\n+}\n+function startCameraLock() {\n+  if (S.demo || !S.stream) return;\n+  setTimeout(async () => {\n+    if (!S.camera || !stage.classList.contains('on')) return;\n+    S.camera.info.lock = await lockCamera();\n+    if (!S.camera.info.lock.applied) return;\n+    let bad = 0;\n+    S.lockWatch = setInterval(() => {\n+      const t = now(), lum = N.median(S.buf.filter(f => f.ok && f.t > t - 2000 && Number.isFinite(f.lum)).map(f => f.lum));\n+      bad = Number.isFinite(lum) && (lum < 60 || lum > 225) ? bad + 1 : 0;\n+      if (bad >= 3) unlockCamera(`luminance ${Math.round(lum)}`);\n+    }, 1000);\n+  }, 2500);\n+}\n function endStage() {\n+  unlockCamera('session-end');\n   clearInterval(S.datasetTimer);S.datasetTimer=null;S.endedAt=now();referenceCollector.stop();hideEnd();\n   stage.classList.remove('on'); document.documentElement.classList.remove('staging'); clearInterval(hudTimer);\n@@ -1975,4 +2016,5 @@ async function runSession() {\n   try { await document.documentElement.requestFullscreen(); } catch (_) {}\n   startHud();\n+  startCameraLock();\n   try {\n     await wait(500);\n@@ -2091,4 +2133,18 @@ async function cal9(W, H) {\n }\n /* 추적 보정: 리사주 경로(가로 0.12Hz · 세로 0.08Hz)로 천천히 움직이는 점. 시선은 표적보다 약 120ms 늦으므로 그만큼 앞선 표적 위치와 짝짓는다 */\n+/* 움직이는 점: 경로를 미리 키프레임(60Hz 표본, 구간 사이 직선)으로 만들어 브라우저 컴포지터가 그리게 한다(Web Animations).\n+ * 자바스크립트로 매 프레임 left/top 을 바꾸면 같은 스레드의 얼굴 인식(프레임당 15~40ms)에 밀려 점이 끊겨 보였다.\n+ * 시작 시각을 t0(performance.now 기준)에 맞추므로, 분석에 쓰는 표적 위치 pos(t − t0)와 화면 위치가 같다.\n+ * pts 를 주면(방향 전환처럼 꺾이는 경로) 그 점들만 이어 그린다. 끝나면 마지막 위치를 left/top 으로 남긴다 */\n+function glide(dot, pos, t0, dur, pts = null) {\n+  const keys = pts || Array.from({ length: Math.max(2, Math.ceil(dur / (1000 / 60)) + 1) }, (_, i) => { const t = Math.min(dur, i * 1000 / 60); return { t, ...pos(t) }; });\n+  dot.style.transition = 'none'; dot.style.left = '0px'; dot.style.top = '0px';\n+  const anim = dot.animate(keys.map(k => ({ transform: `translate3d(${k.x}px,${k.y}px,0)`, offset: Math.min(1, k.t / dur) })), { duration: dur, easing: 'linear', fill: 'forwards' });\n+  anim.startTime = t0;\n+  const end = keys.at(-1);\n+  const settle = () => { dot.style.left = end.x + 'px'; dot.style.top = end.y + 'px'; anim.cancel(); };\n+  S.cleanup.push(() => anim.cancel());\n+  return settle;\n+}\n async function calPursuit(W, H, sec = 12.5) {\n   const out = [], LAG = 120;\n@@ -2099,13 +2155,10 @@ async function calPursuit(W, H, sec = 12.5) {\n   await wait(900);\n   const t0 = await nextFrame();\n-  let raf = 0;\n-  const anim = ts => { const q = pos(ts - t0); dot.style.left = q.x + 'px'; dot.style.top = q.y + 'px'; raf = requestAnimationFrame(anim); };\n-  raf = requestAnimationFrame(anim);\n-  S.cleanup.push(() => cancelAnimationFrame(raf));\n+  const settle = glide(dot, pos, t0, sec * 1000);\n   S.onFeature = featSampler(t0, 1000, sec * 1000, t => pos(t - t0 - LAG), out, 0.5);\n   if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, path: 'x=W*(0.5+0.38*sin(2pi*0.12*t)), y=H*(0.5+0.34*sin(2pi*0.08*t+pi/2)), t in s from t0' };\n   const stopT = task('추적 보정', sec * 1000);\n   await wait(sec * 1000);\n-  stopT(); cancelAnimationFrame(raf); S.onFeature = null;\n+  stopT(); settle(); S.onFeature = null;\n   return out;\n }\n@@ -2372,6 +2425,4 @@ async function phasePursuit(d) {\n   mark('pursuit', 'start');\n   S.pursuit = { version: 2, cx, amp, levels: [], reversal: null, samples: [] };\n-  let raf = 0;\n-  S.cleanup.push(() => cancelAnimationFrame(raf));\n   const track = tr => { S.curTrial = tr; return S.demo ? every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y })) : () => {}; };\n   /* 1부 · 속도 단계: 같은 폭으로 점점 빠르게. 단계마다 정수 주기라 가운데에서 끊김 없이 다음 단계로 이어진다 */\n@@ -2382,35 +2433,30 @@ async function phasePursuit(d) {\n     S.pursuit.levels.push({ freq, t0, dur, samples: tr.samples });\n     const demoStop = track(tr);\n-    const anim = ts => { dot.style.left = (cx + amp * Math.sin(2 * Math.PI * freq * (ts - t0) / 1000)) + 'px'; raf = requestAnimationFrame(anim); };\n-    raf = requestAnimationFrame(anim);\n+    const settle = glide(dot, t => ({ x: cx + amp * Math.sin(2 * Math.PI * freq * t / 1000), y: H / 2 }), t0, dur);\n     const stop = task(`원활 추적 · 속도 ${i + 1}단계`, dur);\n     await wait(dur);\n-    stop(); demoStop(); cancelAnimationFrame(raf);\n+    stop(); demoStop(); settle();\n   }\n-  /* 2부 · 불규칙 방향 전환: 등속으로 움직이다 예고 없이 반전. 반전 시각·위치를 실제 그린 프레임 시각으로 기록한다 */\n+  /* 2부 · 불규칙 방향 전환: 등속으로 움직이다 예고 없이 반전. 반전 일정(시각·위치)을 미리 정해 그대로 그리므로 기록된 반전 시각이 정확하다 */\n   {\n     const R = P.rev, v = R.speed * W, tr = { samples: [] }, turns = [];\n     cue.innerHTML = '2부 · 점이 <b>예고 없이 방향을 바꿔요</b> · 눈으로만 바로 따라가세요';\n     const gap = () => R.gapMin + Math.random() * (R.gapMax - R.gapMin);\n-    let x = cx, dir = Math.random() < 0.5 ? -1 : 1, last = await nextFrame(), next = last + gap();\n-    const t0 = last;\n-    S.pursuit.reversal = { t0, end: null, speed: v, x0: cx, dir0: dir, turns, samples: tr.samples };\n+    const dir0 = Math.random() < 0.5 ? -1 : 1, pts = [{ t: 0, x: cx }];\n+    let x = cx, dir = dir0, t = 0;\n+    while (turns.filter(u => u.kind === 'random').length < d.reversals) {\n+      const g = gap(), wall = (dir > 0 ? R.hi * W - x : x - R.lo * W) / v * 1000, edge = wall < g, dt = Math.max(0, Math.min(g, wall));\n+      t += dt; x += dir * v * dt / 1000;\n+      turns.push({ t, x, from: dir, kind: edge ? 'edge' : 'random' }); pts.push({ t, x }); dir = -dir;\n+    }\n+    const dur = t + R.post + 100; pts.push({ t: dur, x: x + dir * v * (dur - t) / 1000 });\n+    const t0 = await nextFrame();\n+    turns.forEach(u => { u.t += t0; });\n+    S.pursuit.reversal = { t0, end: t0 + dur, speed: v, x0: cx, dir0, turns, samples: tr.samples };\n     const demoStop = track(tr);\n-    await new Promise((res, rej) => {\n-      const w = { rej, cleanup: () => cancelAnimationFrame(raf) };\n-      waiters.add(w);\n-      const anim = ts => {\n-        x += dir * v * Math.min(50, ts - last) / 1000; last = ts;\n-        const edge = x > R.hi * W || x < R.lo * W;\n-        if (ts >= next || edge) { x = Math.max(R.lo * W, Math.min(R.hi * W, x)); turns.push({ t: ts, x, from: dir, kind: edge && ts < next ? 'edge' : 'random' }); dir = -dir; next = ts + gap(); }\n-        dot.style.left = x + 'px';\n-        if (turns.filter(u => u.kind === 'random').length >= d.reversals && ts - turns.at(-1).t > R.post) { waiters.delete(w); res(); return; }\n-        raf = requestAnimationFrame(anim);\n-      };\n-      raf = requestAnimationFrame(anim);\n-    });\n-    S.pursuit.reversal.end = now(); demoStop();\n+    const settle = glide(dot, null, t0, dur, pts.map(q => ({ ...q, y: H / 2 })));\n+    await wait(dur);\n+    demoStop(); settle();\n   }\n-  cancelAnimationFrame(raf);\n   /* 3부 · 원형 추적 (Maruta et al., 2010): 좌우만이 아니라 위아래까지 함께 따라가며 예측적 시선 동기화를 본다 */\n   const C = B.PROTOCOL.circle, cdur = (B.DUR[S.mode].circle || 10) * 1000, r = C.r * W, cy = H / 2;\n@@ -2424,10 +2470,8 @@ async function phasePursuit(d) {\n   S.curTrial = tr2;\n   if (S.demo) every(33, () => tr2.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y }));\n-  const anim2 = ts => { const a = 2 * Math.PI * C.freq * (ts - c0) / 1000 - Math.PI / 2; dot.style.left = (cx + r * Math.cos(a)) + 'px'; dot.style.top = (cy + r * Math.sin(a)) + 'px'; raf = requestAnimationFrame(anim2); };\n-  raf = requestAnimationFrame(anim2);\n+  const settle2 = glide(dot, t => { const a = 2 * Math.PI * C.freq * t / 1000 - Math.PI / 2; return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }; }, c0, cdur);\n   const stop2 = task('원활 추적 · 원형', cdur);\n   await wait(cdur);\n-  stop2();\n-  cancelAnimationFrame(raf);\n+  stop2(); settle2();\n   S.curTrial = null;\n   mark('pursuit', 'end');\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex fbd2f60..652a209 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 1.4';   // 1.4 (2026-10-05): 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 1.5';   // 1.5 (2026-10-05): 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -574,5 +574,5 @@\n     let xPrev = null, dxPrev = 0, tPrev = null;\n     const alpha = (cut, dt) => { const r = 2 * Math.PI * cut * dt; return r / (r + 1); };\n-    return (x, tMs) => {\n+    const f = (x, tMs) => {\n       if (xPrev === null || !finite(tPrev)) { xPrev = x; tPrev = tMs; return x; }\n       const dt = Math.max(0.001, (tMs - tPrev) / 1000);\n@@ -584,4 +584,6 @@\n       return xPrev;\n     };\n+    f.reset = x => { xPrev = x; dxPrev = 0; };   // 새 응시로 옮길 때 지연 없이 그 위치에서 다시 시작\n+    return f;\n   }\n \n@@ -597,4 +599,9 @@\n     const bias = { x: 0, y: 0, n: 0 }, maxB = { x: W * 0.08, y: H * 0.08 };\n     let pos = null, last = null, lastT = null;\n+    /* 응시 고정(opt.lock, 기본 켬): 시선이 반경 R 안에 머무는 동안은 그 응시의 누적 평균(최대 30표본 ≈ 1초)을 보여 준다 —\n+     * 웹캠 시선의 프레임별 떨림은 평균으로 √n 만큼 줄고, 한 프레임짜리 튐은 무시된다. 반경 밖 표본이 2개 연속이면 새 응시로 바로 옮긴다.\n+     * R = 응시 중 평균 이탈 거리 × 2.5 (화면 폭 2.5~8%) — 사람·조명마다 다른 잡음에 맞춘다. 화면 표시 전용(분석 자료는 그대로) */\n+    const lock = opt.lock !== false;\n+    let fix = null, outside = [];\n     return {\n       bias,\n@@ -607,4 +614,20 @@\n         last = { x, y }; lastT = t;\n         let out = { x, y }, near = false;\n+        if (lock) {\n+          const R = clamp(2.5 * (fix ? fix.dev : W * 0.015), W * 0.025, W * 0.08);\n+          const d = fix ? Math.hypot(cx - fix.x, cy - fix.y) : Infinity;\n+          if (fix && d <= R) {\n+            outside = []; fix.n = Math.min(30, fix.n + 1);\n+            fix.x += (cx - fix.x) / fix.n; fix.y += (cy - fix.y) / fix.n; fix.dev += 0.1 * (d - fix.dev);\n+          } else {\n+            outside.push({ x: cx, y: cy });\n+            if (!fix || outside.length >= 2) {\n+              const mx = mean(outside.map(q => q.x)), my = mean(outside.map(q => q.y));\n+              fix = { x: mx, y: my, n: outside.length, dev: fix ? fix.dev : W * 0.015 }; outside = [];\n+              fx.reset?.(mx); fy.reset?.(my); last = { x: mx, y: my };\n+            }\n+          }\n+          if (fix && !outside.length) out = { x: fix.x, y: fix.y };\n+        }\n         if (target) {\n           const d = Math.hypot(x - target.x, y - target.y);\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex f03056d..be1e90a 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -226,2 +226,21 @@ console.log('newbiz-core tests passed');\n   console.log('PASS pulse: short frame gaps bridged, head-motion bursts blanked');\n }\n+\n+/* 시선 커서 응시 고정 (2026-10-05): 같은 잡음에서 떨림은 절반 이하, 다른 곳으로 옮기면 0.15초 안에 따라간다 */\n+{\n+  let sd = 5; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, ga = () => { let u = 0; for (let i = 0; i < 6; i++) u += rnd(); return u - 3; };\n+  const W = 1440, H = 900, run = opt => {\n+    const gc = N.gazeCursor({ W, H, ...opt }), jit = [], reach = [];\n+    [[300, 250], [1100, 300], [1150, 700], [400, 650]].forEach(([x, y], k) => {\n+      const out = []; let hit = null;\n+      for (let t = k * 1500; t < k * 1500 + 1500; t += 33) { const o = gc.step({ x: x + 0.03 * W * ga(), y: y + 0.03 * W * ga() }, t, null); out.push({ t, o }); if (hit === null && Math.hypot(o.x - x, o.y - y) < 0.04 * W) hit = t - k * 1500; }\n+      const st = out.filter(p => p.t >= k * 1500 + 400), mx = N.mean(st.map(p => p.o.x)), my = N.mean(st.map(p => p.o.y));\n+      jit.push(Math.sqrt(N.mean(st.map(p => (p.o.x - mx) ** 2 + (p.o.y - my) ** 2)))); if (k) reach.push(hit ?? 1500);\n+    });\n+    return { jit: N.mean(jit), reach: N.mean(reach) };\n+  };\n+  const a = run({ lock: false }), b = run({});\n+  assert.ok(b.jit < a.jit * 0.5, `jitter ${b.jit.toFixed(1)} vs ${a.jit.toFixed(1)}`);\n+  assert.ok(b.reach <= 150, `reach ${b.reach}`);\n+  console.log('PASS gaze cursor fixation lock: jitter halved, responsive to new fixations');\n+}\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-bbe64b395137-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-bbe64b395137-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: bbe64b395137fc71773711a03fa3e4f2615bc7e3\n변경 제목: Condition core 1.5 / camera-5: compositor-driven target motion, full-rate gaze inference, cursor fixation lock, camera WB/exposure lock\n관련 파일: condition-camera.js, condition.html, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-bbe64b395137-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-bbe64b395137-gaze",
+          "domain": "gaze",
+          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-bbe64b395137-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: bbe64b395137fc71773711a03fa3e4f2615bc7e3\n변경 제목: Condition core 1.5 / camera-5: compositor-driven target motion, full-rate gaze inference, cursor fixation lock, camera WB/exposure lock\n관련 파일: condition-camera.js, condition.html, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-bbe64b395137-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-bbe64b395137-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-bbe64b395137-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: bbe64b395137fc71773711a03fa3e4f2615bc7e3\n변경 제목: Condition core 1.5 / camera-5: compositor-driven target motion, full-rate gaze inference, cursor fixation lock, camera WB/exposure lock\n관련 파일: condition-camera.js, condition.html, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-bbe64b395137-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55590182582",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-05T09:52:34Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/6uw6rfarXdCa9TuUkJQmvUivjG3Q",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-05T09:52:50.345666+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "a9ea5961e949392cd569f9819ddc86d4f8e39539",
       "parents": [
         "98dd3f98b2a70215db10ed4426eb1cefa35c0924"
@@ -10274,7 +10368,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "0f20d9450f221fc0a00ee1c6f83f4746f4602178"
+    "sourceHead": "bbe64b395137fc71773711a03fa3e4f2615bc7e3"
   },
-  "updatedAt": "2026-10-05T07:42:34.563021+00:00"
+  "updatedAt": "2026-10-05T09:53:29.059123+00:00",
+  "aiCooldownUntil": "2026-10-05T09:58:28.378916+00:00",
+  "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
