@@ -215,6 +215,8 @@ header.hero{position:relative;overflow:hidden;background:
 .proof .num{font-family:var(--font-num);font-size:clamp(19px,2.2vw,27px);font-weight:800;letter-spacing:-.02em;color:var(--ink)}
 .proof .num b{background:var(--grad-hero);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .proof .lb{font-size:12px;color:var(--gray);margin-top:5px}
+.proof.proof-im{grid-template-columns:repeat(3,1fr);max-width:660px;margin-top:14px}
+.proof.proof-im .num b{background:var(--grad-violet,linear-gradient(135deg,#6C4CE0,#9B7BFF));-webkit-background-clip:text;background-clip:text}
 @media(max-width:720px){.proof{grid-template-columns:repeat(2,1fr)}}
 nav .links a{white-space:nowrap}
 nav .cta{white-space:nowrap}
@@ -261,6 +263,9 @@ nav .cta{white-space:nowrap}
 .ltabs button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
 .ltabs button i{width:9px;height:9px;border-radius:50%;background:var(--tc)}
 .lpanel[hidden]{display:none!important}
+.prow+.prow{margin-top:30px}
+.prow-h{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 16px;margin:0 0 16px;box-shadow:var(--shadow-sm)}
+.prow-h i{width:9px;height:9px;border-radius:50%;background:var(--tc)}
 .cmp{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin:0 0 30px;background:#fff}
 .cmp>div{padding:16px 20px;font-size:14px;color:var(--ink2);border-top:1px solid var(--line)}
 .cmp>div:nth-child(-n+2){border-top:0;font-weight:900;font-size:15.5px;color:var(--ink)}
@@ -489,26 +494,14 @@ nav .cta{white-space:nowrap}
 .care-copy .loop span{font-size:12px;font-weight:700;color:var(--blue);background:#fff;border:1px solid var(--blue-line);border-radius:14px;padding:5px 13px}
 .care-copy .loop .lp-a{color:var(--gray2);background:none;border:none;padding:5px 0}
 /* phone */
-.phone{width:290px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:28px;box-shadow:0 24px 54px rgba(31,47,120,.18);padding:18px 16px 16px;position:relative}
-.phone .notch{width:80px;height:5px;border-radius:3px;background:#E4E9F4;margin:0 auto 14px}
-.phone .app-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;margin-bottom:12px}
-.phone .app-h .logo-dot{width:20px;height:20px;border-radius:7px;background:var(--grad-hero);display:grid;place-items:center}
-.phone .app-h .logo-dot svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round}
-.phone .cond{background:#F4F8FF;border:1px solid var(--blue-line);border-radius:14px;padding:11px 13px;margin-bottom:11px}
-.phone .cond .t{font-size:10.5px;color:var(--gray);margin-bottom:5px}
-.phone .cond .v{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800}
-.phone .cond .v .up{color:var(--green);font-family:var(--font-num);font-size:11px}
-.phone .cond .pill{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:9px;padding:2px 8px}
-.phone .care-item{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px 12px;margin-bottom:8px;font-size:12px;font-weight:700;transition:border-color .2s}
-.phone .care-item:hover{border-color:var(--blue-line)}
-.phone .care-item .ci{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
-.phone .care-item .ci svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.phone .care-item small{display:block;font-size:10px;font-weight:500;color:var(--gray)}
-.phone .care-item .go{margin-left:auto;color:var(--gray2);font-size:14px}
-.phone .bot-msg{display:flex;gap:8px;margin-top:12px;align-items:flex-end}
-.phone .bot-msg .bot{width:30px;height:30px;border-radius:50%;background:var(--grad-hero);display:grid;place-items:center;flex:none;box-shadow:0 5px 12px rgba(60,80,230,.3)}
-.phone .bot-msg .bot svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.phone .bot-msg .bubble{background:var(--grad-hero);color:#fff;font-size:11px;line-height:1.55;border-radius:14px 14px 14px 4px;padding:9px 12px;font-weight:500}
+.care-stage{position:relative;perspective:1600px;padding:6px 0 64px;min-height:300px}
+.care-stage::before{content:"";position:absolute;inset:8% -6% 4% 10%;background:radial-gradient(closest-side,rgba(108,76,224,.28),rgba(30,90,240,.10) 60%,transparent);filter:blur(10px);z-index:0}
+.care-stage img{display:block;height:auto;border-radius:16px;position:relative}
+.care-stage .cs-back{width:94%;transform:rotateY(-13deg) rotateX(5deg);transform-origin:left center;box-shadow:0 30px 60px rgba(14,26,51,.32),0 8px 18px rgba(14,26,51,.18);z-index:1}
+.care-stage .cs-front{position:absolute;width:44%;right:-1%;bottom:0;transform:rotateY(-13deg) translateZ(70px);transform-origin:right center;border:1px solid rgba(255,255,255,.9);box-shadow:0 36px 70px rgba(31,47,120,.34),0 10px 22px rgba(31,47,120,.18);z-index:2}
+.care-stage .cs-chip{position:absolute;left:4%;bottom:10px;z-index:3;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#1E5AF0,#6C4CE0);border-radius:999px;padding:8px 15px;box-shadow:0 10px 24px rgba(30,90,240,.35)}
+.care-stage .cs-chip i{width:8px;height:8px;border-radius:50%;background:#7CF2B5;box-shadow:0 0 0 4px rgba(124,242,181,.25)}
+@media(max-width:820px){.care-stage{padding:22px 0 150px}.care-stage .cs-back{width:100%;transform:none}.care-stage .cs-front{width:52%;right:-2%;bottom:0;transform:none}.care-stage .cs-chip{top:0;bottom:auto;left:-2px;font-size:12px;padding:7px 13px}}
 
 /* ============================================================
    FIELD GALLERY (현장 사진 마퀴 — img/002~008)
@@ -579,6 +572,7 @@ nav .cta{white-space:nowrap}
 .ceo-chips span{font-size:12px;font-weight:600;color:#C9D8FF;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:5px 13px}
 .ceo-band .nm{font-size:21px;font-weight:900}
 .ceo-band .nm small{font-size:12.5px;font-weight:600;color:#8FB2FF;margin-left:9px}
+.ceo-band .nm .ceo-badge{display:inline-block;vertical-align:4px;margin-left:10px;font-size:12px;font-weight:800;letter-spacing:-.01em;color:#fff;background:linear-gradient(135deg,#1E5AF0,#6C4CE0);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:4px 12px;box-shadow:0 4px 14px rgba(30,90,240,.35)}
 .ceo-band p{font-size:13px;color:#B9C4DE;margin-top:5px;max-width:520px}
 .ceo-band .axl{margin-left:auto;font-family:var(--font-num);font-weight:800;letter-spacing:.2em;font-size:13px;color:#8FB2FF;border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:11px 18px;position:relative;z-index:2}
 @media(max-width:720px){.ceo-band .axl{margin-left:0}}
@@ -700,8 +694,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <a class="logo" href="#top" aria-label="NeuroLens 홈">
       <span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14.5" cy="17.5" r="7.5" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="14.5" cy="17.5" r="2.9" fill="#fff"/><path d="M20.5 8.2A11.2 11.2 0 0 1 25.8 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/><circle cx="26.2" cy="7.6" r="1.9" fill="#fff"/></svg></span>
       <span class="word">Neuro<em>Lens</em></span>
-      <small>GAZE AI</small>
-      <small>Digital BioMarker AI</small>
+      <small>Gaze &amp; Multimodal AI</small>
     </a>
     <div class="links" id="navLinks">
       <a href="#problem">문제</a>
@@ -724,10 +717,10 @@ footer p{font-size:12.5px;color:var(--gray)}
 <header class="hero" id="top">
 
   <div class="wrap inner">
-    <span class="badge"><span class="dot"></span>Webcam GAZE AI × In_mind · 9천명+@ 시선행동 데이터 · 경기도 8개교 1,600명 실증</span>
+    <span class="badge"><span class="dot"></span>Webcam Gaze &amp; Multimodal AI</span>
     <h1 class="h1-one">나를 보고 마음을 알고 함께하는 AI, <em>NeuroLens</em></h1>
     <p class="sub">웹캠 하나로 <b>기본 성향</b>과 <b>오늘의 마음 컨디션</b>을 함께 측정하고, AI 에이전트가 맞춤 케어로 이어 드립니다.</p>
-    <p class="cat">시선 · 생체신호 AI 기반 정신건강 측정 및 Agent 케어 플랫폼</p>
+    <p class="cat">생체신호 AI 기반 정신건강 측정 및 Agent 케어 플랫폼</p>
 
     <div class="duo" id="duo">
       <div class="dcard2 dc-trait">
@@ -739,7 +732,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
       <div class="dcard2 dc-cond">
         <span class="dnew">NEW · In_mind</span>
-        <div class="dh"><div class="dic"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div><div><div class="dk">MIND CONDITION TEST</div><h3>마인드 컨디션 검사</h3></div></div>
+        <div class="dh"><div class="dic"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div><div><div class="dk">MIND CONDITION TEST</div><h3>마인드 AI 컨디션 검사</h3></div></div>
         <p class="dq">“나는 지금 괜찮을까?”</p>
         <div class="dchips"><span>또렷함</span><span>집중 조절</span><span>마음의 시선</span><span>몸의 회복력</span></div>
         <div class="dmeta"><span>⏱ <b>약 8분</b></span><span>시선 + 심박 + 생체반응</span><span>매일 측정</span></div>
@@ -767,6 +760,11 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="p"><div class="num">1,600<b>명</b></div><div class="lb">경기도 8개교 현장 실증</div></div>
       <div class="p"><div class="num">AUC <b>0.819</b></div><div class="lb">정서적 스트레스 신호 선별(실증)</div></div>
     </div>
+    <div class="proof proof-im" aria-label="In_mind AI 진행 지표">
+      <div class="p"><div class="num">기술<b>백서</b></div><div class="lb">In_mind 알고리즘 · 검증 절차 공개</div></div>
+      <div class="p"><div class="num">IRB<b> 준비</b></div><div class="lb">동의 기반 연구 데이터로 규준 수립</div></div>
+      <div class="p"><div class="num">시범<b>운영</b></div><div class="lb">초중고 학생 · 중앙경찰학교 신임경찰관</div></div>
+    </div>
   </div>
 </header>
 
@@ -785,7 +783,7 @@ footer p{font-size:12.5px;color:var(--gray)}
 <section id="problem" style="background:#FAFBFE;border-top:1px solid var(--line)">
   <div class="wrap">
     <span class="eyebrow">Problem</span>
-    <h2 class="sec">"괜찮아요"라고 답한 아이의 시선은 <em>괜찮지 않았습니다</em></h2>
+    <h2 class="sec">"괜찮아요"라고 답한 아이와 동료의 시선은 <em>괜찮지 않았습니다</em></h2>
     <p class="lead">자기보고만으로는 응답 왜곡, 과장, 부정 등 실제 상태를 놓치고, 발견한 뒤에도 케어로 이어지지 않습니다.</p>
 
     <div class="persona">
@@ -801,7 +799,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
       <div class="pcard" style="--pc:var(--grad-violet);--pc-solid:#6C4CE0">
         <div class="who"><span class="no">02</span><h3>감정노동자</h3></div>
-        <div class="role">고객 응대 스트레스, 감정 소진 누적으로 힘들어요.</div>
+        <div class="role">고객 응대 스트레스, 감정 소진 누적으로 계속 근무하기 힘들어요.</div>
         <img width="157" height="155" class="photo" src="img/113.webp" alt="고객 응대로 감정 소진을 겪는 감정노동자 — NeuroLens 심리검사 대상 사용자" loading="lazy">
         <ul>
           <li><svg viewBox="0 0 24 24"><rect x="3" y="8" width="14" height="9" rx="2"/><path d="M17 10.5h2.5a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H17M6.5 8V6.5"/></svg>감정 소진이 누적되지만 인지가 지연</li>
@@ -840,17 +838,17 @@ footer p{font-size:12.5px;color:var(--gray)}
 <section id="tests">
   <div class="wrap">
     <span class="eyebrow">Two Tests · One NeuroLens</span>
-    <h2 class="sec">기본 성향은 <em>시선추적 AI</em>로, 오늘의 컨디션은 <em>In_mind</em>로<br>측정에서 케어까지 하나로 이어집니다</h2>
-    <p class="lead">뉴로렌즈(NeuroLens)는 웹캠 하나로 두 가지를 측정합니다. <b>시선추적 AI 성향검사</b>는 설문과 무의식적 시선 신호를 결합해 자기보고 편향을 보완하고, <b>마인드 컨디션 검사</b>는 자체 엔진 In_mind로 시선·심박·생체반응을 함께 읽어 오늘의 상태를 봅니다. 두 결과는 AI Agent 케어로 이어집니다.</p>
+    <h2 class="sec">기본 성향은 <em>시선추적 AI</em>로, 오늘의 컨디션은 <em>In_mind AI</em>로<br>측정에서 케어까지 하나로 이어집니다</h2>
+    <p class="lead">뉴로렌즈(NeuroLens)는 웹캠 하나로 두 가지를 측정합니다. <b>시선추적 AI 성향검사</b>는 설문과 무의식적 시선 신호를 결합해 자기보고 편향을 보완하고, <b>마인드 AI 컨디션 검사</b>는 자체 엔진 In_mind로 시선·심박·생체반응을 함께 읽어 오늘의 상태를 봅니다. 두 결과는 AI Agent 케어로 이어집니다.</p>
 
     <div class="cmp">
-      <div><span class="a">● 시선추적 AI 성향검사</span></div><div><span class="b">● 마인드 컨디션 검사</span></div>
+      <div><span class="a">● 시선추적 AI 성향검사</span></div><div><span class="b">● 마인드 AI 컨디션 검사</span></div>
       <div><small>답하는 질문</small>나는 어떤 사람인가 — 기본 성향</div><div><small>답하는 질문</small>나는 지금 어떤 상태인가 — 오늘의 컨디션</div>
       <div><small>측정</small>자극 이미지 응시 시선 + 설문 · 약 5분</div><div><small>측정</small>시선 + 심박 + 생체반응 · 약 8분</div>
       <div><small>결과</small>Big5 · MBTI · 직업흥미 · 직무 적합도 (+ 리포트 6종)</div><div><small>결과</small>또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력, 마음 날씨</div>
       <div><small>케어</small>성향 조합 맞춤 케어 · AI 상담</div><div><small>케어</small>맞춤 케어 트랙 · 매일 측정으로 변화 확인</div>
     </div>
-    <div class="ltabs" role="tablist" aria-label="검사 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 컨디션 검사</button></div>
+    <div class="ltabs" role="tablist" aria-label="검사 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 AI 컨디션 검사</button></div>
     <div class="lpanel" data-panel="t">
     <div class="grid4">
       <div class="card tcard" style="--cb:#1E5AF0;--cb-soft:var(--blue-soft);--cb-grad:var(--grad-blue);--cb-sh:rgba(30,90,240,.3)">
@@ -1029,8 +1027,8 @@ footer p{font-size:12.5px;color:var(--gray)}
     <span class="eyebrow">How It Works</span>
     <h2 class="sec">카메라 하나로 완성되는 두 가지 측정 파이프라인</h2>
     <p class="lead">별도 장비 없이 브라우저에서 시작합니다. 성향검사는 시선행동 AI가, 컨디션 검사는 자체 엔진 In_mind가 리포트까지 자동으로 만듭니다.</p>
-    <div class="ltabs" role="tablist" aria-label="파이프라인 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 컨디션 검사 · In_mind</button></div>
-    <div class="lpanel" data-panel="t">
+    <div class="prow" style="--tc:#1E5AF0">
+    <div class="prow-h"><i></i>시선추적 AI 성향검사</div>
     <div class="flow">
       <div class="step">
         <span class="n">1</span>
@@ -1054,7 +1052,8 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
     </div>
     </div>
-    <div class="lpanel" data-panel="c" hidden>
+    <div class="prow" style="--tc:#6C4CE0">
+      <div class="prow-h"><i></i>마인드 AI 컨디션 검사 · In_mind</div>
       <div class="flow">
         <div class="step"><span class="n">1</span><div class="ic v"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div><h4>3단계 시선 보정</h4><p>9점 응시 + 움직이는 점 추적 보정 + 영점 조정, 커서로 실제 시선 이동 확인</p></div>
         <div class="step"><span class="n">2</span><div class="ic b"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div><h4>8분 멀티모달 측정</h4><p>학술 표준 과제 7종 동안 시선 · 심박(이마·양 볼) · 생체반응(눈꺼풀 · 반응 속도 · 호흡)을 동시에 기록</p></div>
@@ -1070,7 +1069,7 @@ footer p{font-size:12.5px;color:var(--gray)}
   <div class="wrap">
     <span class="eyebrow">Validation</span>
     <h2 class="sec">검사마다 근거를 투명하게 —<br>검증된 성능과 <em>근거 기반 설계</em></h2>
-    <div class="ltabs" role="tablist" aria-label="검증 근거 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사 · 내부 검증 AUC 0.74~0.82</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 컨디션 검사 · In_mind</button></div>
+    <div class="ltabs" role="tablist" aria-label="검증 근거 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사 · 내부 검증 AUC 0.74~0.82</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 AI 컨디션 검사 · In_mind</button></div>
     <div class="lpanel" data-panel="t">
 
     <div class="vgrid">
@@ -1201,10 +1200,10 @@ footer p{font-size:12.5px;color:var(--gray)}
             <tr><td><b>정서 자유 보기</b></td><td>정서 주의 편향</td><td>Armstrong &amp; Olatunji, 2012</td></tr>
             <tr><td><b>MIST · 공명 호흡</b></td><td>압박 심박 반응 · 회복</td><td>Dedovic et al., 2005 · Lehrer &amp; Gevirtz, 2014</td></tr>
           </tbody></table></div>
-        <div class="cbox"><h4>측정 품질 관리 <small>In_mind QC — 측정이 불안정하면 판정하지 않거나 ‘잠정’으로 표시합니다</small></h4>
+        <div class="cbox"><h4>측정 품질 관리</h4>
           <div class="qchips"><span>지표별 신뢰도 가중</span><span>95% 오차 범위 · ‘경계’ 표시</span><span>2개 이상 지표 수렴 시에만 ‘관리 필요’</span><span>무작위 응답 · 화면 이탈 제외</span><span>촬영 시각 기준 시계열</span><span>다중 영역 심박 융합</span><span>호흡 순응 확인</span><span>AI 총평 수치 검증</span></div>
-          <div class="stage-row"><div class="done"><b>근거 문헌 · 품질 관리</b>설계 완료 · 적용 중</div><div class="now"><b>규준 수립 중</b>동의 기반 연구 데이터로 참고 범위 재설정</div><div class="now"><b>기술백서 수립 중</b>알고리즘 · 검증 절차 공개 예정</div></div>
-          <p style="font-size:12.5px;color:var(--gray2);margin-top:12px">마인드 컨디션 검사의 판정 기준은 문헌 보고 범위를 웹캠 환경에 맞춘 잠정값이며, 규준 수립 후 검증 수치를 공개합니다. 의학적 진단이 아닌 웰니스 참고 지표입니다.</p></div>
+          <div class="stage-row"><div class="done"><b>근거 문헌 · 품질 관리</b>설계 완료 · 적용 중</div><div class="now"><b>규준 수립 및 IRB 준비</b>동의 기반 연구 데이터로 참고 범위 재설정</div><div class="done"><b>기술백서 수립</b>알고리즘 · 검증 절차 공개</div></div>
+          <p style="font-size:12.5px;color:var(--gray2);margin-top:12px">마인드 AI 컨디션 검사의 판정 기준은 문헌 보고 범위를 웹캠 환경에 맞춘 잠정값이며, 규준 수립 후 검증 수치를 공개합니다. 의학적 진단이 아닌 웰니스 참고 지표입니다.</p></div>
       </div>
     </div>
   </div>
@@ -1273,14 +1272,14 @@ footer p{font-size:12.5px;color:var(--gray)}
     <!-- 생애주기 현장 실증 -->
     <div class="field-band" style="margin-top:26px">
       <div class="fb-head">
-        <h3>이미 경험해 본, <em>다양한 생애주기별</em> 시선추적 AI 멤버들</h3>
+        <h3>이미 경험해 본, <em>다양한 생애주기별</em> 뉴로렌즈 고객들</h3>
         <span class="consent">현장 데이터 축적 · 개인정보수집 동의 완료</span>
       </div>
       <div class="lifecycle">
-        <span>초등</span><span class="arrow">→</span><span>중등</span><span class="arrow">→</span><span>고등</span><span class="arrow">→</span><span>대학</span><span class="arrow">→</span><span>청년</span>
+        <span>초등</span><span class="arrow">→</span><span>중등</span><span class="arrow">→</span><span>고등</span><span class="arrow">→</span><span>대학</span><span class="arrow">→</span><span>청년</span><span class="arrow">→</span><span>직장인(교사, 경찰, 공무원 등)</span>
       </div>
       <div class="commit">
-        <div class="c"><div class="cno">COMMITMENT 01 · 성장</div><h4>생애주기 경험 축적</h4><p>초등부터 노년층까지, 연령과 관심사는 달라도 시선추적 AI로 나를 알아갑니다.</p></div>
+        <div class="c"><div class="cno">COMMITMENT 01 · 성장</div><h4>생애주기 경험 축적</h4><p>초등부터 노년층까지, 연령과 관심사는 달라도 시선 및 멀티모달 AI로 나를 알아갑니다.</p></div>
         <div class="c"><div class="cno">COMMITMENT 02 · 확장</div><h4>참여 기반 확보</h4><p>학교·기관·지역 구분없이 현장 참여 기반을 넓혀갑니다.</p></div>
         <div class="c"><div class="cno">COMMITMENT 03 · 혁신</div><h4>AI 헬스케어 솔루션</h4><p>시선으로 만드는 AI 헬스케어 Deeptech를 지향합니다.</p></div>
       </div>
@@ -1321,6 +1320,8 @@ footer p{font-size:12.5px;color:var(--gray)}
             <li>서울진로직업박람회</li>
             <li>강남구진로박람회</li>
             <li>종로구청소년축제</li>
+            <li>영등포구청소년축제</li>
+            <li>경기도 꿈울림 축제</li>
           </ul>
         </div>
         <div class="yr y25">
@@ -1328,20 +1329,21 @@ footer p{font-size:12.5px;color:var(--gray)}
           <ul>
             <li>교육부 경기에듀테크소프트랩 실증<small>8개 학교 · 1,600명 실증</small></li>
             <li>서울진로직업박람회</li>
-            <li>강남구 취창업허브</li>
+            <li>교육부 에듀테크SW EDzip 등재</li>
+            <li>강남구 취창업허브 실증</li>
+            <li>경기북부 에듀테크R&amp;D랩(회천중) 실증 참여</li>
             <li>강남구진로박람회</li>
-            <li>영등포구청소년축제</li>
           </ul>
         </div>
         <div class="yr y26">
           <span class="yb">2026 · NOW</span>
           <ul>
-            <li>강남구진로박람회(9월)</li>
-            <li>서대문구진로박람회(9월)</li>
-            <li>KAIST Deeptech Startup Batch 참여(7월)</li>
-            <li>분당서울대병원 헬스케어혁신파크 선정(3월)</li>
-            <li>용인창업지원센터 입주(7월)</li>
-            <li>한국행동과학연구소 프로젝트 참여(9월)</li>
+            <li>분당서울대병원 헬스케어혁신파크 선정(3월, 완료)</li>
+            <li>KAIST Deeptech Startup Batch 참여(7월, 완료)</li>
+            <li>용인창업지원센터 입주(7월, 완료)</li>
+            <li>강남구 청소년 진로·직업박람회(9월, 성료)</li>
+            <li>한국행동과학연구소 프로젝트 참여(9월, 진행중)</li>
+            <li>중앙경찰학교 신임경찰관 대상 실증(10월, 진행중)</li>
           </ul>
         </div>
       </div>
@@ -1401,35 +1403,10 @@ footer p{font-size:12.5px;color:var(--gray)}
           <span>측정</span><span class="lp-a">→</span><span>예측</span><span class="lp-a">→</span><span>개입</span><span class="lp-a">→</span><span>재측정</span>
         </div>
       </div>
-      <div class="phone" aria-hidden="true">
-        <div class="notch"></div>
-        <div class="app-h">
-          <span class="logo-dot"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.4"/></svg></span>
-          NeuroLens Care
-        </div>
-        <div class="cond">
-          <div class="t">오늘의 컨디션 요약</div>
-          <div class="v">회복 탄력성 <span class="up">▲</span> · 수면의 질 보통 <span class="pill">안정권</span></div>
-        </div>
-        <div class="care-item">
-          <span class="ci" style="background:var(--grad-blue)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg></span>
-          <span>3분 호흡 명상<small>불안을 낮추고 마음을 안정시키세요</small></span>
-          <span class="go">›</span>
-        </div>
-        <div class="care-item">
-          <span class="ci" style="background:var(--grad-violet)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.4"/></svg></span>
-          <span>집중 루틴 5분<small>주의력과 몰입도를 높여보세요</small></span>
-          <span class="go">›</span>
-        </div>
-        <div class="care-item">
-          <span class="ci" style="background:var(--grad-green)"><svg viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg></span>
-          <span>수면 준비 가이드<small>수면의 질 향상을 도와드려요</small></span>
-          <span class="go">›</span>
-        </div>
-        <div class="bot-msg">
-          <span class="bot"><svg viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="10" rx="3"/><circle cx="9.5" cy="13" r="1"/><circle cx="14.5" cy="13" r="1"/><path d="M12 8V5M12 5h.01"/></svg></span>
-          <span class="bubble">지금 정도면 충분해요. 작은 실천이 큰 변화를 만듭니다. 함께 오늘의 케어를 완성해볼까요? 😊</span>
-        </div>
+      <div class="care-stage">
+        <img class="cs-back" width="1200" height="670" src="img/condition-report.webp" alt="마인드 AI 컨디션 검사 리포트 화면 — 종합 컨디션과 또렷함·집중 조절·마음의 시선·몸의 회복력 점수(예시 리포트)" loading="lazy">
+        <img class="cs-front" width="600" height="735" src="img/condition-care.webp" alt="케어 플랜 화면 — 1순위 피로 회복 트랙과 실천 항목(예시 리포트)" loading="lazy">
+        <span class="cs-chip"><i></i>AI Agent · 오늘의 맞춤 케어</span>
       </div>
     </div>
   </div>
@@ -1446,7 +1423,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <div class="ceo-band">
       <div class="ceo-ava"><img width="404" height="318" src="img/지병석.webp" alt="지병석 대표"></div>
       <div class="ceo-info">
-        <div class="nm">지병석<small>대표 · Founder</small></div>
+        <div class="nm">지병석<small>대표 · Founder</small><span class="ceo-badge">정책·기술 융합 전문가</span></div>
         <p class="tagline">"AX 가속 시대, 더 나은 내일을 연구합니다."</p>
         <div class="ceo-chips">
           <span>대통령직속 4차산업혁명위원회 사무관</span>
@@ -1457,6 +1434,9 @@ footer p{font-size:12.5px;color:var(--gray)}
           <span>국가공무원인재개발원 AI 외래교수</span>
           <span>중앙경찰학교 AI 외래교수</span>
           <span>아주대 e-business MBA</span>
+          <span>용인시 위촉 AI·전문가</span>
+          <span>국가신약개발재단 평가위원</span>
+          <span>[저서] 거의 모든 것의 산업혁명 등</span>
         </div>
       </div>
       <div class="axl">AX OPEN LAB</div>
@@ -1552,7 +1532,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <h4 class="mp-sub">🏅 나의 프로필 뱃지 <small>두 검사의 가장 최근 결과로 만들어요</small></h4>
     <div class="mp-badges" id="mpBadges"></div>
     <h4 class="mp-sub">📋 나의 검사 내역</h4>
-    <div class="mp-tabs" role="tablist"><button type="button" role="tab" data-tab="trait" aria-selected="true">시선추적 성향검사 <b id="mpCntT">0</b></button><button type="button" role="tab" data-tab="condition" aria-selected="false">마인드 컨디션 검사 <b id="mpCntC">0</b></button></div>
+    <div class="mp-tabs" role="tablist"><button type="button" role="tab" data-tab="trait" aria-selected="true">시선추적 성향검사 <b id="mpCntT">0</b></button><button type="button" role="tab" data-tab="condition" aria-selected="false">마인드 AI 컨디션 검사 <b id="mpCntC">0</b></button></div>
     <div class="mp-list" id="mpList"></div>
     <div class="mp-list" id="mpListC" hidden></div>
     <div class="mp-foot">
@@ -1638,7 +1618,7 @@ document.querySelectorAll('.ltabs').forEach(bar => {
     if (ans.filter(Boolean).length < 3) return;
     const c = ans.filter(v => v === 'c').length, t = 3 - c;
     duo.classList.toggle('hl-cond', c > t); duo.classList.toggle('hl-trait', t > c);
-    pr.innerHTML = c > t ? '<b>마인드 컨디션 검사</b>를 추천해요 — 지금의 또렷함·집중·마음·몸 상태를 8분 만에 확인하고 케어로 이어 갈 수 있어요.'
+    pr.innerHTML = c > t ? '<b>마인드 AI 컨디션 검사</b>를 추천해요 — 지금의 또렷함·집중·마음·몸 상태를 8분 만에 확인하고 케어로 이어 갈 수 있어요.'
       : '<b>시선추적 AI 성향검사</b>를 추천해요 — 5분이면 나의 성격·흥미·잘 맞는 일을 알 수 있어요. 컨디션이 궁금해지면 컨디션 검사도 함께 해 보세요.';
   })));
 }
@@ -1665,7 +1645,7 @@ let testStartedAt = 0;
 
 /* 시선추적 AI 성향검사: 사전 체크인 없이 바로 측정 창을 연다.
  * 결과 연결용 실행 기록(run)만 만들고, 측정 엔진 콜백(/rcvrslt-admin)이 결과를 붙인 뒤 통합 결과 리포트(resultadmin.html)로 이동한다.
- * (오늘의 마음 상태는 마인드 컨디션 검사가 담당하므로 성향검사에서는 묻지 않는다) */
+ * (오늘의 마음 상태는 마인드 AI 컨디션 검사가 담당하므로 성향검사에서는 묻지 않는다) */
 function startTest() {
   if (isMobileDevice()) {
     setStatus('시선추적 검사는 웹캠이 있는 PC·노트북에서 진행할 수 있어요. 이 페이지 링크를 PC에서 열어 주세요.', true);
@@ -2224,7 +2204,7 @@ async function openMyPage(tab) {
   listEl.querySelectorAll('.mp-view').forEach(b =>
     b.addEventListener('click', () => window.open('report.html?id=' + b.dataset.id, '_blank')));
 
-  listC.innerHTML = !conds.length ? '<div class="mp-empty">아직 저장된 컨디션 검사 내역이 없어요.<br>로그인 상태로 <a href="condition.html">마인드 컨디션 검사</a>를 마치면 이곳에 쌓이고, 지난 결과와 비교해 드려요.</div>'
+  listC.innerHTML = !conds.length ? '<div class="mp-empty">아직 저장된 컨디션 검사 내역이 없어요.<br>로그인 상태로 <a href="condition.html">마인드 AI 컨디션 검사</a>를 마치면 이곳에 쌓이고, 지난 결과와 비교해 드려요.</div>'
     : conds.map((row, i) => {
       const s = row.summary || {}, o = Number.isFinite(s.overall) ? s.overall : null, prev = conds[i + 1] && conds[i + 1].summary;
       const d = o !== null && prev && Number.isFinite(prev.overall) ? o - prev.overall : null;
