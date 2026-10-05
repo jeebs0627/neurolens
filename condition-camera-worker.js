@@ -6,7 +6,7 @@ self.onmessage = async ({data:m}) => {
     if(m.type==='init') {
       const {FaceLandmarker,FilesetResolver}=await import(m.base+'/vision_bundle.mjs');
       const files=await FilesetResolver.forVisionTasks(m.base+'/wasm');
-      const opts=delegate=>({baseOptions:{modelAssetPath:m.model,delegate},runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:true});
+      const opts=delegate=>({baseOptions:{modelAssetPath:m.model,delegate},runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:true,...(m.conf||{})});
       try { detector=await FaceLandmarker.createFromOptions(files,opts('GPU')); }
       catch (_) { detector=await FaceLandmarker.createFromOptions(files,opts('CPU')); }
       canvas=new OffscreenCanvas(640,480);ctx=canvas.getContext('2d',{willReadFrequently:true});

@@ -22,7 +22,7 @@
             const timer=setTimeout(()=>reject(new Error('worker-init-timeout')),20000);
             this.worker.onerror=e=>{clearTimeout(timer);reject(new Error(e.message||'worker-init-error'));};
             this.worker.onmessage=({data:m})=>{if(m.type==='ready'){clearTimeout(timer);resolve();}else if(m.type==='error'){clearTimeout(timer);reject(new Error(m.message));}};
-            this.worker.postMessage({type:'init',base:this.opt.base,model:this.opt.model});
+            this.worker.postMessage({type:'init',base:this.opt.base,model:this.opt.model,conf:this.opt.conf});
           });
           this.worker.onmessage=({data:m})=>{
             if(m.type==='error'){this.fallback(m.message);return;}
