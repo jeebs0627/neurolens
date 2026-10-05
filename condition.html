@@ -1337,8 +1337,9 @@ const LAB_LABEL = { calibration: '시선 보정만', baseline: '안정 기준선
 const LAB_Q = new URLSearchParams(location.search).get('lab');
 const labPicked = () => [...document.querySelectorAll('[data-lab]:checked')].map(cb => cb.dataset.lab);
 function labRefresh() {
-  const k = labPicked(), d = B.DUR[modeVal()], sec = k.reduce((s, x) => s + stepEstimateSec(x, d), 0) + (k.some(x => GAZE_STEPS.includes(x)) ? stepEstimateSec('calibration', d) : 0);
-  $('labEst').innerHTML = k.length ? `측정 약 <b>${Math.max(1, Math.round(sec / 60))}분</b> · ${k.some(x => GAZE_STEPS.includes(x)) ? '시선 보정 포함' : '시선 보정 없음'}` : '단계를 하나 이상 고르세요';
+  const k = labPicked(), d = B.DUR[modeVal()], cal = k.includes('calibration') || k.some(x => GAZE_STEPS.includes(x));
+  const sec = k.filter(x => x !== 'calibration').reduce((s, x) => s + stepEstimateSec(x, d), 0) + (cal ? stepEstimateSec('calibration', d) : 0);
+  $('labEst').innerHTML = k.length ? `측정 약 <b>${Math.max(1, Math.round(sec / 60))}분</b> · ${cal ? '시선 보정 포함' : '시선 보정 없음'}` : '단계를 하나 이상 고르세요';
   $('labGo').disabled = !k.length;
 }
 if (LAB_Q !== null) {
@@ -1533,6 +1534,8 @@ function processResult(fr, packet, context) {
   const f = N.faceFeatures(lm);
   if (!f) { S.featMiss = (S.featMiss || 0) + 1; return; }
   const bs = blendMap(res);
+  /* 세로 시선 점수(기록·그림자 비교용): MediaPipe 눈 블렌드셰이프 위로 보기 − 아래로 보기, 두 눈 평균(−1~1). 측정 모델에는 아직 쓰지 않는다 */
+  if ('eyeLookUpLeft' in bs) f.lookV = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0) - (bs.eyeLookDownLeft || 0) - (bs.eyeLookDownRight || 0)) / 2;
   f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));
   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));
   const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2;
@@ -1543,7 +1546,7 @@ function processResult(fr, packet, context) {
     eyeOk: Math.max(eyes?.left ?? 1,eyes?.right ?? 1) > .035, gazeOk: gazeValid, skinQ: roi.q, eyeQ, qLeft: f.eyes.left.q, qRight: f.eyes.right.q,
     uLeft: f.eyes.left.u, vLeft: f.eyes.left.v, uRight: f.eyes.right.u, vRight: f.eyes.right.v,
     source: 'observed', roiAge: 0, exposureGain: gain, cx: f.cx, cy: f.cy, fw: f.fw, open: f.open,
-    blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,
+    blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2, lookV: f.lookV,
     frown: ((bs.mouthFrownLeft || 0) + (bs.mouthFrownRight || 0) + (bs.browDownLeft || 0) + (bs.browDownRight || 0)) / 4,
     smile: ((bs.mouthSmileLeft || 0) + (bs.mouthSmileRight || 0)) / 2,
     u: f.u, v: f.v, yaw: f.yaw, pitch: f.pitch, lag: Math.round(now() - t)
@@ -2370,6 +2373,9 @@ async function calibrate() {
             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }
           }
           fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
+          /* 그림자 평가: 세로 시선 점수(lookV)를 특징에 더하면 처음 보는 정밀 보정 점의 오차가 줄어드는지 — 결과만 기록하고 측정 모델은 그대로 */
+          try { fine.shadow = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookV'] }); }
+          catch (e) { fine.shadow = { extra: ['lookV'], error: String(e && e.message || e).slice(0, 120) }; }
           acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };
           /* 적응형 안정화: 정밀 보정 점을 바라보는 동안의 시선 흔들림(점별 MAD 중앙값)으로 화면 시선 평활 강도를 정한다 */
           const noise = N.median(fp.map(p => { const g = p.fs.map(f => N.applyResidual(S.resid, N.applyAffine(S.affine, N.predictGaze(S.model, f)))).filter(Boolean); if (g.length < 4) return NaN; const mx = N.median(g.map(q => q.x)); return N.median(g.map(q => Math.abs(q.x - mx))) * 1.4826 / W; }).filter(Number.isFinite));

@@ -244,3 +244,23 @@ console.log('newbiz-core tests passed');
   assert.ok(b.reach <= 150, `reach ${b.reach}`);
   console.log('PASS gaze cursor fixation lock: jitter halved, responsive to new fixations');
 }
+
+/* 그림자 비교 (2026-10-05): 추가 특징(lookV)이 세로 정보를 담으면 처음 보는 점의 세로 오차가 줄고, 잡음이면 줄지 않는다 */
+{
+  let sd = 11; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, ga = () => { let u = 0; for (let i = 0; i < 6; i++) u += rnd(); return u - 3; };
+  const W = 1440, H = 900;
+  const feat = (x, y, informative) => ({ u: 0.35 + 0.3 * x / W + 0.004 * ga(), v: 0.45 + 0.04 * y / H + 0.03 * ga(), yaw: 0.002 * ga(), pitch: 0.002 * ga(), cx: 0.5, cy: 0.5 + 0.002 * ga(), open: 0.3 + 0.01 * ga(),
+    lookV: informative ? 0.6 - 1.2 * y / H + 0.05 * ga() : 0.2 * ga() });
+  const run = informative => {
+    const grid = (fx, fy) => ({ x: fx * W, y: fy * H });
+    const train = []; for (let i = 0; i < 160; i++) { const p = grid(0.1 + 0.8 * rnd(), 0.1 + 0.8 * rnd()); train.push({ ...p, f: feat(p.x, p.y, informative) }); }
+    const pts = arr => arr.map(([fx, fy]) => { const p = grid(fx, fy); return { ...p, fs: Array.from({ length: 12 }, () => feat(p.x, p.y, informative)) }; });
+    const fitPts = pts([[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7], [0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]]);
+    const evalPts = pts([[0.12, 0.5], [0.88, 0.5], [0.5, 0.12], [0.5, 0.88], [0.32, 0.38], [0.68, 0.62], [0.36, 0.8], [0.64, 0.22]]);
+    return N.compareGazeFeatures({ train, fitPts, evalPts, W, H, extra: ['lookV'] });
+  };
+  const good = run(true), noise = run(false);
+  assert.ok(good.withExtra && good.withExtra.hy < good.base.hy * 0.7 && good.withExtra.ry > good.base.ry, `informative lookV: ${JSON.stringify(good)}`);
+  assert.ok(noise.withExtra && noise.withExtra.hy > noise.base.hy * 0.8, `noise lookV: ${JSON.stringify(noise)}`);
+  console.log('PASS shadow comparison: informative lookV lowers vertical error, noise does not', `(세로 오차 ${good.base.hy}→${good.withExtra.hy}%H · 잡음 ${noise.base.hy}→${noise.withExtra.hy}%H)`);
+}

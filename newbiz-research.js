@@ -21,7 +21,7 @@
   const q = (v, k) => (finite(v) ? Math.round(v * k) : null);           // 정수 양자화 (k = 배율)
 
   /* 프레임: 열 단위 배열. t 는 첫 프레임 기준 ms. 배율은 SCALE 에 기록해 복원 가능하게 */
-  const FRAME_COLS = { faceOk: 1, eyeOk: 1, skinOk: 1, ppgOk: 1, gazeOk: 1, skinQ: 1e3, eyeQ: 1e3, qLeft: 1e3, qRight: 1e3, uLeft: 1e4, vLeft: 1e4, uRight: 1e4, vRight: 1e4, roiAge: 1, exposureGain: 100, ok: 1, r: 100, g: 100, b: 100, lum: 10, cx: 1e4, cy: 1e4, fw: 1e4, open: 1e4, blink: 1e3, frown: 1e3, smile: 1e3, u: 1e4, v: 1e4, yaw: 1e4, pitch: 1e4, lag: 1 };
+  const FRAME_COLS = { faceOk: 1, eyeOk: 1, skinOk: 1, ppgOk: 1, gazeOk: 1, skinQ: 1e3, eyeQ: 1e3, qLeft: 1e3, qRight: 1e3, uLeft: 1e4, vLeft: 1e4, uRight: 1e4, vRight: 1e4, roiAge: 1, exposureGain: 100, ok: 1, r: 100, g: 100, b: 100, lum: 10, cx: 1e4, cy: 1e4, fw: 1e4, open: 1e4, blink: 1e3, lookV: 1e3, frown: 1e3, smile: 1e3, u: 1e4, v: 1e4, yaw: 1e4, pitch: 1e4, lag: 1 };
   function packFrames(frames) {
     const F = frames || [], t0 = F.length ? F[0].t : 0, out = { t0, scale: {...FRAME_COLS,rr:100,rq:1e3}, t: F.map(f => Math.round(f.t - t0)) };
     Object.entries(FRAME_COLS).forEach(([k, s]) => { out[k] = F.map(f => (typeof f[k] === 'boolean' ? (f[k] ? 1 : 0) : q(f[k], s))); });
@@ -64,7 +64,8 @@
       checkin: ck, integrated: { code: b.integrated.code, primary: b.integrated.primary, secondary: b.integrated.secondary, pathways: b.integrated.pathways.map(p => p.key), mismatches: b.integrated.mismatches.map(m => m.key), context: (b.integrated.context || []).map(c => c.key) },
       domains: Object.fromEntries(Object.entries(b.domains).map(([k, d]) => [k, { score: d.score, status: d.status, confidence: d.confidence, tentative: !!d.tentative }])),
       indicators: b.indicators.map(i => ({ key: i.key, value: i.value, score: i.score, status: i.status, r: i.r, borderline: !!i.borderline, excluded: !!i.excluded })),
-      qc: b.qc || null, pulseEvidence: res.evidence?.phases || null, calibration: rec.calibration ? { grade: rec.calibration.grade, errPct: rec.calibration.errPct, before: rec.calibration.before ?? null, model: rec.calibration.model || null, affine: !!rec.calibration.affine, control: rec.calibration.control || null } : null,
+      qc: b.qc || null, pulseEvidence: res.evidence?.phases || null, calibration: rec.calibration ? { grade: rec.calibration.grade, errPct: rec.calibration.errPct, before: rec.calibration.before ?? null, model: rec.calibration.model || null, affine: !!rec.calibration.affine, control: rec.calibration.control || null,
+        fine: rec.calibration.fine ? { chosen: rec.calibration.fine.chosen, before: rec.calibration.fine.before, after: rec.calibration.fine.after, shadow: rec.calibration.fine.shadow || null } : null } : null,
       hr: { baseline: res.hr && res.hr.baseline, stressDelta: res.stressDelta, recovery: res.recovery, recoveryResid: res.recoveryResid, ref: res.hrRef || null, resp: res.resp || null },
       phq: consent.phq && b.phq ? { phq2: b.phq.phq2, phq8: b.phq.phq8 } : null,
     } : {checkin:ck};

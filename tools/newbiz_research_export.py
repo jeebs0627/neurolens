@@ -23,7 +23,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-FRAME_SCALE = {"ok": 1, "r": 100, "g": 100, "b": 100, "lum": 10, "cx": 1e4, "cy": 1e4, "fw": 1e4, "open": 1e4, "blink": 1e3,
+FRAME_SCALE = {"ok": 1, "r": 100, "g": 100, "b": 100, "lum": 10, "cx": 1e4, "cy": 1e4, "fw": 1e4, "open": 1e4, "blink": 1e3, "lookV": 1e3,
                "frown": 1e3, "smile": 1e3, "u": 1e4, "v": 1e4, "yaw": 1e4, "pitch": 1e4, "lag": 1,
                "faceOk": 1, "eyeOk": 1, "skinOk": 1, "ppgOk": 1, "gazeOk": 1, "skinQ": 1e3, "eyeQ": 1e3,
                "qLeft": 1e3, "qRight": 1e3, "uLeft": 1e4, "vLeft": 1e4, "uRight": 1e4, "vRight": 1e4,

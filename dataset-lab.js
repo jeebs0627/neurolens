@@ -15,7 +15,12 @@
   /* 한 세션의 한 검사에서 뽑는 값: 보정 오차 · 심박(유효 시간·SNR) · 수집 품질 · 지표 */
   function metrics(r, key) {
     const t = r.audit.tests.find(x => x.key === key), a = t.acquisition || {}, out = {};
-    if (key === 'calibration') { const c = r.audit.gaze?.calibration; out['보정 오차 %'] = c?.errPct; out['정밀 보정 후 %'] = r.audit.gaze?.evaluation?.after?.errPct; }
+    if (key === 'calibration') {
+      const c = r.audit.gaze?.calibration, sh = c?.shadow;
+      out['보정 오차 %'] = c?.errPct;
+      /* 그림자 비교: 세로 시선 점수(lookV)를 더한 모델 vs 기본 모델 — 같은 학습 자료, 처음 보는 정밀 보정 점 */
+      if (sh) { out['세로 오차 기본 %H'] = sh.base?.hy; out['세로 오차 +lookV %H'] = sh.withExtra?.hy; out['세로 r 기본'] = sh.base?.ry; out['세로 r +lookV'] = sh.withExtra?.ry; out['전체 오차 기본 %'] = sh.base?.errPct; out['전체 오차 +lookV %'] = sh.withExtra?.errPct; }
+    }
     if (t.pulse) { out['심박 bpm'] = t.pulse.bpm; out['SNR dB'] = t.pulse.snr; out['유효 초'] = t.pulse.validSeconds; out['신뢰 반영 초'] = t.pulse.effectiveSeconds; }
     out['카메라 fps'] = a.fps; out['눈 품질'] = a.eyeQuality?.median; out['머리 움직임 p95'] = a.headMotionPctPerSec?.p95;
     (t.indicators || []).forEach(i => { out[i.label + (i.unit ? ` (${i.unit})` : '')] = i.excluded ? { v: i.value, excluded: true, r: i.r } : { v: i.value, r: i.r }; });

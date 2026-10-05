@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.5';   // 1.5 (2026-10-05): 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 1.6';   // 1.6 (2026-10-05): 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -485,7 +485,8 @@
     const S = samples.filter(s => s.f && GAZE_KEYS.every(k => finite(s.f[k])));
     if (S.length < 20) return null;
     const quad = opt.quad !== false && S.length >= 120;
-    const keys = opt.open !== false && S.every(s => finite(s.f.open)) ? [...GAZE_KEYS, 'open'] : GAZE_KEYS;
+    /* opt.extra: 추가 특징(예: lookV — MediaPipe 세로 시선 점수). 모든 표본에 값이 있을 때만 쓴다 */
+    const keys = [...(opt.open !== false && S.every(s => finite(s.f.open)) ? [...GAZE_KEYS, 'open'] : GAZE_KEYS), ...(opt.extra || []).filter(k => S.every(s => finite(s.f[k])))];
     const mu = {}, sd = {};
     keys.forEach(k => { mu[k] = mean(S.map(s => s.f[k])); sd[k] = std(S.map(s => s.f[k])) || 1; });
     const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));
@@ -708,6 +709,24 @@
   /* 축별 1차 보정 두 개를 겹친다: 먼저 A, 그다음 B */
   const composeAffine = (A, Bm) => (!A ? Bm : !Bm ? A : { x: { a: Bm.x.a * A.x.a, b: Bm.x.a * A.x.b + Bm.x.b }, y: { a: Bm.y.a * A.y.a, b: Bm.y.a * A.y.b + Bm.y.b } });
 
+  /* 그림자 비교(측정에 쓰지 않음): 같은 학습 표본으로 기본 특징 모델과 추가 특징(extra) 모델을 각각 맞추고(+ 축별 보정),
+   * 학습에 쓰지 않은 평가 점(evalPts)에서 오차를 비교한다. 세로 오차(hy, 화면 높이 대비)와 세로 구분력(ry)을 따로 낸다.
+   * train: [{x,y,f}] · fitPts/evalPts: [{x,y,fs:[f…]}] (점마다 특징 목록 — 중앙값 예측) */
+  function compareGazeFeatures({ train, fitPts, evalPts, W, H, extra }) {
+    const at = (m, A, p) => { const g = p.fs.map(f => applyAffine(A, predictGaze(m, f))).filter(q => q && finite(q.x) && finite(q.y)); return g.length >= 4 ? { x: p.x, y: p.y, gx: median(g.map(q => q.x)), gy: median(g.map(q => q.y)) } : null; };
+    const one = keys => {
+      const m = fitGaze(train, 0.5, { extra: keys });
+      if (!m || keys.some(k => !m.keys.includes(k))) return null;
+      const A = fitAffine(fitPts.map(p => at(m, null, p)).filter(Boolean));
+      const pr = evalPts.map(p => at(m, A, p)).filter(Boolean);
+      if (pr.length < 4) return null;
+      const a = gazeAccuracy(pr, W, H), ys = pr.map(p => p.y), gys = pr.map(p => p.gy);
+      const mt = mean(ys), mg = mean(gys); let c = 0, vt = 0, vg = 0; ys.forEach((y, i) => { c += (y - mt) * (gys[i] - mg); vt += (y - mt) ** 2; vg += (gys[i] - mg) ** 2; });
+      return { errPct: a.errPct, hx: a.hx, hy: round(median(pr.map(p => Math.abs(p.gy - p.y))) / H * 100, 1), ry: vt > 0 && vg > 0 ? round(c / Math.sqrt(vt * vg), 2) : null, points: pr.length };
+    };
+    const cover = train.length ? round(train.filter(s => s.f && extra.every(k => finite(s.f[k]))).length / train.length, 2) : 0;
+    return { extra, cover, base: one([]), withExtra: cover >= 0.8 ? one(extra) : null, note: 'shadow comparison only; measurement model unchanged' };
+  }
   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */
   function gazeAccuracy(points, W, H) {
     const errs = points.filter(p => finite(p.gx) && finite(p.gy)).map(p => Math.hypot(p.gx - p.x, (p.gy - p.y) * 0.6));
@@ -1033,7 +1052,7 @@
     VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,
-    faceFeatures, fitGaze, predictGaze, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
+    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };
   const Fusion = createFusion(api); api.Fusion = Fusion;
