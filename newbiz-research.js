@@ -65,7 +65,7 @@
       domains: Object.fromEntries(Object.entries(b.domains).map(([k, d]) => [k, { score: d.score, status: d.status, confidence: d.confidence, tentative: !!d.tentative }])),
       indicators: b.indicators.map(i => ({ key: i.key, value: i.value, score: i.score, status: i.status, r: i.r, borderline: !!i.borderline, excluded: !!i.excluded })),
       qc: b.qc || null, pulseEvidence: res.evidence?.phases || null, calibration: rec.calibration ? { grade: rec.calibration.grade, errPct: rec.calibration.errPct, before: rec.calibration.before ?? null, model: rec.calibration.model || null, affine: !!rec.calibration.affine, control: rec.calibration.control || null,
-        fine: rec.calibration.fine ? { chosen: rec.calibration.fine.chosen, before: rec.calibration.fine.before, after: rec.calibration.fine.after, shadow: rec.calibration.fine.shadow || null } : null } : null,
+        fine: rec.calibration.fine ? { chosen: rec.calibration.fine.chosen, before: rec.calibration.fine.before, after: rec.calibration.fine.after, shadow: rec.calibration.fine.shadow || null, shadow2: rec.calibration.fine.shadow2 || null, lookV: !!rec.calibration.fine.lookV } : null } : null,
       hr: { baseline: res.hr && res.hr.baseline, stressDelta: res.stressDelta, recovery: res.recovery, recoveryResid: res.recoveryResid, ref: res.hrRef || null, resp: res.resp || null },
       phq: consent.phq && b.phq ? { phq2: b.phq.phq2, phq8: b.phq.phq8 } : null,
     } : {checkin:ck};

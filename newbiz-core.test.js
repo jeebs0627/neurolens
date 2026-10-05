@@ -264,3 +264,16 @@ console.log('newbiz-core tests passed');
   assert.ok(noise.withExtra && noise.withExtra.hy > noise.base.hy * 0.8, `noise lookV: ${JSON.stringify(noise)}`);
   console.log('PASS shadow comparison: informative lookV lowers vertical error, noise does not', `(세로 오차 ${good.base.hy}→${good.withExtra.hy}%H · 잡음 ${noise.base.hy}→${noise.withExtra.hy}%H)`);
 }
+
+/* 보정 후보 선택 (2026-10-05): 세로 점수 후보는 기존 최선보다 0.5%p·10% 이상 좋을 때만 — 실측 4세션의 그림자 비교 값으로 확인 */
+{
+  const C = (key, e, extra) => ({ key, acc: { errPct: e }, ...(extra ? { extra: ['lookV'] } : {}) });
+  const pick = (base, look) => N.pickCalibration([C('기존', base), C('세로 점수', look, true)]).key;
+  assert.equal(pick(6.3, 4.4), '세로 점수', 'FD03: 6.3 → 4.4 adopts lookV');
+  assert.equal(pick(5.9, 7.1), '기존', '4479 keeps base');
+  assert.equal(pick(4.1, 5.6), '기존', 'DBFE keeps base');
+  assert.equal(pick(8.2, 9.3), '기존', '04E7 (other laptop) keeps base');
+  assert.equal(pick(4.1, 3.8), '기존', 'marginal gain (0.3%p) is not enough');
+  assert.equal(N.pickCalibration([C('a', 5), C('b', 4)]).key, 'b', 'plain candidates: smallest error');
+  console.log('PASS calibration pick: lookV only with a clear held-out gain');
+}

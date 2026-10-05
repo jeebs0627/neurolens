@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.6';   // 1.6 (2026-10-05): 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 1.7';   // 1.7 (2026-10-05): 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -727,6 +727,16 @@
     const cover = train.length ? round(train.filter(s => s.f && extra.every(k => finite(s.f[k]))).length / train.length, 2) : 0;
     return { extra, cover, base: one([]), withExtra: cover >= 0.8 ? one(extra) : null, note: 'shadow comparison only; measurement model unchanged' };
   }
+  /* 보정 후보 선택(정밀 보정 점 오차가 작은 순). 추가 특징(extra) 후보는 기존 후보 중 최선보다 0.5%p 이상이면서 10% 이상
+   * 좋을 때만 고른다 — 후보가 늘면 8개 평가 점에서 우연히 좋아 보이는 쪽이 뽑히기 쉬워 여유를 둔다.
+   * 근거(2026-10-05 그림자 비교 4세션): lookV 는 세로 구분력 r 을 4회 모두 올렸지만 오차는 1회 −30%, 3회 +13~36% */
+  function pickCalibration(cands, margin = { abs: 0.5, rel: 0.1 }) {
+    const ok = cands.filter(c => c.acc && c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);
+    const base = ok.find(c => !c.extra), best = ok[0];
+    if (!best || !best.extra || !base) return best || null;
+    const need = base.acc.errPct - Math.max(margin.abs, margin.rel * base.acc.errPct);
+    return best.acc.errPct <= need ? best : base;
+  }
   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */
   function gazeAccuracy(points, W, H) {
     const errs = points.filter(p => finite(p.gx) && finite(p.gy)).map(p => Math.hypot(p.gx - p.x, (p.gy - p.y) * 0.6));
@@ -1052,7 +1062,7 @@
     VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,
-    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
+    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };
   const Fusion = createFusion(api); api.Fusion = Fusion;

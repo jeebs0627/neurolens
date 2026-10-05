@@ -1535,7 +1535,10 @@ function processResult(fr, packet, context) {
   if (!f) { S.featMiss = (S.featMiss || 0) + 1; return; }
   const bs = blendMap(res);
   /* 세로 시선 점수(기록·그림자 비교용): MediaPipe 눈 블렌드셰이프 위로 보기 − 아래로 보기, 두 눈 평균(−1~1). 측정 모델에는 아직 쓰지 않는다 */
-  if ('eyeLookUpLeft' in bs) f.lookV = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0) - (bs.eyeLookDownLeft || 0) - (bs.eyeLookDownRight || 0)) / 2;
+  if ('eyeLookUpLeft' in bs) {
+    f.lookUp = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0)) / 2; f.lookDown = ((bs.eyeLookDownLeft || 0) + (bs.eyeLookDownRight || 0)) / 2;
+    f.lookV = f.lookUp - f.lookDown;   // 위·아래 점수는 따로 두면 화면 끝 포화를 모델이 나눠 맞출 수 있는지 그림자 비교(shadow2)로 본다
+  }
   f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));
   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));
   const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2;
@@ -2352,6 +2355,9 @@ async function calibrate() {
         if (m2) N.validateGazeEyes(m2, val, W, H);
         const cand = [{ key: '기존 보정', model: S.model, A: S.affine, R: null }];
         if (m2) cand.push({ key: '전체 표본 재학습', model: m2, A: N.fitAffine([...val, ...zc].map(p => predAt(m2, null, p))), R: null });
+        /* 세로 시선 점수(lookV)를 특징에 더한 후보: 처음 보는 정밀 보정 점에서 기존 최선보다 확실히 좋을 때만 쓴다(N.pickCalibration) */
+        const m3 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookV'] });
+        if (m3 && m3.keys.includes('lookV')) { N.validateGazeEyes(m3, val, W, H); cand.push({ key: '전체 표본 재학습 · 세로 점수', model: m3, A: N.fitAffine([...val, ...zc].map(p => predAt(m3, null, p))), R: null, extra: ['lookV'] }); }
         cand.slice().forEach(c0 => {
           const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);
           if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R });
@@ -2359,23 +2365,24 @@ async function calibrate() {
         cand.forEach(c => { c.acc = N.gazeAccuracy(fp.map(p => predAt(c.model, c.A, p, c.R)), W, H); });
         const ok = cand.filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);
         if (ok.length) {
-          const b0 = ok[0];
+          const b0 = N.pickCalibration(ok);
           S.model = b0.model; S.affine = b0.A; S.resid = b0.R;
           /* 고른 방식으로, 정밀 보정 점까지 모두 넣어 최종 보정을 다시 맞춘다(평가가 끝난 뒤 학습 자료를 늘리는 표준 절차).
            * 전체 보정 점에서 오차가 줄어들 때만 바꾸고, 표시하는 오차는 학습에 쓰지 않았던 평가 오차(b0)를 그대로 쓴다 */
           {
             const pts = [...val, ...zc, ...fp];
-            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)]) || b0.model) : b0.model;
+            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)], 0.5, { extra: b0.extra || [] }) || b0.model) : b0.model;
             if (mF !== b0.model) N.validateGazeEyes(mF, val, W, H);
             const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;
             const RF = b0.R ? N.fitResidual(pts.map(p => predAt(mF, AF, p)), W, H) : null;
             const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);
             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }
           }
-          fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
+          fine = { chosen: b0.key, lookV: !!b0.extra, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
           /* 그림자 평가: 세로 시선 점수(lookV)를 특징에 더하면 처음 보는 정밀 보정 점의 오차가 줄어드는지 — 결과만 기록하고 측정 모델은 그대로 */
           try { fine.shadow = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookV'] }); }
           catch (e) { fine.shadow = { extra: ['lookV'], error: String(e && e.message || e).slice(0, 120) }; }
+          try { fine.shadow2 = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookUp', 'lookDown'] }); } catch (_) {}
           acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };
           /* 적응형 안정화: 정밀 보정 점을 바라보는 동안의 시선 흔들림(점별 MAD 중앙값)으로 화면 시선 평활 강도를 정한다 */
           const noise = N.median(fp.map(p => { const g = p.fs.map(f => N.applyResidual(S.resid, N.applyAffine(S.affine, N.predictGaze(S.model, f)))).filter(Boolean); if (g.length < 4) return NaN; const mx = N.median(g.map(q => q.x)); return N.median(g.map(q => Math.abs(q.x - mx))) * 1.4826 / W; }).filter(Number.isFinite));
