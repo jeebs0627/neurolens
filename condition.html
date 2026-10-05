@@ -1294,7 +1294,7 @@ function fvTrials(d) { return S.stimMode === 'photo' || stimReady(S.mode) ? d.fv
 function stepEstimateSec(key, d) {
   return {
     /* 측정 시간만 (단계 안내를 읽는 시간 제외) */
-    calibration: 55, baseline: d.baseline + 3, pursuit: d.pursuit + (d.circle || 0) + 5, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,
+    calibration: 55, baseline: d.baseline + 3, pursuit: B.pursuitSec(d) + (d.circle || 0) + 8, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,
     freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 2, pvt: d.pvt + d.pvtPractice * 3.5 + 6, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 6,
     stress: d.stress + 3, recovery: d.recovery + 3,
   }[key] || 0;
@@ -1823,9 +1823,9 @@ function stepInfo(key) {
       how: ['잔잔한 호수 풍경이 펼쳐져요. 가운데 작은 점 근처를 <b>편안히</b> 바라봐 주세요', '말하거나 움직이지 않고 평소처럼 호흡해요 (호흡을 조절하지 않아도 돼요)', '끝나면 자동으로 다음 안내가 나와요'],
       orig: '빈 화면을 응시하는 휴식보다 잔잔한 풍경 영상을 보는 <b>‘바닐라 기준선’</b>이 지루함·잡념이 섞이지 않은 더 안정된 심박 기준선을 준다고 보고됐어요. 풍경의 밝기는 측정 화면과 같게 맞춰 카메라 심박에 영향을 주지 않아요.',
       ref: 'Jennings et al., 1992 · Piferi et al., 2000 · 원격 심박 POS: Wang et al., 2017' },
-    pursuit: { tag: 'Domain 2 · 주의 통제', title: '원활 추적', vis: V.pursuit, time: `${d.pursuit + (d.circle || 0)}초`, resp: '눈으로 따라가기',
-      what: '움직이는 표적을 눈으로 부드럽게 따라가는 능력은 주의 유지와 예측적 시선 조절을 반영합니다. 좌우 추적으로 시선 이득(정확도)을, 원형 추적으로 가로·세로를 함께 맞추는 동기화 오차를 봅니다.',
-      how: ['먼저 가운데 점을 1초 바라보며 시선을 재정렬해요', `1부: 파란 점이 좌우로 천천히 움직여요 (${d.pursuit}초)`, `2부: 점이 <b>원을 그리며</b> 돌아요 (${d.circle || 0}초)`, '머리는 고정하고 <b>눈으로만</b> 점의 가운데를 계속 따라가세요'], ref: 'Lencer & Trillenberg, 2008 · Maruta et al., 2010' },
+    pursuit: { tag: 'Domain 2 · 주의 통제', title: '원활 추적', vis: V.pursuit, time: `약 ${B.pursuitSec(d) + (d.circle || 0)}초`, resp: '눈으로 따라가기',
+      what: '움직이는 표적을 눈으로 부드럽게 따라가는 능력은 주의 유지와 예측적 시선 조절을 반영합니다. 속도를 단계적으로 올려 어디까지 따라가는지(추적 이득)를, 예고 없는 방향 전환으로 시선이 얼마나 빨리 따라 꺾이는지(반응 지연)를, 원형 추적으로 가로·세로 동기화를 봅니다.',
+      how: ['먼저 가운데 점을 1초 바라보며 시선을 재정렬해요', '1부: 파란 점이 좌우로 움직이며 <b>3단계로 점점 빨라져요</b>', `2부: 점이 <b>예고 없이 방향을 바꿔요</b> (${d.reversals}번 이상) — 바뀌는 순간 바로 따라가세요`, `3부: 점이 <b>원을 그리며</b> 돌아요 (${d.circle || 0}초)`, '머리는 고정하고 <b>눈으로만</b> 점의 가운데를 계속 따라가세요'], ref: 'Lencer & Trillenberg, 2008 · Rashbass, 1961 · Barnes, 2008 · Maruta et al., 2010' },
     saccade: { tag: 'Domain 2 · 주의 통제', title: '프로 · 안티사카드', vis: V.anti, time: `약 ${Math.round(((d.pro + d.anti + d.practice) * 3.2 + 10) / 6) / 10}분`, resp: '눈으로 바라보기', trials: `프로 ${d.pro} · 연습 ${d.practice} · 안티 ${d.anti}`,
       what: '갑자기 나타난 자극으로 향하려는 반사적 시선을 억제하고 반대쪽을 보는 능력(안티사카드)은 전전두엽 실행 통제의 대표 지표입니다.',
       how: ['먼저 좌 · 중 · 우 점을 차례로 보며 <b>개인 시선 범위</b>를 재요', '프로사카드: 빨간 점이 나타나면 <b>그 점을</b> 봐요', '안티사카드: 빨간 점의 <b>반대쪽 같은 거리</b>를 봐요 (시작 전에 다시 안내해요)'], ref: 'Hallett, 1978 · Munoz & Everling, 2004 · Antoniades et al., 2013' },
@@ -1872,7 +1872,7 @@ function stepSummary(key) {
       const q = S.demo ? 'good' : (evidence || N.liveHr(fr, 20) || {}).quality;
       return { cls: q === 'good' ? '' : 'warn', text: `기준선 완료 · 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함' }[q] || '부족'}${evidence?.validSeconds ? ' · '+Math.round(evidence.validSeconds)+'초 활용' : ''}` };
     }
-    if (key === 'pursuit' && S.pursuit) { const n = S.pursuit.samples.length, e = S.pursuit.dur / 1000 * 25; return { cls: n / e >= 0.5 ? '' : 'warn', text: `원활 추적 완료 · 시선 표본 ${Math.min(100, Math.round(n / e * 100))}%` }; }
+    if (key === 'pursuit' && S.pursuit) { const blocks = [...(S.pursuit.levels || []), ...(S.pursuit.reversal ? [{ ...S.pursuit.reversal, dur: (S.pursuit.reversal.end || now()) - S.pursuit.reversal.t0 }] : [])], n = blocks.reduce((a, b) => a + b.samples.length, 0), e = Math.max(1, blocks.reduce((a, b) => a + b.dur, 0) / 1000 * 25); return { cls: n / e >= 0.5 ? '' : 'warn', text: `원활 추적 완료 · 시선 표본 ${Math.min(100, Math.round(n / e * 100))}%` }; }
     if (key === 'saccade') {
       const T = S.saccade.filter(t => !t.practice), qa = B.saccadeQuick(T.filter(t => t.type === 'anti'), W, S.sacCal), qp = B.saccadeQuick(T.filter(t => t.type === 'pro'), W, S.sacCal);
       return { cls: qa.validRate >= 0.6 ? '' : 'warn', text: `사카드 완료 · 유효 프로 ${qp.valid}/${qp.n} · 안티 ${qa.valid}/${qa.n}` };
@@ -1963,7 +1963,7 @@ async function runSession() {
   const d = B.DUR[S.mode], m = S.mods, plan = [];
   if (!S.demo) plan.push(['calibration', () => calibrate()]);
   plan.push(['baseline', () => phaseBaseline(d.baseline)]);
-  if (m.oculo) plan.push(['pursuit', () => phasePursuit(d.pursuit)], ['saccade', () => phaseSaccade(d)]);
+  if (m.oculo) plan.push(['pursuit', () => phasePursuit(d)], ['saccade', () => phaseSaccade(d)]);
   if (m.core) plan.push(['freeview', () => phaseFreeview(d)]);
   if (m.alert) plan.push(['pvt', () => phasePvt(d)]);
   if (m.sustain) plan.push(['sart', () => phaseSart(d)]);
@@ -2361,34 +2361,62 @@ async function phaseBaseline(sec) {
 }
 
 /* 원활 추적: 수평 정현파 표적 (Lencer & Trillenberg, 2008) */
-async function phasePursuit(sec) {
+async function phasePursuit(d) {
   const P = B.PROTOCOL.pursuit;
   await brief('pursuit');
   await driftCheck();
-  const W = stage.clientWidth, H = stage.clientHeight, amp = P.amp * W, cx = W / 2;
-  body.innerHTML = `<div class="cal-dot val" id="pDot" style="transition:none;left:${cx}px;top:${H / 2}px"></div>${demoCue('마우스로 점을 따라가세요')}`;
-  const dot = $('pDot');
+  const W = stage.clientWidth, H = stage.clientHeight, amp = P.ampL * W, cx = W / 2;
+  body.innerHTML = `<div class="cal-dot val" id="pDot" style="transition:none;left:${cx}px;top:${H / 2}px"></div><div class="cue" id="pCue"></div>${demoCue('마우스로 점을 따라가세요')}`;
+  const dot = $('pDot'), cue = $('pCue');
   await wait(700);
-  const tr = { samples: [] }, dur = sec * 1000;
-  const t0 = await nextFrame();
-  S.pursuit = { t0, cx, amp, freq: P.freq, dur, samples: tr.samples };
   mark('pursuit', 'start');
-  S.curTrial = tr;
-  if (S.demo) every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y }));
+  S.pursuit = { version: 2, cx, amp, levels: [], reversal: null, samples: [] };
   let raf = 0;
-  const anim = ts => { dot.style.left = (cx + amp * Math.sin(2 * Math.PI * P.freq * (ts - t0) / 1000)) + 'px'; raf = requestAnimationFrame(anim); };
-  raf = requestAnimationFrame(anim);
   S.cleanup.push(() => cancelAnimationFrame(raf));
-  const stop = task('원활 추적 · 좌우', dur);
-  await wait(dur);
-  stop();
+  const track = tr => { S.curTrial = tr; return S.demo ? every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y })) : () => {}; };
+  /* 1부 · 속도 단계: 같은 폭으로 점점 빠르게. 단계마다 정수 주기라 가운데에서 끊김 없이 다음 단계로 이어진다 */
+  for (let i = 0; i < P.levels.length; i++) {
+    const freq = P.levels[i], dur = d.pursuit[i] / freq * 1000, tr = { samples: [] };
+    cue.innerHTML = `1부 · 속도 단계 <b>${i + 1}/${P.levels.length}</b> · 머리는 고정하고 <b>눈으로만</b> 따라가세요`;
+    const t0 = await nextFrame();
+    S.pursuit.levels.push({ freq, t0, dur, samples: tr.samples });
+    const demoStop = track(tr);
+    const anim = ts => { dot.style.left = (cx + amp * Math.sin(2 * Math.PI * freq * (ts - t0) / 1000)) + 'px'; raf = requestAnimationFrame(anim); };
+    raf = requestAnimationFrame(anim);
+    const stop = task(`원활 추적 · 속도 ${i + 1}단계`, dur);
+    await wait(dur);
+    stop(); demoStop(); cancelAnimationFrame(raf);
+  }
+  /* 2부 · 불규칙 방향 전환: 등속으로 움직이다 예고 없이 반전. 반전 시각·위치를 실제 그린 프레임 시각으로 기록한다 */
+  {
+    const R = P.rev, v = R.speed * W, tr = { samples: [] }, turns = [];
+    cue.innerHTML = '2부 · 점이 <b>예고 없이 방향을 바꿔요</b> · 눈으로만 바로 따라가세요';
+    const gap = () => R.gapMin + Math.random() * (R.gapMax - R.gapMin);
+    let x = cx, dir = Math.random() < 0.5 ? -1 : 1, last = await nextFrame(), next = last + gap();
+    const t0 = last;
+    S.pursuit.reversal = { t0, end: null, speed: v, x0: cx, dir0: dir, turns, samples: tr.samples };
+    const demoStop = track(tr);
+    await new Promise((res, rej) => {
+      const w = { rej, cleanup: () => cancelAnimationFrame(raf) };
+      waiters.add(w);
+      const anim = ts => {
+        x += dir * v * Math.min(50, ts - last) / 1000; last = ts;
+        const edge = x > R.hi * W || x < R.lo * W;
+        if (ts >= next || edge) { x = Math.max(R.lo * W, Math.min(R.hi * W, x)); turns.push({ t: ts, x, from: dir, kind: edge && ts < next ? 'edge' : 'random' }); dir = -dir; next = ts + gap(); }
+        dot.style.left = x + 'px';
+        if (turns.filter(u => u.kind === 'random').length >= d.reversals && ts - turns.at(-1).t > R.post) { waiters.delete(w); res(); return; }
+        raf = requestAnimationFrame(anim);
+      };
+      raf = requestAnimationFrame(anim);
+    });
+    S.pursuit.reversal.end = now(); demoStop();
+  }
   cancelAnimationFrame(raf);
-  /* 2부 · 원형 추적 (Maruta et al., 2010): 좌우만이 아니라 위아래까지 함께 따라가며 예측적 시선 동기화를 본다 */
+  /* 3부 · 원형 추적 (Maruta et al., 2010): 좌우만이 아니라 위아래까지 함께 따라가며 예측적 시선 동기화를 본다 */
   const C = B.PROTOCOL.circle, cdur = (B.DUR[S.mode].circle || 10) * 1000, r = C.r * W, cy = H / 2;
   dot.style.transition = 'left .6s ease, top .6s ease';
   dot.style.left = cx + 'px'; dot.style.top = (cy - r) + 'px';
-  body.querySelectorAll('.cue').forEach(e => e.remove());
-  body.insertAdjacentHTML('beforeend', '<div class="cue" id="pCue">이번에는 점이 <b>원을 그리며</b> 돌아요 · 눈으로만 계속 따라가세요</div>');
+  cue.innerHTML = '3부 · 이번에는 점이 <b>원을 그리며</b> 돌아요 · 눈으로만 계속 따라가세요';
   await wait(1400);
   dot.style.transition = 'none';
   const tr2 = { samples: [] }, c0 = await nextFrame();
@@ -2869,9 +2897,24 @@ function finishWith(rec, server = [], opt = {}) {
   S.hist = hist;
   $('sReport').innerHTML = R.render(res, { history: hist });
   bindReport(res);
+  rollScore($('sReport').querySelector('#r-top .rhero-gauge svg text'));
   show('sReport');
   if (opt.ai) summaryRender(opt.ai, false); else summary(res, false);
   return res;
+}
+/* 종합 점수 슬롯 애니메이션: 자리마다 숫자가 돌다가 앞자리부터 차례로 멈춘다(링이 차오르는 1.1초와 맞춤).
+ * 화면 표시만 바꾸고 점수 값·aria-label 은 처음부터 최종값이다. 움직임 줄이기 설정이면 바로 최종값 */
+function rollScore(el) {
+  const final = el && el.textContent.trim();
+  if (!final || !/^\d+$/.test(final) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const digits = [...final].map(Number), n = digits.length, t0 = performance.now(), stopAt = i => 650 + 280 * i;
+  const seed = digits.map(() => Math.floor(Math.random() * 10));
+  const tick = ts => {
+    const e = ts - t0;
+    el.textContent = digits.map((d, i) => e >= stopAt(i) ? d : (seed[i] + Math.floor(e / (45 + 12 * i))) % 10).join('');
+    if (e < stopAt(n - 1)) requestAnimationFrame(tick); else el.textContent = final;
+  };
+  requestAnimationFrame(tick);
 }
 /* ---------- 계정 저장: 로그인 상태의 실측 결과를 ‘마인드 AI 컨디션 검사’ 내역으로 쌓는다 ---------- */
 function condSummary(res) {

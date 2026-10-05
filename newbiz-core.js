@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.3';   // 1.3 (2026-10-05): 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 1.4';   // 1.4 (2026-10-05): 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -224,7 +224,9 @@
         const a=clean[j],b=clean[j+1];
         if(!a || t<a.t-.001)continue;
         if(Math.abs(t-a.t)<.001){for(let k=0;k<3;k++)rgb[k][i]=a.v[k];qualityTrace[i]=a.q;jitterTrace[i]=a.jitter;continue;}
-        if(!b||b.t-a.t>200||b.t<=a.t)continue;
+        // 600ms 이하 공백은 직선 보간하고 '보간' 표시(repaired)를 남긴다. 200ms에서 끊으면 몇 초마다 생기는 짧은 누락만으로
+        // 10초 창이 거의 다 깨졌다(합성: 7초마다 0.45초 누락 → 유효 49초→9초). 보간이 25% 넘는 창은 Fusion 에서 그대로 버린다
+        if(!b||b.t-a.t>600||b.t<=a.t)continue;
         const q=(t-a.t)/(b.t-a.t);qualityTrace[i]=a.q+(b.q-a.q)*q;jitterTrace[i]=a.jitter+(b.jitter-a.jitter)*q;
         for(let k=0;k<3;k++)rgb[k][i]=a.v[k]+(b.v[k]-a.v[k])*q;
         // 보간 표시는 주변 ±15프레임 간격의 국소 중앙값 기준: 기록 전체 중앙값(dt)만 쓰면 빨라진 구간 때문에
@@ -258,7 +260,7 @@
   function phaseHr(wins,start,end) { return Fusion.summarize(wins,start,end); }
   function measureEvidence(frames,start,end) {
     const selected=frames.filter(f=>f.t>=start&&f.t<=end),sig=buildBvp(selected);
-    return phaseHr(hrWindows(sig,10,1,{start,end,jumps:lumJumps(selected)}),start,end);
+    return phaseHr(hrWindows(sig,10,1,{start,end,jumps:lumJumps(selected),motion:motionBursts(selected)}),start,end);
   }
 
   /* ---------- 박동 검출 → 박동 간격(IBI) ---------- */
@@ -372,6 +374,23 @@
     return out.length ? out : null;
   }
   /* 조명 급변: 2초 창 평균 피부 밝기가 직전 창보다 12% 넘게 바뀐 시각 (rPPG 창을 이 근처에서 제외) */
+  /* 머리 움직임 구간: 0.25초 간격으로 앞뒤 0.25초 얼굴 위치(±80ms 중앙값)의 이동량(얼굴 폭 대비, %/초)이 10%/초를 넘는 시점 ±0.5초.
+   * 움직임은 피부색을 크게 흔들어 맥박보다 센 가짜 주기를 만든다(합성: 1.5초 흔들림이 9초마다 → 심박 오차 32bpm) */
+  function motionBursts(frames, thr = 10) {
+    const s = (frames || []).filter(f => (f.faceOk ?? f.ok) && finite(f.cx) && finite(f.cy) && f.fw > 0);
+    const out = [];
+    if (s.length < 60) return out;
+    const at = t => { const w = s.filter(f => Math.abs(f.t - t) <= 80); return w.length ? { x: median(w.map(f => f.cx)), y: median(w.map(f => f.cy)), w: median(w.map(f => f.fw)) } : null; };
+    for (let t = s[0].t + 250; t <= s.at(-1).t - 250; t += 250) {
+      const a = at(t - 250), b = at(t + 250);
+      if (!a || !b) continue;
+      if (Math.hypot(b.x - a.x, b.y - a.y) / ((a.w + b.w) / 2) / 0.5 * 100 > thr) {
+        const last = out.at(-1);
+        if (last && t - 500 <= last[1]) last[1] = t + 500; else out.push([t - 500, t + 500]);
+      }
+    }
+    return out;
+  }
   function lumJumps(frames) {
     const s = (frames || []).filter(f => f.ok && finite(f.lum));
     const out = [];
@@ -814,13 +833,13 @@
     const inHidden = t => hidden.some(h => t >= h.start - 500 && t <= h.end + 1500);
     if (hidden.length) rec = { ...rec, frames: rec.frames.map(f => (inHidden(f.t) ? { ...f, ok: false, ppgOk: false, faceOk: false, eyeOk: false } : f)) };
     const sig = buildBvp(rec.frames);
-    const jumps = lumJumps(rec.frames);
+    const jumps = lumJumps(rec.frames), moveBursts = motionBursts(rec.frames);
     /* 10초 창이 조명 급변 시각을 포함하면 그 창은 버린다 */
-    const wins = hrWindows(sig,10,1,{jumps});
+    const wins = hrWindows(sig,10,1,{jumps,motion:moveBursts});
     const phaseCache=new Map();
     const phaseWindows=(start,end)=>{
       if(!finite(start)||!finite(end)||end<=start)return [];
-      const key=start+':'+end;if(!phaseCache.has(key))phaseCache.set(key,hrWindows(sig,10,1,{start,end,jumps}));
+      const key=start+':'+end;if(!phaseCache.has(key))phaseCache.set(key,hrWindows(sig,10,1,{start,end,jumps,motion:moveBursts}));
       return phaseCache.get(key);
     };
     const summarizePhase=(start,end)=>phaseHr(phaseWindows(start,end),start,end);
@@ -990,7 +1009,7 @@
   const api = {
     VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
-    buildBvp, hrWindows, phaseHr, measureEvidence, beats, ibis, rmssd, breathingCoupling,
+    buildBvp, hrWindows, phaseHr, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,
     faceFeatures, fitGaze, predictGaze, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };

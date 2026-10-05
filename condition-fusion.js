@@ -5,7 +5,7 @@
   if(root)root.NLFusionFactory=factory;
 })(typeof globalThis!=='undefined'?globalThis:null,function(N){
   'use strict';
-  const VERSION='condition-fusion-4',finite=Number.isFinite;
+  const VERSION='condition-fusion-5',finite=Number.isFinite;
   // 'aggregate'(전체 피부 평균)와 'combined'(영역 파형 합성)는 영역들과 픽셀을 공유하므로 독립 영역으로 세지 않는다
   const SHARED=new Set(['aggregate','combined']),physicalRoi=p=>!SHARED.has(p.roi);
   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
@@ -125,14 +125,21 @@
         const wl=Math.round(sec*fs);if(s+wl>upper)continue;
         const start=t0+s*1000/fs,end=t0+(s+wl-1)*1000/fs;
         if((opt.jumps||[]).some(t=>start<t+750&&end>t-750))continue;
+        // 머리 움직임 구간이 창의 25%를 넘으면 버리고, 그보다 적으면 그만큼 후보 가중치를 낮춘다
+        const moving=(opt.motion||[]).reduce((a,[m0,m1])=>a+Math.max(0,Math.min(end,m1)-Math.max(start,m0)),0)/Math.max(1,end-start);
+        if(moving>.4)continue;
         const candidates=[],raw=[];
+        // 움직임 구간 표본은 0으로 비운다(블랭킹): 맥박보다 수십 배 센 흔들림이 한 창의 스펙트럼을 차지하는 것을 막는다.
+        // 대역통과된 파형이라 평균이 0 이므로 비운 자리는 '신호 없음'과 같다. 비운 비율은 보간처럼 신뢰도에서 뺀다
+        const mask=moving>0?(opt.motion||[]).map(([m0,m1])=>[Math.max(0,Math.round((m0-t0)*fs/1000)-s),Math.min(wl,Math.round((m1-t0)*fs/1000)-s)]).filter(([a,b])=>b>a):null;
         for(const c of sources){
-          const seg=c.wave.subarray(s,s+wl);
+          let seg=c.wave.subarray(s,s+wl);
+          if(mask&&seg.every(finite)){seg=Float64Array.from(seg);mask.forEach(([a,b])=>seg.fill(0,a,b));}
           if(!seg.every(finite)||N.std(Array.from(seg))<1e-9)continue;
           // Large frame-to-frame colour-ratio jumps are optical artefacts, not a weak pulse.
           // Common brightness changes cancel in the ratios; small noisy observations remain usable.
           if(c.jitter&&N.mean(Array.from(c.jitter.subarray(s,s+wl)))>.08)continue;
-          const recovered=c.repairs?c.repairs.subarray(s,s+wl).reduce((a,b)=>a+b,0)/wl:0;
+          const recovered=Math.min(1,(c.repairs?c.repairs.subarray(s,s+wl).reduce((a,b)=>a+b,0)/wl:0)+moving);
           if(recovered>.25)continue;
           const pk=N.spectralPeak(seg,fs);if(!pk)continue;
           const ac=periodicity(seg,fs),peaks=[pk];

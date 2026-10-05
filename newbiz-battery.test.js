@@ -409,3 +409,32 @@ for (const p of Object.keys(B.PERSONAS)) {
 assert.ok(R.render(B.run(B.simulate('overload', { seed: 7 })), {}).includes('감정/스트레스 과부하형'));
 
 console.log('newbiz-battery tests passed');
+
+/* 원활 추적 2판 (2026-10-05): 속도 단계 + 불규칙 방향 전환 */
+{
+  /* ① 반응 지연: 합성 반응 = lag + 90ms(balanced 170 · fatigue 240) — 추정 중앙값이 ±40ms 안 */
+  for (const [p, truth] of [['balanced', 170], ['fatigue', 240]]) {
+    const r = B.run(B.simulate(p)).battery, lat = r.indicators.find(i => i.key === 'pursuitLatency');
+    assert.ok(lat.ref && Math.abs(lat.value - truth) <= 40, `${p} latency ${lat.value} vs ${truth}`);
+    assert.ok(lat.ci && lat.ci[0] < lat.value && lat.value < lat.ci[1], `${p} latency ci`);
+  }
+  /* ② 참고 지표는 영역 점수에 들어가지 않는다: 값을 지워도 control 점수 동일 */
+  const rec = B.simulate('balanced'), base = B.run(rec).battery.domains.control.score;
+  const noRev = B.run({ ...rec, pursuit: { ...rec.pursuit, reversal: null } }).battery;
+  assert.equal(noRev.domains.control.score, base, 'ref indicators excluded from domain score');
+  assert.equal(noRev.indicators.find(i => i.key === 'pursuitLatency').value, null);
+  /* ③ 머리 동조: 얼굴 회전이 표적을 그대로 따라가면 이득 신뢰도가 낮아져 판정에서 빠진다 */
+  const lv = rec.pursuit.levels, tgt = t => { const b = lv.filter(x => t >= x.t0).at(-1) || lv[0]; return Math.sin(2 * Math.PI * b.freq * (t - b.t0) / 1000); };
+  const a0 = lv[0].t0, a1 = lv.at(-1).t0 + lv.at(-1).dur;
+  const headRec = { ...rec, frames: rec.frames.map(f => f.t >= a0 && f.t <= a1 ? { ...f, yaw: 0.08 * tgt(f.t), faceOk: true } : f) };
+  const hg = B.run(headRec).battery.indicators.find(i => i.key === 'pursuitGain'), g0 = B.run(rec).battery.indicators.find(i => i.key === 'pursuitGain');
+  assert.ok(hg.r < g0.r && hg.excluded, `head-follow lowers gain reliability ${hg.r} vs ${g0.r}`);
+  /* ④ 1판(좌우 0.25Hz) 기록도 그대로 분석된다 */
+  const W = rec.screenW, cx = W / 2, amp = 0.36 * W, t0 = lv[0].t0, dur = 24000, samples = [];
+  for (let t = t0; t <= t0 + dur; t += 33) samples.push({ t, x: cx + 0.9 * amp * Math.sin(2 * Math.PI * 0.25 * (t - 80 - t0) / 1000) });
+  const legacy = B.run({ ...rec, pursuit: { t0, cx, amp, freq: 0.25, dur, samples, circle: rec.pursuit.circle } }).battery.indicators.find(i => i.key === 'pursuitGain');
+  assert.ok(Math.abs(legacy.value - 0.9) < 0.05, `legacy gain ${legacy.value}`);
+  /* ⑤ 소요 시간: 표준(quick) 약 26초, 정밀(full) 약 44초 (원형 제외) */
+  assert.ok(Math.abs(B.pursuitSec(B.DUR.quick) - 26) <= 3 && Math.abs(B.pursuitSec(B.DUR.full) - 45) <= 3, `${B.pursuitSec(B.DUR.quick)} ${B.pursuitSec(B.DUR.full)}`);
+  console.log('PASS pursuit v2: reversal latency, ref indicators outside domain score, head-follow reliability, legacy v1 record, duration');
+}

@@ -210,3 +210,18 @@ console.log('newbiz-core tests passed');
   assert.ok(sb(-5000) > -0.35 * W - 1e-9, 'bounded left');
   console.log('PASS gaze: quadratic tangent extension beyond calibration range, soft off-screen bound');
 }
+
+/* 심박 수집 안정화 (2026-10-05): ① 몇 초마다 생기는 짧은 프레임 누락(≤0.6초)은 보간해 창을 살린다
+ * ② 머리 움직임 구간(얼굴 위치 흔들림)은 창 안에서 비워 흔들림 주파수를 심박으로 잡지 않는다 */
+{
+  const gaps = N.synthFrames(0, 60000, () => 72, { noise: 1.2, seed: 2 }).filter(x => !((x.t % 7000) < 450));
+  const g = N.measureEvidence(gaps, 0, 60000);
+  assert.ok(g.validSeconds >= 40 && Math.abs(g.bpm - 72) < 2, `gaps: ${g.validSeconds}s ${g.bpm}`);
+  const mov = N.synthFrames(0, 60000, () => 70, { noise: 1.2, seed: 2 }).map(x => { const on = (x.t % 9000) < 1500, m = on ? 3 * Math.sin(x.t / 90) : 0;
+    return { ...x, cx: x.cx + (on ? 0.03 * Math.sin(x.t / 90) : 0), g: x.g + m, rr: x.rr.map((c, i) => [c[0] + m * .6, c[1] + m * (1 + .3 * i), c[2] + m * .4]) }; });
+  assert.ok(N.motionBursts(mov).length >= 6, 'motion bursts detected');
+  const m = N.measureEvidence(mov, 0, 60000);
+  assert.ok(Math.abs(m.bpm - 70) < 2, `motion: ${m.bpm}`);
+  assert.equal(N.motionBursts(N.synthFrames(0, 30000, () => 70, { noise: 0.5, seed: 3 })).length, 0, 'still face has no bursts');
+  console.log('PASS pulse: short frame gaps bridged, head-motion bursts blanked');
+}

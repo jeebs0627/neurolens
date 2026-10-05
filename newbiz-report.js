@@ -315,7 +315,7 @@
     B.DOMAIN_KEYS.forEach(k => { const d = b.domains[k]; domains[k] = { score: d.score, status: d.status, confidence: d.confidence, tentative: !!d.tentative }; });
     return {
       demo: !!(r.demo || b.sim), mode: r.mode || 'full', type: I.code, primary: I.primary, secondary: I.secondary, domains,
-      indicators: b.indicators.filter(i => i.value !== null && !i.excluded && i.status !== 'na').map(i => ({ key: i.key, value: i.value, status: i.status, borderline: !!i.borderline })),
+      indicators: b.indicators.filter(i => i.value !== null && !i.excluded && !i.ref && i.status !== 'na').map(i => ({ key: i.key, value: i.value, status: i.status, borderline: !!i.borderline })),
       pathways: I.pathways.map(p => p.key), mismatches: I.mismatches.map(m => m.key),
       checkin: { valence: c.valence ?? null, tension: c.tension ?? null, energy: c.energy ?? null, kss: c.kss ?? null, focus: c.focus ?? null },
       care: b.care.filter(t => t.domain !== 'safety').map(t => t.domain), qc: { grade: b.qc ? b.qc.grade : null, hrRef: b.qc ? b.qc.hrRef || null : null },
@@ -735,6 +735,13 @@
     } else if (k === 'control') {
       body += b.saccade ? `<div class="group-t">프로·안티사카드 · 시행 결과</div>${saccadeSvg(b.saccade)}${b.saccade.ok ? '' : `<p class="warn-line">${esc(b.saccade.reason)} — 안티사카드 지표를 판정에서 제외했어요.</p>`}` : '';
       body += b.pursuit && b.pursuit.trace ? `<div class="group-t">원활 추적 · 표적 대비 시선</div>${pursuitSvg(b.pursuit)}${b.pursuit.ok ? '' : `<p class="warn-line">${esc(b.pursuit.reason)} — 추적 지표를 판정에서 제외했어요.</p>`}` : (b.pursuit && !b.pursuit.ok ? `<p class="warn-line">원활 추적: ${esc(b.pursuit.reason)}</p>` : '');
+      /* 원활 추적 2판: 단계별 이득 · 머리 동조 · 방향 전환 반응 (참고) */
+      if (b.pursuit && b.pursuit.levels) {
+        const lv = b.pursuit.levels.map(l => `${l.freq}Hz ${finite(l.gain) && l.ok ? l.gain.toFixed(2) : '—'}`).join(' · ');
+        const hf = finite(b.pursuit.headFollow) ? ` · 머리 동조 ${b.pursuit.headFollow.toFixed(2)}${b.pursuit.headFollow >= 0.5 ? ' (머리가 점을 따라 움직여 이득이 낮게 잡혔을 수 있어요)' : ''}` : '';
+        const rv = b.reversal ? (b.reversal.ok ? ` · 방향 전환 ${b.reversal.valid}/${b.reversal.n}회 따라감, 반응 지연 중앙값 ${b.reversal.latencyMs}ms` : ` · ${esc(b.reversal.reason || '')}`) : '';
+        body += `<p class="small muted" style="margin:6px 0 14px">속도 단계 이득 ${lv}${hf}${rv}</p>`;
+      }
       body += b.circle ? `<div class="group-t">원형 추적 · 시선 궤적</div>${circleSvg(b.circle)}${b.circle.ok ? '' : `<p class="warn-line">${esc(b.circle.reason)} — 원형 추적 지표를 판정에서 제외했어요.</p>`}` : '';
       body += b.sart ? `<div class="group-t">SART · 시행별 반응</div>${sartSvg(b.sart)}${b.sart.invalid ? `<p class="warn-line">${esc(b.sart.invalid)}</p>` : ''}` : '';
       body += methodBox('oculo', b, C, `<p><b>프로토콜</b> 응시점 ${P.saccade.fixMin / 1000}~${P.saccade.fixMax / 1000}초 무작위 후 응시점이 사라지며 표적이 화면 중심에서 폭의 ${Math.round(P.saccade.ecc * 100)}% 위치에 1초 제시(단계 패러다임). 원활 추적은 ${P.pursuit.freq}Hz 수평 정현파(진폭 폭의 ${Math.round(P.pursuit.amp * 100)}%), 첫 ${P.pursuit.skipMs / 1000}초 제외 후 최적 지연에서의 이득과 잔차 SD를 계산.${C.cite(['antoniades', 'maruta'])}</p>`);

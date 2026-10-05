@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.1';   // 1.1 (2026-10-05): SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
+  const VERSION = 'In_mind battery 1.2';   // 1.2 (2026-10-05): 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -101,7 +101,11 @@
     pvt: { isiMin: 1000, isiMax: 4000, lapseMs: 355, falseMs: 100, timeoutMs: 3000 },          // PVT-B (Basner et al., 2011)
     sart: { digitMs: 250, maskMs: 900, mask: false, nogo: 3, nogoBoost: 0.07, sizes: [48, 72, 94, 100, 120] },   // nogoBoost: 3의 비율을 원판 1/9(11.1%)에서 +7%p(약 18%) — 거부 시행 수를 늘려 억제 실패율의 신뢰도를 높인다 (2026-10-05 운영 결정)   // SART (Robertson et al., 1997) — 마스크 대신 빈 화면 (아래 MODULES 참고)
     saccade: { fixMin: 1000, fixMax: 2000, targetMs: 1200, gapMs: 400, ecc: 0.35, window: 1000 }, // 단계 패러다임 (Antoniades et al., 2013 참고)
-    pursuit: { freq: 0.25, amp: 0.36, skipMs: 1500 },
+    /* 원활 추적 2판(2026-10-05): ① 속도 단계 — 같은 진폭(화면 폭의 ampL)으로 0.2·0.35·0.5Hz 사인 추적(단계마다 정수 주기라 끝이 가운데)
+     * ② 불규칙 방향 전환 — 등속(speed, 화면 폭/초)으로 움직이다 gapMin~gapMax 무작위 시점에 반전(Rashbass, 1961; Barnes, 2008).
+     * freq·amp 는 1판(좌우 0.25Hz) 기록 재분석용으로 남긴다 */
+    pursuit: { freq: 0.25, amp: 0.36, skipMs: 1500, levels: [0.2, 0.35, 0.5], ampL: 0.32,
+      rev: { speed: 0.35, gapMin: 700, gapMax: 1500, lo: 0.14, hi: 0.86, pre: 400, post: 700 } },
     /* 원형 추적 (Maruta et al., 2010): 원을 그리며 도는 점을 따라간다. 수평·수직 추적과 예측적 동기화를 함께 본다 */
     circle: { freq: 0.4, r: 0.17, skipMs: 1200 },
     /* 사카드 판정: 응답 기준은 개인 시선 진폭의 40%, 단발성 튐을 막기 위해 다음 표본도 기준의 70% 이상 같은 쪽이어야 한다.
@@ -122,12 +126,12 @@
    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다
    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */
   /* minR: 이 신뢰도 아래만 판정에서 뺀다. 0.3 → 0.2로 낮춰, 약하지만 근거가 있는 지표는 버리지 않고 낮은 가중으로 반영한다(점수 기여 = 가중 × 신뢰도) */
-  const QC = { version: 'In_mind QC 1.8', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
+  const QC = { version: 'In_mind QC 1.9', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
-    full:  { baseline: 60, pursuit: 24, circle: 15, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
+    full:  { baseline: 60, pursuit: [2, 3, 4], reversals: 16, circle: 15, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
     /* 표준(약 8분, 기본값) — 각 과제의 최소 신뢰 수준을 지키며 측정 시간을 8분 안팎으로 맞춘 구성 */
-    quick: { baseline: 30, pursuit: 12, circle: 10, pro: 4, anti: 10, practice: 1, trials: 4, fv: { neu: 3, neg: 8, pos: 4 }, pvt: 90, pvtPractice: 2, sart: 54, sartPractice: 9, stress: 40, recovery: 40 },
+    quick: { baseline: 30, pursuit: [1, 2, 2], reversals: 10, circle: 10, pro: 4, anti: 10, practice: 1, trials: 4, fv: { neu: 3, neg: 8, pos: 4 }, pvt: 90, pvtPractice: 2, sart: 54, sartPractice: 9, stress: 40, recovery: 40 },
   };
 
   const MODULES = {
@@ -196,6 +200,12 @@
       desc: '표적 움직임 대비 시선 움직임의 크기 (1.0 = 정확한 추적)', get: a => a.pursuit && a.pursuit.ok ? a.pursuit.gain : null },
     { key: 'pursuitErr', domain: 'control', w: 1, label: '추적 동기화 오차', unit: '%', d: 1, band: BAND('low', 3, 8, 14, 30), refs: ['maruta'],
       desc: '추적 중 시선-표적 오차의 흔들림(SD, 화면 폭 대비). 주의 동기화 지표', get: a => a.pursuit && a.pursuit.ok ? a.pursuit.errPct : null },
+    /* 원활 추적 2판 참고 지표(ref): 웹캠 규준이 없어 영역 점수·해석에는 넣지 않고 값·오차 범위만 보여 준다 */
+    { key: 'pursuitLatency', domain: 'control', w: 1, ref: true, label: '방향 전환 반응 지연', unit: 'ms', d: 0, band: BAND('low', 180, 280, 360, 600), refs: ['lencer'],
+      desc: '예고 없이 방향을 바꾼 점을 시선이 따라 꺾기까지 걸린 시간(반전 여러 번의 중앙값). 예측이 아닌 반응적 추적의 순발력 — 참고 지표', get: a => a.reversal && a.reversal.ok ? a.reversal.latencyMs : null,
+      count: a => a.reversal ? `${a.reversal.valid}/${a.reversal.n}회` : null },
+    { key: 'pursuitSpeed', domain: 'control', w: 1, ref: true, label: '추적 속도 유지율', unit: '', d: 2, band: BAND('high', 1, 0.85, 0.7, 0.4), refs: ['lencer'],
+      desc: '빠른 단계(0.5Hz) 이득 ÷ 느린 단계(0.2Hz) 이득. 같은 측정 안의 비율이라 보정 축척 오차가 상쇄된다 — 참고 지표', get: a => a.pursuit && a.pursuit.ok ? a.pursuit.speedKeep : null },
     { key: 'circErr', domain: 'control', w: 1, label: '원형 추적 동기화 오차', unit: '%', d: 1, band: BAND('low', 4, 10, 17, 35), refs: ['maruta'],
       desc: '원을 그리며 도는 점을 따라갈 때 시선-표적 2차원 오차의 SD (화면 폭 대비). 주의 동기화·예측적 추적 지표', get: a => a.circle && a.circle.ok ? a.circle.errPct : null },
     { key: 'motion', domain: 'control', w: 1, label: '과제 중 머리 움직임', unit: '%/초', d: 1, band: BAND('low', 0.4, 1.5, 3, 6), refs: ['teicher'],
@@ -414,6 +424,86 @@
   function smoothTrack(s, key) {
     const m5 = s.map((z, i) => { const w = s.slice(Math.max(0, i - 2), i + 3).map(q => q[key]); return median(w); });
     return s.map((z, i) => { const w = []; for (let j = i; j >= 0 && z.t - s[j].t <= 125; j--) w.push(m5[j]); for (let j = i + 1; j < s.length && s[j].t - z.t <= 125; j++) w.push(m5[j]); return mean(w); });
+  }
+  /* 원활 추적 소요 시간(초, 원형 제외): 속도 단계(단계별 주기 수 ÷ 주파수) + 방향 전환(평균 간격 × 횟수). 1판 기록은 초 그대로 */
+  function pursuitSec(d) {
+    const P = PROTOCOL.pursuit;
+    return Array.isArray(d.pursuit) ? Math.round(d.pursuit.reduce((s, c, i) => s + c / P.levels[i], 0) + (d.reversals || 0) * (P.rev.gapMin + P.rev.gapMax) / 2000 + 1) : d.pursuit;
+  }
+  /* 사인 표적 회귀: 최적 지연(0~500ms)에서 시선 = 절편 + 이득 × 표적. 이득·상관·잔차 SD(화면 폭 대비) */
+  function fitTrack(s, tgt, W) {
+    const g = smoothTrack(s, 'x');
+    let best = null;
+    for (let L = 0; L <= 500; L += 10) { const tg = s.map(z => tgt(z.t - L)), r = corr(tg, g); if (!best || r > best.r) best = { L, r, tg }; }
+    const mt = mean(best.tg), mg = mean(g);
+    let cov = 0, vt = 0;
+    for (let i = 0; i < g.length; i++) { cov += (best.tg[i] - mt) * (g[i] - mg); vt += (best.tg[i] - mt) ** 2; }
+    const gain = cov / vt, resid = g.map((v, i) => v - (mg + gain * (best.tg[i] - mt)));
+    return { gain, r: best.r, lagMs: best.L, errPct: std(resid) / W * 100, g };
+  }
+  /* 머리 동조: 과제 중 얼굴 회전(yaw)이 표적과 함께 움직인 정도(|상관|). 머리가 점을 따라 돌면 눈 자체는 덜 움직이는데,
+   * 시선 모델은 머리 자세 특징을 강하게 수축해 두어(HEAD_RIDGE) 시선 이동 폭이 작게 잡힌다 → 이득이 낮아 보일 수 있다 */
+  function headFollow(frames, tgt, a, b) {
+    const f = (frames || []).filter(x => x.t >= a && x.t <= b && finite(x.yaw) && (x.faceOk ?? x.ok));
+    if (f.length < 30) return null;
+    return round(Math.abs(corr(f.map(x => tgt(x.t)), f.map(x => x.yaw))), 2);
+  }
+  /* 원활 추적 2판 · 속도 단계: 단계별 이득과 전 단계를 이은 대표 이득(pursuitGain 의 값). 속도 유지율 = 0.5Hz 이득 ÷ 0.2Hz 이득 —
+   * 같은 측정 안의 비율이라 보정 축척 오차(화면 대비 시선 폭이 전체적으로 작게·크게 잡힌 것)가 상쇄된다 */
+  function ladderStats(p, frames, calOk = true) {
+    const P = PROTOCOL.pursuit, W = p.W, skip = P.skipMs;
+    const tgtOf = b => t => p.cx + p.amp * Math.sin(2 * Math.PI * b.freq * (t - b.t0) / 1000);
+    const lv = p.levels.map((b, i) => {
+      const s = N.Signal.cleanGaze(b.samples, { task: 'pursuit', W }).filter(z => z.t >= b.t0 + (i ? 400 : skip) && z.t <= b.t0 + b.dur);
+      const cov = N.Signal.timeCoverage(s, b.t0 + (i ? 400 : skip), b.t0 + b.dur);
+      if (s.length < 30) return { freq: b.freq, ok: false, coverage: round(cov, 2) };
+      const f = fitTrack(s, tgtOf(b), W);
+      return { freq: b.freq, ok: f.r >= 0.35, gain: round(f.gain, 2), r: round(f.r, 2), lagMs: f.lagMs, errPct: round(f.errPct, 1), coverage: round(cov, 2), s, tgt: tgtOf(b) };
+    });
+    const use = lv.filter(l => l.s);
+    const t0 = p.levels[0].t0, end = p.levels.at(-1).t0 + p.levels.at(-1).dur;
+    const tgtAll = t => { const b = p.levels.filter(x => t >= x.t0).at(-1) || p.levels[0]; return tgtOf(b)(t); };
+    const hf = headFollow(frames, tgtAll, t0, end);
+    const coverage = round(mean(lv.map(l => l.coverage || 0)), 2);
+    const out = { version: 2, levels: lv.map(({ s, tgt, ...l }) => l), headFollow: hf, coverage, ruleVersion: 'pursuit-ladder-1' };
+    const all = use.flatMap(l => l.s);
+    if (all.length < 60) return { ...out, ok: false, reason: '시선 표본이 부족해요' };
+    const f = fitTrack(all, tgtAll, W);
+    const first = lv[0], last = lv.at(-1);
+    out.speedKeep = first.ok && last.ok && first.gain > 0.2 ? round(last.gain / first.gain, 2) : null;
+    const step = Math.max(1, Math.floor(all.length / 240));
+    out.trace = all.filter((_, i) => i % step === 0).map(z => ({ t: round((z.t - t0) / 1000, 2), g: round((z.x - p.cx) / p.amp, 3), tg: round((tgtAll(z.t) - p.cx) / p.amp, 3) }));
+    let reason = null;
+    if (!calOk) reason = '시선 보정이 불안정해 추적 지표를 판정하지 않았어요';
+    else if (coverage < 0.5) reason = '얼굴·시선 인식 구간이 부족해요';
+    else if (f.r < 0.35) reason = `시선이 표적과 거의 함께 움직이지 않았어요 (r=${f.r.toFixed(2)})`;
+    return { ...out, ok: !reason, reason, gain: round(f.gain, 2), lagMs: f.lagMs, r: round(f.r, 2), errPct: round(f.errPct, 1) };
+  }
+  /* 원활 추적 2판 · 불규칙 방향 전환: 반전마다 [-pre, +post]ms 시선(보정 좌표, 안정화 전)에 '꺾인 두 직선'을 맞춰 꺾인 시각 − 반전 시각 = 반응 지연.
+   * 반전 전·후 기울기가 각각 표적 방향과 같고 표적 속도의 30% 이상일 때만(실제로 따라간 반전만) 쓴다. 대표값은 중앙값 */
+  function reversalStats(rv, W, calOk = true) {
+    if (!rv || !Array.isArray(rv.turns) || !rv.turns.length) return null;
+    const P = PROTOCOL.pursuit.rev, v = rv.speed;
+    const s = N.Signal.cleanGaze(rv.samples, { task: 'pursuit', W });
+    const ev = rv.turns.filter(u => u.kind === 'random').map(u => {
+      const w = s.filter(z => z.t > u.t - P.pre && z.t < u.t + P.post);
+      if (w.length < 10) return null;
+      let best = null;
+      for (let k = 0; k <= 500; k += 10) {
+        const tk = u.t + k, A = w.filter(z => z.t < tk), Bq = w.filter(z => z.t >= tk);
+        if (A.length < 3 || Bq.length < 3) continue;
+        const fit = q => { const mt = mean(q.map(z => z.t)), mx = mean(q.map(z => z.x)); let sxy = 0, sxx = 0; q.forEach(z => { sxy += (z.t - mt) * (z.x - mx); sxx += (z.t - mt) ** 2; }); const b = sxy / sxx; return { b, sse: q.reduce((a2, z) => a2 + (z.x - (mx + b * (z.t - mt))) ** 2, 0) }; };
+        const fa = fit(A), fb = fit(Bq), sse = fa.sse + fb.sse;
+        if (!best || sse < best.sse) best = { k, sse, ba: fa.b * 1000, bb: fb.b * 1000 };
+      }
+      if (!best) return null;
+      const followed = Math.sign(best.ba) === u.from && Math.sign(best.bb) === -u.from && Math.abs(best.ba) >= 0.3 * v && Math.abs(best.bb) >= 0.3 * v;
+      return followed ? best.k : null;
+    });
+    const lat = ev.filter(finite), n = rv.turns.filter(u => u.kind === 'random').length;
+    const res = { n, valid: lat.length, latencyMs: lat.length ? Math.round(median(lat)) : null, iqrMs: lat.length >= 4 ? [Math.round(quantile(lat, 0.25)), Math.round(quantile(lat, 0.75))] : null, ruleVersion: 'pursuit-reversal-1' };
+    const reason = !calOk ? '시선 보정이 불안정해 반응 지연을 판정하지 않았어요' : lat.length < 6 ? `따라간 방향 전환이 ${lat.length}회뿐이라 반응 지연을 판정하지 않았어요` : null;
+    return { ...res, ok: !reason, reason };
   }
   /* 원활 추적: 최적 지연(0~500ms)에서의 이득(기울기)과 이득 보정 후 잔차 SD */
   function pursuitStats(p, calOk = true) {
@@ -680,7 +770,7 @@
   /* ---------- 설명 가능성: 영역 점수 분해 + 판정 경계까지의 거리 ----------
    * 영역 점수 = Σ (가중치 × 신뢰도 × 지표 점수) / Σ (가중치 × 신뢰도) 이므로, 지표별 기여(점)를 그대로 나눠 보여 줄 수 있다 */
   function explainDomain(k, indicators) {
-    const m = indicators.filter(i => i.domain === k && i.value !== null && !i.excluded);
+    const m = indicators.filter(i => i.domain === k && i.value !== null && !i.excluded && !i.ref);
     const wsum = m.reduce((s, i) => s + (i.primary ? 2 : 1) * i.r, 0);
     if (!(wsum > 0)) return [];
     return m.map(i => {
@@ -776,7 +866,7 @@
   /* NL-QC 1·3) 신뢰도 가중 영역 점수 + 수렴 원칙.
    * list = 그 영역의 지표들 [{primary, value, score, status, r, borderline, excluded}] */
   function aggregateDomain(k, indicators) {
-    const list = indicators.filter(i => i.domain === k), m = list.filter(i => i.value !== null && !i.excluded);
+    const list = indicators.filter(i => i.domain === k && !i.ref), m = list.filter(i => i.value !== null && !i.excluded);
     const prim = list.filter(i => i.primary), mp = prim.filter(i => i.value !== null && !i.excluded);
     const wAll = list.reduce((s, i) => s + (i.primary ? 2 : 1), 0) || 1;
     const conf = round(m.reduce((s, i) => s + (i.primary ? 2 : 1) * i.r, 0) / wAll, 2);
@@ -809,7 +899,9 @@
       const overlap = (a, b) => hidden.reduce((s, h) => s + Math.max(0, Math.min(b, h.end) - Math.max(a, h.start)), 0);
       rec = { ...rec, frames: (rec.frames||[]).map(f=>hid(f.t)?{...f,ok:false,ppgOk:false,eyeOk:false,faceOk:false}:f), trials: keep(rec.trials), saccade: rec.saccade ? keep(rec.saccade) : rec.saccade, sart: rec.sart ? { ...rec.sart, trials: keep(rec.sart.trials) } : rec.sart };
       if (rec.pvt && rec.phases && rec.phases.pvt) rec.pvt = { ...rec.pvt, trials: keep(rec.pvt.trials), durationMs: Math.max(0, rec.pvt.durationMs - overlap(rec.phases.pvt.start, rec.phases.pvt.end)) };
-      if (rec.pursuit) rec.pursuit = { ...rec.pursuit, samples: rec.pursuit.samples.filter(z => !hid(z.t)), ...(rec.pursuit.circle ? { circle: { ...rec.pursuit.circle, samples: rec.pursuit.circle.samples.filter(z => !hid(z.t)) } } : {}) };
+      if (rec.pursuit) rec.pursuit = { ...rec.pursuit, samples: (rec.pursuit.samples || []).filter(z => !hid(z.t)),
+        ...(rec.pursuit.levels ? { levels: rec.pursuit.levels.map(b => ({ ...b, samples: b.samples.filter(z => !hid(z.t)) })) } : {}),
+        ...(rec.pursuit.reversal ? { reversal: { ...rec.pursuit.reversal, samples: rec.pursuit.reversal.samples.filter(z => !hid(z.t)) } } : {}), ...(rec.pursuit.circle ? { circle: { ...rec.pursuit.circle, samples: rec.pursuit.circle.samples.filter(z => !hid(z.t)) } } : {}) };
     }
     const base = N.analyze(rec);
     const ph = rec.phases || {};
@@ -821,12 +913,13 @@
     const eye = span('pvt') ? eyeStats(frames, ...span('pvt')) : null;
     const eyeBase = span('baseline') ? eyeStats(frames, ...span('baseline')) : null;
     const saccade = saccadeStats(rec.saccade, W, calOk, rec.saccadeCal || null);
-    const pursuit = pursuitStats(rec.pursuit ? { W, ...rec.pursuit } : null, calOk);
+    const pursuit = rec.pursuit && rec.pursuit.levels ? ladderStats({ W, ...rec.pursuit }, frames, calOk) : pursuitStats(rec.pursuit ? { W, ...rec.pursuit } : null, calOk);
+    const reversal = rec.pursuit && rec.pursuit.reversal ? reversalStats(rec.pursuit.reversal, W, calOk) : null;
     const circle = circleStats(rec.pursuit && rec.pursuit.circle, W, calOk);
     const sart = sartStats(rec.sart);
     const sartMotion = span('sart') ? N.motionIndex(face, ...span('sart')) : null;
 
-    const a = { pvt, eye, saccade, pursuit, circle, sart, sartMotion, gazeOk: base.quality.gazeOk, attentionBias: base.gaze.attentionBias, firstNeg: base.gaze.firstNeg, lateNeg: base.gaze.lateNeg, positivity: base.gaze.positivity,
+    const a = { pvt, eye, saccade, pursuit, reversal, circle, sart, sartMotion, gazeOk: base.quality.gazeOk, attentionBias: base.gaze.attentionBias, firstNeg: base.gaze.firstNeg, lateNeg: base.gaze.lateNeg, positivity: base.gaze.positivity,
       negDelta: base.negDelta, stressDelta: base.stressDelta, recovery: base.recovery, recoveryResid: base.recoveryResid, coupling: base.coupling ? base.coupling.ampBpm : null };
 
     /* NL-QC 1) 지표별 신뢰도 r · 2) 표준오차 */
@@ -857,16 +950,23 @@
     const REL = {
       pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,
       antiError: rOf.anti, sartCommission: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, sartCv: rOf.sart,   // 억제 실패는 거부 시행(3) 수로 신뢰도를 정한다: 빠른 모드 6회면 1회가 17%p sartOmission: () => sart ? clamp(sart.n / 54, 0, 1) : 0,
-      pursuitGain: rOf.pursuit, pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
+      /* 이득은 머리가 표적을 따라 돌수록(머리 동조 |r| 0.3→0.7) 신뢰도를 낮춘다 — 눈 대신 머리가 움직이면 시선 폭이 작게 잡힌다 */
+      pursuitGain: () => rOf.pursuit() * (pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
+      pursuitSpeed: rOf.pursuit, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,
       bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),
       stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로
       recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)
     };
+    const hrSe = q => q && finite(q.bpm) && finite(q.spreadBpm) ? Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, (q.effectiveSeconds || q.validSeconds || 10) / 10)) : null;
+    const hrDiffSe = (a1, b1) => { const x = hrSe(a1), y = hrSe(b1); return finite(x) && finite(y) ? Math.hypot(x, y) : null; };
     const binSe = (p, n) => { if (!(n > 0) || !finite(p)) return null; const q = (p * n + 2) / (n + 4); return Math.sqrt(q * (1 - q) / (n + 4)) * 100; };   // Agresti–Coull
     const SE = {
       pvtLapses: () => pvt ? Math.sqrt(Math.max(1, pvt.lapses)) * 3 / Math.max(0.5, pvt.durationMin) : null,
       antiError: () => saccade && saccade.ok ? binSe(saccade.anti.errorRate, saccade.anti.valid) : null,
       sartCommission: () => sart ? binSe(sart.commission, sart.nogo) : null,
+      /* 심박 차이 지표의 오차: 구간별 창 간 퍼짐(spreadBpm) ÷ √(독립 10초 창 수). 신뢰도가 낮아 판정에서 빠져도 값과 범위는 함께 남긴다 */
+      negHr: () => hrDiffSe(base.hr.neu, base.hr.neg), stressDelta: () => hrDiffSe(refHr, base.hr.stress), recoveryResid: () => hrDiffSe(refHr, base.hr.recoveryLate),
+      pursuitLatency: () => reversal && reversal.iqrMs ? (reversal.iqrMs[1] - reversal.iqrMs[0]) / 1.35 * 1.25 / Math.sqrt(reversal.valid) : null,   // 중앙값 표준오차 ≈ 1.25·σ/√n
       sartOmission: () => sart ? binSe(sart.omission, sart.go) : null,
       bias: () => negSt.length >= 3 ? std(negSt.map(x => x.emoShare)) / Math.sqrt(negSt.length) * 100 : null,
       lateNeg: () => { const v = negSt.map(x => x.lateShare).filter(finite); return v.length >= 3 ? std(v) / Math.sqrt(v.length) * 100 : null; },
@@ -881,7 +981,7 @@
       const cuts = ind.band.dir === 'mid' ? [ind.band.up.ok, ind.band.up.concern, ind.band.down.ok, ind.band.down.concern] : [ind.band.ok, ind.band.concern];
       const borderline = !!ci && cuts.some(cut => ci[0] < cut && cut < ci[1]);
       const excluded = has && r < QC.minR;
-      return { key: ind.key, domain: ind.domain, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
+      return { key: ind.key, domain: ind.domain, ref: !!ind.ref, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
         value: v, count: has && ind.count ? ind.count(a) : null, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded,
         next: has && !excluded ? nextBand(ind, v) : null };
     });
@@ -915,7 +1015,7 @@
     const capGrade = (g, lost) => (lost >= 2 ? (g < 'C' ? 'C' : g) : lost === 1 ? (g < 'B' ? 'B' : g) : g);
     const stepQ = (key, label, r, note) => ({ key, label, r: finite(r) ? round(r, 2) : null, note: note || null });
     const qc = {
-      version: QC.version, pulseEvidence: base.evidence?.phases || null, acquisition: rec.capture || null, signals: { captured: frames.length, face: face.length, eyes: frames.filter(f=>f.eyeOk??f.ok).length, skin: frames.filter(f=>f.ppgOk??f.ok).length, monocular: [...(rec.saccade||[]),...(rec.trials||[]),...(rec.pursuit?[rec.pursuit]:[])].flatMap(t=>t.samples||[]).filter(p=>p.mode==='left'||p.mode==='right').length }, confidence: overall, grade: capGrade(overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D', lostD.length), lostDomains: lostD,
+      version: QC.version, pulseEvidence: base.evidence?.phases || null, acquisition: rec.capture || null, signals: { captured: frames.length, face: face.length, eyes: frames.filter(f=>f.eyeOk??f.ok).length, skin: frames.filter(f=>f.ppgOk??f.ok).length, monocular: [...(rec.saccade||[]),...(rec.trials||[]),...(rec.pursuit?[rec.pursuit,...(rec.pursuit.levels||[]),...(rec.pursuit.reversal?[rec.pursuit.reversal]:[])]:[])].flatMap(t=>t.samples||[]).filter(p=>p.mode==='left'||p.mode==='right').length }, confidence: overall, grade: capGrade(overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D', lostD.length), lostDomains: lostD,
       steps: [
         stepQ('baseline', '안정 기준선 · 심박', hq(base.hr.baseline), base.hr.baseline.quality === 'poor' ? '심박 신호가 약해 기준선 비교가 제한돼요' : null),
         rec.pvt ? stepQ('pvt', 'PVT-B · PERCLOS', Math.min(rOf.pvt(), eye ? rOf.eye() : 1), pvt && pvt.invalid) : null,
@@ -981,7 +1081,7 @@
 
     return {
       ...base, phaseTimes: ph, stressScore: rec.stressScore || null, stimMode: rec.stimMode || 'schematic', stimForm: rec.stimForm || null, stimStatus: rec.stimStatus || null, mode: rec.mode || null, resized: !!rec.resized,
-      battery: { version: VERSION, qc, pvt, eye, eyeBase, saccade, pursuit, circle, sart, sartMotion, indicators, info, domains, integrated, care, phq, phqLinks: links, steps: rec.steps || {}, sim: rec.sim || null },
+      battery: { version: VERSION, qc, pvt, eye, eyeBase, saccade, pursuit, reversal, circle, sart, sartMotion, indicators, info, domains, integrated, care, phq, phqLinks: links, steps: rec.steps || {}, sim: rec.sim || null },
     };
   }
 
@@ -1021,12 +1121,30 @@
     seg('baseline', D.baseline * 1000);
     let pursuit = null;
     if (inc.oculo) {
-      seg('pursuit', D.pursuit * 1000);
-      const p = PROTOCOL.pursuit, t0 = ph.pursuit.start, dur = D.pursuit * 1000, amp = p.amp * W, samples = [];
-      for (let s = t0; s <= t0 + dur; s += 33) samples.push({ t: s, x: cx + P.pursuit.gain * amp * Math.sin(2 * Math.PI * p.freq * (s - P.pursuit.lag - t0) / 1000) + P.pursuit.noise * W * gauss() });
-      const pc = PROTOCOL.circle, c0 = t0 + dur + 800, cdur = (D.circle || 10) * 1000, rr = pc.r * W, cy = (opt.H || 900) / 2, cs = [];
-      for (let s = c0; s <= c0 + cdur; s += 33) { const ang = 2 * Math.PI * pc.freq * (s - P.pursuit.lag - c0) / 1000 - Math.PI / 2; cs.push({ t: s, x: cx + P.pursuit.gain * rr * Math.cos(ang) + P.pursuit.noise * 1.2 * W * gauss(), y: cy + P.pursuit.gain * 0.9 * rr * Math.sin(ang) + P.pursuit.noise * 1.6 * W * gauss() }); }
-      pursuit = { t0, cx, amp, freq: p.freq, dur, samples, circle: { t0: c0, cx, cy, r: rr, freq: pc.freq, dur: cdur, samples: cs } };
+      /* 원활 추적 2판: 속도 단계(빠를수록 이득이 조금씩 떨어짐) + 불규칙 방향 전환(반응 지연 = lag + 90ms) + 원형 */
+      /* 원활 추적 합성은 별도 난수열(rand2): 다른 과제 합성값의 난수 흐름을 1판과 같게 유지한다 */
+      let rs = 12345;
+      const rand2 = () => (rs = (rs * 16807) % 2147483647) / 2147483647, gauss2 = () => { let u = 0; for (let k = 0; k < 6; k++) u += rand2(); return u - 3; };
+      const p = PROTOCOL.pursuit, amp = p.ampL * W, t0 = t, levels = [];
+      let tc = t0;
+      p.levels.forEach((freq, i) => {
+        const dur = D.pursuit[i] / freq * 1000, g = P.pursuit.gain * (1 - 0.18 * i * (1 - P.pursuit.gain)), samples = [];
+        for (let s2 = tc; s2 <= tc + dur; s2 += 33) { const x = cx + g * amp * Math.sin(2 * Math.PI * freq * (s2 - P.pursuit.lag - tc) / 1000) + P.pursuit.noise * W * gauss2(); samples.push({ t: s2, x, rx: x }); }
+        levels.push({ freq, t0: tc, dur, samples }); tc += dur;
+      });
+      const v = p.rev.speed * W, turns = [], react = P.pursuit.lag + 90;
+      let x = cx, dir = 1, tx = tc, nextT = tc + p.rev.gapMin + rand2() * (p.rev.gapMax - p.rev.gapMin), gz = cx;
+      while (turns.length < D.reversals) {
+        tx += 10; x += dir * v * 0.01;
+        if (tx >= nextT || x > p.rev.hi * W || x < p.rev.lo * W) { turns.push({ t: tx, x, from: dir, kind: tx >= nextT ? 'random' : 'edge' }); dir = -dir; nextT = tx + p.rev.gapMin + rand2() * (p.rev.gapMax - p.rev.gapMin); }
+      }
+      const rEnd = tx + 800, tgtR = q => { let px = cx, pd = 1, pt = tc; for (const u of turns) { if (u.t > q) break; px = u.x; pd = -u.from; pt = u.t; } return px + pd * v * (q - pt) / 1000; };
+      const rsS = [];
+      for (let s2 = tc; s2 <= rEnd; s2 += 33) { gz += (tgtR(s2 - react) - gz) * Math.min(1, 33 / 60); const xx = gz + P.pursuit.noise * W * gauss2(); rsS.push({ t: s2, x: xx, rx: xx }); }
+      seg('pursuit', rEnd - t0); t = t0;
+      const pc = PROTOCOL.circle, c0 = rEnd + 800, cdur = (D.circle || 10) * 1000, rr = pc.r * W, cy = (opt.H || 900) / 2, cs = [];
+      for (let s2 = c0; s2 <= c0 + cdur; s2 += 33) { const ang = 2 * Math.PI * pc.freq * (s2 - P.pursuit.lag - c0) / 1000 - Math.PI / 2; cs.push({ t: s2, x: cx + P.pursuit.gain * rr * Math.cos(ang) + P.pursuit.noise * 1.2 * W * gauss(), y: cy + P.pursuit.gain * 0.9 * rr * Math.sin(ang) + P.pursuit.noise * 1.6 * W * gauss() }); }
+      pursuit = { version: 2, cx, amp, levels, reversal: { t0: tc, end: rEnd, speed: v, turns, samples: rsS }, circle: { t0: c0, cx, cy, r: rr, freq: pc.freq, dur: cdur, samples: cs } };
       ph.pursuit.end = c0 + cdur; t = ph.pursuit.end + 3000;
       ph.saccade = { start: t };
       const S = PROTOCOL.saccade;
@@ -1145,6 +1263,6 @@
 
   return {
     VERSION, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
-    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, mistStart, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartCount, sartSequence, sartStats, integrate, run, simulate,
+    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, mistStart, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, pursuitSec, ladderStats, reversalStats, sartCount, sartSequence, sartStats, integrate, run, simulate,
   };
 });
