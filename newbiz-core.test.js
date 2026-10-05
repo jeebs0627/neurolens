@@ -277,3 +277,20 @@ console.log('newbiz-core tests passed');
   assert.equal(N.pickCalibration([C('a', 5), C('b', 4)]).key, 'b', 'plain candidates: smallest error');
   console.log('PASS calibration pick: lookV only with a clear held-out gain');
 }
+
+/* 세션 심박 흐름 보정 (2026-10-05): 약한 구간의 튀는 값·빈 구간은 흐름으로 잇고, 충분히 측정된 구간은 그대로 둔다 */
+{
+  const wins = []; for (let t = 0; t <= 120000; t += 1000) if (t < 40000 || t > 56000) wins.push({ t, bpm: 85 + Math.sin(t / 20000), usable: true, confidence: 0.5 });
+  const tr = N.sessionTrend(wins), g = tr.phase(42000, 54000);
+  assert.ok(g && Math.abs(g.bpm - 85) < 2, `gap trend ${g && g.bpm}`);
+  const weak = N.repairPhase({ bpm: 55.2, n: 2, status: 'weak-signal', quality: 'poor' }, g);
+  assert.ok(weak.status === 'inferred' && weak.rawBpm === 55.2 && Math.abs(weak.bpm - 85) < 2 && weak.confidence <= 0.3, 'weak outlier repaired');
+  const none = N.repairPhase({ bpm: null, n: 0, status: 'unavailable', quality: 'none' }, g);
+  assert.ok(none.status === 'inferred' && none.rawBpm === null, 'missing phase inferred');
+  const solid = { bpm: 70, n: 15, status: 'measured', quality: 'good' };
+  assert.equal(N.repairPhase(solid, g), solid, 'well-measured phase kept even if it differs');
+  const agree = { bpm: 88, n: 2, status: 'weak-signal', quality: 'poor' };
+  assert.equal(N.repairPhase(agree, g), agree, 'weak phase that agrees with trend kept');
+  assert.equal(tr.phase(0, 0), null);
+  console.log('PASS session trend: weak outliers and missing phases inferred, solid phases kept');
+}

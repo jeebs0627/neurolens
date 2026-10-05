@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.2';   // 1.2 (2026-10-05): 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
+  const VERSION = 'In_mind battery 1.3';   // 1.3 (2026-10-05): 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -126,7 +126,7 @@
    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다
    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */
   /* minR: 이 신뢰도 아래만 판정에서 뺀다. 0.3 → 0.2로 낮춰, 약하지만 근거가 있는 지표는 버리지 않고 낮은 가중으로 반영한다(점수 기여 = 가중 × 신뢰도) */
-  const QC = { version: 'In_mind QC 1.9', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
+  const QC = { version: 'In_mind QC 2.0', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
     full:  { baseline: 60, pursuit: [2, 3, 4], reversals: 16, circle: 15, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },
@@ -931,8 +931,25 @@
     const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => (f.faceOk ?? f.ok) && f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };
     const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp(v / (k === 'saccade' ? 24 : 15), 0.25, 1); };
     const sartFrames = span('sart') ? N.Signal.timeCoverage(face,...span('sart')) : 0;
-    const hq = q => !q || q.bpm === null ? 0 : (q.confidence ?? QC.hrQ[q.quality] ?? 0) * (finite(q.effectiveSeconds) ? clamp(q.effectiveSeconds/12,.65,1) : 1) * (1-(q.recovered||0));
+    /* 구간 심박 신뢰도: 이전 식(창 신뢰도 × 유효 시간 × (1−보간))에 정밀도 기준을 더해 큰 쪽을 쓴다.
+     * 정밀도 = 1 − SE/5bpm, SE = 창 간 퍼짐 ÷ √(독립 10초 창 수) — 창 하나하나는 약해도 많은 창이 1~2bpm 안에서 일치하면 구간 평균은 정밀하다
+     * (2026-10-05 실측 NLR-4950…: 기준선 15창·퍼짐 1.6bpm, 압박 28창·1.4bpm 인데 이전 식으로는 0.31). 약한 신호는 절반, 창 3개 미만은 0.3 상한,
+     * 세션 흐름으로 이어 낸 값(inferred)은 그 신뢰도(≤0.3) 그대로, 구간 차이 지표에서 한쪽이 inferred 면 다시 절반(infF) */
+    const hqOld = q => (q.confidence ?? QC.hrQ[q.quality] ?? 0) * (finite(q.effectiveSeconds) ? clamp(q.effectiveSeconds/12,.65,1) : 1) * (1-(q.recovered||0));
+    const hq = q => {
+      if (!q || q.bpm === null) return 0;
+      if (q.status === 'inferred') return q.confidence || 0;
+      if (!finite(q.spreadBpm) || !finite(q.effectiveSeconds)) return hqOld(q);
+      const se = Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, q.effectiveSeconds / 10));
+      // 1초 간격으로 겹친 창들은 같은 자료라 오답도 함께 '일치'한다(합성 검증: 유효 13초·창 3~4개가 퍼짐 0.4~1.5bpm 인데 21~30bpm 틀림).
+      // 그래서 정밀도는 겹치지 않는 관측이 쌓일수록만 믿는다: 유효 8초 이하 0 → 25초 이상 1
+      let r = clamp(1 - se / 5, 0, 1) * clamp(((q.validSeconds || 0) - 8) / 17, 0, 1) * (1 - 0.5 * (q.recovered || 0));
+      if (q.status === 'weak-signal') r *= 0.5;
+      if ((q.n || 0) < 3) r = Math.min(r, 0.3);
+      return Math.max(hqOld(q), r);
+    };
     const refHr = base.hrRef === 'pre' ? base.hr.pre : base.hr.baseline;
+    const infF = (...qs) => qs.some(q => q && q.status === 'inferred') ? 0.5 : 1;
     /* NL-QC 8) 공명 호흡 순응: 카메라로 잰 호흡 리듬이 뚜렷한데 분당 6회(0.1Hz)에서 벗어나 있으면 호흡 동조 지표를 판정하지 않는다
      * (따라 하지 않은 사람의 ‘동조 약함’을 조절력 부족으로 오해하지 않기 위해) */
     const resp = base.resp, breathOff = !!(resp && resp.clear && Math.abs(resp.hz - 0.1) > 0.03);
@@ -953,9 +970,9 @@
       /* 이득은 머리가 표적을 따라 돌수록(머리 동조 |r| 0.3→0.7) 신뢰도를 낮춘다 — 눈 대신 머리가 움직이면 시선 폭이 작게 잡힌다 */
       pursuitGain: () => rOf.pursuit() * (pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
       pursuitSpeed: rOf.pursuit, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,
-      bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),
-      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로
-      recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)
+      bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)) * infF(base.hr.neu, base.hr.neg),
+      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로
+      recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)) * infF(refHr, base.hr.recoveryLate), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)
     };
     const hrSe = q => q && finite(q.bpm) && finite(q.spreadBpm) ? Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, (q.effectiveSeconds || q.validSeconds || 10) / 10)) : null;
     const hrDiffSe = (a1, b1) => { const x = hrSe(a1), y = hrSe(b1); return finite(x) && finite(y) ? Math.hypot(x, y) : null; };
@@ -990,6 +1007,9 @@
     DOMAIN_KEYS.forEach(k => { domains[k] = aggregateDomain(k, indicators); });
     if (domains.autonomic.status !== 'na') {
       if (base.hrRef === 'pre') domains.autonomic.notes.push(base.hr.pre.context === 'pre-task-rest' ? '압박 과제 직전 30초 안정 구간의 심박을 비교 기준으로 썼어요 (몇 분 전 기준선보다 바로 직전 상태가 더 정확한 비교라서)' : base.hr.pre.context === 'pre-task-instructions' ? '안정 기준선의 심박 신호가 약해, 압박 과제 직전 안내 구간을 비교 기준으로 썼어요' : '안정 기준선의 심박 신호가 약해, 압박 과제 직전 구간을 비교 기준으로 썼어요');
+      const PH = { baseline: '안정 기준선', neu: '정서 보기(중립)', neg: '정서 보기(부정)', pos: '정서 보기(긍정)', stress: '압박 과제', recovery: '회복 호흡', recoveryLate: '회복 후반' };
+      const inferred = Object.keys(PH).filter(k => base.hr[k] && base.hr[k].status === 'inferred');
+      if (inferred.length) domains.autonomic.notes.push(`${inferred.map(k => PH[k]).join(' · ')} 구간은 심박 신호가 약해, 앞뒤 구간의 심박 흐름으로 이어 추정했어요(신뢰도 낮게 반영)`);
       if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);
       else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);
       if (base.recovery !== null && base.hr.stressPeak !== null && refHr && refHr.bpm !== null && base.hr.stressPeak - refHr.bpm < 3) domains.autonomic.notes.push('압박 때 심박이 크게 오르지 않아, 회복률은 ‘호흡 후 심박이 평소 수준으로 돌아왔는지’로 계산했어요');

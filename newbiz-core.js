@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.7';   // 1.7 (2026-10-05): 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 1.8';   // 1.8 (2026-10-05): 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -258,6 +258,36 @@
     return Fusion.windows(sig,winSec,stepSec,opt);
   }
   function phaseHr(wins,start,end) { return Fusion.summarize(wins,start,end); }
+  /* 세션 심박 흐름: 기록 전체의 채택 창(usable)을 시간(가우스 σ 12초, ±25초)·창 신뢰도로 가중한 중앙값으로 잇는다.
+   * 심박은 수십 초 사이에 크게 바뀌지 않으므로, 근처에 채택 창이 4개 이상 있으면 그 시각의 심박을 이 흐름으로 추론할 수 있다 */
+  function sessionTrend(wins) {
+    const W = (wins || []).filter(w => w.usable && finite(w.bpm) && finite(w.t));
+    const at = t => {
+      const near = W.map(w => ({ bpm: w.bpm, k: (w.confidence ?? 0.5) * Math.exp(-(((w.t - t) / 1000) ** 2) / 288) })).filter((p, i) => Math.abs(W[i].t - t) <= 25000).sort((a, b) => a.bpm - b.bpm);
+      if (near.length < 4) return null;
+      const tot = near.reduce((s, p) => s + p.k, 0); let acc = 0, m = near[0].bpm;
+      for (const p of near) { acc += p.k; if (acc >= tot / 2) { m = p.bpm; break; } }
+      return { bpm: m, n: near.length };
+    };
+    const phase = (a, b) => {
+      if (!finite(a) || !finite(b) || b <= a) return null;
+      const pts = []; for (let t = a; t <= b; t += 2000) { const v = at(t); if (v) pts.push(v); }
+      return pts.length ? { bpm: median(pts.map(p => p.bpm)), n: Math.round(median(pts.map(p => p.n))) } : null;
+    };
+    return { at, phase, windows: W.length };
+  }
+  /* 튀는 구간·빠진 구간 보정: 구간 추정이 약하면(약한 신호·창 3개 미만·없음) 흐름과 8bpm 넘게 다를 때 흐름 값으로 바꾼다.
+   * 충분히 측정된 구간은 흐름과 달라도 그대로 둔다(실제 반응일 수 있음). 원래 값(rawBpm)·근거를 남기고 신뢰도는 0.3 이하
+   * (흐름은 이웃 구간 창도 섞어 만들므로, 이 값으로 구간 간 차이를 재면 차이가 0 쪽으로 줄어든다 — 차이 지표에서는 battery 가 한 번 더 낮춘다).
+   * 근거(2026-10-05 실측 NLR-4950…): 측정 내내 85bpm 안팎인데 창 2·4개뿐인 중립 55·긍정 106 구간이 그대로 쓰였다 */
+  function repairPhase(q, tr) {
+    if (!q || !tr) return q;
+    const weak = q.bpm === null || q.status === 'weak-signal' || q.status === 'unavailable' || (q.n || 0) < 3;
+    const off = q.bpm === null ? Infinity : Math.abs(q.bpm - tr.bpm);
+    if (!weak || off <= 8) return q;
+    return { ...q, bpm: tr.bpm, rawBpm: q.bpm, status: 'inferred', quality: 'fair', confidence: round(Math.min(0.3, 0.3 * tr.n / 8), 2),
+      correction: { kind: 'session-trend', rule: 'weak phase estimate >8 bpm from the ±25 s trend of accepted windows', raw: q.bpm === null ? null : round(q.bpm, 1), trend: round(tr.bpm, 1), support: tr.n } };
+  }
   function measureEvidence(frames,start,end) {
     const selected=frames.filter(f=>f.t>=start&&f.t<=end),sig=buildBvp(selected);
     return phaseHr(hrWindows(sig,10,1,{start,end,jumps:lumJumps(selected),motion:motionBursts(selected)}),start,end);
@@ -909,6 +939,9 @@
     /* 회복: 회복 구간 후반 절반 심박 */
     const [rs, re] = span('recovery');
     hr.recoveryLate = summarizePhase((rs + re) / 2, re);
+    /* 세션 흐름으로 튀는·빠진 구간 보정 */
+    const trend = sessionTrend(wins), spanOf = { baseline: span('baseline'), neu: span('neu'), neg: span('neg'), pos: span('pos'), stress: [se - ss > 20000 ? ss + 8000 : ss, se], recovery: [rs, re], recoveryLate: [(rs + re) / 2, re] };
+    Object.entries(spanOf).forEach(([k, [a, b]]) => { if (hr[k]) hr[k] = repairPhase(hr[k], trend.phase(a, b)); });
 
     /* 약한 신호(weak-signal)라도 창 3개 이상이 일관되면 비교에 쓴다 — 신뢰도(hq)가 낮게 매겨져 점수 가중이 작아진다 */
     const usableHr = q => q && q.bpm !== null && q.quality !== 'none' && (q.quality !== 'poor' || (q.status === 'weak-signal' && q.n >= 3));
@@ -1061,7 +1094,7 @@
   const api = {
     VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
-    buildBvp, hrWindows, phaseHr, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,
+    buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,
     faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };
