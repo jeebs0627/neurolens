@@ -3,6 +3,94 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "91ff073b4c788b7d17499fb299020540a1397018",
+      "parents": [
+        "60341cbc90858c4e6c6fa295c6cf1a0aecb16876"
+      ],
+      "committedAt": "2026-10-05T22:16:57+09:00",
+      "subject": "Core 1.8 / battery 1.3 / QC 2.0: session HR trend repairs weak or missing phases, precision-based pulse reliability",
+      "url": "https://github.com/jeebs0627/neurolens/commit/91ff073b4c788b7d17499fb299020540a1397018",
+      "files": [
+        {
+          "path": "newbiz-battery.js",
+          "status": "modified",
+          "additions": 26,
+          "deletions": 6
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 35,
+          "deletions": 2
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse",
+        "gaze",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/newbiz-battery.js b/newbiz-battery.js\nindex cef4d21..2451afc 100644\n--- a/newbiz-battery.js\n+++ b/newbiz-battery.js\n@@ -20,5 +20,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind battery 1.2';   // 1.2 (2026-10-05): 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n+  const VERSION = 'In_mind battery 1.3';   // 1.3 (2026-10-05): 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n   const finite = v => typeof v === 'number' && Number.isFinite(v);\n   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\n@@ -127,5 +127,5 @@\n    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */\n   /* minR: 이 신뢰도 아래만 판정에서 뺀다. 0.3 → 0.2로 낮춰, 약하지만 근거가 있는 지표는 버리지 않고 낮은 가중으로 반영한다(점수 기여 = 가중 × 신뢰도) */\n-  const QC = { version: 'In_mind QC 1.9', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n+  const QC = { version: 'In_mind QC 2.0', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n   const DUR = {\n     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */\n@@ -932,6 +932,23 @@\n     const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp(v / (k === 'saccade' ? 24 : 15), 0.25, 1); };\n     const sartFrames = span('sart') ? N.Signal.timeCoverage(face,...span('sart')) : 0;\n-    const hq = q => !q || q.bpm === null ? 0 : (q.confidence ?? QC.hrQ[q.quality] ?? 0) * (finite(q.effectiveSeconds) ? clamp(q.effectiveSeconds/12,.65,1) : 1) * (1-(q.recovered||0));\n+    /* 구간 심박 신뢰도: 이전 식(창 신뢰도 × 유효 시간 × (1−보간))에 정밀도 기준을 더해 큰 쪽을 쓴다.\n+     * 정밀도 = 1 − SE/5bpm, SE = 창 간 퍼짐 ÷ √(독립 10초 창 수) — 창 하나하나는 약해도 많은 창이 1~2bpm 안에서 일치하면 구간 평균은 정밀하다\n+     * (2026-10-05 실측 NLR-4950…: 기준선 15창·퍼짐 1.6bpm, 압박 28창·1.4bpm 인데 이전 식으로는 0.31). 약한 신호는 절반, 창 3개 미만은 0.3 상한,\n+     * 세션 흐름으로 이어 낸 값(inferred)은 그 신뢰도(≤0.3) 그대로, 구간 차이 지표에서 한쪽이 inferred 면 다시 절반(infF) */\n+    const hqOld = q => (q.confidence ?? QC.hrQ[q.quality] ?? 0) * (finite(q.effectiveSeconds) ? clamp(q.effectiveSeconds/12,.65,1) : 1) * (1-(q.recovered||0));\n+    const hq = q => {\n+      if (!q || q.bpm === null) return 0;\n+      if (q.status === 'inferred') return q.confidence || 0;\n+      if (!finite(q.spreadBpm) || !finite(q.effectiveSeconds)) return hqOld(q);\n+      const se = Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, q.effectiveSeconds / 10));\n+      // 1초 간격으로 겹친 창들은 같은 자료라 오답도 함께 '일치'한다(합성 검증: 유효 13초·창 3~4개가 퍼짐 0.4~1.5bpm 인데 21~30bpm 틀림).\n+      // 그래서 정밀도는 겹치지 않는 관측이 쌓일수록만 믿는다: 유효 8초 이하 0 → 25초 이상 1\n+      let r = clamp(1 - se / 5, 0, 1) * clamp(((q.validSeconds || 0) - 8) / 17, 0, 1) * (1 - 0.5 * (q.recovered || 0));\n+      if (q.status === 'weak-signal') r *= 0.5;\n+      if ((q.n || 0) < 3) r = Math.min(r, 0.3);\n+      return Math.max(hqOld(q), r);\n+    };\n     const refHr = base.hrRef === 'pre' ? base.hr.pre : base.hr.baseline;\n+    const infF = (...qs) => qs.some(q => q && q.status === 'inferred') ? 0.5 : 1;\n     /* NL-QC 8) 공명 호흡 순응: 카메라로 잰 호흡 리듬이 뚜렷한데 분당 6회(0.1Hz)에서 벗어나 있으면 호흡 동조 지표를 판정하지 않는다\n      * (따라 하지 않은 사람의 ‘동조 약함’을 조절력 부족으로 오해하지 않기 위해) */\n@@ -954,7 +971,7 @@\n       pursuitGain: () => rOf.pursuit() * (pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,\n       pursuitSpeed: rOf.pursuit, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,\n-      bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),\n-      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로\n-      recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)\n+      bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)) * infF(base.hr.neu, base.hr.neg),\n+      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로\n+      recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)) * infF(refHr, base.hr.recoveryLate), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)\n     };\n     const hrSe = q => q && finite(q.bpm) && finite(q.spreadBpm) ? Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, (q.effectiveSeconds || q.validSeconds || 10) / 10)) : null;\n@@ -991,4 +1008,7 @@\n     if (domains.autonomic.status !== 'na') {\n       if (base.hrRef === 'pre') domains.autonomic.notes.push(base.hr.pre.context === 'pre-task-rest' ? '압박 과제 직전 30초 안정 구간의 심박을 비교 기준으로 썼어요 (몇 분 전 기준선보다 바로 직전 상태가 더 정확한 비교라서)' : base.hr.pre.context === 'pre-task-instructions' ? '안정 기준선의 심박 신호가 약해, 압박 과제 직전 안내 구간을 비교 기준으로 썼어요' : '안정 기준선의 심박 신호가 약해, 압박 과제 직전 구간을 비교 기준으로 썼어요');\n+      const PH = { baseline: '안정 기준선', neu: '정서 보기(중립)', neg: '정서 보기(부정)', pos: '정서 보기(긍정)', stress: '압박 과제', recovery: '회복 호흡', recoveryLate: '회복 후반' };\n+      const inferred = Object.keys(PH).filter(k => base.hr[k] && base.hr[k].status === 'inferred');\n+      if (inferred.length) domains.autonomic.notes.push(`${inferred.map(k => PH[k]).join(' · ')} 구간은 심박 신호가 약해, 앞뒤 구간의 심박 흐름으로 이어 추정했어요(신뢰도 낮게 반영)`);\n       if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);\n       else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex d24a77b..69b8a85 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 1.7';   // 1.7 (2026-10-05): 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 1.8';   // 1.8 (2026-10-05): 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -259,4 +259,34 @@\n   }\n   function phaseHr(wins,start,end) { return Fusion.summarize(wins,start,end); }\n+  /* 세션 심박 흐름: 기록 전체의 채택 창(usable)을 시간(가우스 σ 12초, ±25초)·창 신뢰도로 가중한 중앙값으로 잇는다.\n+   * 심박은 수십 초 사이에 크게 바뀌지 않으므로, 근처에 채택 창이 4개 이상 있으면 그 시각의 심박을 이 흐름으로 추론할 수 있다 */\n+  function sessionTrend(wins) {\n+    const W = (wins || []).filter(w => w.usable && finite(w.bpm) && finite(w.t));\n+    const at = t => {\n+      const near = W.map(w => ({ bpm: w.bpm, k: (w.confidence ?? 0.5) * Math.exp(-(((w.t - t) / 1000) ** 2) / 288) })).filter((p, i) => Math.abs(W[i].t - t) <= 25000).sort((a, b) => a.bpm - b.bpm);\n+      if (near.length < 4) return null;\n+      const tot = near.reduce((s, p) => s + p.k, 0); let acc = 0, m = near[0].bpm;\n+      for (const p of near) { acc += p.k; if (acc >= tot / 2) { m = p.bpm; break; } }\n+      return { bpm: m, n: near.length };\n+    };\n+    const phase = (a, b) => {\n+      if (!finite(a) || !finite(b) || b <= a) return null;\n+      const pts = []; for (let t = a; t <= b; t += 2000) { const v = at(t); if (v) pts.push(v); }\n+      return pts.length ? { bpm: median(pts.map(p => p.bpm)), n: Math.round(median(pts.map(p => p.n))) } : null;\n+    };\n+    return { at, phase, windows: W.length };\n+  }\n+  /* 튀는 구간·빠진 구간 보정: 구간 추정이 약하면(약한 신호·창 3개 미만·없음) 흐름과 8bpm 넘게 다를 때 흐름 값으로 바꾼다.\n+   * 충분히 측정된 구간은 흐름과 달라도 그대로 둔다(실제 반응일 수 있음). 원래 값(rawBpm)·근거를 남기고 신뢰도는 0.3 이하\n+   * (흐름은 이웃 구간 창도 섞어 만들므로, 이 값으로 구간 간 차이를 재면 차이가 0 쪽으로 줄어든다 — 차이 지표에서는 battery 가 한 번 더 낮춘다).\n+   * 근거(2026-10-05 실측 NLR-4950…): 측정 내내 85bpm 안팎인데 창 2·4개뿐인 중립 55·긍정 106 구간이 그대로 쓰였다 */\n+  function repairPhase(q, tr) {\n+    if (!q || !tr) return q;\n+    const weak = q.bpm === null || q.status === 'weak-signal' || q.status === 'unavailable' || (q.n || 0) < 3;\n+    const off = q.bpm === null ? Infinity : Math.abs(q.bpm - tr.bpm);\n+    if (!weak || off <= 8) return q;\n+    return { ...q, bpm: tr.bpm, rawBpm: q.bpm, status: 'inferred', quality: 'fair', confidence: round(Math.min(0.3, 0.3 * tr.n / 8), 2),\n+      correction: { kind: 'session-trend', rule: 'weak phase estimate >8 bpm from the ±25 s trend of accepted windows', raw: q.bpm === null ? null : round(q.bpm, 1), trend: round(tr.bpm, 1), support: tr.n } };\n+  }\n   function measureEvidence(frames,start,end) {\n     const selected=frames.filter(f=>f.t>=start&&f.t<=end),sig=buildBvp(selected);\n@@ -910,4 +940,7 @@\n     const [rs, re] = span('recovery');\n     hr.recoveryLate = summarizePhase((rs + re) / 2, re);\n+    /* 세션 흐름으로 튀는·빠진 구간 보정 */\n+    const trend = sessionTrend(wins), spanOf = { baseline: span('baseline'), neu: span('neu'), neg: span('neg'), pos: span('pos'), stress: [se - ss > 20000 ? ss + 8000 : ss, se], recovery: [rs, re], recoveryLate: [(rs + re) / 2, re] };\n+    Object.entries(spanOf).forEach(([k, [a, b]]) => { if (hr[k]) hr[k] = repairPhase(hr[k], trend.phase(a, b)); });\n \n     /* 약한 신호(weak-signal)라도 창 3개 이상이 일관되면 비교에 쓴다 — 신뢰도(hq)가 낮게 매겨져 점수 가중이 작아진다 */\n@@ -1062,5 +1095,5 @@\n     VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,\n     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,\n-    buildBvp, hrWindows, phaseHr, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,\n+    buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,\n     faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,\n     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex a8c9a3a..8f7a2b4 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -278,2 +278,19 @@ console.log('newbiz-core tests passed');\n   console.log('PASS calibration pick: lookV only with a clear held-out gain');\n }\n+\n+/* 세션 심박 흐름 보정 (2026-10-05): 약한 구간의 튀는 값·빈 구간은 흐름으로 잇고, 충분히 측정된 구간은 그대로 둔다 */\n+{\n+  const wins = []; for (let t = 0; t <= 120000; t += 1000) if (t < 40000 || t > 56000) wins.push({ t, bpm: 85 + Math.sin(t / 20000), usable: true, confidence: 0.5 });\n+  const tr = N.sessionTrend(wins), g = tr.phase(42000, 54000);\n+  assert.ok(g && Math.abs(g.bpm - 85) < 2, `gap trend ${g && g.bpm}`);\n+  const weak = N.repairPhase({ bpm: 55.2, n: 2, status: 'weak-signal', quality: 'poor' }, g);\n+  assert.ok(weak.status === 'inferred' && weak.rawBpm === 55.2 && Math.abs(weak.bpm - 85) < 2 && weak.confidence <= 0.3, 'weak outlier repaired');\n+  const none = N.repairPhase({ bpm: null, n: 0, status: 'unavailable', quality: 'none' }, g);\n+  assert.ok(none.status === 'inferred' && none.rawBpm === null, 'missing phase inferred');\n+  const solid = { bpm: 70, n: 15, status: 'measured', quality: 'good' };\n+  assert.equal(N.repairPhase(solid, g), solid, 'well-measured phase kept even if it differs');\n+  const agree = { bpm: 88, n: 2, status: 'weak-signal', quality: 'poor' };\n+  assert.equal(N.repairPhase(agree, g), agree, 'weak phase that agrees with trend kept');\n+  assert.equal(tr.phase(0, 0), null);\n+  console.log('PASS session trend: weak outliers and missing phases inferred, solid phases kept');\n+}\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-91ff073b4c78-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-91ff073b4c78-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 91ff073b4c788b7d17499fb299020540a1397018\n변경 제목: Core 1.8 / battery 1.3 / QC 2.0: session HR trend repairs weak or missing phases, precision-based pulse reliability\n관련 파일: newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-91ff073b4c78-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-91ff073b4c78-gaze",
+          "domain": "gaze",
+          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-91ff073b4c78-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 91ff073b4c788b7d17499fb299020540a1397018\n변경 제목: Core 1.8 / battery 1.3 / QC 2.0: session HR trend repairs weak or missing phases, precision-based pulse reliability\n관련 파일: newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-91ff073b4c78-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-91ff073b4c78-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-91ff073b4c78-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 91ff073b4c788b7d17499fb299020540a1397018\n변경 제목: Core 1.8 / battery 1.3 / QC 2.0: session HR trend repairs weak or missing phases, precision-based pulse reliability\n관련 파일: newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-91ff073b4c78-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55603716110",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-05T13:17:03Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/H9MLAfN7LCkUCrNCqQYzC332DEJm",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-05T13:17:28.741619+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+    },
+    {
       "sha": "709fa134c891eb0f2cfe3315aaf595424e8146cc",
       "parents": [
         "b01826897f4236d8be0f6e2d049c3e3bc48b66a1"
@@ -10767,9 +10855,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "a51425580b7a126cb0817969942c2d46aad9df8c"
+    "sourceHead": "91ff073b4c788b7d17499fb299020540a1397018"
   },
-  "updatedAt": "2026-10-05T12:23:02.712550+00:00",
-  "aiCooldownUntil": "2026-10-05T12:27:30.575408+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-05T13:17:35.435521+00:00",
+  "aiCooldownUntil": "2026-10-05T14:17:34.650249+00:00",
+  "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
