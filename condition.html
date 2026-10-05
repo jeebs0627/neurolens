@@ -1426,12 +1426,14 @@ function cameraSize() {
   const portrait = MOBILE && cameraOrientation.matches;
   return { width: { ideal: portrait ? 480 : 640 }, height: { ideal: portrait ? 640 : 480 } };
 }
-cameraOrientation.addEventListener('change', () => {
+const resizeCamera = () => {
   const track = S.stream?.getVideoTracks()[0];
   if (!MOBILE || !track || $('sSetup').hidden) return;
   /* 준비 화면에서만 방향을 다시 요청한다. 실패하면 현재 스트림을 유지한다. */
   track.applyConstraints({ ...track.getConstraints(), ...cameraSize() }).catch(() => {});
-});
+};
+if (cameraOrientation.addEventListener) cameraOrientation.addEventListener('change', resizeCamera);
+else cameraOrientation.addListener(resizeCamera); // 구형 iOS Safari의 MediaQueryList
 
 async function loadLandmarker() {
   const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);
@@ -1445,14 +1447,23 @@ $('camStart').addEventListener('click', async () => {
   const st = $('setupStatus');
   st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';
   $('camStart').disabled = true; $('camStart').hidden = true;
+  let phase = 'camera';
   try {
-    S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop());
+    S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); S.stream = null;
     /* 세로로 든 휴대폰에 가로형(640×480)을 요청하면 브라우저가 세로 영상을 잘라 맞춘다(실측: 480×480) → 방향에 맞춰 요청 */
-    S.stream = await navigator.mediaDevices.getUserMedia({ video: { ...cameraSize(), frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false });
+    if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('HTTPS 주소에서 Chrome 또는 Safari로 열어 주세요. 이 환경에서는 카메라를 사용할 수 없어요'), { name: 'NoMediaDevices' });
+    try { S.stream = await navigator.mediaDevices.getUserMedia({ video: { ...cameraSize(), frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false }); }
+    catch (e) {
+      /* 권한 거부는 그대로 알린다. 그 밖은 해상도·프레임률 조건을 빼고 한 번 더 요청한다 */
+      if (e && e.name === 'NotAllowedError') throw e;
+      S.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    }
+    phase = 'video';
     procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;
     procVideo.classList.add('on');
     await Promise.all([procVideo.play(), prevVideo.play()]);
     fitPreview(); prevVideo.onresize = fitPreview;   // 휴대폰 회전 시 영상 비율이 바뀐다
+    phase = 'model';
     S.camera = new NLCamera(procVideo, {
       base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },
@@ -1468,7 +1479,8 @@ $('camStart').addEventListener('click', async () => {
   } catch (e) {
     S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); S.stream = null;
     st.className = 'status err';
-    st.textContent = e && e.name === 'NotAllowedError' ? '카메라 권한이 거부됐어요. 주소창의 카메라 아이콘에서 허용해 주세요.' : '카메라 또는 모델을 불러오지 못했어요: ' + (e && e.message || e);
+    st.textContent = (phase === 'camera' && e && e.name === 'NotAllowedError' ? '카메라 접근이 차단됐어요. 브라우저·기기의 카메라 권한과 HTTPS 주소를 확인해 주세요.' : phase === 'camera' && e && e.name === 'NotReadableError' ? '카메라를 시작하지 못했어요. 다른 앱·탭이 카메라를 쓰고 있다면 닫고 다시 켜 주세요.'
+      : phase === 'model' ? '얼굴 인식 모델을 불러오지 못했어요' : phase === 'video' ? '카메라 영상을 재생하지 못했어요' : '카메라를 켜지 못했어요') + ` (${e && e.name || 'Error'}: ${e && e.message || e})`;
     $('camStart').disabled = false; $('camStart').hidden = false; $('camStart').textContent = '카메라 다시 켜기';
   }
 });
