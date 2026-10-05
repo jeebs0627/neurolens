@@ -6,7 +6,7 @@
   let ledger={entries:[]},state={rows:[],allowed:false},hooks={},taskLimit=12,releaseLimit=15,loading=false;
   const date=v=>v?new Date(v).toLocaleString('ko-KR'):'미기록';
   function activate(view){
-    if(!['work','measurements','releases','validation'].includes(view))view='work';
+    if(!['work','measurements','releases','validation','lab'].includes(view))view='work';
     document.querySelectorAll('.workspace-pane').forEach(p=>p.hidden=p.id!=='pane-'+view);
     document.querySelectorAll('[data-view]').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   }

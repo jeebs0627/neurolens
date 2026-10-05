@@ -56,6 +56,7 @@
       screen: env.screen || null, dpr: env.dpr || null, camera: env.camera || null, fps,
       client: browserFamily(env.ua), tzOffsetMin: env.tz ?? null, localHour: rec.measuredAt ? new Date(rec.measuredAt).getHours() : null,
       stim: { mode: rec.stimMode || null, form: rec.stimForm || null }, measuredAt: rec.measuredAt || null,
+      protocol: rec.lab ? { kind: 'lab', steps: rec.lab } : { kind: 'full' },
     };
     const ck = { ...(rec.checkin || {}) };
     if (!consent.phq) delete ck.phq;

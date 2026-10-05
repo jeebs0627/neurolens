@@ -998,6 +998,15 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
     <div><em>04 · 바로</em><b>결과 리포트</b>점수 · 해설 · 케어 플랜</div>
   </div>
 
+  <!-- 연구 실측 모드 (?lab=단계,단계): 고른 단계만 측정해 연구 데이터로 누적 — dataset.html 의 '검사별 누적'과 연결 -->
+  <div class="card" id="labCard" hidden style="margin-top:22px;border:2px solid #6C4CE0">
+    <div class="kicker">Research Lab · 연구 실측 모드</div>
+    <h2 style="margin-bottom:4px">실측할 검사 단계를 고르세요</h2>
+    <p class="small muted" style="margin:6px 0 12px">고른 단계만 측정하고(체크인 생략) 결과를 연구 데이터로 누적합니다. 시선 과제(원활 추적·사카드·정서 보기)를 고르면 시선 보정이 먼저 들어갑니다. 아래 ‘연구 데이터 제공에 동의’가 켜져 있어야 저장돼요. 누적 결과는 <a href="dataset.html#lab">dataset · 검사별 누적</a>에서 봅니다.</p>
+    <div id="labSteps" style="display:flex;flex-wrap:wrap;gap:8px 18px"></div>
+    <div class="est" id="labEst"></div>
+    <div class="btns"><button class="btn" id="labGo" disabled>선택한 단계 실측 시작</button></div>
+  </div>
   <div class="card" id="setupCard" style="margin-top:22px">
     <div class="kicker">Before you start</div>
     <h2 style="margin-bottom:4px">시작하기 전에</h2>
@@ -1322,8 +1331,29 @@ loadStimuli().then(refreshIntro);
 $('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full', { seed: 7, all: true }); });
 $('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) { $('rsPhq').checked = false; referenceCollector.disconnect(); $('refStatus').textContent='연결 해제됨'; } });
-$('goCheckin').addEventListener('click', () => { S.demo = false; S.mode = modeVal(); show('sCheckin'); });
-$('goDemo').addEventListener('click', () => { S.demo = true; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
+$('goCheckin').addEventListener('click', () => { S.demo = false; S.lab = null; S.mode = modeVal(); show('sCheckin'); });
+/* ---------- 연구 실측 모드 ---------- */
+const LAB_LABEL = { calibration: '시선 보정만', baseline: '안정 기준선 (심박)', pursuit: '원활 추적', saccade: '사카드', freeview: '정서 보기', pvt: 'PVT 각성', sart: 'SART 지속 주의', stress: '압박 과제 (심박)', recovery: '회복 호흡 (심박)' };
+const LAB_Q = new URLSearchParams(location.search).get('lab');
+const labPicked = () => [...document.querySelectorAll('[data-lab]:checked')].map(cb => cb.dataset.lab);
+function labRefresh() {
+  const k = labPicked(), d = B.DUR[modeVal()], sec = k.reduce((s, x) => s + stepEstimateSec(x, d), 0) + (k.some(x => GAZE_STEPS.includes(x)) ? stepEstimateSec('calibration', d) : 0);
+  $('labEst').innerHTML = k.length ? `측정 약 <b>${Math.max(1, Math.round(sec / 60))}분</b> · ${k.some(x => GAZE_STEPS.includes(x)) ? '시선 보정 포함' : '시선 보정 없음'}` : '단계를 하나 이상 고르세요';
+  $('labGo').disabled = !k.length;
+}
+if (LAB_Q !== null) {
+  const pre = new Set(LAB_Q.split(','));
+  $('labCard').hidden = false;
+  $('labSteps').innerHTML = Object.entries(LAB_LABEL).map(([k, l]) => `<label><input type="checkbox" data-lab="${k}"${pre.has(k) ? ' checked' : ''}> ${esc(l)}</label>`).join('');
+  document.querySelectorAll('[data-lab], input[name=mode]').forEach(el => el.addEventListener('change', labRefresh));
+  labRefresh();
+  $('labGo').addEventListener('click', () => {
+    Object.assign(S, { demo: false, lab: labPicked(), mode: modeVal(), mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {} });
+    show('sSetup');
+    if (!S.stream && !$('camStart').disabled) $('camStart').click();
+  });
+}
+$('goDemo').addEventListener('click', () => { S.demo = true; S.lab = null; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
 $('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
 function openSimReport(persona, mode, opt = {}) {
   S.demo = true; S.mode = mode; S.persona = persona;
@@ -2009,6 +2039,12 @@ async function runSession() {
   if (m.alert) plan.push(['pvt', () => phasePvt(d)]);
   if (m.sustain) plan.push(['sart', () => phaseSart(d)]);
   if (m.core) plan.push(['stress', () => phaseStress(d.stress)], ['recovery', () => phaseRecovery(d.recovery)]);
+  /* 연구 실측: 고른 단계만 남긴다. 시선 과제가 있으면 시선 보정을 앞에 둔다 */
+  if (S.lab) {
+    const keep = new Set([...S.lab, ...(S.lab.some(k => GAZE_STEPS.includes(k)) ? ['calibration'] : [])]);
+    for (let i = plan.length - 1; i >= 0; i--) if (!keep.has(plan[i][0])) plan.splice(i, 1);
+    if (!keep.has('baseline')) S.steps.baseline = { status: 'off' };
+  }
   ['pursuit', 'saccade', 'freeview', 'pvt', 'sart', 'stress', 'recovery'].forEach(k => { if (!plan.some(p => p[0] === k)) S.steps[k] = { status: 'off' }; });
   S.plan = plan;
   plannedMs = plan.reduce((s, [k]) => s + stepEstimateSec(k, d), 0) * 1000;
@@ -2023,7 +2059,7 @@ async function runSession() {
       const [key, fn] = plan[i];
       S.stepIdx = i + 1; S.stepTotal = plan.length;
       if (GAZE_STEPS.includes(key) && !S.demo && !S.model) { S.steps[key] = { status: 'nogaze' }; renderStepper(); continue; }
-      if (key === 'baseline') S.recording = true;
+      if (key !== 'calibration') S.recording = true;   // 기록은 보정 뒤 첫 단계부터(전체 검사에서는 기준선, 연구 실측에서는 고른 첫 단계)
       await runStep(key, fn);
     }
     S.recording = false;
@@ -2887,7 +2923,7 @@ function liveRecord() {
     frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
     stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: gazeLostCalib(), checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
     stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null, measuredAt: new Date().toISOString(),
-    capture: S.camera ? { ...S.camera.info } : null, hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
+    capture: S.camera ? { ...S.camera.info } : null, lab: S.lab || null, hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
   };
 }
 /* 데모: 생리 신호는 시뮬레이션 피험자로, 직접 수행한 과제(마우스 시선·키보드 반응)는 실제 입력으로 채운다 */

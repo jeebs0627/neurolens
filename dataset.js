@@ -20,7 +20,7 @@
   });}
   function effectiveAudit(row){const ref=[...(row.annotations||[])].reverse().find(n=>n.kind==='reference')?.body?.comparison||row.reference_review;return row.audit?{...row.audit,reference:ref||row.audit.reference}:null;}
   function render(){
-    NLDatasetWorkspace.update({rows,allowed,source});
+    NLDatasetWorkspace.update({rows,allowed,source});window.NLDatasetLab?.update({rows,allowed});
     if(ledgerLoaded)NLDatasetWorkflow.ledger($('workflowLedger'),rows,r=>select(r).catch(e=>tell(e.message,true)));
     else $('workflowLedger').textContent='집계를 누르면 현재 불러온 검사들의 개선 이력을 조회합니다.';
     const visible=filtered(),audits=visible.map(effectiveAudit).filter(Boolean),c=D.cohort(audits);
