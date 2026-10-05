@@ -1785,7 +1785,48 @@ function task(label, ms) {
 }
 function taskSet(label, i, n) { $('taskbar').hidden = false; $('taskName').textContent = label; $('taskBar').style.width = (i / n * 100) + '%'; $('taskLeft').textContent = `${i} / ${n}`; }
 function taskHide() { $('taskbar').hidden = true; }
+/* 카메라 색·노출 고정 (rPPG 보강): 웹캠의 자동 화이트밸런스·자동 노출은 측정 중에도 계속 조정되며 피부색을 흔든다 — 맥파보다 큰 잡음원.
+ * 측정 화면으로 바뀐 뒤 밝기가 자리 잡으면(2.5초) 지원하는 카메라에서만 지금 값으로 고정한다(Media Capture Image: whiteBalanceMode·exposureMode).
+ * 고정 뒤 얼굴 밝기가 60 미만·225 초과로 3초 이상 벗어나면 자동으로 되돌리고, 적용·해제 기록은 capture.lock 에 남겨 실측 비교에 쓴다 */
+async function lockCamera() {
+  const track = S.stream && S.stream.getVideoTracks()[0];
+  if (!track || !track.getCapabilities) return { applied: false, reason: 'no-capabilities' };
+  const cap = track.getCapabilities(), set = track.getSettings(), adv = {};
+  if ((cap.whiteBalanceMode || []).includes('manual')) { adv.whiteBalanceMode = 'manual'; if (Number.isFinite(set.colorTemperature)) adv.colorTemperature = set.colorTemperature; }
+  if ((cap.exposureMode || []).includes('manual')) { adv.exposureMode = 'manual'; if (Number.isFinite(set.exposureTime)) adv.exposureTime = set.exposureTime; }
+  if (!Object.keys(adv).length) return { applied: false, reason: 'unsupported' };
+  try {
+    await track.applyConstraints({ advanced: [adv] });
+    const s2 = track.getSettings();
+    return { applied: true, at: now(), whiteBalance: s2.whiteBalanceMode || null, exposure: s2.exposureMode || null, colorTemperature: s2.colorTemperature ?? null, exposureTime: s2.exposureTime ?? null };
+  } catch (e) { return { applied: false, reason: String(e && e.message || e).slice(0, 120) }; }
+}
+async function unlockCamera(why) {
+  clearInterval(S.lockWatch); S.lockWatch = null;
+  const track = S.stream && S.stream.getVideoTracks()[0], L = S.camera && S.camera.info.lock;
+  if (!track || !L || !L.applied || L.released) return;
+  const adv = {};
+  if (L.whiteBalance === 'manual') adv.whiteBalanceMode = 'continuous';
+  if (L.exposure === 'manual') adv.exposureMode = 'continuous';
+  try { await track.applyConstraints({ advanced: [adv] }); } catch (_) {}
+  L.released = { at: now(), why };
+}
+function startCameraLock() {
+  if (S.demo || !S.stream) return;
+  setTimeout(async () => {
+    if (!S.camera || !stage.classList.contains('on')) return;
+    S.camera.info.lock = await lockCamera();
+    if (!S.camera.info.lock.applied) return;
+    let bad = 0;
+    S.lockWatch = setInterval(() => {
+      const t = now(), lum = N.median(S.buf.filter(f => f.ok && f.t > t - 2000 && Number.isFinite(f.lum)).map(f => f.lum));
+      bad = Number.isFinite(lum) && (lum < 60 || lum > 225) ? bad + 1 : 0;
+      if (bad >= 3) unlockCamera(`luminance ${Math.round(lum)}`);
+    }, 1000);
+  }, 2500);
+}
 function endStage() {
+  unlockCamera('session-end');
   clearInterval(S.datasetTimer);S.datasetTimer=null;S.endedAt=now();referenceCollector.stop();hideEnd();
   stage.classList.remove('on'); document.documentElement.classList.remove('staging'); clearInterval(hudTimer);
   S.recording = false; S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null;
@@ -1974,6 +2015,7 @@ async function runSession() {
   stage.classList.add('on'); document.documentElement.classList.add('staging');
   try { await document.documentElement.requestFullscreen(); } catch (_) {}
   startHud();
+  startCameraLock();
   try {
     await wait(500);
     S.screenW = stage.clientWidth;
@@ -2090,6 +2132,20 @@ async function cal9(W, H) {
   return samples;
 }
 /* 추적 보정: 리사주 경로(가로 0.12Hz · 세로 0.08Hz)로 천천히 움직이는 점. 시선은 표적보다 약 120ms 늦으므로 그만큼 앞선 표적 위치와 짝짓는다 */
+/* 움직이는 점: 경로를 미리 키프레임(60Hz 표본, 구간 사이 직선)으로 만들어 브라우저 컴포지터가 그리게 한다(Web Animations).
+ * 자바스크립트로 매 프레임 left/top 을 바꾸면 같은 스레드의 얼굴 인식(프레임당 15~40ms)에 밀려 점이 끊겨 보였다.
+ * 시작 시각을 t0(performance.now 기준)에 맞추므로, 분석에 쓰는 표적 위치 pos(t − t0)와 화면 위치가 같다.
+ * pts 를 주면(방향 전환처럼 꺾이는 경로) 그 점들만 이어 그린다. 끝나면 마지막 위치를 left/top 으로 남긴다 */
+function glide(dot, pos, t0, dur, pts = null) {
+  const keys = pts || Array.from({ length: Math.max(2, Math.ceil(dur / (1000 / 60)) + 1) }, (_, i) => { const t = Math.min(dur, i * 1000 / 60); return { t, ...pos(t) }; });
+  dot.style.transition = 'none'; dot.style.left = '0px'; dot.style.top = '0px';
+  const anim = dot.animate(keys.map(k => ({ transform: `translate3d(${k.x}px,${k.y}px,0)`, offset: Math.min(1, k.t / dur) })), { duration: dur, easing: 'linear', fill: 'forwards' });
+  anim.startTime = t0;
+  const end = keys.at(-1);
+  const settle = () => { dot.style.left = end.x + 'px'; dot.style.top = end.y + 'px'; anim.cancel(); };
+  S.cleanup.push(() => anim.cancel());
+  return settle;
+}
 async function calPursuit(W, H, sec = 12.5) {
   const out = [], LAG = 120;
   const pos = t => ({ x: W * (0.5 + 0.38 * Math.sin(2 * Math.PI * 0.12 * t / 1000)), y: H * (0.5 + 0.34 * Math.sin(2 * Math.PI * 0.08 * t / 1000 + Math.PI / 2)) });
@@ -2098,15 +2154,12 @@ async function calPursuit(W, H, sec = 12.5) {
   let p0 = pos(0); dot.style.left = p0.x + 'px'; dot.style.top = p0.y + 'px';
   await wait(900);
   const t0 = await nextFrame();
-  let raf = 0;
-  const anim = ts => { const q = pos(ts - t0); dot.style.left = q.x + 'px'; dot.style.top = q.y + 'px'; raf = requestAnimationFrame(anim); };
-  raf = requestAnimationFrame(anim);
-  S.cleanup.push(() => cancelAnimationFrame(raf));
+  const settle = glide(dot, pos, t0, sec * 1000);
   S.onFeature = featSampler(t0, 1000, sec * 1000, t => pos(t - t0 - LAG), out, 0.5);
   if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, path: 'x=W*(0.5+0.38*sin(2pi*0.12*t)), y=H*(0.5+0.34*sin(2pi*0.08*t+pi/2)), t in s from t0' };
   const stopT = task('추적 보정', sec * 1000);
   await wait(sec * 1000);
-  stopT(); cancelAnimationFrame(raf); S.onFeature = null;
+  stopT(); settle(); S.onFeature = null;
   return out;
 }
 /* 검증점에서 특징만 모아 두면, 후보 모델들을 같은 자료로 비교할 수 있다 */
@@ -2371,8 +2424,6 @@ async function phasePursuit(d) {
   await wait(700);
   mark('pursuit', 'start');
   S.pursuit = { version: 2, cx, amp, levels: [], reversal: null, samples: [] };
-  let raf = 0;
-  S.cleanup.push(() => cancelAnimationFrame(raf));
   const track = tr => { S.curTrial = tr; return S.demo ? every(33, () => tr.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y })) : () => {}; };
   /* 1부 · 속도 단계: 같은 폭으로 점점 빠르게. 단계마다 정수 주기라 가운데에서 끊김 없이 다음 단계로 이어진다 */
   for (let i = 0; i < P.levels.length; i++) {
@@ -2381,37 +2432,32 @@ async function phasePursuit(d) {
     const t0 = await nextFrame();
     S.pursuit.levels.push({ freq, t0, dur, samples: tr.samples });
     const demoStop = track(tr);
-    const anim = ts => { dot.style.left = (cx + amp * Math.sin(2 * Math.PI * freq * (ts - t0) / 1000)) + 'px'; raf = requestAnimationFrame(anim); };
-    raf = requestAnimationFrame(anim);
+    const settle = glide(dot, t => ({ x: cx + amp * Math.sin(2 * Math.PI * freq * t / 1000), y: H / 2 }), t0, dur);
     const stop = task(`원활 추적 · 속도 ${i + 1}단계`, dur);
     await wait(dur);
-    stop(); demoStop(); cancelAnimationFrame(raf);
+    stop(); demoStop(); settle();
   }
-  /* 2부 · 불규칙 방향 전환: 등속으로 움직이다 예고 없이 반전. 반전 시각·위치를 실제 그린 프레임 시각으로 기록한다 */
+  /* 2부 · 불규칙 방향 전환: 등속으로 움직이다 예고 없이 반전. 반전 일정(시각·위치)을 미리 정해 그대로 그리므로 기록된 반전 시각이 정확하다 */
   {
     const R = P.rev, v = R.speed * W, tr = { samples: [] }, turns = [];
     cue.innerHTML = '2부 · 점이 <b>예고 없이 방향을 바꿔요</b> · 눈으로만 바로 따라가세요';
     const gap = () => R.gapMin + Math.random() * (R.gapMax - R.gapMin);
-    let x = cx, dir = Math.random() < 0.5 ? -1 : 1, last = await nextFrame(), next = last + gap();
-    const t0 = last;
-    S.pursuit.reversal = { t0, end: null, speed: v, x0: cx, dir0: dir, turns, samples: tr.samples };
+    const dir0 = Math.random() < 0.5 ? -1 : 1, pts = [{ t: 0, x: cx }];
+    let x = cx, dir = dir0, t = 0;
+    while (turns.filter(u => u.kind === 'random').length < d.reversals) {
+      const g = gap(), wall = (dir > 0 ? R.hi * W - x : x - R.lo * W) / v * 1000, edge = wall < g, dt = Math.max(0, Math.min(g, wall));
+      t += dt; x += dir * v * dt / 1000;
+      turns.push({ t, x, from: dir, kind: edge ? 'edge' : 'random' }); pts.push({ t, x }); dir = -dir;
+    }
+    const dur = t + R.post + 100; pts.push({ t: dur, x: x + dir * v * (dur - t) / 1000 });
+    const t0 = await nextFrame();
+    turns.forEach(u => { u.t += t0; });
+    S.pursuit.reversal = { t0, end: t0 + dur, speed: v, x0: cx, dir0, turns, samples: tr.samples };
     const demoStop = track(tr);
-    await new Promise((res, rej) => {
-      const w = { rej, cleanup: () => cancelAnimationFrame(raf) };
-      waiters.add(w);
-      const anim = ts => {
-        x += dir * v * Math.min(50, ts - last) / 1000; last = ts;
-        const edge = x > R.hi * W || x < R.lo * W;
-        if (ts >= next || edge) { x = Math.max(R.lo * W, Math.min(R.hi * W, x)); turns.push({ t: ts, x, from: dir, kind: edge && ts < next ? 'edge' : 'random' }); dir = -dir; next = ts + gap(); }
-        dot.style.left = x + 'px';
-        if (turns.filter(u => u.kind === 'random').length >= d.reversals && ts - turns.at(-1).t > R.post) { waiters.delete(w); res(); return; }
-        raf = requestAnimationFrame(anim);
-      };
-      raf = requestAnimationFrame(anim);
-    });
-    S.pursuit.reversal.end = now(); demoStop();
+    const settle = glide(dot, null, t0, dur, pts.map(q => ({ ...q, y: H / 2 })));
+    await wait(dur);
+    demoStop(); settle();
   }
-  cancelAnimationFrame(raf);
   /* 3부 · 원형 추적 (Maruta et al., 2010): 좌우만이 아니라 위아래까지 함께 따라가며 예측적 시선 동기화를 본다 */
   const C = B.PROTOCOL.circle, cdur = (B.DUR[S.mode].circle || 10) * 1000, r = C.r * W, cy = H / 2;
   dot.style.transition = 'left .6s ease, top .6s ease';
@@ -2423,12 +2469,10 @@ async function phasePursuit(d) {
   S.pursuit.circle = { t0: c0, cx, cy, r, freq: C.freq, dur: cdur, samples: tr2.samples };
   S.curTrial = tr2;
   if (S.demo) every(33, () => tr2.samples.push({ t: now(), x: S.mouse.x, y: S.mouse.y }));
-  const anim2 = ts => { const a = 2 * Math.PI * C.freq * (ts - c0) / 1000 - Math.PI / 2; dot.style.left = (cx + r * Math.cos(a)) + 'px'; dot.style.top = (cy + r * Math.sin(a)) + 'px'; raf = requestAnimationFrame(anim2); };
-  raf = requestAnimationFrame(anim2);
+  const settle2 = glide(dot, t => { const a = 2 * Math.PI * C.freq * t / 1000 - Math.PI / 2; return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }; }, c0, cdur);
   const stop2 = task('원활 추적 · 원형', cdur);
   await wait(cdur);
-  stop2();
-  cancelAnimationFrame(raf);
+  stop2(); settle2();
   S.curTrial = null;
   mark('pursuit', 'end');
 }

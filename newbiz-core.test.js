@@ -225,3 +225,22 @@ console.log('newbiz-core tests passed');
   assert.equal(N.motionBursts(N.synthFrames(0, 30000, () => 70, { noise: 0.5, seed: 3 })).length, 0, 'still face has no bursts');
   console.log('PASS pulse: short frame gaps bridged, head-motion bursts blanked');
 }
+
+/* 시선 커서 응시 고정 (2026-10-05): 같은 잡음에서 떨림은 절반 이하, 다른 곳으로 옮기면 0.15초 안에 따라간다 */
+{
+  let sd = 5; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, ga = () => { let u = 0; for (let i = 0; i < 6; i++) u += rnd(); return u - 3; };
+  const W = 1440, H = 900, run = opt => {
+    const gc = N.gazeCursor({ W, H, ...opt }), jit = [], reach = [];
+    [[300, 250], [1100, 300], [1150, 700], [400, 650]].forEach(([x, y], k) => {
+      const out = []; let hit = null;
+      for (let t = k * 1500; t < k * 1500 + 1500; t += 33) { const o = gc.step({ x: x + 0.03 * W * ga(), y: y + 0.03 * W * ga() }, t, null); out.push({ t, o }); if (hit === null && Math.hypot(o.x - x, o.y - y) < 0.04 * W) hit = t - k * 1500; }
+      const st = out.filter(p => p.t >= k * 1500 + 400), mx = N.mean(st.map(p => p.o.x)), my = N.mean(st.map(p => p.o.y));
+      jit.push(Math.sqrt(N.mean(st.map(p => (p.o.x - mx) ** 2 + (p.o.y - my) ** 2)))); if (k) reach.push(hit ?? 1500);
+    });
+    return { jit: N.mean(jit), reach: N.mean(reach) };
+  };
+  const a = run({ lock: false }), b = run({});
+  assert.ok(b.jit < a.jit * 0.5, `jitter ${b.jit.toFixed(1)} vs ${a.jit.toFixed(1)}`);
+  assert.ok(b.reach <= 150, `reach ${b.reach}`);
+  console.log('PASS gaze cursor fixation lock: jitter halved, responsive to new fixations');
+}

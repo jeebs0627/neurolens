@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 1.4';   // 1.4 (2026-10-05): 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 1.5';   // 1.5 (2026-10-05): 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -573,7 +573,7 @@
     const minCut = opt.minCutoff ?? 0.9, beta = opt.beta ?? 0.006, dCut = opt.dCutoff ?? 1;
     let xPrev = null, dxPrev = 0, tPrev = null;
     const alpha = (cut, dt) => { const r = 2 * Math.PI * cut * dt; return r / (r + 1); };
-    return (x, tMs) => {
+    const f = (x, tMs) => {
       if (xPrev === null || !finite(tPrev)) { xPrev = x; tPrev = tMs; return x; }
       const dt = Math.max(0.001, (tMs - tPrev) / 1000);
       tPrev = tMs;
@@ -583,6 +583,8 @@
       xPrev = a * x + (1 - a) * xPrev;
       return xPrev;
     };
+    f.reset = x => { xPrev = x; dxPrev = 0; };   // 새 응시로 옮길 때 지연 없이 그 위치에서 다시 시작
+    return f;
   }
 
   /* 시선 커서 (보조 포함): 원시 시선 → ① 학습된 치우침 보정 → ② 강한 One Euro 평활 → ③ 최대 속도 제한
@@ -596,6 +598,11 @@
     const fx = oneEuro({ minCutoff: opt.minCutoff ?? 0.35, beta: opt.beta ?? 0.0015 }), fy = oneEuro({ minCutoff: opt.minCutoff ?? 0.35, beta: opt.beta ?? 0.0015 });
     const bias = { x: 0, y: 0, n: 0 }, maxB = { x: W * 0.08, y: H * 0.08 };
     let pos = null, last = null, lastT = null;
+    /* 응시 고정(opt.lock, 기본 켬): 시선이 반경 R 안에 머무는 동안은 그 응시의 누적 평균(최대 30표본 ≈ 1초)을 보여 준다 —
+     * 웹캠 시선의 프레임별 떨림은 평균으로 √n 만큼 줄고, 한 프레임짜리 튐은 무시된다. 반경 밖 표본이 2개 연속이면 새 응시로 바로 옮긴다.
+     * R = 응시 중 평균 이탈 거리 × 2.5 (화면 폭 2.5~8%) — 사람·조명마다 다른 잡음에 맞춘다. 화면 표시 전용(분석 자료는 그대로) */
+    const lock = opt.lock !== false;
+    let fix = null, outside = [];
     return {
       bias,
       step(raw, t, target) {
@@ -606,6 +613,22 @@
         if (last) { const d = Math.hypot(x - last.x, y - last.y), lim = vmax * dt; if (d > lim) { x = last.x + (x - last.x) * lim / d; y = last.y + (y - last.y) * lim / d; } }
         last = { x, y }; lastT = t;
         let out = { x, y }, near = false;
+        if (lock) {
+          const R = clamp(2.5 * (fix ? fix.dev : W * 0.015), W * 0.025, W * 0.08);
+          const d = fix ? Math.hypot(cx - fix.x, cy - fix.y) : Infinity;
+          if (fix && d <= R) {
+            outside = []; fix.n = Math.min(30, fix.n + 1);
+            fix.x += (cx - fix.x) / fix.n; fix.y += (cy - fix.y) / fix.n; fix.dev += 0.1 * (d - fix.dev);
+          } else {
+            outside.push({ x: cx, y: cy });
+            if (!fix || outside.length >= 2) {
+              const mx = mean(outside.map(q => q.x)), my = mean(outside.map(q => q.y));
+              fix = { x: mx, y: my, n: outside.length, dev: fix ? fix.dev : W * 0.015 }; outside = [];
+              fx.reset?.(mx); fy.reset?.(my); last = { x: mx, y: my };
+            }
+          }
+          if (fix && !outside.length) out = { x: fix.x, y: fix.y };
+        }
         if (target) {
           const d = Math.hypot(x - target.x, y - target.y);
           if (d < Ra) {

@@ -6,7 +6,7 @@
     constructor(video,opt){
       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;
       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});
-      this.info={version:'condition-camera-4',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
+      this.info={version:'condition-camera-5',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
     }
     async init(){
       /* 기본은 주 스레드 GPU 추론(동영상 프레임마다 직접 추론). 워커 경로는 기기에 따라 초당 7회 수준까지 떨어져
@@ -106,7 +106,9 @@
         // 주 스레드: 카메라 프레임마다 추론(최대 약 33Hz). 밝기가 충분하면 영상 요소를 그대로 넣어 복사 비용을 없앤다
         /* 얼굴 추론(약 40~60ms)은 프레임마다 돌리면 카메라 콜백 자체가 밀려 피부색 표본까지 초당 16장으로 줄어든다(실측 세션 e5db61d8).
          * 그래서 피부색(심박·호흡) 표본은 매 프레임 그대로 받고, 추론은 직전 추론 시간의 1.2배 이상 간격을 두고 돌린다 */
-        const gap=Math.min(110,Math.max(40,(this.inferMs||35)*1.2));   // 상한 110ms: 느린 기기에서도 시선 표본 초당 9회 이상
+        // 하한 25ms: 추론이 빠른 기기(≈16ms)는 30fps 카메라의 모든 프레임을 추론한다. 하한 40ms 에서는 프레임 간격 32ms 일 때
+        // 한 장씩 건너뛰어 시선 표본이 초당 15회로 반토막 났다(2026-10-05 실측 NLR-15ED…: 추론 16ms, 건너뜀 33%)
+        const gap=Math.min(110,Math.max(25,(this.inferMs||35)*1.2));   // 상한 110ms: 느린 기기에서도 시선 표본 초당 9회 이상
         if(t-(this.lastInfer||0)<gap){this.info.skipped++;return;}this.lastInfer=t;
         const i0=performance.now();
         try{
