@@ -3,6 +3,112 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "709fa134c891eb0f2cfe3315aaf595424e8146cc",
+      "parents": [
+        "b01826897f4236d8be0f6e2d049c3e3bc48b66a1"
+      ],
+      "committedAt": "2026-10-05T21:21:48+09:00",
+      "subject": "Core 1.7: vertical gaze score as a calibration candidate, adopted only with a clear held-out gain",
+      "url": "https://github.com/jeebs0627/neurolens/commit/709fa134c891eb0f2cfe3315aaf595424e8146cc",
+      "files": [
+        {
+          "path": "condition-dataset.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 4
+        },
+        {
+          "path": "dataset-lab.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 2
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "newbiz-research.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "domains": [
+        "pulse",
+        "measurement",
+        "research"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition-dataset.js b/condition-dataset.js\nindex 69a516f..2152725 100644\n--- a/condition-dataset.js\n+++ b/condition-dataset.js\n@@ -57,5 +57,5 @@\n       measuredAt:rec.measuredAt||null,protocol:rec.lab?{kind:'lab',steps:rec.lab}:{kind:'full'},durationSec:round(Math.max(0,end-t0)/1000),versions:{core:res?.version||null,battery:b?.version||null,fusion:res?.evidence?.version||null},\n       acquisition:acquisition(visible),timing:{onsetDelayMs:stats(events.map(e=>e.onset-e.requested)),inputDispatchMs:stats((rec.telemetry?.inputs||[]).map(e=>e.dispatchMs)),stimuli:events.length,physicalDisplayLatency:'unmeasured'},\n-      gaze:{calibration:rec.calibration?{grade:rec.calibration.grade,errPct:rec.calibration.errPct,samples:rec.calibration.samples,shadow:rec.calibration.fine?.shadow||null}:null,evaluation:rec.calibLog?.evaluation||null,drift:(rec.telemetry?.drift||[]).map(d=>({...d,t:d.t-t0})),validation:'model-selection-or-internal; not independent ground truth'},\n+      gaze:{calibration:rec.calibration?{grade:rec.calibration.grade,errPct:rec.calibration.errPct,samples:rec.calibration.samples,shadow:rec.calibration.fine?.shadow||null,shadow2:rec.calibration.fine?.shadow2||null,lookV:!!rec.calibration.fine?.lookV}:null,evaluation:rec.calibLog?.evaluation||null,drift:(rec.telemetry?.drift||[]).map(d=>({...d,t:d.t-t0})),validation:'model-selection-or-internal; not independent ground truth'},\n       tests,interpretation:{status:'not-externally-validated',domains:b?Object.fromEntries(Object.entries(b.domains).map(([k,d])=>[k,{score:d.score,status:d.status,confidence:d.confidence}])):{}},\n       hiddenSeconds:round(hidden.reduce((s,h)=>s+Math.max(0,(h.end??end)-h.start),0)/1000),reference:null};\ndiff --git a/condition.html b/condition.html\nindex 8cf3d82..8a6fb6f 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -1536,5 +1536,8 @@ function processResult(fr, packet, context) {\n   const bs = blendMap(res);\n   /* 세로 시선 점수(기록·그림자 비교용): MediaPipe 눈 블렌드셰이프 위로 보기 − 아래로 보기, 두 눈 평균(−1~1). 측정 모델에는 아직 쓰지 않는다 */\n-  if ('eyeLookUpLeft' in bs) f.lookV = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0) - (bs.eyeLookDownLeft || 0) - (bs.eyeLookDownRight || 0)) / 2;\n+  if ('eyeLookUpLeft' in bs) {\n+    f.lookUp = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0)) / 2; f.lookDown = ((bs.eyeLookDownLeft || 0) + (bs.eyeLookDownRight || 0)) / 2;\n+    f.lookV = f.lookUp - f.lookDown;   // 위·아래 점수는 따로 두면 화면 끝 포화를 모델이 나눠 맞출 수 있는지 그림자 비교(shadow2)로 본다\n+  }\n   f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));\n   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));\n@@ -2353,4 +2356,7 @@ async function calibrate() {\n         const cand = [{ key: '기존 보정', model: S.model, A: S.affine, R: null }];\n         if (m2) cand.push({ key: '전체 표본 재학습', model: m2, A: N.fitAffine([...val, ...zc].map(p => predAt(m2, null, p))), R: null });\n+        /* 세로 시선 점수(lookV)를 특징에 더한 후보: 처음 보는 정밀 보정 점에서 기존 최선보다 확실히 좋을 때만 쓴다(N.pickCalibration) */\n+        const m3 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookV'] });\n+        if (m3 && m3.keys.includes('lookV')) { N.validateGazeEyes(m3, val, W, H); cand.push({ key: '전체 표본 재학습 · 세로 점수', model: m3, A: N.fitAffine([...val, ...zc].map(p => predAt(m3, null, p))), R: null, extra: ['lookV'] }); }\n         cand.slice().forEach(c0 => {\n           const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);\n@@ -2360,5 +2366,5 @@ async function calibrate() {\n         const ok = cand.filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);\n         if (ok.length) {\n-          const b0 = ok[0];\n+          const b0 = N.pickCalibration(ok);\n           S.model = b0.model; S.affine = b0.A; S.resid = b0.R;\n           /* 고른 방식으로, 정밀 보정 점까지 모두 넣어 최종 보정을 다시 맞춘다(평가가 끝난 뒤 학습 자료를 늘리는 표준 절차).\n@@ -2366,5 +2372,5 @@ async function calibrate() {\n           {\n             const pts = [...val, ...zc, ...fp];\n-            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)]) || b0.model) : b0.model;\n+            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)], 0.5, { extra: b0.extra || [] }) || b0.model) : b0.model;\n             if (mF !== b0.model) N.validateGazeEyes(mF, val, W, H);\n             const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;\n@@ -2373,8 +2379,9 @@ async function calibrate() {\n             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }\n           }\n-          fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };\n+          fine = { chosen: b0.key, lookV: !!b0.extra, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };\n           /* 그림자 평가: 세로 시선 점수(lookV)를 특징에 더하면 처음 보는 정밀 보정 점의 오차가 줄어드는지 — 결과만 기록하고 측정 모델은 그대로 */\n           try { fine.shadow = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookV'] }); }\n           catch (e) { fine.shadow = { extra: ['lookV'], error: String(e && e.message || e).slice(0, 120) }; }\n+          try { fine.shadow2 = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookUp', 'lookDown'] }); } catch (_) {}\n           acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };\n           /* 적응형 안정화: 정밀 보정 점을 바라보는 동안의 시선 흔들림(점별 MAD 중앙값)으로 화면 시선 평활 강도를 정한다 */\ndiff --git a/dataset-lab.js b/dataset-lab.js\nindex 538b9c5..4b23367 100644\n--- a/dataset-lab.js\n+++ b/dataset-lab.js\n@@ -20,4 +20,6 @@\n       out['보정 오차 %'] = c?.errPct;\n       /* 그림자 비교: 세로 시선 점수(lookV)를 더한 모델 vs 기본 모델 — 같은 학습 자료, 처음 보는 정밀 보정 점 */\n+      out['세로 점수 채택'] = c && 'lookV' in c ? (c.lookV ? 1 : 0) : undefined;\n+      if (c?.shadow2) out['세로 오차 +위·아래 %H'] = c.shadow2.withExtra?.hy;\n       if (sh) { out['세로 오차 기본 %H'] = sh.base?.hy; out['세로 오차 +lookV %H'] = sh.withExtra?.hy; out['세로 r 기본'] = sh.base?.ry; out['세로 r +lookV'] = sh.withExtra?.ry; out['전체 오차 기본 %'] = sh.base?.errPct; out['전체 오차 +lookV %'] = sh.withExtra?.errPct; }\n     }\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex 0fda058..d24a77b 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 1.6';   // 1.6 (2026-10-05): 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 1.7';   // 1.7 (2026-10-05): 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -728,4 +728,14 @@\n     return { extra, cover, base: one([]), withExtra: cover >= 0.8 ? one(extra) : null, note: 'shadow comparison only; measurement model unchanged' };\n   }\n+  /* 보정 후보 선택(정밀 보정 점 오차가 작은 순). 추가 특징(extra) 후보는 기존 후보 중 최선보다 0.5%p 이상이면서 10% 이상\n+   * 좋을 때만 고른다 — 후보가 늘면 8개 평가 점에서 우연히 좋아 보이는 쪽이 뽑히기 쉬워 여유를 둔다.\n+   * 근거(2026-10-05 그림자 비교 4세션): lookV 는 세로 구분력 r 을 4회 모두 올렸지만 오차는 1회 −30%, 3회 +13~36% */\n+  function pickCalibration(cands, margin = { abs: 0.5, rel: 0.1 }) {\n+    const ok = cands.filter(c => c.acc && c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);\n+    const base = ok.find(c => !c.extra), best = ok[0];\n+    if (!best || !best.extra || !base) return best || null;\n+    const need = base.acc.errPct - Math.max(margin.abs, margin.rel * base.acc.errPct);\n+    return best.acc.errPct <= need ? best : base;\n+  }\n   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */\n   function gazeAccuracy(points, W, H) {\n@@ -1053,5 +1063,5 @@\n     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,\n     buildBvp, hrWindows, phaseHr, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,\n-    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,\n+    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,\n     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,\n   };\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex 1dc1eb4..a8c9a3a 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -265,2 +265,15 @@ console.log('newbiz-core tests passed');\n   console.log('PASS shadow comparison: informative lookV lowers vertical error, noise does not', `(세로 오차 ${good.base.hy}→${good.withExtra.hy}%H · 잡음 ${noise.base.hy}→${noise.withExtra.hy}%H)`);\n }\n+\n+/* 보정 후보 선택 (2026-10-05): 세로 점수 후보는 기존 최선보다 0.5%p·10% 이상 좋을 때만 — 실측 4세션의 그림자 비교 값으로 확인 */\n+{\n+  const C = (key, e, extra) => ({ key, acc: { errPct: e }, ...(extra ? { extra: ['lookV'] } : {}) });\n+  const pick = (base, look) => N.pickCalibration([C('기존', base), C('세로 점수', look, true)]).key;\n+  assert.equal(pick(6.3, 4.4), '세로 점수', 'FD03: 6.3 → 4.4 adopts lookV');\n+  assert.equal(pick(5.9, 7.1), '기존', '4479 keeps base');\n+  assert.equal(pick(4.1, 5.6), '기존', 'DBFE keeps base');\n+  assert.equal(pick(8.2, 9.3), '기존', '04E7 (other laptop) keeps base');\n+  assert.equal(pick(4.1, 3.8), '기존', 'marginal gain (0.3%p) is not enough');\n+  assert.equal(N.pickCalibration([C('a', 5), C('b', 4)]).key, 'b', 'plain candidates: smallest error');\n+  console.log('PASS calibration pick: lookV only with a clear held-out gain');\n+}\ndiff --git a/newbiz-research.js b/newbiz-research.js\nindex 01cc3d5..6498234 100644\n--- a/newbiz-research.js\n+++ b/newbiz-research.js\n@@ -66,5 +66,5 @@\n       indicators: b.indicators.map(i => ({ key: i.key, value: i.value, score: i.score, status: i.status, r: i.r, borderline: !!i.borderline, excluded: !!i.excluded })),\n       qc: b.qc || null, pulseEvidence: res.evidence?.phases || null, calibration: rec.calibration ? { grade: rec.calibration.grade, errPct: rec.calibration.errPct, before: rec.calibration.before ?? null, model: rec.calibration.model || null, affine: !!rec.calibration.affine, control: rec.calibration.control || null,\n-        fine: rec.calibration.fine ? { chosen: rec.calibration.fine.chosen, before: rec.calibration.fine.before, after: rec.calibration.fine.after, shadow: rec.calibration.fine.shadow || null } : null } : null,\n+        fine: rec.calibration.fine ? { chosen: rec.calibration.fine.chosen, before: rec.calibration.fine.before, after: rec.calibration.fine.after, shadow: rec.calibration.fine.shadow || null, shadow2: rec.calibration.fine.shadow2 || null, lookV: !!rec.calibration.fine.lookV } : null } : null,\n       hr: { baseline: res.hr && res.hr.baseline, stressDelta: res.stressDelta, recovery: res.recovery, recoveryResid: res.recoveryResid, ref: res.hrRef || null, resp: res.resp || null },\n       phq: consent.phq && b.phq ? { phq2: b.phq.phq2, phq8: b.phq.phq8 } : null,\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-709fa134c891-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-709fa134c891-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 709fa134c891eb0f2cfe3315aaf595424e8146cc\n변경 제목: Core 1.7: vertical gaze score as a calibration candidate, adopted only with a clear held-out gain\n관련 파일: condition-dataset.js, condition.html, dataset-lab.js, newbiz-core.js, newbiz-core.test.js, newbiz-research.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-709fa134c891-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-709fa134c891-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-709fa134c891-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 709fa134c891eb0f2cfe3315aaf595424e8146cc\n변경 제목: Core 1.7: vertical gaze score as a calibration candidate, adopted only with a clear held-out gain\n관련 파일: condition-dataset.js, condition.html, dataset-lab.js, newbiz-core.js, newbiz-core.test.js, newbiz-research.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-709fa134c891-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-709fa134c891-research",
+          "domain": "research",
+          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-709fa134c891-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 709fa134c891eb0f2cfe3315aaf595424e8146cc\n변경 제목: Core 1.7: vertical gaze score as a calibration candidate, adopted only with a clear held-out gain\n관련 파일: condition-dataset.js, condition.html, dataset-lab.js, newbiz-core.js, newbiz-core.test.js, newbiz-research.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-709fa134c891-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55599670476",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-05T12:21:55Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2T3FRMzc5KyzsNStfBYTB9Sz2uPe",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-05T12:22:15.824412+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "711cc91442d674431424028a18f492bcb74dbc66",
       "parents": [
         "99b570f7c68b8f5b3a29f92ca8f1bf0f8213f5ee"
@@ -10641,9 +10747,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "adec9e7f55797e27b0ee50eb306943a7b9b9cfd5"
+    "sourceHead": "709fa134c891eb0f2cfe3315aaf595424e8146cc"
   },
-  "updatedAt": "2026-10-05T11:55:36.304814+00:00",
-  "aiCooldownUntil": "2026-10-05T12:00:02.140689+00:00",
+  "updatedAt": "2026-10-05T12:22:31.407025+00:00",
+  "aiCooldownUntil": "2026-10-05T12:27:30.575408+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
