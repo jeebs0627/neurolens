@@ -97,8 +97,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55608216824",
@@ -129,7 +129,10 @@
           "url": "https://neurolens-9fzu2aq2h-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-05T16:24:38.655948+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
     {
       "sha": "91ff073b4c788b7d17499fb299020540a1397018",
@@ -11004,9 +11007,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "b7e589c4457bc1fe26f43a4cfca0bc93d4bd896c"
+    "sourceHead": "12aa4221e613fa05c6b0e1bc0c6b04c911182b80"
   },
-  "updatedAt": "2026-10-05T14:10:38.089497+00:00",
-  "aiCooldownUntil": "2026-10-05T14:17:34.650249+00:00",
-  "aiCooldownReason": "GEMINI_RATE_LIMIT"
+  "updatedAt": "2026-10-05T16:24:55.697587+00:00",
+  "aiCooldownUntil": "2026-10-05T16:29:54.550950+00:00",
+  "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
