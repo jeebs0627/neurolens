@@ -1435,12 +1435,13 @@ const resizeCamera = () => {
 if (cameraOrientation.addEventListener) cameraOrientation.addEventListener('change', resizeCamera);
 else cameraOrientation.addListener(resizeCamera); // 구형 iOS Safari의 MediaQueryList
 
-async function loadLandmarker() {
+async function loadLandmarker(only) {
   const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);
   const vision = await FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
-  const opts = d => ({ baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, ...FACE_CONF });
-  try { return await FaceLandmarker.createFromOptions(vision, opts('GPU')); }
-  catch (_) { return await FaceLandmarker.createFromOptions(vision, opts('CPU')); }
+  const make = async d => Object.assign(await FaceLandmarker.createFromOptions(vision, { baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, ...FACE_CONF }), { nlDelegate: d });
+  if (only) return make(only);
+  try { return await make('GPU'); }
+  catch (_) { return make('CPU'); }
 }
 
 $('camStart').addEventListener('click', async () => {
@@ -1465,7 +1466,7 @@ $('camStart').addEventListener('click', async () => {
     fitPreview(); prevVideo.onresize = fitPreview;   // 휴대폰 회전 시 영상 비율이 바뀐다
     phase = 'model';
     S.camera = new NLCamera(procVideo, {
-      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
+      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },
       onResult: processResult,
       onError(e) {
@@ -1473,7 +1474,7 @@ $('camStart').addEventListener('click', async () => {
         if (S.camera?.info.backend === 'unavailable') { $('camStart').disabled = false; $('camStart').hidden = false; }
       }
     });
-    await S.camera.init();
+    await S.camera.init(); S.camT0 = now(); S.featMiss = 0;
     st.textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';
     startLoop(); if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }
   } catch (e) {
@@ -1500,7 +1501,7 @@ function processResult(fr, packet, context) {
   S.lastLm = lm || null;
   if (!lm) { Object.assign(fr, { ok: false, ppgOk: false, skinOk: false, reason: 'face-missing' }); return; }
   const f = N.faceFeatures(lm);
-  if (!f) return;
+  if (!f) { S.featMiss = (S.featMiss || 0) + 1; return; }
   const bs = blendMap(res);
   f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));
   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));
@@ -1628,6 +1629,10 @@ function setupTicker() {
     const fps = S.fpsTimes.length / 2;
     const motion = N.motionIndex(S.buf.filter(f => f.faceOk ?? f.ok), t - 5000, t);
     setDot('dFace', faceOk ? 'ok' : 'bad'); $('vFace').textContent = faceOk ? '인식됨' : '찾는 중';
+    /* 얼굴을 8초 넘게 못 찾으면 진단 정보를 보여 준다(원인 파악용: 처리 방식·추론 횟수·랜드마크 검출·특징 실패) */
+    const ci = S.camera?.info;
+    if (ci && !faceOk && S.camT0 && t - Math.max(S.camT0, S.lastFace) > 8000) $('setupStatus').textContent = `얼굴을 찾지 못하고 있어요. 밝은 곳에서 휴대폰을 눈높이로 들어 주세요. (진단: ${ci.backend}·${ci.delegate || '-'}·${ci.recovery || '-'} · 영상 ${procVideo.videoWidth}×${procVideo.videoHeight} · 추론 ${ci.inferred} · 검출 ${ci.faces || 0} · 특징실패 ${S.featMiss || 0} · 오류 ${ci.errors})`;
+    else if (faceOk && $('setupStatus').textContent.startsWith('얼굴을 찾지')) $('setupStatus').textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';
     const pos = posCheck(), gm = $('guideMsg');
     setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';
     gm.hidden = !S.stream;

@@ -40,7 +40,7 @@
       this.info.backend='loading-fallback';
       const detector=await this.opt.loadFallback();
       if(this.stopped){detector.close();return;}
-      this.detector=detector;
+      this.detector=detector;this.info.delegate=detector.nlDelegate||null;
       this.inferCanvas=document.createElement('canvas');this.inferCtx=this.inferCanvas.getContext('2d',{willReadFrequently:true});
       this.info.backend='main-thread';
     }
@@ -50,9 +50,26 @@
       this.geometry=null;this.info.errors++;this.info.fallbackReason=reason;
       try {await this.loadFallback();}catch(e){this.info.backend='unavailable';this.opt.onError?.(e);}
     }
+    /* 휴대폰 자동 복구: 일부 안드로이드 GPU 에서는 영상 요소를 바로 넣으면 결과가 빈 채로 온다.
+     * 얼굴 없는 추론이 연속 30회면 ① 캔버스로 옮겨 넣기 → ② CPU 인식기로 교체 순으로 바꾼다 */
+    async recover(){
+      this.noFace=0;
+      if(this.stopped||this.recovering)return;
+      if(!this.forceCanvas){this.forceCanvas=true;this.info.recovery='canvas-input';return;}
+      if(this.info.delegate!=='GPU'||this.info.recovery==='cpu-failed')return;
+      this.recovering=true;
+      try{
+        const d=await this.opt.loadFallback('CPU');
+        if(this.stopped){d.close();return;}
+        const old=this.detector;this.detector=d;this.info.delegate='CPU';this.info.recovery='cpu-delegate';old.close();
+      }catch(e){
+        if(!this.stopped){this.info.errors++;this.info.recovery='cpu-failed';this.info.fallbackReason='cpu-recovery-failed:'+String(e.message||e);}
+      }finally{this.recovering=false;}
+    }
     deliver(pending,m){
       if(this.stopped)return;
       const lm=m.result.faceLandmarks?.[0];
+      if(lm)this.info.faces=(this.info.faces||0)+1;
       this.geometry=lm?{lm,t:m.t}:null;this.info.inferred++;
       this.opt.onResult(pending.fr,m,pending.context);
     }
@@ -76,7 +93,8 @@
         callbackLateMs:Number.isFinite(meta?.expectedDisplayTime)?Math.max(0,tp-meta.expectedDisplayTime):null,
         mediaTimeMs:Number.isFinite(meta?.mediaTime)?meta.mediaTime*1000:null,presentedFrames:meta?.presentedFrames??null};
       this.info.captured++;const context=this.opt.onFrame(fr);
-      if(this.busy||this.info.backend==='loading-fallback'||this.info.backend==='unavailable'){this.info.skipped++;return;}
+      if(this.stopped)return;
+      if(this.busy||this.recovering||this.info.backend==='loading-fallback'||this.info.backend==='unavailable'){this.info.skipped++;return;}
       if(this.worker){
         this.busy=true;this.pending={fr,context};
         this.watchdog=setTimeout(()=>this.fallback('inference-timeout'),this.info.inferred ? 2500 : 10000);
@@ -94,12 +112,13 @@
         try{
           const g0=NLSignal.exposureGain(this.ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20;
           let result;
-          if(gain>1.05){
+          if(gain>1.05||this.forceCanvas){
             const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
             if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
             ctx.drawImage(this.video,0,0,w,h);NLSignal.enhance(ctx,gain);result=this.detector.detectForVideo(c,t);
           } else result=this.detector.detectForVideo(this.video,t);
           const lm=result.faceLandmarks?.[0];
+          if(lm)this.noFace=0;else if(this.opt.autoRecover&&(this.noFace=(this.noFace||0)+1)>=30)this.recover();
           const eyes=lm?{left:NLSignal.eyeQuality(this.ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(this.ctx,lm,[33,133,159,145])}:null;
           const took=Math.min(150,performance.now()-i0);this.inferN=(this.inferN||0)+1;   // 처음 3번(GPU 준비)은 간격 계산에서 뺀다
           if(this.inferN>3){this.inferMs=this.inferMs==null?took:this.inferMs+.2*(took-this.inferMs);this.info.inferMs=Math.round(this.inferMs);}
@@ -112,12 +131,13 @@
       }
     }
     start(){
+      if(this.stopped)return;
       const v=this.video;
       const capture=meta=>{try{this.capture(meta);}catch(e){this.info.errors++;this.opt.onError?.(e);}};
-      if(v.requestVideoFrameCallback){const cb=(_,meta)=>{if(this.stopped)return;capture(meta);this.callback=v.requestVideoFrameCallback(cb);};this.callback=v.requestVideoFrameCallback(cb);}
-      else{let last=-1;const cb=()=>{if(this.stopped)return;if(v.currentTime!==last){last=v.currentTime;capture();}this.callback=requestAnimationFrame(cb);};this.callback=requestAnimationFrame(cb);}
+      if(v.requestVideoFrameCallback){const cb=(_,meta)=>{if(this.stopped)return;capture(meta);if(!this.stopped)this.callback=v.requestVideoFrameCallback(cb);};this.callback=v.requestVideoFrameCallback(cb);}
+      else{let last=-1;const cb=()=>{if(this.stopped)return;if(v.currentTime!==last){last=v.currentTime;capture();}if(!this.stopped)this.callback=requestAnimationFrame(cb);};this.callback=requestAnimationFrame(cb);}
     }
-    stop(){this.stopped=true;clearTimeout(this.watchdog);this.worker?.terminate();this.detector?.close();
+    stop(){if(this.stopped)return;this.stopped=true;clearTimeout(this.watchdog);this.worker?.terminate();this.detector?.close();
       if(this.video.cancelVideoFrameCallback)this.video.cancelVideoFrameCallback(this.callback);else cancelAnimationFrame(this.callback);
     }
   }
