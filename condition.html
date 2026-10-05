@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="description" content="웹캠으로 약 8분, 오늘의 마음 컨디션을 확인해 보세요. 또렷함·집중 조절·마음의 시선·몸의 회복력을 재고, 결과에 맞춘 케어 플랜까지 알려 드리는 NeuroLens 마인드 컨디션 검사." />
-<title>마인드 컨디션 검사 | NeuroLens</title>
+<meta name="description" content="웹캠으로 약 8분, 오늘의 마음 컨디션을 확인해 보세요. 또렷함·집중 조절·마음의 시선·몸의 회복력을 재고, 결과에 맞춘 케어 플랜까지 알려 드리는 NeuroLens 마인드 AI 컨디션 검사." />
+<title>마인드 AI 컨디션 검사 | NeuroLens</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E1A33'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <!--
-  마인드 컨디션 검사 (운영 페이지 · /condition) — NeuroLens 의 두 번째 검사 라인. 자체 알고리즘 엔진 이름은 In_mind.
+  마인드 AI 컨디션 검사 (운영 페이지 · /condition) — NeuroLens 의 두 번째 검사 라인. 자체 알고리즘 엔진 이름은 In_mind.
   웹캠 영상은 브라우저 안에서만 처리하고(MediaPipe Face Landmarker), 서버로 보내거나 저장하지 않는다.
   In_mind 엔진: 신호처리 newbiz-core.js · 채점·통합 해석·품질 관리 newbiz-battery.js · 리포트 newbiz-report.js · 연구 데이터 newbiz-research.js
   (newbiz.html 은 이 페이지로 이동하는 이전 MVP 주소)
@@ -946,7 +946,7 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 <body>
 <nav class="nav"><div class="nav-in">
   <a class="brand" href="/" aria-label="NeuroLens 홈"><span class="bmark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14.5" cy="17.5" r="7.5" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="14.5" cy="17.5" r="2.9" fill="#fff"/><path d="M20.5 8.2A11.2 11.2 0 0 1 25.8 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/><circle cx="26.2" cy="7.6" r="1.9" fill="#fff"/></svg></span><span class="bword">Neuro<em>Lens</em></span><small>In_mind</small></a>
-  <div class="blinks"><a href="/#tests">시선추적 AI 성향검사</a><a class="on" href="/condition">마인드 컨디션 검사</a></div>
+  <div class="blinks"><a href="/#tests">시선추적 AI 성향검사</a><a class="on" href="/condition">마인드 AI 컨디션 검사</a></div>
   <div class="nav-r"><span class="nr-t">웰니스 참고 지표 · 영상 비저장</span><a class="pill" href="/">← 메인</a></div>
 </div></nav>
 
@@ -1139,7 +1139,7 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 <section id="sReport" hidden></section>
 </main>
 
-<footer class="site-foot"><span>NeuroLens · 마인드 컨디션 검사 — 웰니스 참고 지표이며 의학적 진단이 아닙니다</span><span><a href="/">메인</a> · <a href="/#tests">시선추적 AI 성향검사</a> · 정신건강 위기상담 109</span></footer>
+<footer class="site-foot"><span>NeuroLens · 마인드 AI 컨디션 검사 — 웰니스 참고 지표이며 의학적 진단이 아닙니다</span><span><a href="/">메인</a> · <a href="/#tests">시선추적 AI 성향검사</a> · 정신건강 위기상담 109</span></footer>
 <!-- 측정 무대 -->
 <div class="stage" id="stage" aria-live="polite">
   <div class="st-top">
@@ -2873,7 +2873,7 @@ function finishWith(rec, server = [], opt = {}) {
   if (opt.ai) summaryRender(opt.ai, false); else summary(res, false);
   return res;
 }
-/* ---------- 계정 저장: 로그인 상태의 실측 결과를 ‘마인드 컨디션 검사’ 내역으로 쌓는다 ---------- */
+/* ---------- 계정 저장: 로그인 상태의 실측 결과를 ‘마인드 AI 컨디션 검사’ 내역으로 쌓는다 ---------- */
 function condSummary(res) {
   const b = res.battery, scores = {}, statuses = {};
   B.DOMAIN_KEYS.forEach(k => { scores[k] = b.domains[k].score; statuses[k] = b.domains[k].status; });

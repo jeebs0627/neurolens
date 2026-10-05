@@ -38,7 +38,7 @@
       document.querySelector('main p').textContent=error.message;return;
     }
   }
-  /* 성향검사는 사전 체크인 없이 진행한다 — ‘오늘의 감정 상태’는 마인드 컨디션 검사가 다룬다 */
+  /* 성향검사는 사전 체크인 없이 진행한다 — ‘오늘의 감정 상태’는 마인드 AI 컨디션 검사가 다룬다 */
   const result = run ? run.result : SAMPLE;
   const checkin = null;
   const isSample = !run || !!run.sample;
@@ -115,7 +115,7 @@
     keywords.forEach((el,index)=>{const item=validTraits[index];el.querySelector('small').textContent=item?'BIG FIVE '+(index+1):'REPORT';el.querySelector('b').textContent=item?`${item.name} ${item.value.toFixed(0)} 백분위`:index===0?'측정된 성향을 살펴보세요':index===1?`유형 ${r.MBTI||'정보 없음'}`:jobs[0]?`직무 후보 ${jobs[0].name}`:'제공된 항목을 확인해 주세요';});
     const intro=`${name} 님의 검사 결과에서 ${r.MBTI?`${r.MBTI} 유형`: '성격 유형 정보'}${validTraits.length?`, ${validTraits[0].name} ${validTraits[0].value.toFixed(0)} 백분위`:''}가 확인되었습니다. 이는 자기이해를 위한 참고 정보입니다.`;
     const second=jobs[0]?`직무적합도 상위 항목은 ${jobs[0].name}(${jobs[0].score.toFixed(1)}점)입니다. 흥미유형과 함께 관심이 향하는 분야를 살펴보세요.`:'직무적합도 정보가 제공되지 않았습니다.';
-    const third='성격·흥미 결과는 비교적 안정된 기본 성향을 보여 줍니다. 오늘의 마음 컨디션은 마인드 컨디션 검사로 따로 측정할 수 있어요.';
+    const third='성격·흥미 결과는 비교적 안정된 기본 성향을 보여 줍니다. 오늘의 마음 컨디션은 마인드 AI 컨디션 검사로 따로 측정할 수 있어요.';
     document.querySelector('.deep-copy .copy-preview').textContent=intro;
     const body=document.querySelector('.deep-copy .copy-body');body.replaceChildren();[intro,second,third].forEach(value=>{const p=document.createElement('p');p.textContent=value;body.appendChild(p);});
   }

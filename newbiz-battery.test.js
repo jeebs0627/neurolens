@@ -402,7 +402,8 @@ for (const p of Object.keys(B.PERSONAS)) {
   const h = R.render(r, { history: [] }), body = h.split('id="r-app"')[0];
   assert.ok(!/undefined|NaN/.test(h) && !h.includes('[object'), `${p}: 잘못된 값`);
   ['또렷함', '집중 조절', '마음의 시선', '몸의 회복력', '점수 구성', '나를 위한 케어 플랜', 'data-todo', '부록'].forEach(n => assert.ok(h.includes(n), `${p}: ${n}`));
-  assert.ok(!/class="cite"|PERCLOS|사카드|SART|rPPG|[^A-Za-z]AI[^A-Za-z]|Gemini|gemini/.test(body), `${p}: 본문에 인용·전문 용어·AI 표기`);
+  // 제품 이름 '마인드 AI 컨디션'(2026-10-05 개명)만 예외 — 그 밖의 AI 표기는 본문에 없어야 한다
+  assert.ok(!/class="cite"|PERCLOS|사카드|SART|rPPG|[^A-Za-z]AI[^A-Za-z]|Gemini|gemini/.test(body.replaceAll('마인드 AI 컨디션', '마인드 컨디션')), `${p}: 본문에 인용·전문 용어·AI 표기`);
   assert.ok(Array.isArray(R.SAMPLE_SUMMARY[p]) && R.SAMPLE_SUMMARY[p].length >= 4, `${p}: 예시 해설`);
 }
 assert.ok(R.render(B.run(B.simulate('overload', { seed: 7 })), {}).includes('감정/스트레스 과부하형'));

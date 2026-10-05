@@ -1,4 +1,4 @@
-/* NeuroLens 마인드 컨디션 리포트 렌더러 (condition.html 전용).
+/* NeuroLens 마인드 AI 컨디션 리포트 렌더러 (condition.html 전용).
  * NLBattery.run() 결과를 받아 HTML 문자열을 만든다. 화면 이벤트 연결은 condition.html 이 한다.
  * 본문은 쉬운 말과 그림으로, 전문 지표·방법·참고문헌은 부록에 둔다. 인용 번호는 부록에 처음 나온 순서로 매긴다.
  * 브라우저: window.NLReport · Node 테스트: module.exports */
@@ -780,7 +780,7 @@
     <nav class="rnav no-print" aria-label="리포트 목차"><a href="#r-top">요약</a><a href="#r-ai">종합 해설</a>${trendOf(r, hist) ? '<a href="#r-cmp">지난 측정과 비교</a>' : ''}<a href="#r-dash">한눈에 보기</a><a href="#dom-alert">영역별 결과</a><a href="#r-care">케어 플랜</a><a href="#r-app">부록</a></nav>
 
     <section class="rhero" id="r-top">
-      <div class="rhero-top"><div><div class="kicker">Mind Condition Report</div><h1>마인드 컨디션 리포트</h1>
+      <div class="rhero-top"><div><div class="kicker">Mind Condition Report</div><h1>마인드 AI 컨디션 리포트</h1>
         <p class="rhero-sub">${when ? esc(when.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })) : ''}${mins === null ? '' : ` · 측정 ${mins}분`}</p></div>${source}</div>
       <div class="rhero-main">
         <div class="rhero-gauge">${ring(idx, { size: 176, stroke: 14, color: idx === null ? '#8A93A8' : idx >= 70 ? '#4FD1A1' : idx >= 40 ? '#F2B544' : '#F27C98', sub: idx === null ? '' : LEVEL(idx), title: '종합 컨디션' })}<span class="rhero-cap">종합 컨디션</span></div>
