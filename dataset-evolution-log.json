@@ -3,6 +3,56 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "999aedb6f759b03cbcdc415b96cf9dce64be4802",
+      "parents": [
+        "70f0a376714b17c5771c3f806f4ce4ca15150ad6"
+      ],
+      "committedAt": "2026-10-05T14:01:11+09:00",
+      "subject": "Home: rename to 마인드 AI 컨디션 검사, Gaze & Multimodal AI branding, stacked pipelines, In_mind proof row, updated timeline/founder, real Condition screens in care section",
+      "url": "https://github.com/jeebs0627/neurolens/commit/999aedb6f759b03cbcdc415b96cf9dce64be4802",
+      "files": [
+        {
+          "path": "img/condition-care.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/condition-report.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 63,
+          "deletions": 83
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55575639443",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-05T05:01:14Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/7qC2MDdNs8p8DaK739m13vHR8avZ",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "ef6d530a26e20e674a76309a10b6c92f8d2c9dea",
       "parents": [
         "0c3cb4b5c8d9d89890be70f0ef050892b8c66576"
@@ -9783,9 +9833,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "5819f474b1ec0855b4e0b6178395118aeeb0a500"
+    "sourceHead": "999aedb6f759b03cbcdc415b96cf9dce64be4802"
   },
-  "updatedAt": "2026-10-05T04:03:56.079704+00:00",
+  "updatedAt": "2026-10-05T05:01:32.470706+00:00",
   "aiCooldownUntil": "2026-10-05T05:03:02.350375+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
