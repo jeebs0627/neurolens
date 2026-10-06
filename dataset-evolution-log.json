@@ -69,12 +69,22 @@
         {
           "id": "evo-9ccd92659b58-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-9ccd92659b58-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9ccd92659b586ec00622594c89c64e97d84dbf2e\n변경 제목: Core 1.9 / fusion-6 / battery 1.4 / camera-6: protect camera frame rate for pulse, pulse diagnosis per phase, SART d-prime\n관련 파일: condition-camera.js, condition-fusion.js, condition.html, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9ccd92659b58-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "심박 단계 추론 제어 및 창 탈락 진단 기반의 신호 활용률 및 오차 회귀 검증",
+          "rationale": "개발 보고 및 코드 주석에 따르면 추론 점유율 제한 및 단계별 minGap 조정을 통해 카메라 프레임 감소를 막고 피부색 표본 수집을 보호하고자 했습니다. 그러나 이는 특정 기기 관측 메모에 기반한 변경으로, 표본 추출 주기 증가에 따른 신호 커버리지 상승이 실제 맥박 오차 감소 및 커버리지 향상으로 이어지는지 실측 데이터셋과 연계하여 검증해야 합니다.",
+          "validationPlan": "1. dataset에 수록된 피험자/기기/날짜별 측정 기록 및 메모를 연동하여 평가 분모를 구성함.\n2. minGap 변경 전후의 카메라 프레임율(fps), 신호 보존율(effectiveSeconds/coverage), skipped/rejected 진단 사유 분포(skip:head-motion, skip:color-jitter 등)를 조건별로 비교함.\n3. 기준 센서(PPG/ECG) 실측 데이터셋이 존재하는 세션에 대해, 인위적인 정상값 채우기 없이 약한 신호 창 활용에 따른 MAE(평균절대오차) 및 RMSE 회귀 변화를 평가함.\n4. 성공 기준: 카메라 프레임 유지율 개선 및 신호 커버리지 증가, 미검증 편향으로 인한 심박 오차 악화가 없을 것.",
+          "prompt": "NeuroLens 측정 알고리즘 개발 AI는 다음 변경사항을 확인하고 검증 및 추가 보완 과제를 수행하라.\n\n1. 현재 코드 확인:\n- `condition-camera.js`의 `gap` 계산식(점유율 상한 65%, `minGap` 반영) 및 `condition.html`의 단계별 `minGap` 설정(baseline: 66ms, stress/recovery: 100ms)을 확인하라.\n- `condition-fusion.js`에 새로 추가된 `skips` 배열 및 `diagnose()` 함수, `summarize()`의 리턴 구조를 확인하라.\n- `newbiz-core.js`의 `at(t)` 함수 내 시간 창(±130ms) 확장을 확인하라.\n\n2. 변경 및 검증 과제:\n- `diagnose()`에서 수집되는 skip/reject 사유별 발생 빈도를 파이프라인 집계 로직에 안전하게 연동하라.\n- 기준 센서 수치가 포함된 실측 dataset 메모 및 데이터를 연결하여, minGap 조율 전후의 (1) 카메라 입력 프레임율, (2) 유효 심박 창 수집 비율(coverage), (3) 기준값 대비 BPM 오차(MAE, RMSE)를 참가자/기기별 분모로 나누어 비교 평가하는 코드 및 테스트 케이스를 작성하라.\n- 신호가 약한 구간을 억지로 정상값으로 채우지 않고, 부분 유효 신호를 재활용할 때 오차 범위가 허용 한계 내에 있는지 평가하라.\n\n3. 성공/회귀 기준:\n- 테스트 세션 전체 분모 대비 프레임 저하 발생 비율 감소 확인.\n- 기존 유효 세션의 심박 추적 오차(BPM) 회귀 발생 금지.\n- 진단 사유(`skip:*`, `reject:*`)가 데이터 구조를 깨뜨리지 않고 JSON 보고서에 정확히 매핑될 것.\n\n4. 결과 보고 양식:\n- 평가된 세션 수(분모), 기기별/단계별 활용률-오차 변화 표\n- 진단 사유별 발생 비율 분포 요약\n- 검증 결과 및 남은 불확실성 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 9ccd92659b586ec00622594c89c64e97d84dbf2e\nDataset-Task: evo-9ccd92659b58-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-9ccd92659b58-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "SART 신호탐지 지표(d′·c) 도입에 따른 과제 구분력 및 통제 영역 종합 평가 회귀 검증",
+          "rationale": "newbiz-battery.js에 SART 과제의 억제 실패율 외에 변별력(d′)과 응답 기준(c)을 도입하여 단순 반응 속도 전략과 억제 기능 저하를 구분하려는 변경이 적용되었습니다. 수학적 수식(Acklam 근사, Hautus 보정)은 unit test로 검증되었으나, 실제 피험자 반응 데이터셋 및 통제 영역(control domain) 가중치 합산에 미치는 미검증 영향을 분석하고 회귀 이상 유무를 검증해야 합니다.",
+          "validationPlan": "1. synthetic 테스트 및 기존 피험자 SART 타임스탬프 로그(dataset)를 연결하여 d′ 및 c 산출 분포 확인.\n2. 극단적 응답 성향(모두 누름, 거의 안 누름) 및 정상 수행군 세션에 대해 d′과 c가 이론적 범위 내에서 안정적으로 동작하는지 회귀 평가.\n3. SART 오미션/커미션 비율과 control domain 노트 생성 조건(`c < -0.6`, `meanRt < 330ms`)이 유효하게 동작하는지 분모 기준 산출.\n4. 성공 기준: 임의 수치 조작 없이 역함수 산출 불능(NaN, Infinity) 예외 방지, 성향 분리 리포트 노출의 적절성 입증.",
+          "prompt": "NeuroLens 측정 알고리즘 개발 AI는 SART 신호탐지 지표 추가 건과 관련하여 다음 과제를 수행하라.\n\n1. 현재 코드 확인:\n- `newbiz-battery.js`의 `zInv(p)` 구현, `sartStats` 내 `zH`, `zF` 계산(Hautus 보정) 및 `dprime`, `criterion` 산출 로직을 확인하라.\n- `aggregateDomain` 호출 후 `domains.control.notes`에 SART 속도-정확성 전략 노트가 추가되는 조건을 확인하라.\n- `newbiz-battery.test.js`의 SART 테스트 케이스를 확인하라.\n\n2. 변경 및 검증 과제:\n- `zInv` 함수의 경계값(p -> 0, p -> 1) 처리 시 수치적 안정성을 검증하는 에지 케이스 테스트를 강화하라.\n- dataset 내의 SART 검사 기록을 연동하여, 기존 커미션 에러율만 존재할 때와 d′·c가 도입된 이후의 인지 통제 영역 점수 변화 및 노트 발생 비율을 참가자/날짜별로 평가하라.\n- 빠르게 누르는 전략(c < -0.6, meanRt < 330ms) 판단 로직이 오진이나 과도한 노트 남발을 일으키지 않는지 회귀 평가하라.\n\n3. 성공/회귀 기준:\n- 극단적 시도(Go/NoGo 전체 성공 또는 전체 실패) 시 NaN/Infinity 발생 없이 d′·c가 유한한 수치로 수렴할 것.\n- 기존 SART 지표 산출과의 역호환성 유지.\n\n4. 결과 보고 양식:\n- 경계 조건 테스트 결과\n- 데이터셋 연동 시 c값 및 d′ 분포표, 리포트 노트 부여 비율\n- 인지 통제 종합 점수 영향 분석 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 9ccd92659b586ec00622594c89c64e97d84dbf2e\nDataset-Task: evo-9ccd92659b58-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-9ccd92659b58-gaze",
@@ -85,20 +95,10 @@
           "prompt": "NeuroLens 알고리즘 후속 과제 evo-9ccd92659b58-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9ccd92659b586ec00622594c89c64e97d84dbf2e\n변경 제목: Core 1.9 / fusion-6 / battery 1.4 / camera-6: protect camera frame rate for pulse, pulse diagnosis per phase, SART d-prime\n관련 파일: condition-camera.js, condition-fusion.js, condition.html, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9ccd92659b58-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
           "generator": "rule",
           "state": "proposed"
-        },
-        {
-          "id": "evo-9ccd92659b58-measurement",
-          "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-9ccd92659b58-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9ccd92659b586ec00622594c89c64e97d84dbf2e\n변경 제목: Core 1.9 / fusion-6 / battery 1.4 / camera-6: protect camera frame rate for pulse, pulse diagnosis per phase, SART d-prime\n관련 파일: condition-camera.js, condition-fusion.js, condition.html, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9ccd92659b58-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisState": "generated",
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-55608216824",
@@ -130,9 +130,122 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-05T22:55:46.150239+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-06T03:00:04.666135+00:00",
+      "analysis": {
+        "summary": "공개 커밋(9ccd92659b586ec00622594c89c64e97d84dbf2e)에서 확인된 변경사항은 크게 세 가지 영역으로 나뉩니다.\n1. pulse(심박) 측면: condition-camera.js 및 condition.html에서 추론 스레드 점유율 상한(65%) 설정, 심박 전용 단계(baseline, stress, recovery)의 minGap(66~100ms) 지연 도입, 프레임 속도 저하(20% 이상) 시 exposure 수동 고정 해제(unlockExposure)가 추가되었습니다. newbiz-core.js에서는 얼굴 추론 주기 감소에 맞춰 위치 추적 시간 창을 ±80ms에서 ±130ms로 넓혔으며, condition-fusion.js에는 1초 단위 창 탈락 및 건너뜀 사유(light-jump, head-motion, no-signal, color-jitter, frame-gaps 등)를 추적하는 diagnose/skips 진단 기능이 구현되었습니다.\n2. measurement(검사 패키지 및 인지 지표) 측면: newbiz-battery.js 및 newbiz-battery.test.js에 SART 과제의 신호탐지 이론 지표인 변별력(d′)과 응답 기준(c)이 추가되었습니다. Acklam 근사 표준정규 역함수(zInv)와 Hautus 로그-선형 보정이 적용되었으며, 평균 반응시간이 빠르고 c < -0.6 이하인 경우 '일단 누르는 전략'으로 인한 실패 가능성을 리포트 노트에 반영하도록 변경되었습니다.\n3. gaze(시선) 측면: 심박 주 과제 구간 동안 시선 추론 주기를 낮춰 연산 자원을 절약하는 변경이 포함되었으나, 시선 정확도 및 표본 감소가 시선 지표 안정성에 미치는 영향은 추가 실측 데이터셋 연동 검증이 필요한 상태입니다.\n\n[미검증 영향 및 한계]\n- 커밋 메시지 및 코드 주석에 명시된 프레임율 수치(예: 23.6 → 15.5fps 등)는 소수 환경의 실측 메모일 뿐이며, 다양한 사용자 기기 및 조도 환경에서의 다면적 검증 결과가 아닙니다.\n- accuracyValidated가 false로 설정되어 있으므로, 추론 주기 절감과 SART d′ 도입이 실제 인지·생리 임상 진단 정확도나 기준 센서 대비 정답 오차를 개선하는지 여부는 검증되지 않았습니다.",
+        "tasks": [
+          {
+            "id": "evo-9ccd92659b58-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "심박 단계 추론 제어 및 창 탈락 진단 기반의 신호 활용률 및 오차 회귀 검증",
+            "rationale": "개발 보고 및 코드 주석에 따르면 추론 점유율 제한 및 단계별 minGap 조정을 통해 카메라 프레임 감소를 막고 피부색 표본 수집을 보호하고자 했습니다. 그러나 이는 특정 기기 관측 메모에 기반한 변경으로, 표본 추출 주기 증가에 따른 신호 커버리지 상승이 실제 맥박 오차 감소 및 커버리지 향상으로 이어지는지 실측 데이터셋과 연계하여 검증해야 합니다.",
+            "validationPlan": "1. dataset에 수록된 피험자/기기/날짜별 측정 기록 및 메모를 연동하여 평가 분모를 구성함.\n2. minGap 변경 전후의 카메라 프레임율(fps), 신호 보존율(effectiveSeconds/coverage), skipped/rejected 진단 사유 분포(skip:head-motion, skip:color-jitter 등)를 조건별로 비교함.\n3. 기준 센서(PPG/ECG) 실측 데이터셋이 존재하는 세션에 대해, 인위적인 정상값 채우기 없이 약한 신호 창 활용에 따른 MAE(평균절대오차) 및 RMSE 회귀 변화를 평가함.\n4. 성공 기준: 카메라 프레임 유지율 개선 및 신호 커버리지 증가, 미검증 편향으로 인한 심박 오차 악화가 없을 것.",
+            "prompt": "NeuroLens 측정 알고리즘 개발 AI는 다음 변경사항을 확인하고 검증 및 추가 보완 과제를 수행하라.\n\n1. 현재 코드 확인:\n- `condition-camera.js`의 `gap` 계산식(점유율 상한 65%, `minGap` 반영) 및 `condition.html`의 단계별 `minGap` 설정(baseline: 66ms, stress/recovery: 100ms)을 확인하라.\n- `condition-fusion.js`에 새로 추가된 `skips` 배열 및 `diagnose()` 함수, `summarize()`의 리턴 구조를 확인하라.\n- `newbiz-core.js`의 `at(t)` 함수 내 시간 창(±130ms) 확장을 확인하라.\n\n2. 변경 및 검증 과제:\n- `diagnose()`에서 수집되는 skip/reject 사유별 발생 빈도를 파이프라인 집계 로직에 안전하게 연동하라.\n- 기준 센서 수치가 포함된 실측 dataset 메모 및 데이터를 연결하여, minGap 조율 전후의 (1) 카메라 입력 프레임율, (2) 유효 심박 창 수집 비율(coverage), (3) 기준값 대비 BPM 오차(MAE, RMSE)를 참가자/기기별 분모로 나누어 비교 평가하는 코드 및 테스트 케이스를 작성하라.\n- 신호가 약한 구간을 억지로 정상값으로 채우지 않고, 부분 유효 신호를 재활용할 때 오차 범위가 허용 한계 내에 있는지 평가하라.\n\n3. 성공/회귀 기준:\n- 테스트 세션 전체 분모 대비 프레임 저하 발생 비율 감소 확인.\n- 기존 유효 세션의 심박 추적 오차(BPM) 회귀 발생 금지.\n- 진단 사유(`skip:*`, `reject:*`)가 데이터 구조를 깨뜨리지 않고 JSON 보고서에 정확히 매핑될 것.\n\n4. 결과 보고 양식:\n- 평가된 세션 수(분모), 기기별/단계별 활용률-오차 변화 표\n- 진단 사유별 발생 비율 분포 요약\n- 검증 결과 및 남은 불확실성 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 9ccd92659b586ec00622594c89c64e97d84dbf2e\nDataset-Task: evo-9ccd92659b58-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-9ccd92659b58-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "SART 신호탐지 지표(d′·c) 도입에 따른 과제 구분력 및 통제 영역 종합 평가 회귀 검증",
+            "rationale": "newbiz-battery.js에 SART 과제의 억제 실패율 외에 변별력(d′)과 응답 기준(c)을 도입하여 단순 반응 속도 전략과 억제 기능 저하를 구분하려는 변경이 적용되었습니다. 수학적 수식(Acklam 근사, Hautus 보정)은 unit test로 검증되었으나, 실제 피험자 반응 데이터셋 및 통제 영역(control domain) 가중치 합산에 미치는 미검증 영향을 분석하고 회귀 이상 유무를 검증해야 합니다.",
+            "validationPlan": "1. synthetic 테스트 및 기존 피험자 SART 타임스탬프 로그(dataset)를 연결하여 d′ 및 c 산출 분포 확인.\n2. 극단적 응답 성향(모두 누름, 거의 안 누름) 및 정상 수행군 세션에 대해 d′과 c가 이론적 범위 내에서 안정적으로 동작하는지 회귀 평가.\n3. SART 오미션/커미션 비율과 control domain 노트 생성 조건(`c < -0.6`, `meanRt < 330ms`)이 유효하게 동작하는지 분모 기준 산출.\n4. 성공 기준: 임의 수치 조작 없이 역함수 산출 불능(NaN, Infinity) 예외 방지, 성향 분리 리포트 노출의 적절성 입증.",
+            "prompt": "NeuroLens 측정 알고리즘 개발 AI는 SART 신호탐지 지표 추가 건과 관련하여 다음 과제를 수행하라.\n\n1. 현재 코드 확인:\n- `newbiz-battery.js`의 `zInv(p)` 구현, `sartStats` 내 `zH`, `zF` 계산(Hautus 보정) 및 `dprime`, `criterion` 산출 로직을 확인하라.\n- `aggregateDomain` 호출 후 `domains.control.notes`에 SART 속도-정확성 전략 노트가 추가되는 조건을 확인하라.\n- `newbiz-battery.test.js`의 SART 테스트 케이스를 확인하라.\n\n2. 변경 및 검증 과제:\n- `zInv` 함수의 경계값(p -> 0, p -> 1) 처리 시 수치적 안정성을 검증하는 에지 케이스 테스트를 강화하라.\n- dataset 내의 SART 검사 기록을 연동하여, 기존 커미션 에러율만 존재할 때와 d′·c가 도입된 이후의 인지 통제 영역 점수 변화 및 노트 발생 비율을 참가자/날짜별로 평가하라.\n- 빠르게 누르는 전략(c < -0.6, meanRt < 330ms) 판단 로직이 오진이나 과도한 노트 남발을 일으키지 않는지 회귀 평가하라.\n\n3. 성공/회귀 기준:\n- 극단적 시도(Go/NoGo 전체 성공 또는 전체 실패) 시 NaN/Infinity 발생 없이 d′·c가 유한한 수치로 수렴할 것.\n- 기존 SART 지표 산출과의 역호환성 유지.\n\n4. 결과 보고 양식:\n- 경계 조건 테스트 결과\n- 데이터셋 연동 시 c값 및 d′ 분포표, 리포트 노트 부여 비율\n- 인지 통제 종합 점수 영향 분석 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 9ccd92659b586ec00622594c89c64e97d84dbf2e\nDataset-Task: evo-9ccd92659b58-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-9ccd92659b58-gaze",
+            "domain": "gaze",
+            "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
+            "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+            "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
+            "prompt": "NeuroLens 알고리즘 후속 과제 evo-9ccd92659b58-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9ccd92659b586ec00622594c89c64e97d84dbf2e\n변경 제목: Core 1.9 / fusion-6 / battery 1.4 / camera-6: protect camera frame rate for pulse, pulse diagnosis per phase, SART d-prime\n관련 파일: condition-camera.js, condition-fusion.js, condition.html, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9ccd92659b58-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+            "generator": "rule",
+            "state": "proposed"
+          }
+        ],
+        "evidenceHash": "40624e541153a51e95430f864ddbfc5695b6acc223e20fa845345ae433d52748",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 11026,
+            "candidatesTokenCount": 2246,
+            "totalTokenCount": 14412
+          }
+        },
+        "generatedAt": "2026-10-06T03:00:35.304459+00:00",
+        "sourceSha": "9ccd92659b586ec00622594c89c64e97d84dbf2e",
+        "sourceEvidence": {
+          "sha": "9ccd92659b586ec00622594c89c64e97d84dbf2e",
+          "parents": [
+            "eeb5e470841f00e5837342259fe249782ce05931"
+          ],
+          "committedAt": "2026-10-05T14:09:16Z",
+          "subject": "Core 1.9 / fusion-6 / battery 1.4 / camera-6: protect camera frame rate for pulse, pulse diagnosis per phase, SART d-prime",
+          "url": "https://github.com/jeebs0627/neurolens/commit/9ccd92659b586ec00622594c89c64e97d84dbf2e",
+          "files": [
+            {
+              "path": "condition-camera.js",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 2
+            },
+            {
+              "path": "condition-fusion.js",
+              "status": "modified",
+              "additions": 22,
+              "deletions": 10
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 15,
+              "deletions": 2
+            },
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 25,
+              "deletions": 4
+            },
+            {
+              "path": "newbiz-battery.test.js",
+              "status": "modified",
+              "additions": 14,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 2
+            },
+            {
+              "path": "newbiz-report.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-camera.js\n@@ -6,7 +6,7 @@\n     constructor(video,opt){\n       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;\n       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});\n-      this.info={version:'condition-camera-5',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n+      this.info={version:'condition-camera-6',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n     }\n     async init(){\n       /* 기본은 주 스레드 GPU 추론(동영상 프레임마다 직접 추론). 워커 경로는 기기에 따라 초당 7회 수준까지 떨어져\n@@ -108,7 +108,10 @@\n          * 그래서 피부색(심박·호흡) 표본은 매 프레임 그대로 받고, 추론은 직전 추론 시간의 1.2배 이상 간격을 두고 돌린다 */\n         // 하한 25ms: 추론이 빠른 기기(≈16ms)는 30fps 카메라의 모든 프레임을 추론한다. 하한 40ms 에서는 프레임 간격 32ms 일 때\n         // 한 장씩 건너뛰어 시선 표본이 초당 15회로 반토막 났다(2026-10-05 실측 NLR-15ED…: 추론 16ms, 건너뜀 33%)\n-        const gap=Math.min(110,Math.max(25,(this.inferMs||35)*1.2));   // 상한 110ms: 느린 기기에서도 시선 표본 초당 9회 이상\n+        // 점유율 상한 65%(gap ≥ 추론시간 ÷ 0.65): 매 프레임 추론하면 같은 스레드의 피부색 표본(심박 원천)과 화면 그리기가 밀려\n+        // 카메라 프레임이 초당 15장까지 떨어졌다(실측 NLR-394B…: 추론 28ms, 움직임 많은 단계 15~19fps · 단순 화면 단계 21~24fps).\n+        // minGap: 단계별 하한 — 시선이 필요 없는 심박 단계(기준선·압박·회복)는 얼굴 위치 추적만 하도록 condition.html 이 올린다\n+        const gap=Math.min(110,Math.max(this.minGap??25,(this.inferMs||35)*1.2,(this.inferMs||0)/0.65));   // 상한 110ms: 느린 기기에서도 시선 표본 초당 9회 이상\n         if(t-(this.lastInfer||0)<gap){this.info.skipped++;return;}this.lastInfer=t;\n         const i0=performance.now();\n         try{\nFILE condition-fusion.js\n@@ -5,7 +5,7 @@\n   if(root)root.NLFusionFactory=factory;\n })(typeof globalThis!=='undefined'?globalThis:null,function(N){\n   'use strict';\n-  const VERSION='condition-fusion-5',finite=Number.isFinite;\n+  const VERSION='condition-fusion-6',finite=Number.isFinite;\n   // 'aggregate'(전체 피부 평균)와 'combined'(영역 파형 합성)는 영역들과 픽셀을 공유하므로 독립 영역으로 세지 않는다\n   const SHARED=new Set(['aggregate','combined']),physicalRoi=p=>!SHARED.has(p.roi);\n   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));\n@@ -116,31 +116,31 @@\n     const lower=finite(opt.start)?Math.max(0,Math.ceil((opt.start-t0)*fs/1000)):0;\n     const upper=finite(opt.end)?Math.min(bvp.length,Math.floor((opt.end-t0)*fs/1000)+1):bvp.length;\n     const sources=sig.candidates||[{roi:'aggregate',method:'pos',wave:bvp,repairs:sig.repaired}];\n-    const out=[];\n+    const out=[],skips=[];\n     for(let s=lower;s+6*fs<=upper;s+=step){\n-      let chosen=null;\n+      let chosen=null,why=null;   // why: 이 1초 위치에 창이 하나도 없을 때의 첫 이유(진단 기록용)\n       // Weak but continuous observations can gain frequency resolution with a longer window.\n       // This uses already captured data; the test duration and phase boundaries stay fixed.\n       for(const sec of [...new Set([winSec,16,6])].filter(v=>v>=6)){\n         const wl=Math.round(sec*fs);if(s+wl>upper)continue;\n         const start=t0+s*1000/fs,end=t0+(s+wl-1)*1000/fs;\n-        if((opt.jumps||[]).some(t=>start<t+750&&end>t-750))continue;\n+        if((opt.jumps||[]).some(t=>start<t+750&&end>t-750)){why=why||'light-jump';continue;}\n         // 머리 움직임 구간이 창의 25%를 넘으면 버리고, 그보다 적으면 그만큼 후보 가중치를 낮춘다\n         const moving=(opt.motion||[]).reduce((a,[m0,m1])=>a+Math.max(0,Math.min(end,m1)-Math.max(start,m0)),0)/Math.max(1,end-start);\n-        if(moving>.4)continue;\n+        if(moving>.4){why=why||'head-motion';continue;}\n         const candidates=[],raw=[];\n         // 움직임 구간 표본은 0으로 비운다(블랭킹): 맥박보다 수십 배 센 흔들림이 한 창의 스펙트럼을 차지하는 것을 막는다.\n         // 대역통과된 파형이라 평균이 0 이므로 비운 자리는 '신호 없음'과 같다. 비운 비율은 보간처럼 신뢰도에서 뺀다\n         const mask=moving>0?(opt.motion||[]).map(([m0,m1])=>[Math.max(0,Math.round((m0-t0)*fs/1000)-s),Math.min(wl,Math.round((m1-t0)*fs/1000)-s)]).filter(([a,b])=>b>a):null;\n         for(const c of sources){\n           let seg=c.wave.subarray(s,s+wl);\n           if(mask&&seg.every(finite)){seg=Float64Array.from(seg);mask.forEach(([a,b])=>seg.fill(0,a,b));}\n-          if(!seg.every(finite)||N.std(Array.from(seg))<1e-9)continue;\n+          if(!seg.every(finite)||N.std(Array.from(seg))<1e-9){why=why||'no-signal';continue;}\n           // Large frame-to-frame colour-ratio jumps are optical artefacts, not a weak pulse.\n           // Common brightness changes cancel in the ratios; small noisy observations remain usable.\n-          if(c.jitter&&N.mean(Array.from(c.jitter.subarray(s,s+wl)))>.08)continue;\n+          if(c.jitter&&N.mean(Array.from(c.jitter.subarray(s,s+wl)))>.08){why=why||'color-jitter';continue;}\n           const recovered=Math.min(1,(c.repairs?c.repairs.subarray(s,s+wl).reduce((a,b)=>a+b,0)/wl:0)+moving);\n-          if(recovered>.25)continue;\n+          if(recovered>.25){why=why||(moving>0?'head-motion':'frame-gaps');continue;}\n           const pk=N.spectralPeak(seg,fs);if(!pk)continue;\n           const ac=periodicity(seg,fs),peaks=[pk];\n           // Resolve a doubled spectral peak only when a full-period candidate is also observed.\n@@ -164,11 +164,11 @@\n         if(!chosen||(!chosen.usable&&result.usable)||result.confidence>chosen.confidence+.12||(result.usable&&sec>chosen.windowSec&&result.confidence>=chosen.confidence-.04))chosen=result;\n         if(result.usable&&(result.snr>=3||sec===16))break;\n       }\n-      if(chosen)out.push(chosen);\n+      if(chosen)out.push(chosen);else skips.push({t:t0+(s+5*fs)*1000/fs,why:why||'no-candidate'});\n     }\n     // Weak support must recur at a distinct time, or have strong spatial/period evidence.\n     // This changes acceptance, never the measured BPM or an actual rapid transition.\n-    return track(out.map(w=>{\n+    const result=track(out.map(w=>{\n       if(!w.usable){\n         const nearby=out.filter(v=>Math.abs(v.t-w.t)<=16000);\n         const matches=(v,bpm)=>v.alternatives.filter(p=>physicalRoi(p)&&p.snr>=-7&&p.period>=.2&&Math.abs(p.bpm-bpm)<=5);\n@@ -193,6 +193,8 @@\n       const supported=out.some(v=>v!==w&&v.usable&&Math.abs(v.t-w.t)>=1800&&Math.abs(v.t-w.t)<=12000&&Math.abs(v.bpm-w.bpm)<=8);\n       return supported?w:{...w,usable:false,quality:'poor',status:'uncertain',confidence:Math.min(w.confidence,.29),reason:'unconfirmed-weak-window'};\n     }).sort((a,b)=>a.t-b.t));\n+    Object.defineProperty(result,'skips',{value:skips});   // 배열 내용은 그대로, 진단용 건너뜀 기록만 덧붙인다\n+    return result;\n   }\n   /* 시간 연속성 추적(tracked): 심박은 몇 초 사이에 크게 뛰지 않는다는 생리적 연속성을 이용한다.\n    * 채택 기준에 못 미친 창이라도, 그 창 안에서 실제로 관측된 색차 기반(POS·CHROM) 후보 주파수 가운데\n@@ -251,8 +253,18 @@\n     }\n     return {seconds,effective,weighted:[...weights].map(([i,weight])=>({...rows[i],weight}))};\n   }\n+  /* 구간 진단: 창이 없던 1초 위치의 이유(건너뜀)와 채택되지 못한 창의 이유(탈락) 개수 — 심박이 약한 원인을 다음 개선에 쓰기 위해 */\n+  function diagnose(wins,inside,start,end){\n+    const out={};const add=k=>{out[k]=(out[k]||0)+1;};\n+    (wins.skips||[]).filter(x=>x.t>=start&&x.t<=end).forEach(x=>add('skip:'+x.why));\n+    inside.filter(w=>!(w.usable??w.snr>=-2)).forEach(w=>add('reject:'+(w.reason||'weak')));\n+    return out;\n+  }\n   function summarize(wins,start,end){\n     const inside=wins.filter(w=>(w.start??w.t)>=start-.01&&(w.end??w.t)<=end+.01&&finite(w.bpm));\n+    return {...summarizeCore(wins,inside,start,end),diagnosis:diagnose(wins,inside,start,end)};\n+  }\n+  function summarizeCore(wins,inside,start,end){\n     const valid=inside.filter(w=>w.usable??w.snr>=-2),s=support(valid,start,end);\n     const empty={bpm:null,snr:null,quality:'none',n:0,validSeconds:0,effectiveSeconds:0,coverage:0,confidence:0,spreadBpm:null,rangeBpm:null,recovered:0,status:'unavailable',candidateWindows:inside.length};\n     if(!valid.length){\nFILE condition.html\n@@ -1847,17 +1847,27 @@ <h2>결과를 정리하고 있어요</h2>\n   try { await track.applyConstraints({ advanced: [adv] }); } catch (_) {}\n   L.released = { at: now(), why };\n }\n+async function unlockExposure(why) {\n+  const track = S.stream && S.stream.getVideoTracks()[0], L = S.camera && S.camera.info.lock;\n+  if (!track || !L || L.exposure !== 'manual') return;\n+  try { await track.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] }); L.exposure = 'continuous'; L.exposureReleased = { at: now(), why }; } catch (_) {}\n+}\n function startCameraLock() {\n   if (S.demo || !S.stream) return;\n   setTimeout(async () => {\n     if (!S.camera || !stage.classList.contains('on')) return;\n+    const fpsBefore = S.fpsTimes.length / 2;\n     S.camera.info.lock = await lockCamera();\n     if (!S.camera.info.lock.applied) return;\n-    let bad = 0;\n+    S.camera.info.lock.fpsBefore = fpsBefore;\n+    let bad = 0, slow = 0, ticks = 0;\n     S.lockWatch = setInterval(() => {\n-      const t = now(), lum = N.median(S.buf.filter(f => f.ok && f.t > t - 2000 && Number.isFinite(f.lum)).map(f => f.lum));\n+      const t = now(), lum = N.median(S.buf.filter(f => f.ok && f.t > t - 2000 && Number.isFinite(f.lum)).map(f => f.lum)), fps = S.fpsTimes.length / 2;\n       bad = Number.isFinite(lum) && (lum < 60 || lum > 225) ? bad + 1 : 0;\n+      /* 노출을 길게 고정하면 프레임 속도가 묶인다(실측 NLR-6E80…: 노출 2500 고정 뒤 23.6 → 15.5fps). 고정 뒤 4초 동안 20% 넘게 떨어지면 노출만 되돌린다 */\n+      ticks++; slow = fpsBefore > 0 && fps < fpsBefore * 0.8 ? slow + 1 : 0;\n       if (bad >= 3) unlockCamera(`luminance ${Math.round(lum)}`);\n+      else if (ticks <= 8 && slow >= 3 && S.camera.info.lock.exposure === 'manual') unlockExposure(`fps ${fps.toFixed(1)} < ${fpsBefore.toFixed(1)}`);\n     }, 1000);\n   }, 2500);\n }\n@@ -2008,6 +2018,9 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   if(S.telemetry)S.telemetry.steps[key]={start:now()};\n   S.cur = key; S.stepPhases = [];\n   S.lmRec = !S.demo && (key === 'calibration' || GAZE_STEPS.includes(key));\n+  /* 심박 단계는 얼굴 추론을 줄여 카메라 프레임·피부색 표본을 최대로: 기준선 15Hz(눈 깜빡임 기준값 유지), 압박·회복 10Hz.\n+   * 피부 영역은 묵은 랜드마크(≤0.6초)도 품질만 낮춰 쓰므로 위치 추적에는 충분하다 */\n+  if (S.camera) S.camera.minGap = { baseline: 66, stress: 100, recovery: 100 }[key] || 25;\n   renderStepper();\n   $('skip').hidden = false;\n   const stopAnchor = key === 'pvt' || key === 'sart' ? startAutoAnchor() : () => {};\nFILE newbiz-battery.js\n@@ -19,7 +19,7 @@\n })(typeof window !== 'undefined' ? window : null, function (N) {\n   'use strict';\n \n-  const VERSION = 'In_mind battery 1.3';   // 1.3 (2026-10-05): 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n+  const VERSION = 'In_mind battery 1.4';   // 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n   const finite = v => typeof v === 'number' && Number.isFinite(v);\n   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\n   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;\n@@ -192,6 +192,9 @@\n       desc: '반대쪽을 봐야 할 때 표적 쪽으로 먼저 시선이 간 비율. 반사적 반응 억제의 직접 지표', get: a => a.saccade && a.saccade.ok ? a.saccade.anti.errorRate * 100 : null },\n     { key: 'sartCommission', domain: 'control', w: 2, label: 'SART 억제 실패', unit: '%', d: 0, band: BAND('low', 10, 40, 60, 90), refs: ['robertson'],\n       desc: '숫자 3에서 멈추지 못한 비율. 일상적 주의 실수와 관련', get: a => a.sart && a.sart.commission * 100, count: a => a.sart ? `${a.sart.commits}/${a.sart.nogo}회` : null },\n+    { key: 'sartDprime', domain: 'control', w: 1, ref: true, label: 'SART 변별력 (d′)', unit: '', d: 2, band: BAND('high', 4, 3, 2.2, 1), refs: ['robertson'],\n+      desc: '반응 숫자에는 누르고 3에서는 멈추는 구분 능력(신호탐지 d′). 억제 실패율과 달리 빨리 누르는 응답 성향의 영향을 덜 받는다 — 참고 지표',\n+      get: a => a.sart && !a.sart.invalid ? a.sart.dprime : null, count: a => a.sart && finite(a.sart.criterion) ? `응답 기준 c ${a.sart.criterion}` : null },\n     { key: 'sartCv', domain: 'control', w: 2, label: '반응시간 변동성 (CV)', unit: '', d: 2, band: BAND('low', 0.12, 0.25, 0.35, 0.6), refs: ['kofler'],\n       desc: '반응시간 표준편차 ÷ 평균. 주의가 순간순간 흔들리는 정도', get: a => a.sart && a.sart.cv },\n     { key: 'sartOmission', domain: 'control', w: 1, label: 'SART 누락', unit: '%', d: 1, band: BAND('low', 0, 5, 10, 30), refs: ['robertson'],\n@@ -630,6 +633,17 @@\n     let gi = 0;\n     return Array.from({ length: n }, (_, i) => (places.has(i) ? nogo : go[gi++ % go.length]));\n   }\n+  /* 표준정규 역함수 (Acklam 근사, 상대오차 < 1.2e-9) */\n+  function zInv(p) {\n+    const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239],\n+      b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572],\n+      c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783],\n+      d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416], pl = 0.02425;\n+    if (p < pl) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }\n+    if (p > 1 - pl) return -zInv(1 - p);\n+    const q = p - 0.5, r = q * q;\n+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);\n+  }\n   function sartStats(sart) {\n     const T = sart && Array.isArray(sart.trials) ? sart.trials : [];\n     if (T.length < 18) return null;\n@@ -642,9 +656,13 @@\n      * 거부 시행 수보다 훨씬 많은 반응 시행을 쓰므로 실패율보다 안정적이다. 양수 = 실패 직전에 빨라짐(자동 반응) */\n     const pre = [];\n     T.forEach((t, i) => { if (t.digit === PROTOCOL.sart.nogo && finite(t.rt)) T.slice(Math.max(0, i - 4), i).forEach(p => { if (p.digit !== PROTOCOL.sart.nogo && finite(p.rt) && p.rt >= 100) pre.push(p.rt); }); });\n-    const commits = nogo.filter(t => finite(t.rt)).length;\n+    const commits = nogo.filter(t => finite(t.rt)).length, hits = go.filter(t => finite(t.rt)).length;\n+    /* 신호탐지 (Stanislaw & Todorov, 1999; 로그-선형 보정 Hautus, 1995): 반응 숫자에 누른 비율 H, 3에 누른 비율 F.\n+     * 변별력 d′ = z(H) − z(F) — 억제 실패율만 보면 '빨리 누르는 응답 성향'과 '멈추지 못함'이 섞인다(Helton, 2009; Seli et al., 2012).\n+     * 응답 기준 c = −(z(H) + z(F))/2, 음수일수록 '일단 누르는' 쪽 */\n+    const zH = zInv((hits + 0.5) / (go.length + 1)), zF = zInv((commits + 0.5) / (nogo.length + 1));\n     return {\n-      n: T.length, nogo: nogo.length, go: go.length, commits,\n+      n: T.length, nogo: nogo.length, go: go.length, commits, dprime: round(zH - zF, 2), criterion: round(-(zH + zF) / 2, 2),\n       preErrorSpeedup: pre.length >= 4 && rts.length >= 10 ? round(m - mean(pre)) : null,\n       invalid: omission > QC.sartOmitMax ? `반응해야 할 숫자의 ${Math.round(omission * 100)}%에 반응하지 않았어요 — 과제를 따라가지 못한 것으로 보여 판정에서 뺐어요` : null,\n       commission: round(commits / nogo.length, 3),\n@@ -969,7 +987,7 @@\n       antiError: rOf.anti, sartCommission: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, sartCv: rOf.sart,   // 억제 실패는 거부 시행(3) 수로 신뢰도를 정한다: 빠른 모드 6회면 1회가 17%p sartOmission: () => sart ? clamp(sart.n / 54, 0, 1) : 0,\n       /* 이득은 머리가 표적을 따라 돌수록(머리 동조 |r| 0.3→0.7) 신뢰도를 낮춘다 — 눈 대신 머리가 움직이면 시선 폭이 작게 잡힌다 */\n       pursuitGain: () => rOf.pursuit() * (pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,\n-      pursuitSpeed: rOf.pursuit, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,\n+      pursuitSpeed: rOf.pursuit, sartDprime: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,\n       bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)) * infF(base.hr.neu, base.hr.neg),\n       stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로\n       recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)) * infF(refHr, base.hr.recoveryLate), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)\n@@ -1005,6 +1023,9 @@\n \n     const domains = {};\n     DOMAIN_KEYS.forEach(k => { domains[k] = aggregateDomain(k, indicators); });\n+    /* SART 속도-정확성: 억제 실패가 많아도 응답 기준이 매우 관대하고(c < −0.6) 반응이 빠르면(평균 < 330ms) '빨리 누르는 전략'의 몫이 크다 */\n+    if (sart && !sart.invalid && sart.commission >= 0.4 && finite(sart.criterion) && sart.criterion < -0.6 && sart.meanRt < 330 && domains.control.status !== 'na')\n+      domains.control.notes.push(`SART에서 숫자 3을 놓친 비율이 높지만 반응이 빠르고(평균 ${sart.meanRt}ms) ‘일단 누르는’ 쪽이었어요(응답 기준 c ${sart.criterion}). 실패의 일부는 주의 저하보다 빠르게 누르는 전략에서 왔을 수 있어요 · 변별력 d′ ${sart.dprime}`);\n     if (domains.autonomic.status !== 'na') {\n       if (base.hrRef === 'pre') domains.autonomic.notes.push(base.hr.pre.context === 'pre-task-rest' ? '압박 과제 직전 30초 안정 구간의 심박을 비교 기준으로 썼어요 (몇 분 전 기준선보다 바로 직전 상태가 더 정확한 비교라서)' : base.hr.pre.context === 'pre-task-instructions' ? '안정 기준선의 심박 신호가 약해, 압박 과제 직전 안내 구간을 비교 기준으로 썼어요' : '안정 기준선의 심박 신호가 약해, 압박 과제 직전 구간을 비교 기준으로 썼어요');\n       const PH = { baseline: '안정 기준선', neu: '정서 보기(중립)', neg: '정서 보기(부정)', pos: '정서 보기(긍정)', stress: '압박 과제', recovery: '회복 호흡', recoveryLate: '회복 후반' };\nFILE newbiz-battery.test.js\n@@ -438,3 +438,17 @@ console.log('newbiz-battery tests passed');\n   assert.ok(Math.abs(B.pursuitSec(B.DUR.quick) - 26) <= 3 && Math.abs(B.pursuitSec(B.DUR.full) - 45) <= 3, `${B.pursuitSec(B.DUR.quick)} ${B.pursuitSec(B.DUR.full)}`);\n   console.log('PASS pursuit v2: reversal latency, ref indicators outside domain score, head-follow reliability, legacy v1 record, duration');\n }\n+\n+/* SART 신호탐지 (2026-10-05): d′ 가 응답 성향과 분리되는지 — 같은 억제 실패율이라도 반응 숫자를 자주 놓치면 d′ 가 낮다 */\n+{\n+  const seq = B.sartSequence(108, () => 0.5), mk = (failNogo, missGo) => seq.map((digit, i) => ({ digit, onset: i * 1150, rt: digit === 3 ? (i % 10 < failNogo ? 300 : null) : (i % 20 < missGo ? null : 380) }));\n+  const a = B.sartStats({ trials: mk(4, 0) }), b = B.sartStats({ trials: mk(4, 3) });\n+  assert.ok(Math.abs(a.commission - b.commission) < 0.15, 'similar commission');\n+  assert.ok(a.dprime > b.dprime + 0.4, `d′ separates go misses ${a.dprime} vs ${b.dprime}`);\n+  assert.ok(a.criterion < b.criterion, 'criterion more liberal when pressing everything');\n+  const perfect = B.sartStats({ trials: mk(0, 0) });\n+  assert.ok(Number.isFinite(perfect.dprime) && perfect.dprime > 3, `log-linear keeps finite d′ ${perfect.dprime}`);\n+  const r = B.run(B.simulate('balanced')).battery.indicators.find(i => i.key === 'sartDprime');\n+  assert.ok(r.ref && Number.isFinite(r.value), 'reference indicator present');\n+  console.log('PASS SART signal detection: d′ and criterion');\n+}\nFILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 1.8';   // 1.8 (2026-10-05): 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 1.9';   // 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -410,7 +410,8 @@\n     const s = (frames || []).filter(f => (f.faceOk ?? f.ok) && finite(f.cx) && finite(f.cy) && f.fw > 0);\n     const out = [];\n     if (s.length < 60) return out;\n-    const at = t => { const w = s.filter(f => Math.abs(f.t - t) <= 80); return w.length ? { x: median(w.map(f => f.cx)), y: median(w.map(f => f.cy)), w: median(w.map(f => f.fw)) } : null; };\n+    /* 심박 단계는 얼굴 추론이 10~15Hz 라 ±130ms 안의 얼굴 위치를 쓴다 */\n+    const at = t => { const w = s.filter(f => Math.abs(f.t - t) <= 130); return w.length ? { x: median(w.map(f => f.cx)), y: median(w.map(f => f.cy)), w: median(w.map(f => f.fw)) } : null; };\n     for (let t = s[0].t + 250; t <= s.at(-1).t - 250; t += 250) {\n       const a = at(t - 250), b = at(t + 250);\n       if (!a || !b) continue;\nFILE newbiz-report.js\n@@ -745,7 +745,7 @@\n       body += b.circle ? `<div class=\"group-t\">원형 추적 · 시선 궤적</div>${circleSvg(b.circle)}${b.circle.ok ? '' : `<p class=\"warn-line\">${esc(b.circle.reason)} — 원형 추적 지표를 판정에서 제외했어요.</p>`}` : '';\n       body += b.sart ? `<div class=\"group-t\">SART · 시행별 반응</div>${sartSvg(b.sart)}${b.sart.invalid ? `<p class=\"warn-line\">${esc(b.sart.invalid)}</p>` : ''}` : '';\n       body += methodBox('oculo', b, C, `<p><b>프로토콜</b> 응시점 ${P.saccade.fixMin / 1000}~${P.saccade.fixMax / 1000}초 무작위 후 응시점이 사라지며 표적이 화면 중심에서 폭의 ${Math.round(P.saccade.ecc * 100)}% 위치에 1초 제시(단계 패러다임). 원활 추적은 ${P.pursuit.freq}Hz 수평 정현파(진폭 폭의 ${Math.round(P.pursuit.amp * 100)}%), 첫 ${P.pursuit.skipMs / 1000}초 제외 후 최적 지연에서의 이득과 잔차 SD를 계산.${C.cite(['antoniades', 'maruta'])}</p>`);\n-      body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + ${P.sart.mask ? '마스크' : '빈 화면'} ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 ${Math.round((1 / 9 + (P.sart.nogoBoost || 0)) * 100)}%)에서 반응 억제.${C.cite(['robertson'])}</p>`);\n+      body += methodBox('sustain', b, C, `<p><b>프로토콜</b> 숫자 1~9 균등 무작위, 숫자 ${P.sart.digitMs}ms + ${P.sart.mask ? '마스크' : '빈 화면'} ${P.sart.maskMs}ms, 글자 크기 5단계 무작위, 3(약 ${Math.round((1 / 9 + (P.sart.nogoBoost || 0)) * 100)}%)에서 반응 억제. 억제 실패율과 함께 신호탐지 변별력 d′·응답 기준 c(참고)를 계산해, 빠르게 누르는 응답 성향과 멈추지 못함을 구분합니다.${C.cite(['robertson'])}</p>`);\n     } else if (k === 'emotion') {\n       const photo = r.stimMode === 'photo';\n       body += `<p class=\"small\"><b>2축 유형 판정 기준</b> 부정 자극 주의 편향 ${N.THRESH.biasHigh} 이상 · 압박 심박 반응 ${N.THRESH.stressHigh}bpm 이상을 ‘높음’으로 봅니다.${C.cite(['armstrong', 'kreibig'])}</p>`;",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37406843378"
+      }
     },
     {
       "sha": "91ff073b4c788b7d17499fb299020540a1397018",
@@ -206,7 +319,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55603716110",
@@ -238,7 +351,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-05T13:17:28.741619+00:00",
+      "lastAttemptAt": "2026-10-06T03:00:35.397316+00:00",
       "analysisError": "HTTP_429",
       "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
@@ -11007,9 +11120,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "fe41047cc3a9f7310db2293b5baa48ecdb867db8"
+    "sourceHead": "712adc5815e78b3630931bb8dc36651e13438783"
   },
-  "updatedAt": "2026-10-05T22:56:25.305142+00:00",
-  "aiCooldownUntil": "2026-10-05T23:01:24.740486+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-06T03:00:45.645088+00:00",
+  "aiCooldownUntil": "2026-10-06T04:00:44.985177+00:00",
+  "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
