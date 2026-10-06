@@ -37,16 +37,16 @@
         {
           "id": "evo-9e3eccd4ec56-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-9e3eccd4ec56-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9e3eccd4ec56f743228af49ddf46da6e84d31a0d\n변경 제목: Core 2.0: keep short frame gaps (<=150ms) as measured pulse\n관련 파일: newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9e3eccd4ec56-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "프레임 공백 보간 임계값 완화(150ms)에 따른 맥파 측정이용률 및 오차 회귀 검증",
+          "rationale": "관측된 변경 사실은 `newbiz-core.js`에서 보간 플래그 적용 기준에 150ms 하한을 도입하고 `newbiz-core.test.js`에 합성 프레임 누락 테스트를 추가한 것입니다. 연구자/개발자의 가설은 150ms 이하의 미세 공백에 대해 보간 표시를 생략함으로써 불필요한 창 탈락('frame-gaps')을 막고 약한 신호의 활용량을 높일 수 있다는 것입니다. 그러나 이는 합성 단위 테스트 기준일 뿐, 실제 다양한 실측 환경에서 신호 왜곡을 감추거나 BPM 측정 오차를 증가시킬 수 있는 위험이 존재합니다. 따라서 보간 표시 완화가 신호 활용률과 측정 오차에 미치는 영향을 근거 중심으로 검증해야 합니다.",
+          "validationPlan": "실측 데이터셋 및 연구자 기록 메모(dataset)를 연계하여 다음 기준으로 검증을 수행합니다. 본 평가 계획에서는 임의의 실측 오차 수치를 생성하지 않습니다.\n\n1. 평가 분모 구성: 실패 시도를 포함한 전체 측정 세션 수, 참가자 수, 기기 종류, 측정 날짜별로 분리된 평가 분모를 명확히 정의합니다.\n2. 조건별 활용률 및 오차 동시 평가: 프레임 누락 정도(정상 30fps, 20~25fps 가변 드롭, 15fps 이하 고드롭) 및 공백 길이별로 분석 창 활용률(Coverage)과 BPM 절대 오차(MAE, RMSE), SNR 지표를 함께 산출합니다.\n3. 이전 버전(Core 1.9) 대비 회귀 분석: 기존 `localDt(j)*1.6` 로직과 Core 2.0의 `Math.max(localDt(j)*1.6, 150)` 로직을 동일 실측 dataset에 대조하여 창 탈락률 감소량과 오검출(허위 맥파 통과) 증가 여부를 교차 비교합니다.\n4. 정상값 추정 금지 및 불확실성 평가: 보간 생략으로 인해 회복된 구간이 실제 맥파 정답과 유의미한 차이를 보이는지 평가하고, 불확실성이 높은 구간의 제외 기준을 점검합니다.",
+          "prompt": "다음 지침에 따라 현재 코드 변경사항을 확인하고 프레임 공백 보간 완화 로직에 대한 검증 및 후속 보완 과제를 수행하세요.\n\n1. 현재 코드 확인:\n- `newbiz-core.js` 내 보간 판정 조건 (`if(b.t-a.t>Math.max(localDt(j)*1.6,150))repaired[i]=1;`) 및 `newbiz-core.test.js`에 추가된 프레임 누락 테스트 스크립트를 확인하세요.\n\n2. 부분 유효 신호 활용량 및 오차 동시 평가 과제:\n- 150ms 이하 프레임 공백 구간을 보간으로 표시하지 않고 측정 신호로 받아들일 때, 분석 창 커버리지(신호 활용량)와 BPM 측정 오차를 동시에 측정하는 회귀 테스트 환경을 구성하세요.\n- 관련 dataset의 실제 측정 기록 및 연구 메모를 연결하여 검증하되, 제공되지 않은 실측 성능 수치를 임의로 만들어내지 마세요.\n- 약한 신호 및 프레임 누락 구간에서 맥파 형태 왜곡으로 인한 오답 발생 가능성과 품질 지표(SNR) 변화를 함께 추적하세요.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 프레임 누락이 빈번한 환경(20~25fps)에서 창 탈락 비율이 감소하여 세션 활용률이 향상되는 동시에, 연결된 dataset 기준 센서 대조 BPM 오차가 허용 오차 이내로 유지됨.\n- 회귀 기준: 150ms 이하 공백 보간 미표시로 인해 이상 신호가 필터링 없이 통과하여 특정 기기/참가자 환경에서 BPM 오차가 유의미하게 증가하거나 허위 맥파가 탐지됨.\n\n4. 결과 보고 양식:\n- 평가 분모: [전체 세션 수 / 참가자 수 / 기기 모델 수 / 측정 날짜 수 (실패 및 탈락 세션 포함 분모)]\n- 조건별 활용률 및 오차: [프레임 드롭 조건별 커버리지(%) / BPM MAE / RMSE / SNR]\n- 버전 간 대조 결과: [Core 1.9 대비 Core 2.0의 창 탈락률 변화 / BPM 오차 변화 / 회귀 발생 세션 수]\n- 향후 제언: [합성 테스트와 실측 대조 결과 간 격차 및 추가 불확실성 평가 필요성]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 9e3eccd4ec56f743228af49ddf46da6e84d31a0d\nDataset-Task: evo-9e3eccd4ec56-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55699589161",
@@ -78,9 +78,70 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-06T13:25:34.783638+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-06T16:56:24.767039+00:00",
+      "analysis": {
+        "summary": "2026년 10월 6일 커밋(sha: 9e3eccd4ec56f743228af49ddf46da6e84d31a0d)에서 `newbiz-core.js` 및 `newbiz-core.test.js` 파일이 수정되었습니다(파일 및 패치 생략 없음). 변경 사항의 핵심은 프레임 공백 보간 플래그(`repaired[i]=1`) 설정 조건에 150ms의 임계값을 추가하여 `b.t - a.t > Math.max(localDt(j) * 1.6, 150)`으로 로직을 완화한 것입니다.\n\n코드 주석 및 커밋 메세지상의 주장에 따르면, 맥파 신호(≤3Hz)는 150ms 이하(약 1~2프레임)의 짧은 공백의 경우 직선 보간으로도 파형 모양이 유지될 수 있다는 가설을 바탕으로 합니다. 기존에는 국소 시간 간격 기준만 적용되어 30fps 중 1~2프레임이 빈번히 누락되는 저사양/불안정 환경(실효 ~21fps)에서 보간 비율이 25%를 초과해 창 전체가 'frame-gaps'로 버려지는 문제가 발생했다고 설명합니다. `newbiz-core.test.js`에는 30% 프레임이 난수로 누락된 합성 데이터 환경에서 분석 커버리지 80% 이상 및 BPM 오차 3 미만을 확인하는 단위 테스트가 추가되었습니다.\n\n단, 해당 변경의 `accuracyValidated` 값은 `false`로 명시되어 있습니다. 주석 및 테스트에 기재된 30% 누락 합성 데이터 결과나 특정 실측 세션 식별자(NLR-64E98B3E…)에 대한 연구자 메모는 개발자의 주장 및 합성 실험 결과일 뿐, 실제 사람 대상의 임상적/독립적 정답 데이터에 대해 오차가 검증된 성과로 취급할 수 없습니다. 따라서 실제 관측 데이터셋과의 연계를 통한 회귀 검증 및 오차 평가가 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-9e3eccd4ec56-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "프레임 공백 보간 임계값 완화(150ms)에 따른 맥파 측정이용률 및 오차 회귀 검증",
+            "rationale": "관측된 변경 사실은 `newbiz-core.js`에서 보간 플래그 적용 기준에 150ms 하한을 도입하고 `newbiz-core.test.js`에 합성 프레임 누락 테스트를 추가한 것입니다. 연구자/개발자의 가설은 150ms 이하의 미세 공백에 대해 보간 표시를 생략함으로써 불필요한 창 탈락('frame-gaps')을 막고 약한 신호의 활용량을 높일 수 있다는 것입니다. 그러나 이는 합성 단위 테스트 기준일 뿐, 실제 다양한 실측 환경에서 신호 왜곡을 감추거나 BPM 측정 오차를 증가시킬 수 있는 위험이 존재합니다. 따라서 보간 표시 완화가 신호 활용률과 측정 오차에 미치는 영향을 근거 중심으로 검증해야 합니다.",
+            "validationPlan": "실측 데이터셋 및 연구자 기록 메모(dataset)를 연계하여 다음 기준으로 검증을 수행합니다. 본 평가 계획에서는 임의의 실측 오차 수치를 생성하지 않습니다.\n\n1. 평가 분모 구성: 실패 시도를 포함한 전체 측정 세션 수, 참가자 수, 기기 종류, 측정 날짜별로 분리된 평가 분모를 명확히 정의합니다.\n2. 조건별 활용률 및 오차 동시 평가: 프레임 누락 정도(정상 30fps, 20~25fps 가변 드롭, 15fps 이하 고드롭) 및 공백 길이별로 분석 창 활용률(Coverage)과 BPM 절대 오차(MAE, RMSE), SNR 지표를 함께 산출합니다.\n3. 이전 버전(Core 1.9) 대비 회귀 분석: 기존 `localDt(j)*1.6` 로직과 Core 2.0의 `Math.max(localDt(j)*1.6, 150)` 로직을 동일 실측 dataset에 대조하여 창 탈락률 감소량과 오검출(허위 맥파 통과) 증가 여부를 교차 비교합니다.\n4. 정상값 추정 금지 및 불확실성 평가: 보간 생략으로 인해 회복된 구간이 실제 맥파 정답과 유의미한 차이를 보이는지 평가하고, 불확실성이 높은 구간의 제외 기준을 점검합니다.",
+            "prompt": "다음 지침에 따라 현재 코드 변경사항을 확인하고 프레임 공백 보간 완화 로직에 대한 검증 및 후속 보완 과제를 수행하세요.\n\n1. 현재 코드 확인:\n- `newbiz-core.js` 내 보간 판정 조건 (`if(b.t-a.t>Math.max(localDt(j)*1.6,150))repaired[i]=1;`) 및 `newbiz-core.test.js`에 추가된 프레임 누락 테스트 스크립트를 확인하세요.\n\n2. 부분 유효 신호 활용량 및 오차 동시 평가 과제:\n- 150ms 이하 프레임 공백 구간을 보간으로 표시하지 않고 측정 신호로 받아들일 때, 분석 창 커버리지(신호 활용량)와 BPM 측정 오차를 동시에 측정하는 회귀 테스트 환경을 구성하세요.\n- 관련 dataset의 실제 측정 기록 및 연구 메모를 연결하여 검증하되, 제공되지 않은 실측 성능 수치를 임의로 만들어내지 마세요.\n- 약한 신호 및 프레임 누락 구간에서 맥파 형태 왜곡으로 인한 오답 발생 가능성과 품질 지표(SNR) 변화를 함께 추적하세요.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 프레임 누락이 빈번한 환경(20~25fps)에서 창 탈락 비율이 감소하여 세션 활용률이 향상되는 동시에, 연결된 dataset 기준 센서 대조 BPM 오차가 허용 오차 이내로 유지됨.\n- 회귀 기준: 150ms 이하 공백 보간 미표시로 인해 이상 신호가 필터링 없이 통과하여 특정 기기/참가자 환경에서 BPM 오차가 유의미하게 증가하거나 허위 맥파가 탐지됨.\n\n4. 결과 보고 양식:\n- 평가 분모: [전체 세션 수 / 참가자 수 / 기기 모델 수 / 측정 날짜 수 (실패 및 탈락 세션 포함 분모)]\n- 조건별 활용률 및 오차: [프레임 드롭 조건별 커버리지(%) / BPM MAE / RMSE / SNR]\n- 버전 간 대조 결과: [Core 1.9 대비 Core 2.0의 창 탈락률 변화 / BPM 오차 변화 / 회귀 발생 세션 수]\n- 향후 제언: [합성 테스트와 실측 대조 결과 간 격차 및 추가 불확실성 평가 필요성]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 9e3eccd4ec56f743228af49ddf46da6e84d31a0d\nDataset-Task: evo-9e3eccd4ec56-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "2163f00559f905bee02c8c1b6af294033f2fc8051585c1ff64cafd4587e9d73c",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 2218,
+            "candidatesTokenCount": 1643,
+            "totalTokenCount": 6864
+          }
+        },
+        "generatedAt": "2026-10-06T16:57:08.182297+00:00",
+        "sourceSha": "9e3eccd4ec56f743228af49ddf46da6e84d31a0d",
+        "sourceEvidence": {
+          "sha": "9e3eccd4ec56f743228af49ddf46da6e84d31a0d",
+          "parents": [
+            "dd11c3e93684525701f41da2037bf7e55cdf37b1"
+          ],
+          "committedAt": "2026-10-06T13:25:10Z",
+          "subject": "Core 2.0: keep short frame gaps (<=150ms) as measured pulse",
+          "url": "https://github.com/jeebs0627/neurolens/commit/9e3eccd4ec56f743228af49ddf46da6e84d31a0d",
+          "files": [
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 4,
+              "deletions": 2
+            },
+            {
+              "path": "newbiz-core.test.js",
+              "status": "modified",
+              "additions": 9,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 1.9';   // 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.0';   // 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -231,7 +231,9 @@\n         for(let k=0;k<3;k++)rgb[k][i]=a.v[k]+(b.v[k]-a.v[k])*q;\n         // 보간 표시는 주변 ±15프레임 간격의 국소 중앙값 기준: 기록 전체 중앙값(dt)만 쓰면 빨라진 구간 때문에\n         // 18~20fps 구간 전체가 '보간'으로 잡혀 창이 모두 버려진다(2026-10-04 실측: 기준선 0초)\n-        if(b.t-a.t>localDt(j)*1.6)repaired[i]=1;\n+        // 150ms 이하 공백은 표시하지 않는다: 맥파(≤3Hz)는 그 정도 직선 보간으로 모양이 유지되는데, 국소 기준만 쓰면 30fps 중 1~2프레임씩\n+        // 자주 빠지는 기록(실효 ~21fps)에서 보간 비율이 25%를 넘어 창이 전부 'frame-gaps'로 버려졌다(합성: 30% 누락 → 커버리지 0%→93%, 오답 0)\n+        if(b.t-a.t>Math.max(localDt(j)*1.6,150))repaired[i]=1;\n       }\n       // Filtering is restarted at every long gap; no pulse is synthesized across absence.\n       for(let a=0;a<length;){\nFILE newbiz-core.test.js\n@@ -294,3 +294,12 @@ console.log('newbiz-core tests passed');\n   assert.equal(tr.phase(0, 0), null);\n   console.log('PASS session trend: weak outliers and missing phases inferred, solid phases kept');\n }\n+{\n+  /* 2026-10-06 실측 NLR-64E98B3E…: 22fps 안팎(30fps 중 1~2프레임씩 자주 빠짐)인데 창이 'frame-gaps'로 통째로 버려졌다.\n+   * 150ms 이하 공백은 맥파(≤3Hz) 모양을 보존하므로 보간 표시하지 않는다 — 30% 프레임 누락에서도 심박을 받아들여야 한다 */\n+  let s = 9; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };\n+  const frames = N.synthFrames(0, 40000, () => 80, { fps: 30, seed: 3, noise: 1 }).filter(() => rnd() >= 0.3);\n+  const e = N.measureEvidence(frames, 0, 40000);\n+  assert.ok(e.coverage > 0.8 && Math.abs(e.bpm - 80) < 3, `dropped frames: coverage ${e.coverage} bpm ${e.bpm}`);\n+  console.log('PASS frame drops: short gaps (≤150ms) kept as measured pulse');\n+}",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37499594931"
+      }
     },
     {
       "sha": "9ccd92659b586ec00622594c89c64e97d84dbf2e",
@@ -399,7 +460,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 3,
+      "analysisAttempts": 4,
       "deploymentEvents": [
         {
           "key": "check-55603716110",
@@ -431,7 +492,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-06T10:21:27.444038+00:00",
+      "lastAttemptAt": "2026-10-06T16:57:08.196938+00:00",
       "analysisError": "HTTP_503",
       "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
@@ -11200,9 +11261,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "e1cfb9330f97bc5c146e3eead26c8121fdc5b890"
+    "sourceHead": "4b544b3ed31b0a81c99efecff3db65293d0a2b92"
   },
-  "updatedAt": "2026-10-06T13:26:28.762390+00:00",
-  "aiCooldownUntil": "2026-10-06T13:30:42.328281+00:00",
+  "updatedAt": "2026-10-06T16:57:14.881849+00:00",
+  "aiCooldownUntil": "2026-10-06T17:02:14.165783+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
