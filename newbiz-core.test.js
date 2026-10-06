@@ -294,3 +294,12 @@ console.log('newbiz-core tests passed');
   assert.equal(tr.phase(0, 0), null);
   console.log('PASS session trend: weak outliers and missing phases inferred, solid phases kept');
 }
+{
+  /* 2026-10-06 실측 NLR-64E98B3E…: 22fps 안팎(30fps 중 1~2프레임씩 자주 빠짐)인데 창이 'frame-gaps'로 통째로 버려졌다.
+   * 150ms 이하 공백은 맥파(≤3Hz) 모양을 보존하므로 보간 표시하지 않는다 — 30% 프레임 누락에서도 심박을 받아들여야 한다 */
+  let s = 9; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };
+  const frames = N.synthFrames(0, 40000, () => 80, { fps: 30, seed: 3, noise: 1 }).filter(() => rnd() >= 0.3);
+  const e = N.measureEvidence(frames, 0, 40000);
+  assert.ok(e.coverage > 0.8 && Math.abs(e.bpm - 80) < 3, `dropped frames: coverage ${e.coverage} bpm ${e.bpm}`);
+  console.log('PASS frame drops: short gaps (≤150ms) kept as measured pulse');
+}
