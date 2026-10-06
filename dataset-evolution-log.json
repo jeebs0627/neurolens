@@ -3,6 +3,66 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "9e3eccd4ec56f743228af49ddf46da6e84d31a0d",
+      "parents": [
+        "dd11c3e93684525701f41da2037bf7e55cdf37b1"
+      ],
+      "committedAt": "2026-10-06T22:25:10+09:00",
+      "subject": "Core 2.0: keep short frame gaps (<=150ms) as measured pulse",
+      "url": "https://github.com/jeebs0627/neurolens/commit/9e3eccd4ec56f743228af49ddf46da6e84d31a0d",
+      "files": [
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 2
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/newbiz-core.js b/newbiz-core.js\nindex 8b293a1..a106831 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 1.9';   // 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.0';   // 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -232,5 +232,7 @@\n         // 보간 표시는 주변 ±15프레임 간격의 국소 중앙값 기준: 기록 전체 중앙값(dt)만 쓰면 빨라진 구간 때문에\n         // 18~20fps 구간 전체가 '보간'으로 잡혀 창이 모두 버려진다(2026-10-04 실측: 기준선 0초)\n-        if(b.t-a.t>localDt(j)*1.6)repaired[i]=1;\n+        // 150ms 이하 공백은 표시하지 않는다: 맥파(≤3Hz)는 그 정도 직선 보간으로 모양이 유지되는데, 국소 기준만 쓰면 30fps 중 1~2프레임씩\n+        // 자주 빠지는 기록(실효 ~21fps)에서 보간 비율이 25%를 넘어 창이 전부 'frame-gaps'로 버려졌다(합성: 30% 누락 → 커버리지 0%→93%, 오답 0)\n+        if(b.t-a.t>Math.max(localDt(j)*1.6,150))repaired[i]=1;\n       }\n       // Filtering is restarted at every long gap; no pulse is synthesized across absence.\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex 8f7a2b4..6281ecc 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -295,2 +295,11 @@ console.log('newbiz-core tests passed');\n   console.log('PASS session trend: weak outliers and missing phases inferred, solid phases kept');\n }\n+{\n+  /* 2026-10-06 실측 NLR-64E98B3E…: 22fps 안팎(30fps 중 1~2프레임씩 자주 빠짐)인데 창이 'frame-gaps'로 통째로 버려졌다.\n+   * 150ms 이하 공백은 맥파(≤3Hz) 모양을 보존하므로 보간 표시하지 않는다 — 30% 프레임 누락에서도 심박을 받아들여야 한다 */\n+  let s = 9; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };\n+  const frames = N.synthFrames(0, 40000, () => 80, { fps: 30, seed: 3, noise: 1 }).filter(() => rnd() >= 0.3);\n+  const e = N.measureEvidence(frames, 0, 40000);\n+  assert.ok(e.coverage > 0.8 && Math.abs(e.bpm - 80) < 3, `dropped frames: coverage ${e.coverage} bpm ${e.bpm}`);\n+  console.log('PASS frame drops: short gaps (≤150ms) kept as measured pulse');\n+}\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-9e3eccd4ec56-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-9e3eccd4ec56-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9e3eccd4ec56f743228af49ddf46da6e84d31a0d\n변경 제목: Core 2.0: keep short frame gaps (<=150ms) as measured pulse\n관련 파일: newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9e3eccd4ec56-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55699589161",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-06T13:25:15Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/7zaETF86phuRNoAwh5PUZMEiAM1p",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-06T13:25:34.783638+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "9ccd92659b586ec00622594c89c64e97d84dbf2e",
       "parents": [
         "eeb5e470841f00e5837342259fe249782ce05931"
@@ -11120,9 +11180,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "d21b4632ba4377a48ab8104f9e5b909eb760eed8"
+    "sourceHead": "9e3eccd4ec56f743228af49ddf46da6e84d31a0d"
   },
-  "updatedAt": "2026-10-06T10:21:42.559771+00:00",
-  "aiCooldownUntil": "2026-10-06T10:26:40.326265+00:00",
+  "updatedAt": "2026-10-06T13:25:43.026667+00:00",
+  "aiCooldownUntil": "2026-10-06T13:30:42.328281+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
