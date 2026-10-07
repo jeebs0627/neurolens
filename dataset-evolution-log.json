@@ -644,38 +644,38 @@
       "accuracyValidated": false,
       "tasks": [
         {
-          "id": "evo-709fa134c891-pulse",
-          "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-709fa134c891-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 709fa134c891eb0f2cfe3315aaf595424e8146cc\n변경 제목: Core 1.7: vertical gaze score as a calibration candidate, adopted only with a clear held-out gain\n관련 파일: condition-dataset.js, condition.html, dataset-lab.js, newbiz-core.js, newbiz-core.test.js, newbiz-research.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-709fa134c891-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
           "id": "evo-709fa134c891-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-709fa134c891-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 709fa134c891eb0f2cfe3315aaf595424e8146cc\n변경 제목: Core 1.7: vertical gaze score as a calibration candidate, adopted only with a clear held-out gain\n관련 파일: condition-dataset.js, condition.html, dataset-lab.js, newbiz-core.js, newbiz-core.test.js, newbiz-research.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-709fa134c891-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "세로 시선 특징(lookV) 보정 모델 후보 채택 알고리즘 검증 및 마진(pickCalibration) 최적화",
+          "rationale": "관측된 사실: condition.html 및 newbiz-core.js에서 lookV 특징을 이용한 보정 후보 m3가 신설되었고, N.pickCalibration 함수를 통해 기존 최선 모델 대비 절대 0.5%p 및 상대 10% 이상 오차가 감소할 때만 선택되도록 변경됨.\n개발자 가설 및 주장: 세로 시선 점수 lookV는 구분력 r을 향상시키지만 평가 점 오차를 우연히 맞추는 과적합 위험이 있어 보수적인 마진 기준을 적용해야 한다고 제시함.\n구분 필요성: 단일 세션 단위 테스트(newbiz-core.test.js)의 통과 사실만으로 임상적/실제 환경에서의 오차 감소가 검증되었다고 볼 수 없으며, 부분 신호 활용에 따른 오차 트레이드오프 및 마진 설정의 적절성을 다수 참가자/기기 환경에서 검증해야 함.",
+          "validationPlan": "1. 데이터셋 연동: 웹캠 측정 데이터셋 중 다양한 기기(노트북, 외장 웹캠 등) 및 세션 데이터를 대상으로 보정 시도 분모(실패 세션 포함)를 설정함.\n2. 조건별 활용률 및 오차 평가: lookV 미적용 기존 보정 모델과 lookV 적용 모델, 그리고 pickCalibration 적용 모델의 3개 조건에 대해, (1) 세로 오차(%H), (2) 전체 오차(%W), (3) lookV 모델 채택률을 참가자/기기/날짜별로 분리 산출함.\n3. 회귀 검증: pickCalibration의 margin(abs: 0.5, rel: 0.1) 변수 변화에 따른 오차 분포 및 미채택 세션에서의 안정성을 평가하여 이상 오차(outlier)가 유발되는 조건이 없는지 확인함.",
+          "prompt": "NeuroLens 측정 알고리즘 개발 AI에게 지시합니다.\n\n[목적]\nCore 1.7에 반영된 세로 시선 특징(lookV) 보정 후보 및 `pickCalibration` 마진 로직이 웹캠 기반 측정 정확도 및 안정성에 미치는 영향을 다각도로 검증하고, 부분 유효 신호 활용량과 오차 간의 트레이드오프를 평가하십시오.\n\n[현재 코드 및 파일 확인 필수]\n- `newbiz-core.js` 내 `pickCalibration` 구현 및 `gazeAccuracy` 연동 확인\n- `condition.html` 내 보정 4단계 후보 산출 및 `lookV` 특징 생성부 확인\n- `newbiz-core.test.js` 내 임계값 단위 테스트 케이스 확인\n\n[주요 과제 및 검증 요구사항]\n1. 실측 데이터셋 연계 평가:\n   - 본 환경에는 실측 데이터 수치가 직접 제공되지 않으므로, `dataset` 및 관련 수집 메모를 연동하여 평가를 수행하십시오.\n   - 절대로 가상의 성능 수치나 정상값을 임의로 만들어내지 마십시오.\n2. 분모 및 조건 분리 산출:\n   - 보정 시도 전체 분모(실패 및 이탈 세션 포함)를 기준으로 세션 채택률을 계산하십시오.\n   - 참가자 ID, 기기 종류, 측정 날짜별로 그룹화하여 조건별 활용률과 오차(errPct, 세로 오차 %H)를 평가하십시오.\n3. 마진(margin) 조건 비교 연구:\n   - 마진 미적용(단순 최저 오차 선택) vs 기존 마진(abs 0.5%p, rel 10%) vs 강건 마진 조건에 대해 과적합 발생 빈도 및 미검증 세션 오차를 비교 평가하십시오.\n\n[성공 및 회귀 판단 기준]\n- 성공 기준: pickCalibration 적용 시, 미적용 대비 외각 평가 점에서의 5%p 이상 극단 오차 발생율이 유의미하게 감소하고, lookV 채택 세션에서 세로 오차(%H) 평균이 악화되지 않아야 함.\n- 회귀 기준: 마진 조건 적용으로 인해 전체 보정 성공률(정상 등급 진입률)이 하락하거나, 특정 기기군에서 보정 오차가 기존 대비 상향되는 현상이 발생하는 경우 회귀로 판정함.\n\n[결과 보고 양식]\n결과는 아래 정형화된 서식으로 제출하십시오:\n1. 분석한 코드 위치 및 커밋 연관성 요약\n2. 데이터셋 연동 현황 (분모 세션 수, 실패 포함 세션 수, 기기/참가자 분할 현황)\n3. 조건별(기존 모델 vs lookV 직분 vs 마진 적용) 활용률, 평균 errPct, 세로 오차(%H) 비교표\n4. 회귀 여부 및 pickCalibration 마진 매개변수에 대한 연구자 제안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 709fa134c891eb0f2cfe3315aaf595424e8146cc\nDataset-Task: evo-709fa134c891-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-709fa134c891-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-709fa134c891-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 709fa134c891eb0f2cfe3315aaf595424e8146cc\n변경 제목: Core 1.7: vertical gaze score as a calibration candidate, adopted only with a clear held-out gain\n관련 파일: condition-dataset.js, condition.html, dataset-lab.js, newbiz-core.js, newbiz-core.test.js, newbiz-research.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-709fa134c891-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "세로 시선 구성 요소 분리(lookUp/lookDown) 그림자 평가(shadow2) 수집 데이터 분석 프레임워크 구축",
+          "rationale": "관측된 사실: condition.html, condition-dataset.js, dataset-lab.js, newbiz-research.js 수정에서 shadow2 필드가 추가되어 lookUp과 lookDown을 상하 통합 점수(lookV)가 아닌 별도 특징으로 분리하여 그림자 비교(compareGazeFeatures)를 수행하도록 로깅이 확장됨.\n개발자 가설 및 주장: 화면 상단 및 하단 경계 영역에서 눈 블렌드셰이프 포화(saturation) 현상이 비대칭으로 일어날 수 있으므로, lookUp과 lookDown을 분리하면 모델이 화면 끝 영역 오차를 다르게 적응할 수 있을 것이라는 가설 제시.\n구분 필요성: shadow2 데이터는 측정 모델에 직접 입력되지 않는 그림자 평가(shadow evaluation) 기록이므로, 이 수집 로그가 실제로 유용한 구분력(ry) 상승 및 세로 오차(hy) 감소 신호를 보이고 있는지 연구 로깅 체계상에서 검증해야 함.",
+          "validationPlan": "1. 연구 로그 무결성 검증: dataset-lab.js 및 newbiz-research.js를 통해 수집되는 `shadow2` (`lookUp`, `lookDown` 포함) 및 `lookV` 채택 여부 필드가 누락 없이 정형 데이터로 집계되는지 검증.\n2. 그림자 비교 데이터 분석: 수집된 연구 로그 데이터셋에서 base vs lookV(shadow) vs lookUp/lookDown 분리(shadow2) 간 세로 오차(%H) 및 세로 상관계수(ry) 수치를 참가자/기기/밝기 조건별로 분리 평가.\n3. 포화 구간 분석: 시선이 화면 상단/하단 끝으로 이동할 때 lookUp과 lookDown 점수의 포화 여부와 세로 오차 간의 상관관계를 통계적으로 분석.",
+          "prompt": "NeuroLens 알고리즘 연구 AI에게 지시합니다.\n\n[목적]\n`shadow2` 로깅을 통해 수집되는 세로 시선 요소 분리(`lookUp`, `lookDown`) 그림자 평가 데이터를 체계적으로 수집·분석하고, 측정 모델 직접 반영 여부를 결정하기 위한 연구 프레임워크를 수립하십시오.\n\n[현재 코드 및 파일 확인 필수]\n- `condition.html` 내 `fine.shadow2` 생성 및 `N.compareGazeFeatures` 호출부 확인\n- `condition-dataset.js`, `dataset-lab.js`, `newbiz-research.js` 내 연구 로그 추출 필드 확인\n\n[주요 과제 및 검증 요구사항]\n1. 로그 수집 상태 및 무결성 검증:\n   - 연구용 dataset 내 audit 기록에서 `shadow2` 및 `lookV` 수집 상태를 점검하십시오.\n   - 데이터가 누락되거나 undefined로 처리되는 예외 케이스(예: MediaPipe 블렌드셰이프 부재 시)의 유무를 확인하십시오.\n2. 관측 사실 기반 세로 신호 효과 분석:\n   - 실측 성능 수치를 자의적으로 생성하지 말고, dataset 내 실제 기록된 `sh.base`, `sh.withExtra`, `shadow2`의 세로 오차(hy) 및 상관계수(ry) 데이터를 연결하여 분석하십시오.\n   - 단일 세션 결과를 일반화하지 말고, 조도 환경 및 기기 카메라 해상도별로 그룹화하여 세로 오차 개선율 분포를 제시하십시오.\n3. 약한 신호 활용 및 제외 기준 수립:\n   - lookUp/lookDown 분리 신호가 노이즈로 작용하는 한계 조건(예: 눈 깜빡임, 카메라 하단 편향 등)을 파악하고, 불확실성 평가 및 제외 기준을 정의하십시오.\n\n[성공 및 회귀 판단 기준]\n- 성공 기준: shadow2 분석을 통해 세로 시선 포화 구간에서 lookUp/lookDown 분리가 단순 lookV 대비 오차 감소에 기여하는 명확한 부분 조건(기기/조도)을 도출함.\n- 회귀 기준: 연구 로깅 추가로 인한 메인 스레드 연산 지연(0.6초 이상 프레임 공백 유발) 또는 audit 파일 용량 급증으로 인한 저장 실패 발생 시 회귀로 간주함.\n\n[결과 보고 양식]\n1. 연구 로그 수집 로직 및 데이터 포맷 검증 결과\n2. dataset 기반 shadow vs shadow2 세로 오차(hy), 상관계수(ry) 조건별 비교 분석 표\n3. 상/하단 포화 구간에서의 노이즈 및 약한 신호 활용 가능성 평가\n4. 차기 측정 모델(Core 1.8 등)로의 반영 여부에 대한 연구적 판단 및 근거\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 709fa134c891eb0f2cfe3315aaf595424e8146cc\nDataset-Task: evo-709fa134c891-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-709fa134c891-pulse",
+          "domain": "pulse",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 보정 파이프라인 연산 추가에 따른 심박 측정(pulse) 파이프라인 영향 및 리소스 간섭 검증",
+          "rationale": "관측된 Facts: 금번 커밋은 시선(gaze) 보정 로직(m3 추가, shadow2 연산, pickCalibration) 수정에 집중되어 있으며, pulse 알고리즘 파이프라인(buildBvp, hrWindows 등) 자체의 직접 코드는 변경되지 않았음.\n간접 영향 검증 필요성: condition.html 프레임 루프 내에서 gaze 특징 추출(lookUp, lookDown calculation 및 N.compareGazeFeatures 추가 연산)이 동시에 일어남. 웹캠 제한 환경에서 프레임 처리 지연이나 스레드 병목이 발생할 경우 pulse의 유효 초(validSeconds), 신뢰 반영 초(effectiveSeconds), SNR(dB) 산출에 영향을 줄 수 있음.\n구분 필요성: pulse 파이프라인이 정상 동작한다는 커밋 측의 명시적 검증 결과가 없으므로, 시선 보정 연산 추가 시에도 pulse 신호 수집 및 분석 파이프라인이 저하되지 않는지 확인해야 함.",
+          "validationPlan": "1. 융합 파이프라인 동시 실행 검증: 시선 보정이 정밀하게 수행되는 도중 pulse 측정 수치(BPM, SNR dB, validSeconds)가 유실되거나 drops가 발생하는지 확인.\n2. 프레임 타임스탬프 및 공백 검증: condition-dataset.js 내 `timing` 및 `hiddenSeconds` 로그를 분석하여 gaze 연산 추가 전후의 프레임 공백(0.6초 이상) 발생 비율 비교.\n3. pulse 품질 지표 회귀 검증: 동일 비디오 입력 스트림 환경에서 gaze Core 1.6 vs Core 1.7 적용 시 pulse SNR 및 effectiveSeconds의 변동폭 산출.",
+          "prompt": "NeuroLens pulse/fusion 개발 AI에게 지시합니다.\n\n[목적]\nCore 1.7 시선 보정 모델 후보 및 그림자 연산 추가가 동시 실행되는 심박 측정(pulse) 파이프라인의 신호 유효성, 프레임 타이밍 및 SNR 품질 지표에 미치는 간접 영향을 검증하십시오.\n\n[현재 코드 및 파일 확인 필수]\n- `condition.html` 내 프레임 루프 처리 및 gaze/pulse 데이터 수집부 확인\n- `dataset-lab.js` 내 pulse 수치 출력 항목 (`out['심박 bpm']`, `out['SNR dB']`, `out['유효 초']`, `out['신뢰 반영 초']`) 확인\n- `newbiz-core.js` 내 Fusion 모듈 연동부 확인\n\n[주요 과제 및 검증 요구사항]\n1. 파이프라인 간섭 및 자원 경합 평가:\n   - gaze 연산 추가(`N.compareGazeFeatures` 2회 실행 등)로 인한 메인 프레임 처리 지연이 pulse BVP 생성 및 spectral peak 산출에 미치는 영향을 평가하십시오.\n   - 임의로 pulse 성능 수치를 만들어내지 말고 dataset에 연동된 실제 pulse 기록(snr, validSeconds, effectiveSeconds)을 사용하십시오.\n2. 약한 신호 및 불안정 구간 트래킹:\n   - 시선 보정이 복잡하게 진행되는 구간 동안 pulse의 SNR이 기준치(SNR_GOOD = 3dB, SNR_FAIR = -2dB) 이하로 떨어지는 비율과 유효 시간 보존율을 계산하십시오.\n   - 실패 세션을 포함한 전체 측정 시도 분모 대비 pulse 성공률을 평가하십시오.\n\n[성공 및 회귀 판단 기준]\n- 성공 기준: gaze 연산 추가 전후 대비 pulse 유효 초 비율 감소가 2% 이내이고, SNR 평균 감소가 0.5dB 이내로 유지됨.\n- 회귀 기준: gaze 연산 추가로 인해 0.6초 이상의 프레임 드롭이 늘어나며 pulse 산출 결과가 null로 떨어지거나 유효 초가 급감하는 세션이 발생하는 경우.\n\n[결과 보고 양식]\n1. gaze 1.7 적용 후 pulse 연동 코드 검증 개요\n2. dataset 기반 pulse 신호 유효성(SNR dB, validSeconds, effectiveSeconds) 비교표\n3. 프레임 지연/공백 발생률 및 자원 간섭 평가 결과\n4. pulse 파이프라인의 안정을 위한 통합 가이드라인\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 709fa134c891eb0f2cfe3315aaf595424e8146cc\nDataset-Task: evo-709fa134c891-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisState": "generated",
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-55599670476",
@@ -707,9 +707,116 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-06T21:39:35.027360+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-07T01:01:56.286532+00:00",
+      "analysis": {
+        "summary": "2026-10-05 자 커밋(709fa134c891eb0f2cfe3315aaf595424e8146cc)의 공개 코드 변경사항 분석 결과, MediaPipe 눈 블렌드셰이프(eyeLookUpLeft, eyeLookUpRight, eyeLookDownLeft, eyeLookDownRight)를 기반으로 세로 시선 특징 점수(lookUp, lookDown, lookV)를 산출하고 이를 gaze 보정 모델 후보 및 그림자 평가(shadow, shadow2)에 반영하는 구조 변경이 관측되었습니다.\n\n주요 코드 변경 내역:\n1. condition.html: blendMap 결과를 활용해 lookUp, lookDown 및 이들의 차이값인 lookV 특징을 생성하였으며, 보정 4단계(N.fitGaze) 후보에 extra: ['lookV'] 옵션을 갖는 m3 모델을 추가함. 오차 최적 후보 선별 시 단순 최저 오차 선택 방식에서 N.pickCalibration을 호출하는 방식으로 변경함. 또한 shadow2를 신설하여 lookUp과 lookDown을 분리한 그림자 비교 데이터를 추출함.\n2. newbiz-core.js: Core 버전을 1.6에서 1.7로 업데이트함. N.pickCalibration(cands, margin) 함수를 신규 구현하여 추가 특징(extra)을 사용하는 모델 후보는 기존 기본 모델 대비 오차가 절대값 0.5%p 이상 개선되고 동시에 상대적으로 10% 이상 오차가 감소할 때만 채택하도록 제한(margin)을 둠. 주석상 4개 실측 세션에서 lookV가 구분력 r을 올렸으나 오차가 유의미하게 변동했던 연구 기록을 명시함.\n3. condition-dataset.js, dataset-lab.js, newbiz-research.js: 감사(audit) 및 연구 로깅 구조체에 shadow2, lookV 채택 여부(lookV: boolean, '세로 점수 채택')를 기록하도록 필드를 확장함.\n4. newbiz-core.test.js: N.pickCalibration의 선택 임계값 및 이전 4개 세션 조건별 채택/미채택 동작을 검증하는 단편 단위 테스트를 추가함.\n\n근거 및 제한사항 명시:\n- 제공된 diff 범위 내에서 diff 생략(truncated)은 없었습니다(filesTruncated: false, patchTruncated: false).\n- 커밋 제목(\"Core 1.7: vertical gaze score as a calibration candidate...\") 및 코드 내 주석의 주장은 개발자의 가설 및 개별 세션 관찰 기록일 뿐이며, 외부 기준 센서(Ground Truth)에 의해 검증된 임상/사람 대상 진단 정확도로 해석할 수 없습니다.\n- 제공된 자료에는 실측 데이터셋의 수치가 직접 포함되어 있지 않으므로, 후속 검증 시 반드시 외부 데이터셋(dataset)과의 연계를 통해 검증해야 합니다.",
+        "tasks": [
+          {
+            "id": "evo-709fa134c891-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "세로 시선 특징(lookV) 보정 모델 후보 채택 알고리즘 검증 및 마진(pickCalibration) 최적화",
+            "rationale": "관측된 사실: condition.html 및 newbiz-core.js에서 lookV 특징을 이용한 보정 후보 m3가 신설되었고, N.pickCalibration 함수를 통해 기존 최선 모델 대비 절대 0.5%p 및 상대 10% 이상 오차가 감소할 때만 선택되도록 변경됨.\n개발자 가설 및 주장: 세로 시선 점수 lookV는 구분력 r을 향상시키지만 평가 점 오차를 우연히 맞추는 과적합 위험이 있어 보수적인 마진 기준을 적용해야 한다고 제시함.\n구분 필요성: 단일 세션 단위 테스트(newbiz-core.test.js)의 통과 사실만으로 임상적/실제 환경에서의 오차 감소가 검증되었다고 볼 수 없으며, 부분 신호 활용에 따른 오차 트레이드오프 및 마진 설정의 적절성을 다수 참가자/기기 환경에서 검증해야 함.",
+            "validationPlan": "1. 데이터셋 연동: 웹캠 측정 데이터셋 중 다양한 기기(노트북, 외장 웹캠 등) 및 세션 데이터를 대상으로 보정 시도 분모(실패 세션 포함)를 설정함.\n2. 조건별 활용률 및 오차 평가: lookV 미적용 기존 보정 모델과 lookV 적용 모델, 그리고 pickCalibration 적용 모델의 3개 조건에 대해, (1) 세로 오차(%H), (2) 전체 오차(%W), (3) lookV 모델 채택률을 참가자/기기/날짜별로 분리 산출함.\n3. 회귀 검증: pickCalibration의 margin(abs: 0.5, rel: 0.1) 변수 변화에 따른 오차 분포 및 미채택 세션에서의 안정성을 평가하여 이상 오차(outlier)가 유발되는 조건이 없는지 확인함.",
+            "prompt": "NeuroLens 측정 알고리즘 개발 AI에게 지시합니다.\n\n[목적]\nCore 1.7에 반영된 세로 시선 특징(lookV) 보정 후보 및 `pickCalibration` 마진 로직이 웹캠 기반 측정 정확도 및 안정성에 미치는 영향을 다각도로 검증하고, 부분 유효 신호 활용량과 오차 간의 트레이드오프를 평가하십시오.\n\n[현재 코드 및 파일 확인 필수]\n- `newbiz-core.js` 내 `pickCalibration` 구현 및 `gazeAccuracy` 연동 확인\n- `condition.html` 내 보정 4단계 후보 산출 및 `lookV` 특징 생성부 확인\n- `newbiz-core.test.js` 내 임계값 단위 테스트 케이스 확인\n\n[주요 과제 및 검증 요구사항]\n1. 실측 데이터셋 연계 평가:\n   - 본 환경에는 실측 데이터 수치가 직접 제공되지 않으므로, `dataset` 및 관련 수집 메모를 연동하여 평가를 수행하십시오.\n   - 절대로 가상의 성능 수치나 정상값을 임의로 만들어내지 마십시오.\n2. 분모 및 조건 분리 산출:\n   - 보정 시도 전체 분모(실패 및 이탈 세션 포함)를 기준으로 세션 채택률을 계산하십시오.\n   - 참가자 ID, 기기 종류, 측정 날짜별로 그룹화하여 조건별 활용률과 오차(errPct, 세로 오차 %H)를 평가하십시오.\n3. 마진(margin) 조건 비교 연구:\n   - 마진 미적용(단순 최저 오차 선택) vs 기존 마진(abs 0.5%p, rel 10%) vs 강건 마진 조건에 대해 과적합 발생 빈도 및 미검증 세션 오차를 비교 평가하십시오.\n\n[성공 및 회귀 판단 기준]\n- 성공 기준: pickCalibration 적용 시, 미적용 대비 외각 평가 점에서의 5%p 이상 극단 오차 발생율이 유의미하게 감소하고, lookV 채택 세션에서 세로 오차(%H) 평균이 악화되지 않아야 함.\n- 회귀 기준: 마진 조건 적용으로 인해 전체 보정 성공률(정상 등급 진입률)이 하락하거나, 특정 기기군에서 보정 오차가 기존 대비 상향되는 현상이 발생하는 경우 회귀로 판정함.\n\n[결과 보고 양식]\n결과는 아래 정형화된 서식으로 제출하십시오:\n1. 분석한 코드 위치 및 커밋 연관성 요약\n2. 데이터셋 연동 현황 (분모 세션 수, 실패 포함 세션 수, 기기/참가자 분할 현황)\n3. 조건별(기존 모델 vs lookV 직분 vs 마진 적용) 활용률, 평균 errPct, 세로 오차(%H) 비교표\n4. 회귀 여부 및 pickCalibration 마진 매개변수에 대한 연구자 제안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 709fa134c891eb0f2cfe3315aaf595424e8146cc\nDataset-Task: evo-709fa134c891-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-709fa134c891-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "세로 시선 구성 요소 분리(lookUp/lookDown) 그림자 평가(shadow2) 수집 데이터 분석 프레임워크 구축",
+            "rationale": "관측된 사실: condition.html, condition-dataset.js, dataset-lab.js, newbiz-research.js 수정에서 shadow2 필드가 추가되어 lookUp과 lookDown을 상하 통합 점수(lookV)가 아닌 별도 특징으로 분리하여 그림자 비교(compareGazeFeatures)를 수행하도록 로깅이 확장됨.\n개발자 가설 및 주장: 화면 상단 및 하단 경계 영역에서 눈 블렌드셰이프 포화(saturation) 현상이 비대칭으로 일어날 수 있으므로, lookUp과 lookDown을 분리하면 모델이 화면 끝 영역 오차를 다르게 적응할 수 있을 것이라는 가설 제시.\n구분 필요성: shadow2 데이터는 측정 모델에 직접 입력되지 않는 그림자 평가(shadow evaluation) 기록이므로, 이 수집 로그가 실제로 유용한 구분력(ry) 상승 및 세로 오차(hy) 감소 신호를 보이고 있는지 연구 로깅 체계상에서 검증해야 함.",
+            "validationPlan": "1. 연구 로그 무결성 검증: dataset-lab.js 및 newbiz-research.js를 통해 수집되는 `shadow2` (`lookUp`, `lookDown` 포함) 및 `lookV` 채택 여부 필드가 누락 없이 정형 데이터로 집계되는지 검증.\n2. 그림자 비교 데이터 분석: 수집된 연구 로그 데이터셋에서 base vs lookV(shadow) vs lookUp/lookDown 분리(shadow2) 간 세로 오차(%H) 및 세로 상관계수(ry) 수치를 참가자/기기/밝기 조건별로 분리 평가.\n3. 포화 구간 분석: 시선이 화면 상단/하단 끝으로 이동할 때 lookUp과 lookDown 점수의 포화 여부와 세로 오차 간의 상관관계를 통계적으로 분석.",
+            "prompt": "NeuroLens 알고리즘 연구 AI에게 지시합니다.\n\n[목적]\n`shadow2` 로깅을 통해 수집되는 세로 시선 요소 분리(`lookUp`, `lookDown`) 그림자 평가 데이터를 체계적으로 수집·분석하고, 측정 모델 직접 반영 여부를 결정하기 위한 연구 프레임워크를 수립하십시오.\n\n[현재 코드 및 파일 확인 필수]\n- `condition.html` 내 `fine.shadow2` 생성 및 `N.compareGazeFeatures` 호출부 확인\n- `condition-dataset.js`, `dataset-lab.js`, `newbiz-research.js` 내 연구 로그 추출 필드 확인\n\n[주요 과제 및 검증 요구사항]\n1. 로그 수집 상태 및 무결성 검증:\n   - 연구용 dataset 내 audit 기록에서 `shadow2` 및 `lookV` 수집 상태를 점검하십시오.\n   - 데이터가 누락되거나 undefined로 처리되는 예외 케이스(예: MediaPipe 블렌드셰이프 부재 시)의 유무를 확인하십시오.\n2. 관측 사실 기반 세로 신호 효과 분석:\n   - 실측 성능 수치를 자의적으로 생성하지 말고, dataset 내 실제 기록된 `sh.base`, `sh.withExtra`, `shadow2`의 세로 오차(hy) 및 상관계수(ry) 데이터를 연결하여 분석하십시오.\n   - 단일 세션 결과를 일반화하지 말고, 조도 환경 및 기기 카메라 해상도별로 그룹화하여 세로 오차 개선율 분포를 제시하십시오.\n3. 약한 신호 활용 및 제외 기준 수립:\n   - lookUp/lookDown 분리 신호가 노이즈로 작용하는 한계 조건(예: 눈 깜빡임, 카메라 하단 편향 등)을 파악하고, 불확실성 평가 및 제외 기준을 정의하십시오.\n\n[성공 및 회귀 판단 기준]\n- 성공 기준: shadow2 분석을 통해 세로 시선 포화 구간에서 lookUp/lookDown 분리가 단순 lookV 대비 오차 감소에 기여하는 명확한 부분 조건(기기/조도)을 도출함.\n- 회귀 기준: 연구 로깅 추가로 인한 메인 스레드 연산 지연(0.6초 이상 프레임 공백 유발) 또는 audit 파일 용량 급증으로 인한 저장 실패 발생 시 회귀로 간주함.\n\n[결과 보고 양식]\n1. 연구 로그 수집 로직 및 데이터 포맷 검증 결과\n2. dataset 기반 shadow vs shadow2 세로 오차(hy), 상관계수(ry) 조건별 비교 분석 표\n3. 상/하단 포화 구간에서의 노이즈 및 약한 신호 활용 가능성 평가\n4. 차기 측정 모델(Core 1.8 등)로의 반영 여부에 대한 연구적 판단 및 근거\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 709fa134c891eb0f2cfe3315aaf595424e8146cc\nDataset-Task: evo-709fa134c891-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-709fa134c891-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 보정 파이프라인 연산 추가에 따른 심박 측정(pulse) 파이프라인 영향 및 리소스 간섭 검증",
+            "rationale": "관측된 Facts: 금번 커밋은 시선(gaze) 보정 로직(m3 추가, shadow2 연산, pickCalibration) 수정에 집중되어 있으며, pulse 알고리즘 파이프라인(buildBvp, hrWindows 등) 자체의 직접 코드는 변경되지 않았음.\n간접 영향 검증 필요성: condition.html 프레임 루프 내에서 gaze 특징 추출(lookUp, lookDown calculation 및 N.compareGazeFeatures 추가 연산)이 동시에 일어남. 웹캠 제한 환경에서 프레임 처리 지연이나 스레드 병목이 발생할 경우 pulse의 유효 초(validSeconds), 신뢰 반영 초(effectiveSeconds), SNR(dB) 산출에 영향을 줄 수 있음.\n구분 필요성: pulse 파이프라인이 정상 동작한다는 커밋 측의 명시적 검증 결과가 없으므로, 시선 보정 연산 추가 시에도 pulse 신호 수집 및 분석 파이프라인이 저하되지 않는지 확인해야 함.",
+            "validationPlan": "1. 융합 파이프라인 동시 실행 검증: 시선 보정이 정밀하게 수행되는 도중 pulse 측정 수치(BPM, SNR dB, validSeconds)가 유실되거나 drops가 발생하는지 확인.\n2. 프레임 타임스탬프 및 공백 검증: condition-dataset.js 내 `timing` 및 `hiddenSeconds` 로그를 분석하여 gaze 연산 추가 전후의 프레임 공백(0.6초 이상) 발생 비율 비교.\n3. pulse 품질 지표 회귀 검증: 동일 비디오 입력 스트림 환경에서 gaze Core 1.6 vs Core 1.7 적용 시 pulse SNR 및 effectiveSeconds의 변동폭 산출.",
+            "prompt": "NeuroLens pulse/fusion 개발 AI에게 지시합니다.\n\n[목적]\nCore 1.7 시선 보정 모델 후보 및 그림자 연산 추가가 동시 실행되는 심박 측정(pulse) 파이프라인의 신호 유효성, 프레임 타이밍 및 SNR 품질 지표에 미치는 간접 영향을 검증하십시오.\n\n[현재 코드 및 파일 확인 필수]\n- `condition.html` 내 프레임 루프 처리 및 gaze/pulse 데이터 수집부 확인\n- `dataset-lab.js` 내 pulse 수치 출력 항목 (`out['심박 bpm']`, `out['SNR dB']`, `out['유효 초']`, `out['신뢰 반영 초']`) 확인\n- `newbiz-core.js` 내 Fusion 모듈 연동부 확인\n\n[주요 과제 및 검증 요구사항]\n1. 파이프라인 간섭 및 자원 경합 평가:\n   - gaze 연산 추가(`N.compareGazeFeatures` 2회 실행 등)로 인한 메인 프레임 처리 지연이 pulse BVP 생성 및 spectral peak 산출에 미치는 영향을 평가하십시오.\n   - 임의로 pulse 성능 수치를 만들어내지 말고 dataset에 연동된 실제 pulse 기록(snr, validSeconds, effectiveSeconds)을 사용하십시오.\n2. 약한 신호 및 불안정 구간 트래킹:\n   - 시선 보정이 복잡하게 진행되는 구간 동안 pulse의 SNR이 기준치(SNR_GOOD = 3dB, SNR_FAIR = -2dB) 이하로 떨어지는 비율과 유효 시간 보존율을 계산하십시오.\n   - 실패 세션을 포함한 전체 측정 시도 분모 대비 pulse 성공률을 평가하십시오.\n\n[성공 및 회귀 판단 기준]\n- 성공 기준: gaze 연산 추가 전후 대비 pulse 유효 초 비율 감소가 2% 이내이고, SNR 평균 감소가 0.5dB 이내로 유지됨.\n- 회귀 기준: gaze 연산 추가로 인해 0.6초 이상의 프레임 드롭이 늘어나며 pulse 산출 결과가 null로 떨어지거나 유효 초가 급감하는 세션이 발생하는 경우.\n\n[결과 보고 양식]\n1. gaze 1.7 적용 후 pulse 연동 코드 검증 개요\n2. dataset 기반 pulse 신호 유효성(SNR dB, validSeconds, effectiveSeconds) 비교표\n3. 프레임 지연/공백 발생률 및 자원 간섭 평가 결과\n4. pulse 파이프라인의 안정을 위한 통합 가이드라인\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 709fa134c891eb0f2cfe3315aaf595424e8146cc\nDataset-Task: evo-709fa134c891-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "508ed347d98c9637269e6f9892fa72f4cc573548f0333a1b8808f163818e4d42",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 6148,
+            "candidatesTokenCount": 3986,
+            "totalTokenCount": 12291
+          }
+        },
+        "generatedAt": "2026-10-07T01:02:39.931928+00:00",
+        "sourceSha": "709fa134c891eb0f2cfe3315aaf595424e8146cc",
+        "sourceEvidence": {
+          "sha": "709fa134c891eb0f2cfe3315aaf595424e8146cc",
+          "parents": [
+            "b01826897f4236d8be0f6e2d049c3e3bc48b66a1"
+          ],
+          "committedAt": "2026-10-05T12:21:48Z",
+          "subject": "Core 1.7: vertical gaze score as a calibration candidate, adopted only with a clear held-out gain",
+          "url": "https://github.com/jeebs0627/neurolens/commit/709fa134c891eb0f2cfe3315aaf595424e8146cc",
+          "files": [
+            {
+              "path": "condition-dataset.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 11,
+              "deletions": 4
+            },
+            {
+              "path": "dataset-lab.js",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 12,
+              "deletions": 2
+            },
+            {
+              "path": "newbiz-core.test.js",
+              "status": "modified",
+              "additions": 13,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-research.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            }
+          ],
+          "domains": [
+            "pulse",
+            "measurement",
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-dataset.js\n@@ -56,7 +56,7 @@\n     const audit={schema:VERSION,attemptId:rec.attemptId||null,outcome:opt.outcome||rec.outcome||'complete',errorCode:opt.errorCode||rec.errorCode||null,\n       measuredAt:rec.measuredAt||null,protocol:rec.lab?{kind:'lab',steps:rec.lab}:{kind:'full'},durationSec:round(Math.max(0,end-t0)/1000),versions:{core:res?.version||null,battery:b?.version||null,fusion:res?.evidence?.version||null},\n       acquisition:acquisition(visible),timing:{onsetDelayMs:stats(events.map(e=>e.onset-e.requested)),inputDispatchMs:stats((rec.telemetry?.inputs||[]).map(e=>e.dispatchMs)),stimuli:events.length,physicalDisplayLatency:'unmeasured'},\n-      gaze:{calibration:rec.calibration?{grade:rec.calibration.grade,errPct:rec.calibration.errPct,samples:rec.calibration.samples,shadow:rec.calibration.fine?.shadow||null}:null,evaluation:rec.calibLog?.evaluation||null,drift:(rec.telemetry?.drift||[]).map(d=>({...d,t:d.t-t0})),validation:'model-selection-or-internal; not independent ground truth'},\n+      gaze:{calibration:rec.calibration?{grade:rec.calibration.grade,errPct:rec.calibration.errPct,samples:rec.calibration.samples,shadow:rec.calibration.fine?.shadow||null,shadow2:rec.calibration.fine?.shadow2||null,lookV:!!rec.calibration.fine?.lookV}:null,evaluation:rec.calibLog?.evaluation||null,drift:(rec.telemetry?.drift||[]).map(d=>({...d,t:d.t-t0})),validation:'model-selection-or-internal; not independent ground truth'},\n       tests,interpretation:{status:'not-externally-validated',domains:b?Object.fromEntries(Object.entries(b.domains).map(([k,d])=>[k,{score:d.score,status:d.status,confidence:d.confidence}])):{}},\n       hiddenSeconds:round(hidden.reduce((s,h)=>s+Math.max(0,(h.end??end)-h.start),0)/1000),reference:null};\n     if(rec.reference?.samples?.length&&res?.evidence?.windows){\nFILE condition.html\n@@ -1535,7 +1535,10 @@ <h2>결과를 정리하고 있어요</h2>\n   if (!f) { S.featMiss = (S.featMiss || 0) + 1; return; }\n   const bs = blendMap(res);\n   /* 세로 시선 점수(기록·그림자 비교용): MediaPipe 눈 블렌드셰이프 위로 보기 − 아래로 보기, 두 눈 평균(−1~1). 측정 모델에는 아직 쓰지 않는다 */\n-  if ('eyeLookUpLeft' in bs) f.lookV = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0) - (bs.eyeLookDownLeft || 0) - (bs.eyeLookDownRight || 0)) / 2;\n+  if ('eyeLookUpLeft' in bs) {\n+    f.lookUp = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0)) / 2; f.lookDown = ((bs.eyeLookDownLeft || 0) + (bs.eyeLookDownRight || 0)) / 2;\n+    f.lookV = f.lookUp - f.lookDown;   // 위·아래 점수는 따로 두면 화면 끝 포화를 모델이 나눠 맞출 수 있는지 그림자 비교(shadow2)로 본다\n+  }\n   f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));\n   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));\n   const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2;\n@@ -2352,30 +2355,34 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n         if (m2) N.validateGazeEyes(m2, val, W, H);\n         const cand = [{ key: '기존 보정', model: S.model, A: S.affine, R: null }];\n         if (m2) cand.push({ key: '전체 표본 재학습', model: m2, A: N.fitAffine([...val, ...zc].map(p => predAt(m2, null, p))), R: null });\n+        /* 세로 시선 점수(lookV)를 특징에 더한 후보: 처음 보는 정밀 보정 점에서 기존 최선보다 확실히 좋을 때만 쓴다(N.pickCalibration) */\n+        const m3 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookV'] });\n+        if (m3 && m3.keys.includes('lookV')) { N.validateGazeEyes(m3, val, W, H); cand.push({ key: '전체 표본 재학습 · 세로 점수', model: m3, A: N.fitAffine([...val, ...zc].map(p => predAt(m3, null, p))), R: null, extra: ['lookV'] }); }\n         cand.slice().forEach(c0 => {\n           const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);\n           if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R });\n         });\n         cand.forEach(c => { c.acc = N.gazeAccuracy(fp.map(p => predAt(c.model, c.A, p, c.R)), W, H); });\n         const ok = cand.filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);\n         if (ok.length) {\n-          const b0 = ok[0];\n+          const b0 = N.pickCalibration(ok);\n           S.model = b0.model; S.affine = b0.A; S.resid = b0.R;\n           /* 고른 방식으로, 정밀 보정 점까지 모두 넣어 최종 보정을 다시 맞춘다(평가가 끝난 뒤 학습 자료를 늘리는 표준 절차).\n            * 전체 보정 점에서 오차가 줄어들 때만 바꾸고, 표시하는 오차는 학습에 쓰지 않았던 평가 오차(b0)를 그대로 쓴다 */\n           {\n             const pts = [...val, ...zc, ...fp];\n-            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)]) || b0.model) : b0.model;\n+            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)], 0.5, { extra: b0.extra || [] }) || b0.model) : b0.model;\n             if (mF !== b0.model) N.validateGazeEyes(mF, val, W, H);\n             const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;\n             const RF = b0.R ? N.fitResidual(pts.map(p => predAt(mF, AF, p)), W, H) : null;\n             const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);\n             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }\n           }\n-          fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };\n+          fine = { chosen: b0.key, lookV: !!b0.extra, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };\n           /* 그림자 평가: 세로 시선 점수(lookV)를 특징에 더하면 처음 보는 정밀 보정 점의 오차가 줄어드는지 — 결과만 기록하고 측정 모델은 그대로 */\n           try { fine.shadow = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookV'] }); }\n           catch (e) { fine.shadow = { extra: ['lookV'], error: String(e && e.message || e).slice(0, 120) }; }\n+          try { fine.shadow2 = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookUp', 'lookDown'] }); } catch (_) {}\n           acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };\n           /* 적응형 안정화: 정밀 보정 점을 바라보는 동안의 시선 흔들림(점별 MAD 중앙값)으로 화면 시선 평활 강도를 정한다 */\n           const noise = N.median(fp.map(p => { const g = p.fs.map(f => N.applyResidual(S.resid, N.applyAffine(S.affine, N.predictGaze(S.model, f)))).filter(Boolean); if (g.length < 4) return NaN; const mx = N.median(g.map(q => q.x)); return N.median(g.map(q => Math.abs(q.x - mx))) * 1.4826 / W; }).filter(Number.isFinite));\nFILE dataset-lab.js\n@@ -19,6 +19,8 @@\n       const c = r.audit.gaze?.calibration, sh = c?.shadow;\n       out['보정 오차 %'] = c?.errPct;\n       /* 그림자 비교: 세로 시선 점수(lookV)를 더한 모델 vs 기본 모델 — 같은 학습 자료, 처음 보는 정밀 보정 점 */\n+      out['세로 점수 채택'] = c && 'lookV' in c ? (c.lookV ? 1 : 0) : undefined;\n+      if (c?.shadow2) out['세로 오차 +위·아래 %H'] = c.shadow2.withExtra?.hy;\n       if (sh) { out['세로 오차 기본 %H'] = sh.base?.hy; out['세로 오차 +lookV %H'] = sh.withExtra?.hy; out['세로 r 기본'] = sh.base?.ry; out['세로 r +lookV'] = sh.withExtra?.ry; out['전체 오차 기본 %'] = sh.base?.errPct; out['전체 오차 +lookV %'] = sh.withExtra?.errPct; }\n     }\n     if (t.pulse) { out['심박 bpm'] = t.pulse.bpm; out['SNR dB'] = t.pulse.snr; out['유효 초'] = t.pulse.validSeconds; out['신뢰 반영 초'] = t.pulse.effectiveSeconds; }\nFILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 1.6';   // 1.6 (2026-10-05): 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 1.7';   // 1.7 (2026-10-05): 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -727,6 +727,16 @@\n     const cover = train.length ? round(train.filter(s => s.f && extra.every(k => finite(s.f[k]))).length / train.length, 2) : 0;\n     return { extra, cover, base: one([]), withExtra: cover >= 0.8 ? one(extra) : null, note: 'shadow comparison only; measurement model unchanged' };\n   }\n+  /* 보정 후보 선택(정밀 보정 점 오차가 작은 순). 추가 특징(extra) 후보는 기존 후보 중 최선보다 0.5%p 이상이면서 10% 이상\n+   * 좋을 때만 고른다 — 후보가 늘면 8개 평가 점에서 우연히 좋아 보이는 쪽이 뽑히기 쉬워 여유를 둔다.\n+   * 근거(2026-10-05 그림자 비교 4세션): lookV 는 세로 구분력 r 을 4회 모두 올렸지만 오차는 1회 −30%, 3회 +13~36% */\n+  function pickCalibration(cands, margin = { abs: 0.5, rel: 0.1 }) {\n+    const ok = cands.filter(c => c.acc && c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);\n+    const base = ok.find(c => !c.extra), best = ok[0];\n+    if (!best || !best.extra || !base) return best || null;\n+    const need = base.acc.errPct - Math.max(margin.abs, margin.rel * base.acc.errPct);\n+    return best.acc.errPct <= need ? best : base;\n+  }\n   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */\n   function gazeAccuracy(points, W, H) {\n     const errs = points.filter(p => finite(p.gx) && finite(p.gy)).map(p => Math.hypot(p.gx - p.x, (p.gy - p.y) * 0.6));\n@@ -1052,7 +1062,7 @@\n     VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,\n     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,\n     buildBvp, hrWindows, phaseHr, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,\n-    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,\n+    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,\n     respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,\n   };\n   const Fusion = createFusion(api); api.Fusion = Fusion;\nFILE newbiz-core.test.js\n@@ -264,3 +264,16 @@ console.log('newbiz-core tests passed');\n   assert.ok(noise.withExtra && noise.withExtra.hy > noise.base.hy * 0.8, `noise lookV: ${JSON.stringify(noise)}`);\n   console.log('PASS shadow comparison: informative lookV lowers vertical error, noise does not', `(세로 오차 ${good.base.hy}→${good.withExtra.hy}%H · 잡음 ${noise.base.hy}→${noise.withExtra.hy}%H)`);\n }\n+\n+/* 보정 후보 선택 (2026-10-05): 세로 점수 후보는 기존 최선보다 0.5%p·10% 이상 좋을 때만 — 실측 4세션의 그림자 비교 값으로 확인 */\n+{\n+  const C = (key, e, extra) => ({ key, acc: { errPct: e }, ...(extra ? { extra: ['lookV'] } : {}) });\n+  const pick = (base, look) => N.pickCalibration([C('기존', base), C('세로 점수', look, true)]).key;\n+  assert.equal(pick(6.3, 4.4), '세로 점수', 'FD03: 6.3 → 4.4 adopts lookV');\n+  assert.equal(pick(5.9, 7.1), '기존', '4479 keeps base');\n+  assert.equal(pick(4.1, 5.6), '기존', 'DBFE keeps base');\n+  assert.equal(pick(8.2, 9.3), '기존', '04E7 (other laptop) keeps base');\n+  assert.equal(pick(4.1, 3.8), '기존', 'marginal gain (0.3%p) is not enough');\n+  assert.equal(N.pickCalibration([C('a', 5), C('b', 4)]).key, 'b', 'plain candidates: smallest error');\n+  console.log('PASS calibration pick: lookV only with a clear held-out gain');\n+}\nFILE newbiz-research.js\n@@ -65,7 +65,7 @@\n       domains: Object.fromEntries(Object.entries(b.domains).map(([k, d]) => [k, { score: d.score, status: d.status, confidence: d.confidence, tentative: !!d.tentative }])),\n       indicators: b.indicators.map(i => ({ key: i.key, value: i.value, score: i.score, status: i.status, r: i.r, borderline: !!i.borderline, excluded: !!i.excluded })),\n       qc: b.qc || null, pulseEvidence: res.evidence?.phases || null, calibration: rec.calibration ? { grade: rec.calibration.grade, errPct: rec.calibration.errPct, before: rec.calibration.before ?? null, model: rec.calibration.model || null, affine: !!rec.calibration.affine, control: rec.calibration.control || null,\n-        fine: rec.calibration.fine ? { chosen: rec.calibration.fine.chosen, before: rec.calibration.fine.before, after: rec.calibration.fine.after, shadow: rec.calibration.fine.shadow || null } : null } : null,\n+        fine: rec.calibration.fine ? { chosen: rec.calibration.fine.chosen, before: rec.calibration.fine.before, after: rec.calibration.fine.after, shadow: rec.calibration.fine.shadow || null, shadow2: rec.calibration.fine.shadow2 || null, lookV: !!rec.calibration.fine.lookV } : null } : null,\n       hr: { baseline: res.hr && res.hr.baseline, stressDelta: res.stressDelta, recovery: res.recovery, recoveryResid: res.recoveryResid, ref: res.hrRef || null, resp: res.resp || null },\n       phq: consent.phq && b.phq ? { phq2: b.phq.phq2, phq8: b.phq.phq8 } : null,\n     } : {checkin:ck};",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37555010428"
+      }
     },
     {
       "sha": "711cc91442d674431424028a18f492bcb74dbc66",
@@ -807,7 +914,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55597825634",
@@ -839,7 +946,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-05T11:54:48.778179+00:00",
+      "lastAttemptAt": "2026-10-07T01:02:39.970377+00:00",
       "analysisError": "HTTP_503",
       "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
@@ -11350,9 +11457,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "d0b1d78cc0c04141c92680541500379f9cc91e5b"
+    "sourceHead": "73976d6ea27f45a64f1684410e619ae41299e7ed"
   },
-  "updatedAt": "2026-10-06T21:39:50.068029+00:00",
-  "aiCooldownUntil": "2026-10-06T21:44:48.998684+00:00",
+  "updatedAt": "2026-10-07T01:03:16.058401+00:00",
+  "aiCooldownUntil": "2026-10-07T01:08:15.224356+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
