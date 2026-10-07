@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "6b8428519f9cf452f861c3af2e6ab6365a58a3ab",
+      "parents": [
+        "db504748f372943022f5c6169023edfb0cea771f"
+      ],
+      "committedAt": "2026-10-07T10:47:09+09:00",
+      "subject": "Main page: remove team members/hiring block, update 2026 NOW timeline, merge proof badges into one compact row",
+      "url": "https://github.com/jeebs0627/neurolens/commit/6b8428519f9cf452f861c3af2e6ab6365a58a3ab",
+      "files": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 70
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55756731901",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-07T01:47:16Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/3iv3UcbcGBgVVVfvqBmkv5fWt66m",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "9e3eccd4ec56f743228af49ddf46da6e84d31a0d",
       "parents": [
         "dd11c3e93684525701f41da2037bf7e55cdf37b1"
@@ -1035,7 +1073,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55595744396",
@@ -1067,7 +1105,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-05T11:21:53.268670+00:00",
+      "lastAttemptAt": "2026-10-07T01:47:36.901937+00:00",
       "analysisError": "HTTP_503",
       "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
@@ -11457,9 +11495,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "73976d6ea27f45a64f1684410e619ae41299e7ed"
+    "sourceHead": "6b8428519f9cf452f861c3af2e6ab6365a58a3ab"
   },
-  "updatedAt": "2026-10-07T01:03:16.058401+00:00",
-  "aiCooldownUntil": "2026-10-07T01:08:15.224356+00:00",
+  "updatedAt": "2026-10-07T01:48:06.622761+00:00",
+  "aiCooldownUntil": "2026-10-07T01:53:05.279728+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
