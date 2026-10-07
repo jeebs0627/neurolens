@@ -3,6 +3,124 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "9dd5002512276f5a1dfd399c255051edf0cde79d",
+      "parents": [
+        "49717010c545d126599ab26194895c595526da46"
+      ],
+      "committedAt": "2026-10-07T18:53:55+09:00",
+      "subject": "Condition: vertical gaze calibration, full-resolution skin sampling, independent-segment pulse check",
+      "url": "https://github.com/jeebs0627/neurolens/commit/9dd5002512276f5a1dfd399c255051edf0cde79d",
+      "files": [
+        {
+          "path": "condition-camera-worker.js",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4
+        },
+        {
+          "path": "condition-camera.js",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "condition-fusion.js",
+          "status": "modified",
+          "additions": 36,
+          "deletions": 4
+        },
+        {
+          "path": "condition-fusion.test.cjs",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 1
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 5
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "tools/gaze_vertical_bench.cjs",
+          "status": "modified",
+          "additions": 47,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse",
+        "gaze",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition-camera-worker.js b/condition-camera-worker.js\nindex 4eec811..3c2ca48 100644\n--- a/condition-camera-worker.js\n+++ b/condition-camera-worker.js\n@@ -11,5 +11,5 @@ self.onmessage = async ({data:m}) => {\n       catch (_) { detector=await FaceLandmarker.createFromOptions(files,opts('CPU')); }\n       canvas=new OffscreenCanvas(640,480);ctx=canvas.getContext('2d',{willReadFrequently:true});\n-      skinCanvas=new OffscreenCanvas(320,240);skinCtx=skinCanvas.getContext('2d',{willReadFrequently:true});\n+      skinCanvas=new OffscreenCanvas(640,480);skinCtx=skinCanvas.getContext('2d',{willReadFrequently:true});\n       self.postMessage({type:'ready'});return;\n     }\n@@ -28,7 +28,7 @@ self.onmessage = async ({data:m}) => {\n       if(raw)ctx.putImageData(raw,0,0);\n       const lm=result.faceLandmarks?.[0];\n-      const sh=Math.round(320*bmp.height/bmp.width);\n-      if(skinCanvas.height!==sh)skinCanvas.height=sh;\n-      skinCtx.drawImage(bmp,0,0,320,sh);\n+      const sw=Math.min(640,bmp.width),sh=Math.round(sw*bmp.height/bmp.width);   // 원래 해상도(최대 640)에서 피부색 표본 — condition-camera.js 와 같은 이유\n+      if(skinCanvas.width!==sw||skinCanvas.height!==sh){skinCanvas.width=sw;skinCanvas.height=sh;}\n+      skinCtx.drawImage(bmp,0,0,sw,sh);\n       const skin=NLSignal.sampleSkin(skinCtx,lm);\n       const eyes=lm?{left:NLSignal.eyeQuality(ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(ctx,lm,[33,133,159,145])}:null;\ndiff --git a/condition-camera.js b/condition-camera.js\nindex aa85ed3..4b4f306 100644\n--- a/condition-camera.js\n+++ b/condition-camera.js\n@@ -81,5 +81,7 @@\n       const intervalMs=this.lastT?t-this.lastT:null;\n       t=Math.max(t,this.lastT+.01);this.lastT=t;\n-      const w=320,h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n+      /* 피부색(심박) 표본은 카메라 원래 해상도(최대 640)에서 잰다: 320으로 줄여 그리면 4화소 평균이 다시 8비트로 반올림되어\n+       * 맥파(밝기 0.2~0.5 단계)에 양자화 잡음이 더해지고, 피부·비피부 경계 화소도 섞인다. 읽는 것은 피부 영역 상자뿐이라 비용은 작다 */\n+      const w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n       if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}\n       this.ctx.drawImage(this.video,0,0,w,h);\ndiff --git a/condition-fusion.js b/condition-fusion.js\nindex 9caf7fc..5f53895 100644\n--- a/condition-fusion.js\n+++ b/condition-fusion.js\n@@ -6,7 +6,9 @@\n })(typeof globalThis!=='undefined'?globalThis:null,function(N){\n   'use strict';\n-  const VERSION='condition-fusion-7',finite=Number.isFinite;\n+  const VERSION='condition-fusion-8',finite=Number.isFinite;\n   // 통합 스펙트럼 SNR 기준(dB): 무맥박 합성 96건(창을 모두 채택으로 간주한 느슨한 조건)의 최댓값 −3.44dB 보다 높게 둔다 (tools/pulse_pooled_bench.cjs)\n   const POOLED_SNR=-3;\n+  // 독립 구간 일치 비율 기준: 무맥박 합성 신호에서 위양성이 나오지 않는 값 (tools/pulse_pooled_bench.cjs)\n+  const INDEP_HITS=1;\n   // 'aggregate'(전체 피부 평균)와 'combined'(영역 파형 합성)는 영역들과 픽셀을 공유하므로 독립 영역으로 세지 않는다\n   const SHARED=new Set(['aggregate','combined']),physicalRoi=p=>!SHARED.has(p.roi);\n@@ -268,4 +270,30 @@\n     return {k,bpm:f0*60,snrDb:sig>0&&noise>0?10*Math.log10(sig/noise):-20};\n   }\n+  /* 독립 구간 일치(independent segments): 구간을 시간 순서로만 겹치지 않는 10초 이상 창으로 나누고(채택 여부·추정 bpm 과 무관하게 고름),\n+   * 창마다 색차 기반 피부 영역 파형의 평균 스펙트럼 최대 주파수를 잰다. 각 창의 값이 '나머지 창들의 중앙값'과 3bpm 안이면 일치로 센다.\n+   * 맥박이 없으면 창마다 최대 주파수가 42~180bpm 에 흩어져 일치가 드물고, 맥박이 있으면 같은 곳에 모인다.\n+   * 이웃 창에 기대어 받아들인 창(tracked)의 순환 근거를 쓰지 않는 검정이다. 기준은 무맥박 합성 신호로 정했다(tools/pulse_pooled_bench.cjs) */\n+  function independent(rows,start,end){\n+    const pool=rows.filter(w=>finite(w.fs)&&(w.windowSec||0)>=10&&(w.start??w.t)>=start-.01&&(w.end??w.t)<=end+.01&&Array.isArray(w.alternatives)).sort((a,b)=>a.start-b.start);\n+    const picked=[];let last=-Infinity;\n+    for(const w of pool)if(w.start>=last-.01){picked.push(w);last=w.end;}\n+    if(picked.length<3)return picked.length?{segments:picked.length,bpms:[],hits:0}:null;\n+    const fs=picked[0].fs,nfft=4096,df=fs/nfft,i0=Math.ceil(.7/df),i1=Math.floor(3/df),bpms=[];\n+    for(const w of picked){\n+      const waves=[...new Set((w.alternatives||[]).filter(p=>p.method!=='green'&&!p.guided&&physicalRoi(p)&&p._wave).map(p=>p._wave))];\n+      if(!waves.length||w.fs!==fs)continue;\n+      const avg=new Float64Array(i1+1);\n+      for(const x of waves){\n+        const n=x.length,m=N.mean(Array.from(x)),h=Float64Array.from(x,(v,i)=>(v-m)*(.5-.5*Math.cos(2*Math.PI*i/(n-1))));\n+        const p=N.powerSpectrum(h,nfft);let tot=0;for(let i=i0;i<=i1;i++)tot+=p[i];\n+        if(tot>0)for(let i=i0;i<=i1;i++)avg[i]+=p[i]/tot;\n+      }\n+      let k=i0;for(let i=i0;i<=i1;i++)if(avg[i]>avg[k])k=i;\n+      bpms.push(k*df*60);\n+    }\n+    if(bpms.length<3)return {segments:bpms.length,bpms,hits:0};\n+    const hits=bpms.filter((b,i)=>Math.abs(b-N.median(bpms.filter((_,j)=>j!==i)))<=3).length;\n+    return {segments:bpms.length,bpms:bpms.map(b=>Math.round(b*10)/10),hits,median:N.median(bpms)};\n+  }\n   // Integrate support on unique time intervals. Overlapping windows add no extra seconds.\n   function support(rows,start,end){\n@@ -324,11 +352,15 @@\n     const pool=pooled(valid,start,end);\n     const pooledOk=!!pool&&s.seconds>=20&&pool.snrDb>=POOLED_SNR&&Math.abs(pool.bpm-bpm)<=3&&spread<=4;\n-    return {bpm,snr,quality:(snr>=3&&confidence>=.65)||pooledOk?'good':'fair',n:valid.length,\n+    /* 독립 구간 일치: 겹치지 않는 10초 창 3개 이상에서 일치 비율이 INDEP_HITS 이상이고 그 중앙값이 구간 bpm 과 3bpm 안이면 '측정' */\n+    const ind=independent(inside,start,end);\n+    const indOk=!!ind&&ind.segments>=3&&ind.hits>=Math.ceil(INDEP_HITS*ind.segments)&&Math.abs(ind.median-bpm)<=3&&spread<=5;\n+    return {bpm,snr,quality:(snr>=3&&confidence>=.65)||pooledOk||indOk?'good':'fair',n:valid.length,\n       validSeconds:s.seconds,effectiveSeconds:s.effective,coverage:clamp(s.seconds/Math.max(.001,(end-start)/1000)),\n       confidence,spreadBpm:spread,rangeBpm:range,recovered:avg('recovered'),\n-      status:s.seconds<10||(snr<3&&!pooledOk)?'limited':'measured',candidateWindows:inside.length,\n+      status:s.seconds<10||(snr<3&&!pooledOk&&!indOk)?'limited':'measured',candidateWindows:inside.length,\n       ...(pool?{pooled:{windows:pool.k,bpm:pool.bpm,snrDb:pool.snrDb,accepted:pooledOk}}:{}),\n+      ...(ind?{independent:{...ind,accepted:indOk}}:{}),\n       methods:[...new Set(valid.flatMap(w=>w.methods||['pos']))],regions:[...new Set(valid.flatMap(w=>w.regions||[]))]};\n   }\n-  return {VERSION,windows,fuse,support,summarize,periodicity,pooled};\n+  return {VERSION,windows,fuse,support,summarize,periodicity,pooled,independent};\n });\ndiff --git a/condition.html b/condition.html\nindex fc14876..b21d509 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -2347,4 +2347,6 @@ async function calibrate() {\n   while (true) {\n     const W = stage.clientWidth, H = stage.clientHeight;\n+    /* 화면이 너무 작으면(분할 화면·좁은 창) 보정점이 겹쳐 시선 모델을 맞출 수 없다 — 실측 NLR-681C…: 폭 110px 화면에서 보정 단계가 1시간 멈춤 */\n+    if (W < 360 || H < 320) { await pauseCard('화면이 너무 작아요', `<p>지금 측정 화면이 ${W}×${H}px 이에요. 화면 분할을 끄거나 창을 최대화한 뒤 '다시 확인'을 눌러 주세요. 휴대폰은 가로로 돌리면 더 정확해요.</p>`, '다시 확인'); continue; }\n     S.screenW = W; S.drift = { dx: 0, dy: 0 }; S.affine = null; S.resid = null; S.model = null; S.gaze = null; S.gazeNoise = null; resetEuro();\n     S.calibLog = { screen: { w: W, h: H }, targets: [] };\n@@ -2411,4 +2413,8 @@ async function calibrate() {\n         const m3 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookV'] });\n         if (m3 && m3.keys.includes('lookV')) { N.validateGazeEyes(m3, val, W, H); cand.push({ key: '전체 표본 재학습 · 세로 점수', model: m3, A: N.fitAffine([...val, ...zc].map(p => predAt(m3, null, p))), R: null, extra: ['lookV'] }); }\n+        /* 위·아래 보기 점수를 따로 넣은 후보: 아래를 볼 때 홍채가 가려져 눌리는 세로 신호를 눈 모양 점수가 보완한다\n+         * (그림자 비교 7세션: 세로 구분력 r 이 6회 상승, 최근 세션 0.64→0.94). 기울기 상한을 넓힌 축별 보정과 함께 평가한다 */\n+        const m4 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookUp', 'lookDown'] });\n+        if (m4 && ['lookUp', 'lookDown'].every(k => m4.keys.includes(k))) { N.validateGazeEyes(m4, val, W, H); cand.push({ key: '전체 표본 재학습 · 위아래 점수', model: m4, A: N.fitAffine([...val, ...zc].map(p => predAt(m4, null, p))), R: null, extra: ['lookUp', 'lookDown'] }); }\n         cand.slice().forEach(c0 => {\n           const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);\n@@ -2431,5 +2437,5 @@ async function calibrate() {\n             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }\n           }\n-          fine = { chosen: b0.key, lookV: !!b0.extra, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };\n+          fine = { chosen: b0.key, lookV: !!b0.extra, extra: b0.extra || null, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };\n           /* 그림자 평가: 세로 시선 점수(lookV)를 특징에 더하면 처음 보는 정밀 보정 점의 오차가 줄어드는지 — 결과만 기록하고 측정 모델은 그대로 */\n           try { fine.shadow = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookV'] }); }\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex 8de15a1..87ddb49 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -583,10 +583,14 @@\n     const P = (pairs || []).filter(p => finite(p.x) && finite(p.y) && finite(p.gx) && finite(p.gy));\n     if (P.length < 3) return null;\n+    /* 기울기 상한: 기본 0.75~1.35. 표적과 예측의 상관이 높으면(r ≥ 0.8, 5점 이상) 0.6~2.2 까지 허용한다.\n+     * 웹캠 세로 시선은 아래를 볼 때 홍채가 눈꺼풀에 가려 예측 범위가 절반 가까이 눌린다(2026-10-07 실측 NLR-541B…: 세로 기울기 1.72·r 0.90,\n+     * 그림자 비교 7세션에서 세로 구분력 r 0.64→0.94 인데 기울기 상한 때문에 오차가 커짐). 상관이 낮으면 늘리지 않는다(잡음 증폭 방지) */\n     const axis = (t, g) => {\n       const mt = mean(t), mg = mean(g);\n       let cov = 0, vg = 0, vt = 0;\n       for (let i = 0; i < t.length; i++) { cov += (g[i] - mg) * (t[i] - mt); vg += (g[i] - mg) ** 2; vt += (t[i] - mt) ** 2; }\n-      const a = vt > 0 && vg > 0 ? clamp(cov / vg, 0.75, 1.35) : 1;\n-      return { a, b: mt - a * mg };\n+      const r = vt > 0 && vg > 0 ? cov / Math.sqrt(vt * vg) : 0, wide = t.length >= 5 && r >= 0.8;\n+      const a = vt > 0 && vg > 0 ? clamp(cov / vg, wide ? 0.6 : 0.75, wide ? 2.2 : 1.35) : 1;\n+      return { a, b: mt - a * mg, r: round(r, 2) };\n     };\n     return { x: axis(P.map(p => p.x), P.map(p => p.gx)), y: axis(P.map(p => p.y), P.map(p => p.gy)) };\n@@ -772,9 +776,12 @@\n   }\n   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */\n+  /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 폭. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도\n+   * 작게 나와(실측 NLR-541B…: 아래쪽 점이 200px 넘게 빗나갔는데 2.8% '양호') 세로를 고치는 보정 후보가 뽑히지 않았다 */\n   function gazeAccuracy(points, W, H) {\n-    const errs = points.filter(p => finite(p.gx) && finite(p.gy)).map(p => Math.hypot(p.gx - p.x, (p.gy - p.y) * 0.6));\n+    const P = points.filter(p => finite(p.gx) && finite(p.gy)), errs = P.map(p => Math.hypot(p.gx - p.x, p.gy - p.y));\n     if (!errs.length) return { errPct: null, grade: 'none' };\n-    const e = median(errs) / W * 100;\n-    return { errPct: round(e, 1), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(points.map(p => Math.abs(p.gx - p.x))) / W * 100, 1) };\n+    const e = mean(errs) / W * 100;\n+    return { errPct: round(e, 1), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(P.map(p => Math.abs(p.gx - p.x))) / W * 100, 1),\n+      ...(finite(H) && H > 0 ? { hy: round(median(P.map(p => Math.abs(p.gy - p.y))) / H * 100, 1) } : {}) };\n   }\n   function validateGazeEyes(model, points, W, H) {\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex 6281ecc..5b11d9e 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -100,5 +100,7 @@ const N = require('./newbiz-core.js');\n   pts.forEach(p => { const g = N.applyAffine(A, { x: p.gx, y: p.gy }); assert.ok(Math.abs(g.x - p.x) < 1 && Math.abs(g.y - p.y) < 1); });\n   const wild = N.fitAffine(pts.map(p => ({ ...p, gx: 0.3 * p.x })));\n-  assert.equal(wild.x.a, 1.35);                                   // 기울기 상한\n+  assert.equal(wild.x.a, 2.2);                                    // 상관이 높으면(r≥0.8) 넓은 상한 2.2\n+  const noisy = N.fitAffine(pts.map((p, i) => ({ ...p, gx: 0.3 * p.x + [0, 300, -300, 280, -260][i] })));\n+  assert.ok(noisy.x.r < 0.8 && noisy.x.a >= 0.75 && noisy.x.a <= 1.35); // 상관이 낮으면 기본 범위 0.75~1.35\n   assert.equal(N.fitAffine(pts.slice(0, 2)), null);\n }\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-9dd500251227-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-9dd500251227-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9dd5002512276f5a1dfd399c255051edf0cde79d\n변경 제목: Condition: vertical gaze calibration, full-resolution skin sampling, independent-segment pulse check\n관련 파일: condition-camera-worker.js, condition-camera.js, condition-fusion.js, condition-fusion.test.cjs, condition.html, newbiz-core.js, newbiz-core.test.js, tools/gaze_vertical_bench.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9dd500251227-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-9dd500251227-gaze",
+          "domain": "gaze",
+          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-9dd500251227-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9dd5002512276f5a1dfd399c255051edf0cde79d\n변경 제목: Condition: vertical gaze calibration, full-resolution skin sampling, independent-segment pulse check\n관련 파일: condition-camera-worker.js, condition-camera.js, condition-fusion.js, condition-fusion.test.cjs, condition.html, newbiz-core.js, newbiz-core.test.js, tools/gaze_vertical_bench.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9dd500251227-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-9dd500251227-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-9dd500251227-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9dd5002512276f5a1dfd399c255051edf0cde79d\n변경 제목: Condition: vertical gaze calibration, full-resolution skin sampling, independent-segment pulse check\n관련 파일: condition-camera-worker.js, condition-camera.js, condition-fusion.js, condition-fusion.test.cjs, condition.html, newbiz-core.js, newbiz-core.test.js, tools/gaze_vertical_bench.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9dd500251227-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55781613161",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-07T09:54:02Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/HjpuTSvQmXKnvSp4cVN9kb75TauC",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-07T09:54:26.639401+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "98c57f2830305a5f03423cad89ea4fee70a7b742",
       "parents": [
         "1ede9cfd775148f9ec034715fc838698ea6f1f1a"
@@ -11851,9 +11969,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "72ee632bfdecaebaf2bee3cc63ffe8341fcfb97e"
+    "sourceHead": "9dd5002512276f5a1dfd399c255051edf0cde79d"
   },
-  "updatedAt": "2026-10-07T08:10:18.120809+00:00",
-  "aiCooldownUntil": "2026-10-07T08:14:51.924589+00:00",
+  "updatedAt": "2026-10-07T09:54:45.572809+00:00",
+  "aiCooldownUntil": "2026-10-07T09:59:44.449372+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
