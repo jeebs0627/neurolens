@@ -99,7 +99,7 @@ const N = require('./newbiz-core.js');
   const A = N.fitAffine(pts);
   pts.forEach(p => { const g = N.applyAffine(A, { x: p.gx, y: p.gy }); assert.ok(Math.abs(g.x - p.x) < 1 && Math.abs(g.y - p.y) < 1); });
   const wild = N.fitAffine(pts.map(p => ({ ...p, gx: 0.3 * p.x })));
-  assert.equal(wild.x.a, 2.2);                                    // 상관이 높으면(r≥0.8) 넓은 상한 2.2
+  assert.equal(wild.x.a, 1.35);                                   // 기울기 상한 1.35 (core 2.3: 세로 압축은 눈꼬리 기준 v 로 원천 해결, 넓은 상한 폐지)
   const noisy = N.fitAffine(pts.map((p, i) => ({ ...p, gx: 0.3 * p.x + [0, 300, -300, 280, -260][i] })));
   assert.ok(noisy.x.r < 0.8 && noisy.x.a >= 0.75 && noisy.x.a <= 1.35); // 상관이 낮으면 기본 범위 0.75~1.35
   assert.equal(N.fitAffine(pts.slice(0, 2)), null);
@@ -184,53 +184,25 @@ const N = require('./newbiz-core.js');
 }
 
 
-/* 클릭 보정: 아래쪽이 눌린 합성 시선 특징(gaze_vertical_bench 와 같은 모양)에서, 기본 4단계 보정 뒤 화면 가장자리·아래쪽 6곳을 클릭한 표본을
- * 더하면 클릭 점의 leave-one-out 오차가 줄어 적용되고, 특징이 모자란 클릭(4프레임 미만)은 세지 않는다 */
+/* 홍채 세로 위치의 기준: 아래를 보면 윗눈꺼풀이 홍채를 따라 내려온다(눈꺼풀-시선 연동). 눈꺼풀 중점 기준이면 v 가 거의 변하지 않지만,
+ * 눈꼬리-눈머리 축 기준이면 홍채가 내려간 만큼 v 가 커져야 한다. 478점 랜드마크를 합성해 확인한다 */
 {
-  const W = 1536, H = 864;
-  let s = 7; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };
-  const g = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
-  const feat = (x, y) => { const nx = x / W - 0.5, ny = y / H - 0.5, down = Math.max(0, ny); return { u: 0.5 + 0.11 * nx + 0.04 * nx * Math.abs(nx) + 0.007 * g(), v: 0.02 * ny - 0.011 * down + 0.008 * g(), open: 0.30 - 0.05 * ny + 0.008 * g(), yaw: 0.002 * g(), pitch: 0.003 * g(), cx: 0.5 + 0.002 * g(), cy: 0.5 + 0.002 * g() }; };
-  const pts = (list, n) => list.map(([fx, fy]) => ({ x: fx * W, y: fy * H, fs: Array.from({ length: n }, () => feat(fx * W, fy * H)) }));
-  const s9 = []; for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 14; i++) s9.push({ x: fx * W, y: fy * H, f: feat(fx * W, fy * H) });
-  const val = pts([[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]], 14), zc = pts([[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]], 14);
-  const flat = l => l.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })));
-  const at = (m, A, p) => { const q = p.fs.map(f => N.applyAffine(A, N.predictGaze(m, f))); return { x: p.x, y: p.y, gx: N.median(q.map(v => v.x)), gy: N.median(q.map(v => v.y)) }; };
-  const train = [...s9, ...flat(val), ...flat(zc)], model = N.fitGaze(train), affine = N.fitAffine([...val, ...zc].map(p => at(model, null, p)));
-  const clicks = pts([[0.08, 0.88], [0.5, 0.88], [0.92, 0.88], [0.08, 0.5], [0.92, 0.5], [0.5, 0.14]], 8);
-  const r = N.refineWithClicks({ train, points: [...val, ...zc], clicks, W, H, model, affine });
-  assert.ok(r && r.n === 6 && r.before !== null && r.after !== null, `click refine ${JSON.stringify(r)}`);
-  assert.ok(r.after < r.before && r.applied && r.model && r.A, `click refine should improve edge/bottom points: before ${r.before} after ${r.after}`);
-  const few = N.refineWithClicks({ train, points: [...val, ...zc], clicks: clicks.map(p => ({ ...p, fs: p.fs.slice(0, 3) })), W, H, model, affine });
-  assert.equal(few, null, 'clicks with <4 frames are not counted');
-  console.log(`PASS click calibration: held-out click error ${r.before}% → ${r.after}% (applied)`);
-}
-
-
-/* 국소 잔차 보정: 좌하 모서리에만 몰린 오차(세로 신호가 그 영역에서만 더 눌림)는 쌍선형 면으로는 못 펴고 국소 가중 평균으로 펴진다.
- * 평가는 학습에 쓰지 않은 정밀 보정 8점. 치우침이 없는 자료에서는 국소 보정이 기존보다 크게 나빠지지 않아야 한다 */
-{
-  const W = 1536, H = 864;
-  const gen = (seed, cornerBias) => {
-    let s = seed; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };
-    const g = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
-    return (x, y) => { const nx = x / W - 0.5, ny = y / H - 0.5, corner = cornerBias * Math.max(0, -nx) * Math.max(0, ny) * 4; return { u: 0.5 + 0.11 * nx + 0.007 * g() + corner * 0.03, v: 0.02 * ny - 0.011 * Math.max(0, ny) - corner * 0.012 + 0.008 * g(), open: 0.30 - 0.05 * ny + 0.008 * g(), yaw: 0.002 * g(), pitch: 0.003 * g(), cx: 0.5 + 0.002 * g(), cy: 0.5 + 0.002 * g() }; };
+  const mk = irisDown => {
+    const lm = Array.from({ length: 478 }, () => ({ x: 0.5, y: 0.5 }));
+    const eye = (a, b, top, bot, iris, cx) => {
+      lm[a] = { x: cx - 0.05, y: 0.40 }; lm[b] = { x: cx + 0.05, y: 0.40 };            // 눈꼬리·눈머리(고정)
+      lm[top] = { x: cx, y: 0.385 + irisDown * 0.8 }; lm[bot] = { x: cx, y: 0.415 + irisDown * 0.2 };   // 윗눈꺼풀은 홍채를 거의 따라 내려온다
+      for (let k = 0; k < 5; k++) lm[iris + k] = { x: cx + (k ? [0.006, -0.006, 0, 0][k - 1] : 0), y: 0.40 + irisDown + (k ? [0, 0, 0.006, -0.006][k - 1] : 0) };
+    };
+    eye(33, 133, 159, 145, 468, 0.4); eye(362, 263, 386, 374, 473, 0.6);
+    lm[1] = { x: 0.5, y: 0.5 }; lm[234] = { x: 0.3, y: 0.45 }; lm[454] = { x: 0.7, y: 0.45 }; lm[10] = { x: 0.5, y: 0.25 }; lm[152] = { x: 0.5, y: 0.75 };
+    return N.faceFeatures(lm);
   };
-  const run = (feat) => {
-    const pts = (list, n) => list.map(([fx, fy]) => ({ x: fx * W, y: fy * H, fs: Array.from({ length: n }, () => feat(fx * W, fy * H)) }));
-    const s9 = []; for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 14; i++) s9.push({ x: fx * W, y: fy * H, f: feat(fx * W, fy * H) });
-    const val = pts([[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]], 14), zc = pts([[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]], 14);
-    const fp = pts([[0.12, 0.5], [0.88, 0.5], [0.5, 0.12], [0.5, 0.88], [0.32, 0.38], [0.68, 0.62], [0.36, 0.8], [0.64, 0.22]], 14);
-    const at = (m, A, R, p) => { const q = p.fs.map(f => N.applyResidual(R, N.applyAffine(A, N.predictGaze(m, f)))); return { x: p.x, y: p.y, gx: N.median(q.map(v => v.x)), gy: N.median(q.map(v => v.y)) }; };
-    const m = N.fitGaze([...s9, ...val.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f }))), ...zc.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })))]);
-    const A = N.fitAffine([...val, ...zc].map(p => at(m, null, null, p))), pairs = [...val, ...zc].map(p => at(m, A, null, p));
-    const e = R => N.gazeAccuracy(fp.map(p => at(m, A, R, p)), W, H).errPct;
-    return { none: e(null), bilinear: e(N.fitResidual(pairs, W, H)), local: e(N.fitLocalResidual(pairs, W, H)) };
-  };
-  const biased = run(gen(21, 1)), flat = run(gen(21, 0));
-  assert.ok(biased.local < biased.bilinear && biased.local < biased.none, `corner bias: ${JSON.stringify(biased)}`);
-  assert.ok(flat.local <= Math.min(flat.none, flat.bilinear) + 1.0, `no bias: ${JSON.stringify(flat)}`);
-  console.log(`PASS local residual: corner-biased ${biased.none}% → bilinear ${biased.bilinear}% → local ${biased.local}% · unbiased none ${flat.none}% / local ${flat.local}%`);
+  const f0 = mk(0), f1 = mk(0.02);
+  assert.ok(f0 && f1, 'features');
+  assert.ok(f1.v - f0.v > 0.15, `corner-referenced v must follow the iris when the lid follows gaze: Δv ${(f1.v - f0.v).toFixed(3)}`);
+  assert.ok(f1.open < f0.open, 'lid opening still shrinks when looking down');
+  console.log(`PASS iris vertical reference: Δv ${(f1.v - f0.v).toFixed(3)} per 0.02 image-height iris drop (lid-midpoint reference would give ≈ ${((0.02 - (0.8 + 0.2) / 2 * 0.02) / 0.1).toFixed(3)})`);
 }
 
 console.log('newbiz-core tests passed');

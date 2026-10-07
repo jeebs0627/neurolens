@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 2.2';   // 2.2 (2026-10-07): 국소 잔차 보정 후보(fitLocalResidual, 모서리 오차), 클릭 보정 클릭 수신 수정(stage) · 2.1: 시선 5단계 클릭 보정(refineWithClicks, leave-one-out 채택) · 심박 스펙트럼 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 2.3';   // 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -457,7 +457,10 @@
     icx /= 5; icy /= 5;
     const ix = icx - ax, iy = icy - ay;
     const u = (ix * dx + iy * dy) / L2;                       // 눈꼬리→눈머리 축 위치 (0~1)
-    const midX = (lm[top].x + lm[bot].x) / 2, midY = (lm[top].y + lm[bot].y) / 2;
+    /* 세로 기준은 눈꺼풀 중점이 아니라 눈꼬리-눈머리 축: 아래를 보면 윗눈꺼풀이 홍채를 따라 내려와(눈꺼풀-시선 연동) 눈꺼풀 중점 기준 v 는
+     * 거의 변하지 않아 세로 신호가 절반 이하로 눌렸다. 눈꼬리는 시선과 무관하게 고정이라 기준으로 삼는다.
+     * 실측 재생(2026-10-07, 13세션): 정밀 보정 held-out 10.8→9.5%, 원형 추적 과제 세로 오차 13.3→8.9%H, 영점 뒤 오차 9.3→6.9%W (tools/gaze_replay.cjs) */
+    const midX = (ax + bx) / 2, midY = (ay + by) / 2;
     const v = (-(icx-midX)*dy + (icy-midY)*dx) / L2; // Eye-local perpendicular axis compensates head roll.
     const open = Math.hypot(lm[bot].x - lm[top].x, lm[bot].y - lm[top].y) / L;
     return { u, v, open };
@@ -585,15 +588,14 @@
   function fitAffine(pairs) {
     const P = (pairs || []).filter(p => finite(p.x) && finite(p.y) && finite(p.gx) && finite(p.gy));
     if (P.length < 3) return null;
-    /* 기울기 상한: 기본 0.75~1.35. 표적과 예측의 상관이 높으면(r ≥ 0.8, 5점 이상) 0.6~2.2 까지 허용한다.
-     * 웹캠 세로 시선은 아래를 볼 때 홍채가 눈꺼풀에 가려 예측 범위가 절반 가까이 눌린다(2026-10-07 실측 NLR-541B…: 세로 기울기 1.72·r 0.90,
-     * 그림자 비교 7세션에서 세로 구분력 r 0.64→0.94 인데 기울기 상한 때문에 오차가 커짐). 상관이 낮으면 늘리지 않는다(잡음 증폭 방지) */
+    /* 기울기 0.75~1.35 로 제한해 과보정을 막는다. 세로 압축은 눈꼬리 기준 v(eyeUV)로 원천에서 풀었으므로 넓은 상한(2.2)은 쓰지 않는다
+     * (실측 재생 13세션: 넓은 상한과 결과 동일) */
     const axis = (t, g) => {
       const mt = mean(t), mg = mean(g);
       let cov = 0, vg = 0, vt = 0;
       for (let i = 0; i < t.length; i++) { cov += (g[i] - mg) * (t[i] - mt); vg += (g[i] - mg) ** 2; vt += (t[i] - mt) ** 2; }
-      const r = vt > 0 && vg > 0 ? cov / Math.sqrt(vt * vg) : 0, wide = t.length >= 5 && r >= 0.8;
-      const a = vt > 0 && vg > 0 ? clamp(cov / vg, wide ? 0.6 : 0.75, wide ? 2.2 : 1.35) : 1;
+      const r = vt > 0 && vg > 0 ? cov / Math.sqrt(vt * vg) : 0;
+      const a = vt > 0 && vg > 0 ? clamp(cov / vg, 0.75, 1.35) : 1;
       return { a, b: mt - a * mg, r: round(r, 2) };
     };
     return { x: axis(P.map(p => p.x), P.map(p => p.gx)), y: axis(P.map(p => p.y), P.map(p => p.gy)) };
@@ -740,22 +742,8 @@
     const cx = fitAxis('x', W), cy = fitAxis('y', H);
     return cx && cy ? { W, H, cx, cy, n: P.length } : null;
   }
-  /* 국소 잔차 보정(local): 쌍선형 면(축당 4계수)은 한 모서리에만 몰린 오차(실측 2026-10-07: 좌하 영역만 크게 빗나감)를 펴지 못한다.
-   * 보정 점마다 남은 오차(dx,dy)를 두고, 예측 위치에서 가우스 가중(σ = 화면 폭의 22%)으로 이웃 점의 잔차를 평균해 더한다.
-   * 0 잔차의 가상 가중(0.35)을 섞어 점이 먼 곳에서는 보정이 0 으로 줄어들게 하고(과적합 억제), 보정량 상한은 화면의 12% */
-  function fitLocalResidual(pairs, W, H, sigma = 0.22) {
-    const P = (pairs || []).filter(p => [p.x, p.y, p.gx, p.gy].every(finite));
-    if (P.length < 6) return null;
-    return { kind: 'local', W, H, sigma, n: P.length, pts: P.map(p => ({ gx: p.gx / W, gy: p.gy / H, dx: (p.x - p.gx) / W, dy: (p.y - p.gy) / H })) };
-  }
   function applyResidual(R, g) {
     if (!R || !g) return g;
-    if (R.kind === 'local') {
-      const x = g.x / R.W, y = g.y / R.H, k = R.H / R.W;
-      let sw = 0.35, sx = 0, sy = 0;
-      for (const p of R.pts) { const w = Math.exp(-((x - p.gx) ** 2 + ((y - p.gy) * k) ** 2) / (2 * R.sigma * R.sigma)); sw += w; sx += w * p.dx; sy += w * p.dy; }
-      return { ...g, x: g.x + clamp(sx / sw, -0.12, 0.12) * R.W, y: g.y + clamp(sy / sw, -0.12, 0.12) * R.H };
-    }
     const x = g.x / R.W - 0.5, y = g.y / R.H - 0.5, v = [1, x, y, x * y];
     const dx = clamp(v.reduce((s, a, i) => s + a * R.cx[i], 0), -0.12, 0.12) * R.W, dy = clamp(v.reduce((s, a, i) => s + a * R.cy[i], 0), -0.12, 0.12) * R.H;
     return { ...g, x: g.x + dx, y: g.y + dy };
@@ -790,32 +778,6 @@
     if (!best || !best.extra || !base) return best || null;
     const need = base.acc.errPct - Math.max(margin.abs, margin.rel * base.acc.errPct);
     return best.acc.errPct <= need ? best : base;
-  }
-  /* 클릭 보정(사용자 확인 응시): 사용자가 지금 바라보는 곳을 직접 클릭한 점의 눈 특징(클릭 직전 0.4초)을 라벨이 확실한 표본으로 더해
-   * 모델·축별·잔차 보정을 모두 다시 맞춘다. 클릭 순간 시선은 클릭 지점에 있다(Huang et al., 2016 PACE; Sugano et al., 2015) — 점을 ‘보고 있었는지’
-   * 알 수 없는 수동 응시 표본보다 라벨 잡음이 작아 가중 2. 2026-10-05 ‘클릭 영점 3점(이동만)’ 시뮬레이션은 모든 세션에서 악화됐으므로 이동만 고치지 않는다.
-   * 정직한 평가: before = 지금 보정으로 클릭 점을 예측한 오차(클릭은 학습에 안 씀) · after = 클릭 점을 하나씩 빼고 다시 맞춘 보정으로 그 점을 예측(leave-one-out).
-   * after < before 일 때만 적용(applied). train: [{x,y,f,w?}] · points/clicks: [{x,y,fs:[f…]}] */
-  function refineWithClicks({ train, points, clicks, W, H, extra = [], residual = false, model, affine = null, resid = null, weight = 2 }) {
-    const at = (m, A, R, p) => { const g = p.fs.map(f => applyResidual(R, applyAffine(A, predictGaze(m, f)))).filter(q => q && finite(q.x) && finite(q.y)); return g.length >= 4 ? { x: p.x, y: p.y, gx: median(g.map(q => q.x)), gy: median(g.map(q => q.y)) } : null; };
-    const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f, w: weight })));
-    const fitR = (kind, pairs) => kind === 'local' ? fitLocalResidual(pairs, W, H) : kind ? fitResidual(pairs, W, H) : null;
-    const fit = (cl, kind) => {
-      const m = fitGaze([...train, ...feat(cl)], 0.5, { extra }); if (!m) return null;
-      const pts = [...points, ...cl]; validateGazeEyes(m, pts, W, H);
-      const A = fitAffine(pts.map(p => at(m, null, null, p)).filter(Boolean));
-      return { model: m, A, R: fitR(kind, pts.map(p => at(m, A, null, p)).filter(Boolean)), residual: kind || null };
-    };
-    const ok = (clicks || []).filter(p => p.fs && p.fs.length >= 4);
-    if (ok.length < 3 || !model) return null;
-    const before = gazeAccuracy(ok.map(p => at(model, affine, resid, p)).filter(Boolean), W, H);
-    /* 잔차 보정 종류는 지금 쓰는 것과 '국소'를 모두 시험한다 — 클릭은 모서리 오차 정보가 처음 들어오는 곳이라 국소 보정이 쓸모 있을 때가 많다 */
-    const kinds = [...new Set([residual === true ? 'bilinear' : residual || null, 'local'])];
-    const tried = kinds.map(kind => ({ kind, acc: gazeAccuracy(ok.map((p, i) => { const f = fit(ok.filter((_, j) => j !== i), kind); return f ? at(f.model, f.A, f.R, p) : null; }).filter(Boolean), W, H) }))
-      .filter(t => t.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);
-    const best = tried[0], after = best ? best.acc : { errPct: null, grade: 'none' };
-    const better = best && before.errPct !== null && after.errPct < before.errPct, full = better ? fit(ok, best.kind) : null;
-    return { n: ok.length, before: before.errPct, after: after.errPct, grade: after.grade, applied: !!full, ...(full || {}), tried: tried.map(t => ({ kind: t.kind || 'none', errPct: t.acc.errPct })), points: ok.map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length })) };
   }
   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */
   /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 폭. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도
@@ -1156,8 +1118,8 @@
     VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,
-    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, refineWithClicks, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
-    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, fitLocalResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
+    faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
+    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };
   const Fusion = createFusion(api); api.Fusion = Fusion;
   return api;
