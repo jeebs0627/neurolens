@@ -206,6 +206,33 @@ const N = require('./newbiz-core.js');
   console.log(`PASS click calibration: held-out click error ${r.before}% → ${r.after}% (applied)`);
 }
 
+
+/* 국소 잔차 보정: 좌하 모서리에만 몰린 오차(세로 신호가 그 영역에서만 더 눌림)는 쌍선형 면으로는 못 펴고 국소 가중 평균으로 펴진다.
+ * 평가는 학습에 쓰지 않은 정밀 보정 8점. 치우침이 없는 자료에서는 국소 보정이 기존보다 크게 나빠지지 않아야 한다 */
+{
+  const W = 1536, H = 864;
+  const gen = (seed, cornerBias) => {
+    let s = seed; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };
+    const g = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
+    return (x, y) => { const nx = x / W - 0.5, ny = y / H - 0.5, corner = cornerBias * Math.max(0, -nx) * Math.max(0, ny) * 4; return { u: 0.5 + 0.11 * nx + 0.007 * g() + corner * 0.03, v: 0.02 * ny - 0.011 * Math.max(0, ny) - corner * 0.012 + 0.008 * g(), open: 0.30 - 0.05 * ny + 0.008 * g(), yaw: 0.002 * g(), pitch: 0.003 * g(), cx: 0.5 + 0.002 * g(), cy: 0.5 + 0.002 * g() }; };
+  };
+  const run = (feat) => {
+    const pts = (list, n) => list.map(([fx, fy]) => ({ x: fx * W, y: fy * H, fs: Array.from({ length: n }, () => feat(fx * W, fy * H)) }));
+    const s9 = []; for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 14; i++) s9.push({ x: fx * W, y: fy * H, f: feat(fx * W, fy * H) });
+    const val = pts([[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]], 14), zc = pts([[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]], 14);
+    const fp = pts([[0.12, 0.5], [0.88, 0.5], [0.5, 0.12], [0.5, 0.88], [0.32, 0.38], [0.68, 0.62], [0.36, 0.8], [0.64, 0.22]], 14);
+    const at = (m, A, R, p) => { const q = p.fs.map(f => N.applyResidual(R, N.applyAffine(A, N.predictGaze(m, f)))); return { x: p.x, y: p.y, gx: N.median(q.map(v => v.x)), gy: N.median(q.map(v => v.y)) }; };
+    const m = N.fitGaze([...s9, ...val.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f }))), ...zc.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })))]);
+    const A = N.fitAffine([...val, ...zc].map(p => at(m, null, null, p))), pairs = [...val, ...zc].map(p => at(m, A, null, p));
+    const e = R => N.gazeAccuracy(fp.map(p => at(m, A, R, p)), W, H).errPct;
+    return { none: e(null), bilinear: e(N.fitResidual(pairs, W, H)), local: e(N.fitLocalResidual(pairs, W, H)) };
+  };
+  const biased = run(gen(21, 1)), flat = run(gen(21, 0));
+  assert.ok(biased.local < biased.bilinear && biased.local < biased.none, `corner bias: ${JSON.stringify(biased)}`);
+  assert.ok(flat.local <= Math.min(flat.none, flat.bilinear) + 1.0, `no bias: ${JSON.stringify(flat)}`);
+  console.log(`PASS local residual: corner-biased ${biased.none}% → bilinear ${biased.bilinear}% → local ${biased.local}% · unbiased none ${flat.none}% / local ${flat.local}%`);
+}
+
 console.log('newbiz-core tests passed');
 
 /* 시선 화면 밖 가속 억제 (2026-10-05): ① 제곱항 모델이 보정 범위 밖에서 1차로 이어지는지 ② 화면 밖 압축이 화면 안은 그대로, 밖은 단조·유계인지 */

@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 2.1';   // 2.1 (2026-10-07): 시선 5단계 클릭 보정(refineWithClicks, leave-one-out 채택) · 심박 스펙트럼 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 2.2';   // 2.2 (2026-10-07): 국소 잔차 보정 후보(fitLocalResidual, 모서리 오차), 클릭 보정 클릭 수신 수정(stage) · 2.1: 시선 5단계 클릭 보정(refineWithClicks, leave-one-out 채택) · 심박 스펙트럼 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -740,8 +740,22 @@
     const cx = fitAxis('x', W), cy = fitAxis('y', H);
     return cx && cy ? { W, H, cx, cy, n: P.length } : null;
   }
+  /* 국소 잔차 보정(local): 쌍선형 면(축당 4계수)은 한 모서리에만 몰린 오차(실측 2026-10-07: 좌하 영역만 크게 빗나감)를 펴지 못한다.
+   * 보정 점마다 남은 오차(dx,dy)를 두고, 예측 위치에서 가우스 가중(σ = 화면 폭의 22%)으로 이웃 점의 잔차를 평균해 더한다.
+   * 0 잔차의 가상 가중(0.35)을 섞어 점이 먼 곳에서는 보정이 0 으로 줄어들게 하고(과적합 억제), 보정량 상한은 화면의 12% */
+  function fitLocalResidual(pairs, W, H, sigma = 0.22) {
+    const P = (pairs || []).filter(p => [p.x, p.y, p.gx, p.gy].every(finite));
+    if (P.length < 6) return null;
+    return { kind: 'local', W, H, sigma, n: P.length, pts: P.map(p => ({ gx: p.gx / W, gy: p.gy / H, dx: (p.x - p.gx) / W, dy: (p.y - p.gy) / H })) };
+  }
   function applyResidual(R, g) {
     if (!R || !g) return g;
+    if (R.kind === 'local') {
+      const x = g.x / R.W, y = g.y / R.H, k = R.H / R.W;
+      let sw = 0.35, sx = 0, sy = 0;
+      for (const p of R.pts) { const w = Math.exp(-((x - p.gx) ** 2 + ((y - p.gy) * k) ** 2) / (2 * R.sigma * R.sigma)); sw += w; sx += w * p.dx; sy += w * p.dy; }
+      return { ...g, x: g.x + clamp(sx / sw, -0.12, 0.12) * R.W, y: g.y + clamp(sy / sw, -0.12, 0.12) * R.H };
+    }
     const x = g.x / R.W - 0.5, y = g.y / R.H - 0.5, v = [1, x, y, x * y];
     const dx = clamp(v.reduce((s, a, i) => s + a * R.cx[i], 0), -0.12, 0.12) * R.W, dy = clamp(v.reduce((s, a, i) => s + a * R.cy[i], 0), -0.12, 0.12) * R.H;
     return { ...g, x: g.x + dx, y: g.y + dy };
@@ -785,19 +799,23 @@
   function refineWithClicks({ train, points, clicks, W, H, extra = [], residual = false, model, affine = null, resid = null, weight = 2 }) {
     const at = (m, A, R, p) => { const g = p.fs.map(f => applyResidual(R, applyAffine(A, predictGaze(m, f)))).filter(q => q && finite(q.x) && finite(q.y)); return g.length >= 4 ? { x: p.x, y: p.y, gx: median(g.map(q => q.x)), gy: median(g.map(q => q.y)) } : null; };
     const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f, w: weight })));
-    const fit = cl => {
+    const fitR = (kind, pairs) => kind === 'local' ? fitLocalResidual(pairs, W, H) : kind ? fitResidual(pairs, W, H) : null;
+    const fit = (cl, kind) => {
       const m = fitGaze([...train, ...feat(cl)], 0.5, { extra }); if (!m) return null;
       const pts = [...points, ...cl]; validateGazeEyes(m, pts, W, H);
       const A = fitAffine(pts.map(p => at(m, null, null, p)).filter(Boolean));
-      const R = residual ? fitResidual(pts.map(p => at(m, A, null, p)).filter(Boolean), W, H) : null;
-      return { model: m, A, R };
+      return { model: m, A, R: fitR(kind, pts.map(p => at(m, A, null, p)).filter(Boolean)), residual: kind || null };
     };
     const ok = (clicks || []).filter(p => p.fs && p.fs.length >= 4);
     if (ok.length < 3 || !model) return null;
     const before = gazeAccuracy(ok.map(p => at(model, affine, resid, p)).filter(Boolean), W, H);
-    const after = gazeAccuracy(ok.map((p, i) => { const f = fit(ok.filter((_, j) => j !== i)); return f ? at(f.model, f.A, f.R, p) : null; }).filter(Boolean), W, H);
-    const better = after.errPct !== null && before.errPct !== null && after.errPct < before.errPct, full = better ? fit(ok) : null;
-    return { n: ok.length, before: before.errPct, after: after.errPct, grade: after.grade, applied: !!full, ...(full || {}), points: ok.map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length })) };
+    /* 잔차 보정 종류는 지금 쓰는 것과 '국소'를 모두 시험한다 — 클릭은 모서리 오차 정보가 처음 들어오는 곳이라 국소 보정이 쓸모 있을 때가 많다 */
+    const kinds = [...new Set([residual === true ? 'bilinear' : residual || null, 'local'])];
+    const tried = kinds.map(kind => ({ kind, acc: gazeAccuracy(ok.map((p, i) => { const f = fit(ok.filter((_, j) => j !== i), kind); return f ? at(f.model, f.A, f.R, p) : null; }).filter(Boolean), W, H) }))
+      .filter(t => t.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);
+    const best = tried[0], after = best ? best.acc : { errPct: null, grade: 'none' };
+    const better = best && before.errPct !== null && after.errPct < before.errPct, full = better ? fit(ok, best.kind) : null;
+    return { n: ok.length, before: before.errPct, after: after.errPct, grade: after.grade, applied: !!full, ...(full || {}), tried: tried.map(t => ({ kind: t.kind || 'none', errPct: t.acc.errPct })), points: ok.map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length })) };
   }
   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */
   /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 폭. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도
@@ -1139,7 +1157,7 @@
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,
     faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, refineWithClicks, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,
-    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
+    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, fitLocalResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,
   };
   const Fusion = createFusion(api); api.Fusion = Fusion;
   return api;

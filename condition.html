@@ -2359,6 +2359,7 @@ async function calClick(W, H, n = 6) {
   await new Promise((res, rej) => {
     let lastClick = -Infinity;
     const onClick = e => {
+      if (e.target.closest('button')) return;
       const t = now(); if (t - lastClick < 500) return; lastClick = t;
       const r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
       if (x < 0 || y < 0 || x > W || y > H) return;
@@ -2371,9 +2372,10 @@ async function calClick(W, H, n = 6) {
       say('');
       if (out.length >= n) { waiters.delete(w); w.cleanup(); res(); }
     };
-    const w = { rej, cleanup: () => { body.removeEventListener('click', onClick); S.onFeature = null; } };
+    /* #stageBody 는 크기가 없는 상자라(자식이 모두 absolute) 클릭의 표적은 stage 층이 된다 — body 에 걸면 이벤트가 오지 않는다(실측 2026-10-07: 클릭 무반응) */
+    const w = { rej, cleanup: () => { stage.removeEventListener('click', onClick); S.onFeature = null; } };
     waiters.add(w); S.cleanup.push(w.cleanup);
-    body.addEventListener('click', onClick);
+    stage.addEventListener('click', onClick);
   });
   S.onFeature = null;
   return out;
@@ -2453,8 +2455,12 @@ async function calibrate() {
         const m4 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookUp', 'lookDown'] });
         if (m4 && ['lookUp', 'lookDown'].every(k => m4.keys.includes(k))) { N.validateGazeEyes(m4, val, W, H); cand.push({ key: '전체 표본 재학습 · 위아래 점수', model: m4, A: N.fitAffine([...val, ...zc].map(p => predAt(m4, null, p))), R: null, extra: ['lookUp', 'lookDown'] }); }
         cand.slice().forEach(c0 => {
-          const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);
+          const pairs = [...val, ...zc].map(p => predAt(c0.model, c0.A, p));
+          const R = N.fitResidual(pairs, W, H);
           if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R });
+          /* 국소 잔차: 한 모서리에만 몰린 오차(실측 2026-10-07 좌하 영역)를 쌍선형 면은 못 펴므로, 이웃 보정 점 잔차의 가우스 가중 평균을 후보로 더한다 */
+          const RL = N.fitLocalResidual(pairs, W, H);
+          if (RL) cand.push({ ...c0, key: c0.key + ' + 국소 잔차', R: RL });
         });
         cand.forEach(c => { c.acc = N.gazeAccuracy(fp.map(p => predAt(c.model, c.A, p, c.R)), W, H); });
         const ok = cand.filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);
@@ -2468,7 +2474,7 @@ async function calibrate() {
             const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)], 0.5, { extra: b0.extra || [] }) || b0.model) : b0.model;
             if (mF !== b0.model) N.validateGazeEyes(mF, val, W, H);
             const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;
-            const RF = b0.R ? N.fitResidual(pts.map(p => predAt(mF, AF, p)), W, H) : null;
+            const RF = b0.R ? (b0.R.kind === 'local' ? N.fitLocalResidual : N.fitResidual)(pts.map(p => predAt(mF, AF, p)), W, H) : null;
             const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);
             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }
           }
@@ -2496,9 +2502,9 @@ async function calibrate() {
        * 클릭 표본을 더해 모델·축별·잔차 보정을 다시 맞추고, 클릭 점의 leave-one-out 오차가 줄어들 때만 바꾼다. 표시 오차도 그 held-out 값으로 바꾼다 */
       clickStep = async () => {
         const clicks = await calClick(W, H);
-        const ck = N.refineWithClicks({ train: [...s9, ...feat(val), ...feat(zc), ...feat(fp)], points: [...val, ...zc, ...fp], clicks, W, H, extra: (fine && fine.extra) || [], residual: !!S.resid, model: S.model, affine: S.affine, resid: S.resid });
+        const ck = N.refineWithClicks({ train: [...s9, ...feat(val), ...feat(zc), ...feat(fp)], points: [...val, ...zc, ...fp], clicks, W, H, extra: (fine && fine.extra) || [], residual: S.resid ? S.resid.kind || 'bilinear' : false, model: S.model, affine: S.affine, resid: S.resid });
         if (ck && ck.applied) { S.model = ck.model; S.affine = ck.A; S.resid = ck.R; resetEuro(); acc = { ...acc, errPct: ck.after, grade: ck.grade }; S.calibLog.model = { ...S.calibLog.model, coefficients: S.model, click: true }; S.calibLog.affine = S.affine; }
-        acc.click = ck ? { n: ck.n, before: ck.before, after: ck.after, applied: ck.applied, points: ck.points } : { n: clicks.length, applied: false };
+        acc.click = ck ? { n: ck.n, before: ck.before, after: ck.after, applied: ck.applied, residual: ck.residual || null, tried: ck.tried, points: ck.points } : { n: clicks.length, applied: false };
         S.calibLog.click = acc.click;
         info += `<p class="small muted" style="margin:8px 0 0">클릭 보정 ${acc.click.n}곳: 클릭 지점 오차 ${ck && ck.before !== null ? ck.before + '% → ' + ck.after + '%' : '측정 불가'} ${acc.click.applied ? '(적용)' : '(기존 보정 유지)'}</p>`;
       };
