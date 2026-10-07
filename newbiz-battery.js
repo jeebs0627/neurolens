@@ -1074,7 +1074,10 @@
       excluded: indicators.filter(i => i.excluded).map(i => i.label),
       downgraded: DOMAIN_KEYS.filter(k => domains[k].notes.some(n => n.includes('수렴 원칙'))),
       hidden: hidden.length ? { n: hidden.length, sec: round(hidden.reduce((x, h) => x + h.end - h.start, 0) / 1000, 1), dropped } : null,
+      /* fps = 얼굴 인식이 된 프레임 수/초(시선 지표 신뢰도용). 심박 단계는 인식을 일부러 초당 10~15회로 줄이므로 이 값이 낮게 보인다 —
+       * 카메라가 실제로 받은 프레임(심박 표본)은 captureFps 로 따로 남긴다(2026-10-07 실측 NLR-B8F9…: 압박 fps 7.4 · captureFps 20.7) */
       fps: Object.fromEntries(['baseline', 'pursuit', 'saccade', 'neg', 'pvt', 'sart', 'stress', 'recovery'].map(k => [k, fpsOf(k) === null ? null : round(fpsOf(k), 1)]).filter(x => x[1] !== null)),
+      captureFps: Object.fromEntries(['baseline', 'pursuit', 'saccade', 'neg', 'pvt', 'sart', 'stress', 'recovery'].map(k => { const sp = span(k); if (!sp) return [k, null]; const n = frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length; return [k, round(n / Math.max(1, (sp[1] - sp[0]) / 1000), 1)]; }).filter(x => x[1] !== null)),
       lightJumps: base.lightJumps || 0, breath: resp ? { bpm: resp.bpm, clear: resp.clear, src: resp.src, off: breathOff } : null,
     };
 

@@ -1566,9 +1566,14 @@ function processResult(fr, packet, context) {
     f.lookUp = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0)) / 2; f.lookDown = ((bs.eyeLookDownLeft || 0) + (bs.eyeLookDownRight || 0)) / 2;
     f.lookV = f.lookUp - f.lookDown;   // 위·아래 점수는 따로 두면 화면 끝 포화를 모델이 나눠 맞출 수 있는지 그림자 비교(shadow2)로 본다
   }
-  f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));
-  f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));
-  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2;
+  /* 아래를 볼 때는 윗눈꺼풀이 시선을 따라 함께 내려온다(눈꺼풀-시선 연동: Becker & Fuchs, 1988). 얼굴 모델은 이를 '반쯤 감음'으로 읽어
+   * 화면 아래쪽을 보는 표본이 모두 버려졌다(2026-10-07 실측 NLR-B8F9…·0819…·6229…, 1707×1067 화면: 보정점 9개 중 가운데·아래 5개 표본 0개
+   * → 위쪽 점만으로 맞춘 모델이 아래쪽을 크게 빗나감). 아래보기 점수만큼 감김 점수를 덜어 판단한다. 감김이 0.75 이상이면(실제 깜빡임) 그대로 거른다 */
+  const lid = (b, d) => b >= 0.75 ? b : Math.max(0, b - 0.9 * d);
+  const lidL = lid(bs.eyeBlinkLeft || 0, bs.eyeLookDownLeft || 0), lidR = lid(bs.eyeBlinkRight || 0, bs.eyeLookDownRight || 0);
+  f.eyes.left.q *= (eyes?.left ?? 1) * (1 - lidL);
+  f.eyes.right.q *= (eyes?.right ?? 1) * (1 - lidR);
+  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = (lidL + lidR) / 2;
   /* 시선 유효: 적어도 한 눈이 또렷하고(품질 0.15 이상) 깜빡이는 중이 아닐 때만. 반쯤 감긴 눈의 홍채 위치는 크게 튄다 */
   const gazeValid = eyeQ >= 0.15 && blinkAvg < 0.45;
   Object.assign(fr, roi, {
@@ -2208,8 +2213,11 @@ async function cal9(W, H) {
     dot.style.left = x + 'px'; dot.style.top = y + 'px';
     if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });
     const pt = [];
-    S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), pt);
+    /* 표본이 6개 미만이면(아래쪽처럼 눈이 덜 보이는 위치) 최대 1.2초 더 받는다 — 점마다 고르게 표본이 있어야 화면 전체를 맞춘다 */
+    S.onFeature = featSampler(now(), 650, 2900, () => ({ x, y }), pt);
     await wait(1700);
+    for (let k = 0; k < 4 && pt.length < 6; k++) await wait(300);
+    S.onFeature = null;
     const keep = new Set(N.robustFeatures(pt.map(s => s.f)));
     samples.push(...pt.filter(s => keep.has(s.f)));
   }
@@ -2258,6 +2266,7 @@ async function calCollect(points, label) {
     S.onFeature = (t, f) => fs.push(f);
     await wait(500); fs.length = 0;
     await wait(800);
+    for (let k = 0; k < 4 && fs.length < 6; k++) await wait(300);   // 표본이 적은 점은 최대 1.2초 더
     S.onFeature = null;
     out.push({ ...p, fs: N.robustFeatures(fs.slice()) });
   }
@@ -2442,6 +2451,12 @@ async function calibrate() {
         eyes:Object.fromEntries(Object.entries(S.model.eyes||{}).map(([side,m])=>[side,m?.validation||null]))};
       info = `<div class="calsum"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div><div><span>정밀 보정 후</span><b>${fine ? fine.after + '%' : '—'}</b></div></div>${fine ? `<p class="small muted" style="margin:8px 0 0">새 위치 ${fine.points}곳으로 평가해 ‘${esc(fine.chosen)}’을 골랐어요 (적용 전 ${fine.before}% → ${fine.after}%)</p>` : ''}`;
       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다
+      /* 오차는 표본이 있는 점만으로 계산되므로, 점이 빠지면 '양호'가 과장된다(실측 NLR-B8F9…: 9점 중 4점만으로 2.8% '양호').
+       * 평가점의 75% 미만만 잡히면 '보통'으로, 화면 아래 40%의 점이 하나도 잡히지 않으면 아래쪽 시선을 믿을 수 없어 다시 보정을 권한다 */
+      const est = pairs.filter(p => Number.isFinite(p.gx)), low = pairs.filter(p => p.y > H * 0.6);
+      acc.coverage = Math.round(est.length / Math.max(1, pairs.length) * 100) / 100;
+      if (low.length && !low.some(p => Number.isFinite(p.gx))) { acc.grade = 'poor'; acc.missing = 'lower'; }
+      else if (acc.coverage < 0.75 && acc.grade === 'good') acc.grade = 'fair';
     }
     S.calib = { ...acc, samples: s9.length + sp.length };
     if (acc.grade !== 'poor') {
@@ -2449,7 +2464,7 @@ async function calibrate() {
       if (c === 1) continue;
       return;
     }
-    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style="margin:12px 0 0">오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);
+    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style="margin:12px 0 0">${acc.missing === 'lower' ? '화면 <b>아래쪽</b> 점을 볼 때 눈이 잘 보이지 않았어요. 노트북을 책 등으로 조금 높이거나 의자를 낮춰, 화면 아래쪽을 볼 때 눈을 크게 내리깔지 않아도 되게 맞춰 주세요. 눈은 평소처럼 편하게 뜨면 돼요.' : `오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.`}</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);
     if (c === 1) { S.model = null; S.affine = null; return; }
   }
 }
