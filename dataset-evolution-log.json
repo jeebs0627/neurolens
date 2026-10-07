@@ -3,6 +3,79 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "91fa0e35c9045176e787b27b70e6cdc5640f0ddd",
+      "parents": [
+        "dce9b596b77ac2565611c080e42e88f03fece0de"
+      ],
+      "committedAt": "2026-10-07T22:38:42+09:00",
+      "subject": "Core 2.2: click calibration receives clicks, local residual correction for corner errors",
+      "url": "https://github.com/jeebs0627/neurolens/commit/91fa0e35c9045176e787b27b70e6cdc5640f0ddd",
+      "files": [
+        {
+          "path": "NEWBIZ_CALIBRATION.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 6
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 26,
+          "deletions": 8
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 27,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex 6c837bd..d970821 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -2360,4 +2360,5 @@ async function calClick(W, H, n = 6) {\n     let lastClick = -Infinity;\n     const onClick = e => {\n+      if (e.target.closest('button')) return;\n       const t = now(); if (t - lastClick < 500) return; lastClick = t;\n       const r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;\n@@ -2372,7 +2373,8 @@ async function calClick(W, H, n = 6) {\n       if (out.length >= n) { waiters.delete(w); w.cleanup(); res(); }\n     };\n-    const w = { rej, cleanup: () => { body.removeEventListener('click', onClick); S.onFeature = null; } };\n+    /* #stageBody 는 크기가 없는 상자라(자식이 모두 absolute) 클릭의 표적은 stage 층이 된다 — body 에 걸면 이벤트가 오지 않는다(실측 2026-10-07: 클릭 무반응) */\n+    const w = { rej, cleanup: () => { stage.removeEventListener('click', onClick); S.onFeature = null; } };\n     waiters.add(w); S.cleanup.push(w.cleanup);\n-    body.addEventListener('click', onClick);\n+    stage.addEventListener('click', onClick);\n   });\n   S.onFeature = null;\n@@ -2454,6 +2456,10 @@ async function calibrate() {\n         if (m4 && ['lookUp', 'lookDown'].every(k => m4.keys.includes(k))) { N.validateGazeEyes(m4, val, W, H); cand.push({ key: '전체 표본 재학습 · 위아래 점수', model: m4, A: N.fitAffine([...val, ...zc].map(p => predAt(m4, null, p))), R: null, extra: ['lookUp', 'lookDown'] }); }\n         cand.slice().forEach(c0 => {\n-          const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);\n+          const pairs = [...val, ...zc].map(p => predAt(c0.model, c0.A, p));\n+          const R = N.fitResidual(pairs, W, H);\n           if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R });\n+          /* 국소 잔차: 한 모서리에만 몰린 오차(실측 2026-10-07 좌하 영역)를 쌍선형 면은 못 펴므로, 이웃 보정 점 잔차의 가우스 가중 평균을 후보로 더한다 */\n+          const RL = N.fitLocalResidual(pairs, W, H);\n+          if (RL) cand.push({ ...c0, key: c0.key + ' + 국소 잔차', R: RL });\n         });\n         cand.forEach(c => { c.acc = N.gazeAccuracy(fp.map(p => predAt(c.model, c.A, p, c.R)), W, H); });\n@@ -2469,5 +2475,5 @@ async function calibrate() {\n             if (mF !== b0.model) N.validateGazeEyes(mF, val, W, H);\n             const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;\n-            const RF = b0.R ? N.fitResidual(pts.map(p => predAt(mF, AF, p)), W, H) : null;\n+            const RF = b0.R ? (b0.R.kind === 'local' ? N.fitLocalResidual : N.fitResidual)(pts.map(p => predAt(mF, AF, p)), W, H) : null;\n             const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);\n             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }\n@@ -2497,7 +2503,7 @@ async function calibrate() {\n       clickStep = async () => {\n         const clicks = await calClick(W, H);\n-        const ck = N.refineWithClicks({ train: [...s9, ...feat(val), ...feat(zc), ...feat(fp)], points: [...val, ...zc, ...fp], clicks, W, H, extra: (fine && fine.extra) || [], residual: !!S.resid, model: S.model, affine: S.affine, resid: S.resid });\n+        const ck = N.refineWithClicks({ train: [...s9, ...feat(val), ...feat(zc), ...feat(fp)], points: [...val, ...zc, ...fp], clicks, W, H, extra: (fine && fine.extra) || [], residual: S.resid ? S.resid.kind || 'bilinear' : false, model: S.model, affine: S.affine, resid: S.resid });\n         if (ck && ck.applied) { S.model = ck.model; S.affine = ck.A; S.resid = ck.R; resetEuro(); acc = { ...acc, errPct: ck.after, grade: ck.grade }; S.calibLog.model = { ...S.calibLog.model, coefficients: S.model, click: true }; S.calibLog.affine = S.affine; }\n-        acc.click = ck ? { n: ck.n, before: ck.before, after: ck.after, applied: ck.applied, points: ck.points } : { n: clicks.length, applied: false };\n+        acc.click = ck ? { n: ck.n, before: ck.before, after: ck.after, applied: ck.applied, residual: ck.residual || null, tried: ck.tried, points: ck.points } : { n: clicks.length, applied: false };\n         S.calibLog.click = acc.click;\n         info += `<p class=\"small muted\" style=\"margin:8px 0 0\">클릭 보정 ${acc.click.n}곳: 클릭 지점 오차 ${ck && ck.before !== null ? ck.before + '% → ' + ck.after + '%' : '측정 불가'} ${acc.click.applied ? '(적용)' : '(기존 보정 유지)'}</p>`;\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex 1a06e62..6184c4f 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.1';   // 2.1 (2026-10-07): 시선 5단계 클릭 보정(refineWithClicks, leave-one-out 채택) · 심박 스펙트럼 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.2';   // 2.2 (2026-10-07): 국소 잔차 보정 후보(fitLocalResidual, 모서리 오차), 클릭 보정 클릭 수신 수정(stage) · 2.1: 시선 5단계 클릭 보정(refineWithClicks, leave-one-out 채택) · 심박 스펙트럼 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -741,6 +741,20 @@\n     return cx && cy ? { W, H, cx, cy, n: P.length } : null;\n   }\n+  /* 국소 잔차 보정(local): 쌍선형 면(축당 4계수)은 한 모서리에만 몰린 오차(실측 2026-10-07: 좌하 영역만 크게 빗나감)를 펴지 못한다.\n+   * 보정 점마다 남은 오차(dx,dy)를 두고, 예측 위치에서 가우스 가중(σ = 화면 폭의 22%)으로 이웃 점의 잔차를 평균해 더한다.\n+   * 0 잔차의 가상 가중(0.35)을 섞어 점이 먼 곳에서는 보정이 0 으로 줄어들게 하고(과적합 억제), 보정량 상한은 화면의 12% */\n+  function fitLocalResidual(pairs, W, H, sigma = 0.22) {\n+    const P = (pairs || []).filter(p => [p.x, p.y, p.gx, p.gy].every(finite));\n+    if (P.length < 6) return null;\n+    return { kind: 'local', W, H, sigma, n: P.length, pts: P.map(p => ({ gx: p.gx / W, gy: p.gy / H, dx: (p.x - p.gx) / W, dy: (p.y - p.gy) / H })) };\n+  }\n   function applyResidual(R, g) {\n     if (!R || !g) return g;\n+    if (R.kind === 'local') {\n+      const x = g.x / R.W, y = g.y / R.H, k = R.H / R.W;\n+      let sw = 0.35, sx = 0, sy = 0;\n+      for (const p of R.pts) { const w = Math.exp(-((x - p.gx) ** 2 + ((y - p.gy) * k) ** 2) / (2 * R.sigma * R.sigma)); sw += w; sx += w * p.dx; sy += w * p.dy; }\n+      return { ...g, x: g.x + clamp(sx / sw, -0.12, 0.12) * R.W, y: g.y + clamp(sy / sw, -0.12, 0.12) * R.H };\n+    }\n     const x = g.x / R.W - 0.5, y = g.y / R.H - 0.5, v = [1, x, y, x * y];\n     const dx = clamp(v.reduce((s, a, i) => s + a * R.cx[i], 0), -0.12, 0.12) * R.W, dy = clamp(v.reduce((s, a, i) => s + a * R.cy[i], 0), -0.12, 0.12) * R.H;\n@@ -786,17 +800,21 @@\n     const at = (m, A, R, p) => { const g = p.fs.map(f => applyResidual(R, applyAffine(A, predictGaze(m, f)))).filter(q => q && finite(q.x) && finite(q.y)); return g.length >= 4 ? { x: p.x, y: p.y, gx: median(g.map(q => q.x)), gy: median(g.map(q => q.y)) } : null; };\n     const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f, w: weight })));\n-    const fit = cl => {\n+    const fitR = (kind, pairs) => kind === 'local' ? fitLocalResidual(pairs, W, H) : kind ? fitResidual(pairs, W, H) : null;\n+    const fit = (cl, kind) => {\n       const m = fitGaze([...train, ...feat(cl)], 0.5, { extra }); if (!m) return null;\n       const pts = [...points, ...cl]; validateGazeEyes(m, pts, W, H);\n       const A = fitAffine(pts.map(p => at(m, null, null, p)).filter(Boolean));\n-      const R = residual ? fitResidual(pts.map(p => at(m, A, null, p)).filter(Boolean), W, H) : null;\n-      return { model: m, A, R };\n+      return { model: m, A, R: fitR(kind, pts.map(p => at(m, A, null, p)).filter(Boolean)), residual: kind || null };\n     };\n     const ok = (clicks || []).filter(p => p.fs && p.fs.length >= 4);\n     if (ok.length < 3 || !model) return null;\n     const before = gazeAccuracy(ok.map(p => at(model, affine, resid, p)).filter(Boolean), W, H);\n-    const after = gazeAccuracy(ok.map((p, i) => { const f = fit(ok.filter((_, j) => j !== i)); return f ? at(f.model, f.A, f.R, p) : null; }).filter(Boolean), W, H);\n-    const better = after.errPct !== null && before.errPct !== null && after.errPct < before.errPct, full = better ? fit(ok) : null;\n-    return { n: ok.length, before: before.errPct, after: after.errPct, grade: after.grade, applied: !!full, ...(full || {}), points: ok.map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length })) };\n+    /* 잔차 보정 종류는 지금 쓰는 것과 '국소'를 모두 시험한다 — 클릭은 모서리 오차 정보가 처음 들어오는 곳이라 국소 보정이 쓸모 있을 때가 많다 */\n+    const kinds = [...new Set([residual === true ? 'bilinear' : residual || null, 'local'])];\n+    const tried = kinds.map(kind => ({ kind, acc: gazeAccuracy(ok.map((p, i) => { const f = fit(ok.filter((_, j) => j !== i), kind); return f ? at(f.model, f.A, f.R, p) : null; }).filter(Boolean), W, H) }))\n+      .filter(t => t.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);\n+    const best = tried[0], after = best ? best.acc : { errPct: null, grade: 'none' };\n+    const better = best && before.errPct !== null && after.errPct < before.errPct, full = better ? fit(ok, best.kind) : null;\n+    return { n: ok.length, before: before.errPct, after: after.errPct, grade: after.grade, applied: !!full, ...(full || {}), tried: tried.map(t => ({ kind: t.kind || 'none', errPct: t.acc.errPct })), points: ok.map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length })) };\n   }\n   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */\n@@ -1140,5 +1158,5 @@\n     buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,\n     faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, refineWithClicks, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,\n-    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,\n+    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, fitLocalResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,\n   };\n   const Fusion = createFusion(api); api.Fusion = Fusion;\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex c56e6e4..ed9ca54 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -207,4 +207,31 @@ const N = require('./newbiz-core.js');\n }\n \n+\n+/* 국소 잔차 보정: 좌하 모서리에만 몰린 오차(세로 신호가 그 영역에서만 더 눌림)는 쌍선형 면으로는 못 펴고 국소 가중 평균으로 펴진다.\n+ * 평가는 학습에 쓰지 않은 정밀 보정 8점. 치우침이 없는 자료에서는 국소 보정이 기존보다 크게 나빠지지 않아야 한다 */\n+{\n+  const W = 1536, H = 864;\n+  const gen = (seed, cornerBias) => {\n+    let s = seed; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };\n+    const g = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());\n+    return (x, y) => { const nx = x / W - 0.5, ny = y / H - 0.5, corner = cornerBias * Math.max(0, -nx) * Math.max(0, ny) * 4; return { u: 0.5 + 0.11 * nx + 0.007 * g() + corner * 0.03, v: 0.02 * ny - 0.011 * Math.max(0, ny) - corner * 0.012 + 0.008 * g(), open: 0.30 - 0.05 * ny + 0.008 * g(), yaw: 0.002 * g(), pitch: 0.003 * g(), cx: 0.5 + 0.002 * g(), cy: 0.5 + 0.002 * g() }; };\n+  };\n+  const run = (feat) => {\n+    const pts = (list, n) => list.map(([fx, fy]) => ({ x: fx * W, y: fy * H, fs: Array.from({ length: n }, () => feat(fx * W, fy * H)) }));\n+    const s9 = []; for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 14; i++) s9.push({ x: fx * W, y: fy * H, f: feat(fx * W, fy * H) });\n+    const val = pts([[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]], 14), zc = pts([[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]], 14);\n+    const fp = pts([[0.12, 0.5], [0.88, 0.5], [0.5, 0.12], [0.5, 0.88], [0.32, 0.38], [0.68, 0.62], [0.36, 0.8], [0.64, 0.22]], 14);\n+    const at = (m, A, R, p) => { const q = p.fs.map(f => N.applyResidual(R, N.applyAffine(A, N.predictGaze(m, f)))); return { x: p.x, y: p.y, gx: N.median(q.map(v => v.x)), gy: N.median(q.map(v => v.y)) }; };\n+    const m = N.fitGaze([...s9, ...val.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f }))), ...zc.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })))]);\n+    const A = N.fitAffine([...val, ...zc].map(p => at(m, null, null, p))), pairs = [...val, ...zc].map(p => at(m, A, null, p));\n+    const e = R => N.gazeAccuracy(fp.map(p => at(m, A, R, p)), W, H).errPct;\n+    return { none: e(null), bilinear: e(N.fitResidual(pairs, W, H)), local: e(N.fitLocalResidual(pairs, W, H)) };\n+  };\n+  const biased = run(gen(21, 1)), flat = run(gen(21, 0));\n+  assert.ok(biased.local < biased.bilinear && biased.local < biased.none, `corner bias: ${JSON.stringify(biased)}`);\n+  assert.ok(flat.local <= Math.min(flat.none, flat.bilinear) + 1.0, `no bias: ${JSON.stringify(flat)}`);\n+  console.log(`PASS local residual: corner-biased ${biased.none}% → bilinear ${biased.bilinear}% → local ${biased.local}% · unbiased none ${flat.none}% / local ${flat.local}%`);\n+}\n+\n console.log('newbiz-core tests passed');\n \n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-91fa0e35c904-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-91fa0e35c904-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 91fa0e35c9045176e787b27b70e6cdc5640f0ddd\n변경 제목: Core 2.2: click calibration receives clicks, local residual correction for corner errors\n관련 파일: NEWBIZ_CALIBRATION.md, condition.html, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-91fa0e35c904-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-91fa0e35c904-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-91fa0e35c904-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 91fa0e35c9045176e787b27b70e6cdc5640f0ddd\n변경 제목: Core 2.2: click calibration receives clicks, local residual correction for corner errors\n관련 파일: NEWBIZ_CALIBRATION.md, condition.html, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-91fa0e35c904-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [],
+      "lastAttemptAt": "2026-10-07T13:39:30.203547+00:00",
+      "analysisError": "HTTP_504",
+      "analysisErrorCode": "GEMINI_TIMEOUT"
+    },
+    {
       "sha": "dce9b596b77ac2565611c080e42e88f03fece0de",
       "parents": [
         "f7f7125322900999e1a9a9926931c59f7f135426"
@@ -207,7 +280,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55781613161",
@@ -239,7 +312,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-07T09:54:26.639401+00:00",
+      "lastAttemptAt": "2026-10-07T13:40:34.805648+00:00",
       "analysisError": "HTTP_503",
       "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
@@ -12092,9 +12165,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "d3f6744dc7c43ef4cd91ad26a9b63c5b2afa8146"
+    "sourceHead": "adf8cb5c71c91773b9dabd57c97f5d5778aaaaef"
   },
-  "updatedAt": "2026-10-07T13:15:43.912751+00:00",
-  "aiCooldownUntil": "2026-10-07T13:20:17.349486+00:00",
+  "updatedAt": "2026-10-07T13:41:16.386139+00:00",
+  "aiCooldownUntil": "2026-10-07T13:46:15.808458+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
