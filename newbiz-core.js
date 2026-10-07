@@ -582,12 +582,16 @@
   function fitAffine(pairs) {
     const P = (pairs || []).filter(p => finite(p.x) && finite(p.y) && finite(p.gx) && finite(p.gy));
     if (P.length < 3) return null;
+    /* 기울기 상한: 기본 0.75~1.35. 표적과 예측의 상관이 높으면(r ≥ 0.8, 5점 이상) 0.6~2.2 까지 허용한다.
+     * 웹캠 세로 시선은 아래를 볼 때 홍채가 눈꺼풀에 가려 예측 범위가 절반 가까이 눌린다(2026-10-07 실측 NLR-541B…: 세로 기울기 1.72·r 0.90,
+     * 그림자 비교 7세션에서 세로 구분력 r 0.64→0.94 인데 기울기 상한 때문에 오차가 커짐). 상관이 낮으면 늘리지 않는다(잡음 증폭 방지) */
     const axis = (t, g) => {
       const mt = mean(t), mg = mean(g);
       let cov = 0, vg = 0, vt = 0;
       for (let i = 0; i < t.length; i++) { cov += (g[i] - mg) * (t[i] - mt); vg += (g[i] - mg) ** 2; vt += (t[i] - mt) ** 2; }
-      const a = vt > 0 && vg > 0 ? clamp(cov / vg, 0.75, 1.35) : 1;
-      return { a, b: mt - a * mg };
+      const r = vt > 0 && vg > 0 ? cov / Math.sqrt(vt * vg) : 0, wide = t.length >= 5 && r >= 0.8;
+      const a = vt > 0 && vg > 0 ? clamp(cov / vg, wide ? 0.6 : 0.75, wide ? 2.2 : 1.35) : 1;
+      return { a, b: mt - a * mg, r: round(r, 2) };
     };
     return { x: axis(P.map(p => p.x), P.map(p => p.gx)), y: axis(P.map(p => p.y), P.map(p => p.gy)) };
   }
@@ -771,11 +775,14 @@
     return best.acc.errPct <= need ? best : base;
   }
   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */
+  /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 폭. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도
+   * 작게 나와(실측 NLR-541B…: 아래쪽 점이 200px 넘게 빗나갔는데 2.8% '양호') 세로를 고치는 보정 후보가 뽑히지 않았다 */
   function gazeAccuracy(points, W, H) {
-    const errs = points.filter(p => finite(p.gx) && finite(p.gy)).map(p => Math.hypot(p.gx - p.x, (p.gy - p.y) * 0.6));
+    const P = points.filter(p => finite(p.gx) && finite(p.gy)), errs = P.map(p => Math.hypot(p.gx - p.x, p.gy - p.y));
     if (!errs.length) return { errPct: null, grade: 'none' };
-    const e = median(errs) / W * 100;
-    return { errPct: round(e, 1), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(points.map(p => Math.abs(p.gx - p.x))) / W * 100, 1) };
+    const e = mean(errs) / W * 100;
+    return { errPct: round(e, 1), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(P.map(p => Math.abs(p.gx - p.x))) / W * 100, 1),
+      ...(finite(H) && H > 0 ? { hy: round(median(P.map(p => Math.abs(p.gy - p.y))) / H * 100, 1) } : {}) };
   }
   function validateGazeEyes(model, points, W, H) {
     if(!model?.eyes)return;

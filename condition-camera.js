@@ -80,7 +80,9 @@
       let t=captured?meta.captureTime:tp;
       const intervalMs=this.lastT?t-this.lastT:null;
       t=Math.max(t,this.lastT+.01);this.lastT=t;
-      const w=320,h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
+      /* 피부색(심박) 표본은 카메라 원래 해상도(최대 640)에서 잰다: 320으로 줄여 그리면 4화소 평균이 다시 8비트로 반올림되어
+       * 맥파(밝기 0.2~0.5 단계)에 양자화 잡음이 더해지고, 피부·비피부 경계 화소도 섞인다. 읽는 것은 피부 영역 상자뿐이라 비용은 작다 */
+      const w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
       if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}
       this.ctx.drawImage(this.video,0,0,w,h);
       const age=this.geometry?t-this.geometry.t:Infinity;

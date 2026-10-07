@@ -2346,6 +2346,8 @@ async function calibrate() {
   await brief('calibration');
   while (true) {
     const W = stage.clientWidth, H = stage.clientHeight;
+    /* 화면이 너무 작으면(분할 화면·좁은 창) 보정점이 겹쳐 시선 모델을 맞출 수 없다 — 실측 NLR-681C…: 폭 110px 화면에서 보정 단계가 1시간 멈춤 */
+    if (W < 360 || H < 320) { await pauseCard('화면이 너무 작아요', `<p>지금 측정 화면이 ${W}×${H}px 이에요. 화면 분할을 끄거나 창을 최대화한 뒤 '다시 확인'을 눌러 주세요. 휴대폰은 가로로 돌리면 더 정확해요.</p>`, '다시 확인'); continue; }
     S.screenW = W; S.drift = { dx: 0, dy: 0 }; S.affine = null; S.resid = null; S.model = null; S.gaze = null; S.gazeNoise = null; resetEuro();
     S.calibLog = { screen: { w: W, h: H }, targets: [] };
     const s9 = await cal9(W, H);
@@ -2410,6 +2412,10 @@ async function calibrate() {
         /* 세로 시선 점수(lookV)를 특징에 더한 후보: 처음 보는 정밀 보정 점에서 기존 최선보다 확실히 좋을 때만 쓴다(N.pickCalibration) */
         const m3 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookV'] });
         if (m3 && m3.keys.includes('lookV')) { N.validateGazeEyes(m3, val, W, H); cand.push({ key: '전체 표본 재학습 · 세로 점수', model: m3, A: N.fitAffine([...val, ...zc].map(p => predAt(m3, null, p))), R: null, extra: ['lookV'] }); }
+        /* 위·아래 보기 점수를 따로 넣은 후보: 아래를 볼 때 홍채가 가려져 눌리는 세로 신호를 눈 모양 점수가 보완한다
+         * (그림자 비교 7세션: 세로 구분력 r 이 6회 상승, 최근 세션 0.64→0.94). 기울기 상한을 넓힌 축별 보정과 함께 평가한다 */
+        const m4 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookUp', 'lookDown'] });
+        if (m4 && ['lookUp', 'lookDown'].every(k => m4.keys.includes(k))) { N.validateGazeEyes(m4, val, W, H); cand.push({ key: '전체 표본 재학습 · 위아래 점수', model: m4, A: N.fitAffine([...val, ...zc].map(p => predAt(m4, null, p))), R: null, extra: ['lookUp', 'lookDown'] }); }
         cand.slice().forEach(c0 => {
           const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);
           if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R });
@@ -2430,7 +2436,7 @@ async function calibrate() {
             const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);
             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }
           }
-          fine = { chosen: b0.key, lookV: !!b0.extra, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
+          fine = { chosen: b0.key, lookV: !!b0.extra, extra: b0.extra || null, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
           /* 그림자 평가: 세로 시선 점수(lookV)를 특징에 더하면 처음 보는 정밀 보정 점의 오차가 줄어드는지 — 결과만 기록하고 측정 모델은 그대로 */
           try { fine.shadow = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookV'] }); }
           catch (e) { fine.shadow = { extra: ['lookV'], error: String(e && e.message || e).slice(0, 120) }; }

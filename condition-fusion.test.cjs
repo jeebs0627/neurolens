@@ -80,4 +80,12 @@ test('Sub-span summaries reuse the parent phase windows and stay inside the sub-
   assert.ok(parent.filter(w=>w.usable&&w.start>=20000&&w.end<=40000).length===late.n,'only windows wholly inside the late half count');
   assert.ok(Math.abs(late.bpm-75)<4);
 });
+test('Independent time-ordered segments never all agree on a pulse-free recording',()=>{
+  for(let seed=21;seed<=32;seed++){
+    const e=N.measureEvidence(weakPulse(40,{amp:0,seed,noise:seed%2?.6:1.2,fps:seed%3?14:22}),0,40000);
+    assert.ok(!(e.independent&&e.independent.accepted),`pulse-free seed ${seed}`);
+  }
+  const ok=N.measureEvidence(weakPulse(40,{fps:22,noise:.4,seed:44}),0,40000);
+  assert.ok(ok.independent&&ok.independent.segments>=3&&ok.independent.bpms.every(b=>Math.abs(b-75)<4),'clean pulse segments agree on the true rate');
+});
 console.log(`${passed.length} fusion/evidence tests passed.`);

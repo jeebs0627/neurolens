@@ -5,9 +5,11 @@
   if(root)root.NLFusionFactory=factory;
 })(typeof globalThis!=='undefined'?globalThis:null,function(N){
   'use strict';
-  const VERSION='condition-fusion-7',finite=Number.isFinite;
+  const VERSION='condition-fusion-8',finite=Number.isFinite;
   // 통합 스펙트럼 SNR 기준(dB): 무맥박 합성 96건(창을 모두 채택으로 간주한 느슨한 조건)의 최댓값 −3.44dB 보다 높게 둔다 (tools/pulse_pooled_bench.cjs)
   const POOLED_SNR=-3;
+  // 독립 구간 일치 비율 기준: 무맥박 합성 신호에서 위양성이 나오지 않는 값 (tools/pulse_pooled_bench.cjs)
+  const INDEP_HITS=1;
   // 'aggregate'(전체 피부 평균)와 'combined'(영역 파형 합성)는 영역들과 픽셀을 공유하므로 독립 영역으로 세지 않는다
   const SHARED=new Set(['aggregate','combined']),physicalRoi=p=>!SHARED.has(p.roi);
   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
@@ -267,6 +269,32 @@
     for(let i=b0;i<=b1;i++){const f=i*df;if(Math.abs(f-f0)<=.1||Math.abs(f-2*f0)<=.1)sig+=avg[i];else noise+=avg[i];}
     return {k,bpm:f0*60,snrDb:sig>0&&noise>0?10*Math.log10(sig/noise):-20};
   }
+  /* 독립 구간 일치(independent segments): 구간을 시간 순서로만 겹치지 않는 10초 이상 창으로 나누고(채택 여부·추정 bpm 과 무관하게 고름),
+   * 창마다 색차 기반 피부 영역 파형의 평균 스펙트럼 최대 주파수를 잰다. 각 창의 값이 '나머지 창들의 중앙값'과 3bpm 안이면 일치로 센다.
+   * 맥박이 없으면 창마다 최대 주파수가 42~180bpm 에 흩어져 일치가 드물고, 맥박이 있으면 같은 곳에 모인다.
+   * 이웃 창에 기대어 받아들인 창(tracked)의 순환 근거를 쓰지 않는 검정이다. 기준은 무맥박 합성 신호로 정했다(tools/pulse_pooled_bench.cjs) */
+  function independent(rows,start,end){
+    const pool=rows.filter(w=>finite(w.fs)&&(w.windowSec||0)>=10&&(w.start??w.t)>=start-.01&&(w.end??w.t)<=end+.01&&Array.isArray(w.alternatives)).sort((a,b)=>a.start-b.start);
+    const picked=[];let last=-Infinity;
+    for(const w of pool)if(w.start>=last-.01){picked.push(w);last=w.end;}
+    if(picked.length<3)return picked.length?{segments:picked.length,bpms:[],hits:0}:null;
+    const fs=picked[0].fs,nfft=4096,df=fs/nfft,i0=Math.ceil(.7/df),i1=Math.floor(3/df),bpms=[];
+    for(const w of picked){
+      const waves=[...new Set((w.alternatives||[]).filter(p=>p.method!=='green'&&!p.guided&&physicalRoi(p)&&p._wave).map(p=>p._wave))];
+      if(!waves.length||w.fs!==fs)continue;
+      const avg=new Float64Array(i1+1);
+      for(const x of waves){
+        const n=x.length,m=N.mean(Array.from(x)),h=Float64Array.from(x,(v,i)=>(v-m)*(.5-.5*Math.cos(2*Math.PI*i/(n-1))));
+        const p=N.powerSpectrum(h,nfft);let tot=0;for(let i=i0;i<=i1;i++)tot+=p[i];
+        if(tot>0)for(let i=i0;i<=i1;i++)avg[i]+=p[i]/tot;
+      }
+      let k=i0;for(let i=i0;i<=i1;i++)if(avg[i]>avg[k])k=i;
+      bpms.push(k*df*60);
+    }
+    if(bpms.length<3)return {segments:bpms.length,bpms,hits:0};
+    const hits=bpms.filter((b,i)=>Math.abs(b-N.median(bpms.filter((_,j)=>j!==i)))<=3).length;
+    return {segments:bpms.length,bpms:bpms.map(b=>Math.round(b*10)/10),hits,median:N.median(bpms)};
+  }
   // Integrate support on unique time intervals. Overlapping windows add no extra seconds.
   function support(rows,start,end){
     const events=[];
@@ -323,12 +351,16 @@
      * (tools/pulse_pooled_bench.cjs) */
     const pool=pooled(valid,start,end);
     const pooledOk=!!pool&&s.seconds>=20&&pool.snrDb>=POOLED_SNR&&Math.abs(pool.bpm-bpm)<=3&&spread<=4;
-    return {bpm,snr,quality:(snr>=3&&confidence>=.65)||pooledOk?'good':'fair',n:valid.length,
+    /* 독립 구간 일치: 겹치지 않는 10초 창 3개 이상에서 일치 비율이 INDEP_HITS 이상이고 그 중앙값이 구간 bpm 과 3bpm 안이면 '측정' */
+    const ind=independent(inside,start,end);
+    const indOk=!!ind&&ind.segments>=3&&ind.hits>=Math.ceil(INDEP_HITS*ind.segments)&&Math.abs(ind.median-bpm)<=3&&spread<=5;
+    return {bpm,snr,quality:(snr>=3&&confidence>=.65)||pooledOk||indOk?'good':'fair',n:valid.length,
       validSeconds:s.seconds,effectiveSeconds:s.effective,coverage:clamp(s.seconds/Math.max(.001,(end-start)/1000)),
       confidence,spreadBpm:spread,rangeBpm:range,recovered:avg('recovered'),
-      status:s.seconds<10||(snr<3&&!pooledOk)?'limited':'measured',candidateWindows:inside.length,
+      status:s.seconds<10||(snr<3&&!pooledOk&&!indOk)?'limited':'measured',candidateWindows:inside.length,
       ...(pool?{pooled:{windows:pool.k,bpm:pool.bpm,snrDb:pool.snrDb,accepted:pooledOk}}:{}),
+      ...(ind?{independent:{...ind,accepted:indOk}}:{}),
       methods:[...new Set(valid.flatMap(w=>w.methods||['pos']))],regions:[...new Set(valid.flatMap(w=>w.regions||[]))]};
   }
-  return {VERSION,windows,fuse,support,summarize,periodicity,pooled};
+  return {VERSION,windows,fuse,support,summarize,periodicity,pooled,independent};
 });

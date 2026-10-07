@@ -10,7 +10,7 @@ self.onmessage = async ({data:m}) => {
       try { detector=await FaceLandmarker.createFromOptions(files,opts('GPU')); }
       catch (_) { detector=await FaceLandmarker.createFromOptions(files,opts('CPU')); }
       canvas=new OffscreenCanvas(640,480);ctx=canvas.getContext('2d',{willReadFrequently:true});
-      skinCanvas=new OffscreenCanvas(320,240);skinCtx=skinCanvas.getContext('2d',{willReadFrequently:true});
+      skinCanvas=new OffscreenCanvas(640,480);skinCtx=skinCanvas.getContext('2d',{willReadFrequently:true});
       self.postMessage({type:'ready'});return;
     }
     if(m.type!=='frame')return;
@@ -27,9 +27,9 @@ self.onmessage = async ({data:m}) => {
       const result=detector.detectForVideo(canvas,m.t);
       if(raw)ctx.putImageData(raw,0,0);
       const lm=result.faceLandmarks?.[0];
-      const sh=Math.round(320*bmp.height/bmp.width);
-      if(skinCanvas.height!==sh)skinCanvas.height=sh;
-      skinCtx.drawImage(bmp,0,0,320,sh);
+      const sw=Math.min(640,bmp.width),sh=Math.round(sw*bmp.height/bmp.width);   // 원래 해상도(최대 640)에서 피부색 표본 — condition-camera.js 와 같은 이유
+      if(skinCanvas.width!==sw||skinCanvas.height!==sh){skinCanvas.width=sw;skinCanvas.height=sh;}
+      skinCtx.drawImage(bmp,0,0,sw,sh);
       const skin=NLSignal.sampleSkin(skinCtx,lm);
       const eyes=lm?{left:NLSignal.eyeQuality(ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(ctx,lm,[33,133,159,145])}:null;
       self.postMessage({type:'result',t:m.t,result,skin,eyes,gain});

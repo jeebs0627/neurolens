@@ -99,7 +99,9 @@ const N = require('./newbiz-core.js');
   const A = N.fitAffine(pts);
   pts.forEach(p => { const g = N.applyAffine(A, { x: p.gx, y: p.gy }); assert.ok(Math.abs(g.x - p.x) < 1 && Math.abs(g.y - p.y) < 1); });
   const wild = N.fitAffine(pts.map(p => ({ ...p, gx: 0.3 * p.x })));
-  assert.equal(wild.x.a, 1.35);                                   // 기울기 상한
+  assert.equal(wild.x.a, 2.2);                                    // 상관이 높으면(r≥0.8) 넓은 상한 2.2
+  const noisy = N.fitAffine(pts.map((p, i) => ({ ...p, gx: 0.3 * p.x + [0, 300, -300, 280, -260][i] })));
+  assert.ok(noisy.x.r < 0.8 && noisy.x.a >= 0.75 && noisy.x.a <= 1.35); // 상관이 낮으면 기본 범위 0.75~1.35
   assert.equal(N.fitAffine(pts.slice(0, 2)), null);
 }
 
