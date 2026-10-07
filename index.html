@@ -209,15 +209,14 @@ header.hero{position:relative;overflow:hidden;background:
 @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
 
 /* proof stats */
-.proof{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:860px;margin:48px auto 0}
-.proof .p{background:rgba(255,255,255,.82);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:16px;padding:20px 12px;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s}
+.proof{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;max-width:1040px;margin:40px auto 0}
+.proof .p{background:rgba(255,255,255,.82);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:12px;padding:11px 8px;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s}
 .proof .p:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
-.proof .num{font-family:var(--font-num);font-size:clamp(19px,2.2vw,27px);font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.proof .num{font-family:var(--font-num);font-size:clamp(16px,1.7vw,21px);font-weight:800;letter-spacing:-.02em;line-height:1.15;color:var(--ink);white-space:nowrap}
 .proof .num b{background:var(--grad-hero);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.proof .lb{font-size:12px;color:var(--gray);margin-top:5px}
-.proof.proof-im{grid-template-columns:repeat(3,1fr);max-width:660px;margin-top:14px}
-.proof.proof-im .num b{background:var(--grad-violet,linear-gradient(135deg,#6C4CE0,#9B7BFF));-webkit-background-clip:text;background-clip:text}
-@media(max-width:720px){.proof{grid-template-columns:repeat(2,1fr)}}
+.proof .lb{font-size:11px;line-height:1.35;color:var(--gray);margin-top:4px;word-break:keep-all}
+.proof .p.im .num b{background:var(--grad-violet,linear-gradient(135deg,#6C4CE0,#9B7BFF));-webkit-background-clip:text;background-clip:text}
+@media(max-width:860px){.proof{grid-template-columns:repeat(3,1fr)}}
 nav .links a{white-space:nowrap}
 nav .cta{white-space:nowrap}
 .hero h1.h1-one{font-size:clamp(24px,3.6vw,44px);white-space:nowrap;letter-spacing:-.035em}
@@ -759,11 +758,8 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="p"><div class="num">19<b>개 지표</b></div><div class="lb">In_mind · 시선·심박·생체반응 동시 측정</div></div>
       <div class="p"><div class="num">1,600<b>명</b></div><div class="lb">경기도 8개교 현장 실증</div></div>
       <div class="p"><div class="num">AUC <b>0.819</b></div><div class="lb">정서적 스트레스 신호 선별(실증)</div></div>
-    </div>
-    <div class="proof proof-im" aria-label="In_mind AI 진행 지표">
-      <div class="p"><div class="num">기술<b>백서</b></div><div class="lb">In_mind 알고리즘 · 검증 절차 공개</div></div>
-      <div class="p"><div class="num">IRB<b> 준비</b></div><div class="lb">컨디션 AI · 동의 기반 연구 데이터로 규준 수립</div></div>
-      <div class="p"><div class="num">시범<b>운영</b></div><div class="lb">초중고 학생 · 중앙경찰학교 신임경찰관</div></div>
+      <div class="p im"><div class="num">기술<b>백서</b></div><div class="lb">In_mind 알고리즘 · 검증 절차 공개</div></div>
+      <div class="p im"><div class="num">IRB<b> 준비</b></div><div class="lb">컨디션 AI · 동의 기반 연구 데이터로 규준 수립</div></div>
     </div>
   </div>
 </header>
@@ -1342,9 +1338,8 @@ footer p{font-size:12.5px;color:var(--gray)}
           <ul>
             <li>분당서울대병원 헬스케어혁신파크 선정(3월, 완료)</li>
             <li>KAIST Deeptech Startup Batch 참여(7월, 완료)</li>
-            <li>용인창업지원센터 입주(7월, 완료)</li>
+            <li>용인창업지원센터(바이오·헬스부문) 입주(7월, 완료)</li>
             <li>강남구 청소년 진로·직업박람회(9월, 성료)</li>
-            <li>한국행동과학연구소 프로젝트 참여(9월, 진행중)</li>
             <li>중앙경찰학교 신임경찰관 대상 실증(10월, 진행중)</li>
           </ul>
         </div>
@@ -1442,62 +1437,6 @@ footer p{font-size:12.5px;color:var(--gray)}
         </div>
       </div>
       <div class="axl">AX OPEN LAB</div>
-    </div>
-
-    <!-- 멤버 -->
-    <div class="grid3">
-      <div class="card member" style="--mcol:#1E5AF0">
-        <div class="mhead">
-          <div class="ava" style="background:var(--grad-blue)"><img width="65" height="75" src="img/양영준.webp" alt="양영준" loading="lazy"></div>
-          <div><h3>양영준</h3><div class="edu">서울대 심리학과</div></div>
-        </div>
-        <ul>
-          <li>LG U+ 모바일금융팀 팀장</li>
-          <li>법률 AI 인텔리콘 사업본부장</li>
-          <li>라온시큐어㈜ 신성장 총괄 — 블록체인 기반 분산 ID 사업 총괄</li>
-        </ul>
-      </div>
-      <div class="card member" style="--mcol:#6C4CE0">
-        <div class="mhead">
-          <div class="ava" style="background:var(--grad-violet)"><img width="72" height="80" src="img/문성일.webp" alt="문성일" loading="lazy"></div>
-          <div><h3>문성일</h3><div class="edu">관동대 컴퓨터공학</div></div>
-        </div>
-        <ul>
-          <li>풀스택 23년 경력</li>
-          <li>KT 안전관리 · 삼성화재 모바일</li>
-          <li>SKT 스마트월렛</li>
-        </ul>
-      </div>
-      <div class="card member" style="--mcol:#0FA47A">
-        <div class="mhead">
-          <div class="ava" style="background:var(--grad-green)"><img width="75" height="81" src="img/나병훈.webp" alt="나병훈" loading="lazy"></div>
-          <div><h3>나병훈</h3><div class="edu">한양대 컴퓨터공학 석사</div></div>
-        </div>
-        <ul>
-          <li>AI 알고리즘 · 풀스택 25년</li>
-          <li>KT 기가지니 앱 CMS</li>
-          <li>신라/신라아이파크 면세점 · 보건복지부</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- 자문 + 채용 -->
-    <div class="adv-row">
-      <div class="adv">
-        <div class="role">자문 · 시선추적</div>
-        <h4>박태정 교수</h4>
-        <p>덕성여대 디지털 SW공학부 · 서울대 컴퓨터공학 Ph.D · 시선·감정 활용 AI 영상 연구</p>
-      </div>
-      <div class="adv">
-        <div class="role">자문 · 마케팅 · 북미</div>
-        <h4>정상욱 교수</h4>
-        <p>한국외대 경영대학원 부원장 · Ph.D Marketing (U. of Iowa) · Big Data · 북미 진출 전략</p>
-      </div>
-      <div class="adv hire">
-        <div class="role">HIRING — PRE-A 자금</div>
-        <div class="pos">M3: B2B 영업 리더 1명</div>
-        <p>M6: DPO·보안 외주 · Series A 이후 CRO/CFO</p>
-      </div>
     </div>
   </div>
 </section>
