@@ -211,6 +211,9 @@ html.staging,html.staging body{overflow:hidden}
 .cal-dot::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff}
 .cal-dot.val{background:var(--blue);box-shadow:0 0 0 8px rgba(31,79,216,.15)}
 .cal-dot.pulse{animation:pls 1.1s ease-in-out infinite}
+.cal-mark{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:3px solid var(--blue);opacity:.5;pointer-events:none}
+.cal-mark.done{border-color:#2F9E6A;opacity:1;background:rgba(47,158,106,.25)}
+.cal-mark.flash{border-color:var(--rose);opacity:1}
 @keyframes pls{50%{transform:scale(.72)}}
 .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;max-width:min(600px,88vw);font-size:16.5px;color:var(--ink-2);word-break:keep-all}
 .center h2{font-size:24px}
@@ -1935,7 +1938,7 @@ function stepInfo(key) {
   const I = {
     calibration: { tag: '측정 준비 · Gaze calibration', title: '시선 보정 · 영점 조정', vis: V.cal, time: '약 1분 25초', resp: '눈으로 바라보기 · 따라가기',
       what: '눈과 머리 자세를 화면 좌표에 맞춰, 화면의 어느 곳을 보고 있는지 추정할 수 있게 합니다. 이후 모든 시선 검사의 정확도를 좌우하는 단계라 네 가지 방법을 겹쳐 쓰고, 검사 중에도 응시점이 나올 때마다 영점을 자동으로 다시 맞춥니다.',
-      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면을 천천히 돌아다니는 파란 점을 12초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 원 가까이 가면 커서가 원 쪽으로 끌려 들어가 떨림 없이 멈출 수 있어요', '<b>정밀 보정</b> — 새 위치의 파란 점 8개를 바라봐요. 이 점들로 지금까지의 보정을 평가해 화면 위치별로 남은 오차까지 바로잡아요'],
+      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면을 천천히 돌아다니는 파란 점을 12초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 원 가까이 가면 커서가 원 쪽으로 끌려 들어가 떨림 없이 멈출 수 있어요', '<b>정밀 보정</b> — 새 위치의 파란 점 8개를 바라봐요. 이 점들로 지금까지의 보정을 평가해 화면 위치별로 남은 오차까지 바로잡아요', '<b>클릭 보정</b>(필요할 때만) — 원을 못 맞혔거나 오차가 남으면, 표시된 점 9개 중 바라보는 곳을 직접 6번 클릭해요. 클릭한 자리를 보고 있었다는 확실한 표본으로 보정을 더 맞춰요'],
       orig: '응시 보정만 쓰면 점 9개 사이의 공간이 부정확해지기 쉬워요. 움직이는 점을 따라가는 <b>추적 보정</b>으로 화면 전체의 자료를 더하고, 두 모델 중 검증 오차가 작은 쪽을 고른 뒤, 축별 <b>영점 조정</b>으로 남은 치우침을 없앱니다. 커서는 떨림과 지연을 함께 줄이는 One Euro 필터로 표시해요.',
       ref: 'Semmelmann & Weigelt, 2018 · Pfeuffer et al., 2013 (추적 보정) · Casiez et al., 2012 (One Euro 필터)' },
     baseline: { tag: '측정 준비 · Resting baseline', title: '안정 기준선', vis: V.calm, time: `${d.baseline}초`, resp: '편안히 바라보기',
@@ -2342,8 +2345,42 @@ async function cursorTask(zones, W, H) {
   S.onGaze = null;
   return { n: res.length, hit: res.filter(r => r.ok).length, pairs: res.filter(r => r.pair).map(r => r.pair), meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };
 }
+/* 5단계 · 클릭 보정: 9점 안내 표시 위에서 사용자가 지금 바라보는 곳을 직접 n 번 클릭한다. 사람은 클릭할 곳을 먼저 보고 누르므로
+ * 클릭 직전 0.45초(30ms 전까지)의 눈 특징을 그 좌표의 표본으로 쓴다. 시선 커서는 보여 주지 않는다(보고 맞추는 보상을 막기 위해).
+ * 특징이 4프레임 미만이면(깜빡임·눈 안 보임) 세지 않고 다시 요청한다. 적용 여부는 N.refineWithClicks 가 leave-one-out 으로 정한다 */
+const CLICK_TRIGGER_PCT = 7;   // 정밀 보정 뒤 오차(화면 폭 %)가 이보다 크면 클릭 보정으로 넘어간다 — '양호' 경계(10%)보다 엄격 (실측 2026-10-07: 원 4/4 성공인데 9.3%, 가장자리·아래쪽 오차 체감)
+async function calClick(W, H, n = 6) {
+  const marks = []; for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) marks.push({ x: fx * W, y: fy * H });
+  body.innerHTML = marks.map(m => `<div class="cal-mark" style="left:${m.x}px;top:${m.y}px"></div>`).join('') + '<div class="cue" id="ckCue" style="top:4%;bottom:auto"></div>';
+  const els = [...body.querySelectorAll('.cal-mark')], cue = $('ckCue'), recent = [], out = [];
+  const say = extra => { cue.textContent = `점 하나를 바라본 채, 보고 있는 바로 그 자리를 클릭해 주세요 · ${out.length}/${n} · 5단계 클릭 보정${extra ? ' · ' + extra : ''}`; };
+  say('');
+  S.onFeature = (t, f) => { recent.push({ t, f }); while (recent.length && recent[0].t < t - 1500) recent.shift(); };
+  await new Promise((res, rej) => {
+    let lastClick = -Infinity;
+    const onClick = e => {
+      const t = now(); if (t - lastClick < 500) return; lastClick = t;
+      const r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      if (x < 0 || y < 0 || x > W || y > H) return;
+      const fs = N.robustFeatures(recent.filter(s => s.t >= t - 450 && s.t <= t - 30).map(s => s.f));
+      const near = marks.reduce((b, m, i) => { const d = Math.hypot(m.x - x, m.y - y); return d < b.d && d < W * 0.06 ? { d, el: els[i] } : b; }, { d: Infinity, el: null }).el;
+      if (fs.length < 4) { if (near) { near.classList.add('flash'); setTimeout(() => near.classList.remove('flash'), 600); } say('눈이 잘 보이지 않았어요 — 점을 보면서 한 번 더'); return; }
+      out.push({ x, y, fs, t });
+      if (S.calibLog) S.calibLog.targets.push({ t, x, y, kind: 'click' });
+      if (near) near.classList.add('done');
+      say('');
+      if (out.length >= n) { waiters.delete(w); w.cleanup(); res(); }
+    };
+    const w = { rej, cleanup: () => { body.removeEventListener('click', onClick); S.onFeature = null; } };
+    waiters.add(w); S.cleanup.push(w.cleanup);
+    body.addEventListener('click', onClick);
+  });
+  S.onFeature = null;
+  return out;
+}
 async function calibrate() {
   await brief('calibration');
+  const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })));
   while (true) {
     const W = stage.clientWidth, H = stage.clientHeight;
     /* 화면이 너무 작으면(분할 화면·좁은 창) 보정점이 겹쳐 시선 모델을 맞출 수 없다 — 실측 NLR-681C…: 폭 110px 화면에서 보정 단계가 1시간 멈춤 */
@@ -2400,11 +2437,10 @@ async function calibrate() {
       /* 4단계 · 정밀 보정: 앞 단계에서 쓰지 않은 새 위치 8곳을 커서 없이 바라보게 한 뒤, 이 점들을 ‘처음 보는 평가 자료’로 써서
        *   ① 지금까지의 보정  ② 모든 보정 표본으로 다시 학습한 모델  ③ ①·②에 잔차 보정(화면 위치별 남은 오차 면)을 더한 것
        * 중 오차가 가장 작은 조합을 고른다. 학습에 쓰지 않은 점으로 평가하므로 고른 결과의 오차가 실제 정확도에 가깝다 */
-      let fine = null;
+      let fine = null, fp = [], clickStep = null;
       if (acc.grade !== 'poor') {
         const fpts = [[0.12, 0.5], [0.88, 0.5], [0.5, 0.12], [0.5, 0.88], [0.32, 0.38], [0.68, 0.62], [0.36, 0.8], [0.64, 0.22]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
-        const fp = await calCollect(fpts, '파란 점을 바라봐 주세요 · 4단계 정밀 보정');
-        const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })));
+        fp = await calCollect(fpts, '파란 점을 바라봐 주세요 · 4단계 정밀 보정');
         const m2 = N.fitGaze([...s9, ...feat(val), ...feat(zc)]);
         if (m2) N.validateGazeEyes(m2, val, W, H);
         const cand = [{ key: '기존 보정', model: S.model, A: S.affine, R: null }];
@@ -2456,6 +2492,17 @@ async function calibrate() {
         points:pairs.map(p=>({x:p.x,y:p.y,gx:p.gx,gy:p.gy,n:p.fs.length})),
         eyes:Object.fromEntries(Object.entries(S.model.eyes||{}).map(([side,m])=>[side,m?.validation||null]))};
       info = `<div class="calsum"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div><div><span>정밀 보정 후</span><b>${fine ? fine.after + '%' : '—'}</b></div></div>${fine ? `<p class="small muted" style="margin:8px 0 0">새 위치 ${fine.points}곳으로 평가해 ‘${esc(fine.chosen)}’을 골랐어요 (적용 전 ${fine.before}% → ${fine.after}%)</p>` : ''}`;
+      /* 5단계 · 클릭 보정(필요할 때만): 3단계 원을 하나라도 못 맞혔거나 정밀 보정 뒤 오차가 CLICK_TRIGGER_PCT 를 넘으면 자동으로, 아니면 완료 카드의 선택으로.
+       * 클릭 표본을 더해 모델·축별·잔차 보정을 다시 맞추고, 클릭 점의 leave-one-out 오차가 줄어들 때만 바꾼다. 표시 오차도 그 held-out 값으로 바꾼다 */
+      clickStep = async () => {
+        const clicks = await calClick(W, H);
+        const ck = N.refineWithClicks({ train: [...s9, ...feat(val), ...feat(zc), ...feat(fp)], points: [...val, ...zc, ...fp], clicks, W, H, extra: (fine && fine.extra) || [], residual: !!S.resid, model: S.model, affine: S.affine, resid: S.resid });
+        if (ck && ck.applied) { S.model = ck.model; S.affine = ck.A; S.resid = ck.R; resetEuro(); acc = { ...acc, errPct: ck.after, grade: ck.grade }; S.calibLog.model = { ...S.calibLog.model, coefficients: S.model, click: true }; S.calibLog.affine = S.affine; }
+        acc.click = ck ? { n: ck.n, before: ck.before, after: ck.after, applied: ck.applied, points: ck.points } : { n: clicks.length, applied: false };
+        S.calibLog.click = acc.click;
+        info += `<p class="small muted" style="margin:8px 0 0">클릭 보정 ${acc.click.n}곳: 클릭 지점 오차 ${ck && ck.before !== null ? ck.before + '% → ' + ck.after + '%' : '측정 불가'} ${acc.click.applied ? '(적용)' : '(기존 보정 유지)'}</p>`;
+      };
+      if ((ctl && ctl.hit < ctl.n) || (acc.errPct !== null && acc.errPct > CLICK_TRIGGER_PCT)) await clickStep();
       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다
       /* 오차는 표본이 있는 점만으로 계산되므로, 점이 빠지면 '양호'가 과장된다(실측 NLR-B8F9…: 9점 중 4점만으로 2.8% '양호').
        * 평가점의 75% 미만만 잡히면 '보통'으로, 화면 아래 40%의 점이 하나도 잡히지 않으면 아래쪽 시선을 믿을 수 없어 다시 보정을 권한다 */
@@ -2466,7 +2513,10 @@ async function calibrate() {
     }
     S.calib = { ...acc, samples: s9.length + sp.length };
     if (acc.grade !== 'poor') {
-      const c = await pauseCard('보정 완료', `${info}<p style="margin:12px 0 0">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);
+      let c;
+      while ((c = await pauseCard('보정 완료', `${info}<p style="margin:12px 0 0">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정', ...(clickStep && !acc.click ? ['클릭 보정 추가'] : [])])) === 2) {
+        await clickStep(); S.calib = { ...acc, samples: s9.length + sp.length };
+      }
       if (c === 1) continue;
       return;
     }

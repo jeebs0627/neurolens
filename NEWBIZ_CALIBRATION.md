@@ -150,6 +150,27 @@ rᵢ < 0.30  → 판정 제외 (값은 보여 주되 ‘판정 제외’)
 
 ---
 
+## 1.3 개정 (2026-10-07) — 보정 5단계 클릭 보정 · 심박 고조파 합
+
+실측 NLR-286AE3DA6C0A7D1A(1920×1080, core 2.0): 4단계 정밀 보정 뒤 오차 13.4 → 9.3%(‘위아래 점수’ 모델 채택), 시선 이동 확인 4/4 성공인데도 화면 가장자리·아래쪽에서 체감 오차가 남음(커서 과제 좌상 영역 예측 −227px). 심박은 압박 구간만 ‘측정’, 기준선·회복은 SNR −0.9~−0.0dB 로 ‘제한’(독립 구간 일치 1/3·2/4).
+
+### 시선 · 5단계 클릭 보정 (`calClick`, `N.refineWithClicks`)
+| 항목 | 내용 |
+|---|---|
+| 언제 | 3단계 원 4개 중 하나라도 못 맞혔거나, 4단계 뒤 오차가 **7%**(화면 폭) 를 넘을 때 자동. 그 밖에는 ‘보정 완료’ 카드의 **클릭 보정 추가** 로 선택 |
+| 무엇을 | 9점 안내 표시(응시 보정과 같은 위치) 위에서, 지금 바라보는 곳을 직접 **6번 클릭**. 라벨 = 클릭 좌표, 표본 = 클릭 직전 0.45초의 눈 특징(사람은 클릭할 곳을 먼저 본다 — Huang et al., 2016; Sugano et al., 2015). 시선 커서는 보여 주지 않는다(보고 맞추는 보상 차단). 눈 특징이 4프레임 미만이면 세지 않고 다시 요청 |
+| 어떻게 | 클릭 표본(가중 2)을 모든 보정 표본에 더해 **모델·축별·잔차 보정을 모두 다시 맞춘다**. 2026-10-05 ‘클릭 영점 3점(이동만)’ 시뮬레이션이 모든 세션에서 악화됐으므로 이동량만 고치지 않는다 |
+| 정직한 평가 | before = 지금 보정으로 클릭 점을 예측한 오차(클릭은 학습에 쓰지 않음) · after = 클릭 점을 하나씩 빼고 다시 맞춘 보정으로 그 점을 예측(leave-one-out). **after < before 일 때만 적용**하고, 표시 오차는 그 held-out 값으로 바꾼다. 기록: `calibration.click {n, before, after, applied, points}` |
+| 검증 | `newbiz-core.test.js` 합성(아래쪽 세로 신호 절반 압축): 클릭 6점 held-out 5.9 → 5.5% 적용. 실측 효과는 다음 세션 `summary->'calibration'->'click'` 로 확인 |
+
+### 심박 · 고조파 합 피크 선택 (`spectralPeak`)
+맥파 스펙트럼은 기본 주파수 f 와 2차 고조파 2f 를 함께 가지므로, 창 안에서 P(f)+0.5·P(2f) 가 최대인 f 를 고른다(보간·SNR 계산은 기본 주파수에서 그대로). 잡음 피크는 2f 짝이 없고, 반주파수 오류는 P(f/2) 가 작아 불리하다.
+합성 비교(15·25fps × 잡음 1.0~1.6 × 30·45초, 셀당 40건, 무맥박 180건): 5bpm 넘는 오답 55 → 46건, 중앙 오차 15fps 에서 0.3~0.7bpm 감소, ‘측정’ 판정 수 변화 없음(36 → 35), 무맥박 위양성 0 → 0. 같은 규칙을 독립 구간 일치 검정에도 넣어 봤으나 효과가 없어 넣지 않았다.
+
+### 이번 실측에서 코드로 고치지 않은 것
+- 세션 앞부분(보정~사카드, 0~212초) 카메라 15~17fps · 추론 61~66ms, 뒷부분 25~27fps · 30ms. 노출 고정(625)은 137초에 적용돼 6초 뒤 fps 감시로 해제됐으므로 원인이 아니다(그 전부터 15fps). 원자료의 프레임 간격·추론 지연 추이로 확인해야 한다 — `tools/newbiz_research_export.py`(service_role 키 필요).
+- 정서 중립·긍정 블록 유효 10초·6초 → 창 1개뿐. 블록 길이의 한계이지 엔진 문제가 아니다.
+
 ## 2. 단계별 진단 안정성 점검 (2026-10-03)
 
 | 단계 | 점검 내용 | 결과 · 조치 |
@@ -204,4 +225,6 @@ QC = { version: 'NL-QC 1.0', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0
 - Piferi RL, Kline KA, Younger J, Lawler KA. An alternative approach for achieving cardiovascular baseline: viewing an aquatic video. Int J Psychophysiol. 2000;37(2):207–217.
 - Casiez G, Roussel N, Vogel D. 1€ filter: a simple speed-based low-pass filter for noisy input in interactive systems. Proc CHI 2012:2527–2530.
 - Pfeuffer K, Vidal M, Turner J, Bulling A, Gellersen H. Pursuit calibration: making gaze calibration less tedious and more flexible. Proc UIST 2013:261–270.
+- Huang MX, Kwok TCK, Ngai G, Chan SCF, Leong HV. Building a personalized, auto-calibrating eye tracker from user interactions. Proc CHI 2016:5169–5179.
+- Sugano Y, Matsushita Y, Sato Y, Koike H. Appearance-based gaze estimation with online calibration from mouse operations. IEEE Trans Hum-Mach Syst. 2015;45(6):750–760.
 - Robertson IH, Manly T, Andrade J, Baddeley BT, Yiend J. ‘Oops!’: performance correlates of everyday attentional failures. Neuropsychologia. 1997;35(6):747–758.

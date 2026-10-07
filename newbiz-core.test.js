@@ -183,6 +183,29 @@ const N = require('./newbiz-core.js');
   assert.ok(center.y > -0.25 * H && center.y < 1.25 * H, 'gaze y stays on screen after a 2% posture shift: ' + Math.round(center.y));
 }
 
+
+/* 클릭 보정: 아래쪽이 눌린 합성 시선 특징(gaze_vertical_bench 와 같은 모양)에서, 기본 4단계 보정 뒤 화면 가장자리·아래쪽 6곳을 클릭한 표본을
+ * 더하면 클릭 점의 leave-one-out 오차가 줄어 적용되고, 특징이 모자란 클릭(4프레임 미만)은 세지 않는다 */
+{
+  const W = 1536, H = 864;
+  let s = 7; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };
+  const g = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
+  const feat = (x, y) => { const nx = x / W - 0.5, ny = y / H - 0.5, down = Math.max(0, ny); return { u: 0.5 + 0.11 * nx + 0.04 * nx * Math.abs(nx) + 0.007 * g(), v: 0.02 * ny - 0.011 * down + 0.008 * g(), open: 0.30 - 0.05 * ny + 0.008 * g(), yaw: 0.002 * g(), pitch: 0.003 * g(), cx: 0.5 + 0.002 * g(), cy: 0.5 + 0.002 * g() }; };
+  const pts = (list, n) => list.map(([fx, fy]) => ({ x: fx * W, y: fy * H, fs: Array.from({ length: n }, () => feat(fx * W, fy * H)) }));
+  const s9 = []; for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 14; i++) s9.push({ x: fx * W, y: fy * H, f: feat(fx * W, fy * H) });
+  const val = pts([[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]], 14), zc = pts([[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]], 14);
+  const flat = l => l.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })));
+  const at = (m, A, p) => { const q = p.fs.map(f => N.applyAffine(A, N.predictGaze(m, f))); return { x: p.x, y: p.y, gx: N.median(q.map(v => v.x)), gy: N.median(q.map(v => v.y)) }; };
+  const train = [...s9, ...flat(val), ...flat(zc)], model = N.fitGaze(train), affine = N.fitAffine([...val, ...zc].map(p => at(model, null, p)));
+  const clicks = pts([[0.08, 0.88], [0.5, 0.88], [0.92, 0.88], [0.08, 0.5], [0.92, 0.5], [0.5, 0.14]], 8);
+  const r = N.refineWithClicks({ train, points: [...val, ...zc], clicks, W, H, model, affine });
+  assert.ok(r && r.n === 6 && r.before !== null && r.after !== null, `click refine ${JSON.stringify(r)}`);
+  assert.ok(r.after < r.before && r.applied && r.model && r.A, `click refine should improve edge/bottom points: before ${r.before} after ${r.after}`);
+  const few = N.refineWithClicks({ train, points: [...val, ...zc], clicks: clicks.map(p => ({ ...p, fs: p.fs.slice(0, 3) })), W, H, model, affine });
+  assert.equal(few, null, 'clicks with <4 frames are not counted');
+  console.log(`PASS click calibration: held-out click error ${r.before}% → ${r.after}% (applied)`);
+}
+
 console.log('newbiz-core tests passed');
 
 /* 시선 화면 밖 가속 억제 (2026-10-05): ① 제곱항 모델이 보정 범위 밖에서 1차로 이어지는지 ② 화면 밖 압축이 화면 안은 그대로, 밖은 단조·유계인지 */
