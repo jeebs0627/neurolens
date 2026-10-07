@@ -56,4 +56,28 @@ test('Lighting discontinuities retain clean sections without spanning the transi
   assert.ok(wins.some(w=>w.end<19250));assert.ok(wins.some(w=>w.start>20750));
   assert.ok(wins.every(w=>w.end<=19250||w.start>=20750));
 });
+function weakPulse(sec,{fps=14,noise=.6,amp=1,hr=75,seed=3}={}){
+  let x=seed;const rand=()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return (x>>>0)/4294967296;},gauss=()=>{let u=0;for(let i=0;i<6;i++)u+=rand();return u-3;};
+  const out=[];let ph=0;
+  for(let t=0;t<=sec*1000;){const dt=1000/fps*(1+(rand()-.5)*.3);ph+=2*Math.PI*hr/60*dt/1000;const p=amp*(Math.sin(ph)+.35*Math.sin(2*ph-.8));
+    const ch=k=>{const n=noise*1.7*(1+.4*k);return [175+.25*p+n*gauss(),118+.6*p+n*gauss(),98+.15*p+n*gauss()];},rr=[ch(0),ch(1),ch(2)];
+    out.push({t,ok:true,rr,r:(rr[0][0]+rr[1][0]+rr[2][0])/3,g:(rr[0][1]+rr[1][1]+rr[2][1])/3,b:(rr[0][2]+rr[1][2]+rr[2][2])/3});t+=dt;}
+  return out;
+}
+test('Pooled spectrum promotes a consistent weak pulse but never a pulse-free recording',()=>{
+  const ok=N.measureEvidence(weakPulse(30,{fps:22,noise:.6,seed:5}),0,30000);
+  assert.ok(ok.pooled&&ok.pooled.windows>=2,'independent windows are pooled');
+  assert.equal(ok.status,'measured');assert.equal(ok.quality,'good');assert.ok(Math.abs(ok.bpm-75)<3);
+  for(let seed=1;seed<=12;seed++){
+    const e=N.measureEvidence(weakPulse(30,{amp:0,seed,noise:seed%2?.6:1}),0,30000);
+    assert.notEqual(e.status,'measured',`pulse-free seed ${seed}`);assert.ok(!(e.pooled&&e.pooled.accepted));
+  }
+});
+test('Sub-span summaries reuse the parent phase windows and stay inside the sub-span',()=>{
+  const frames=weakPulse(40,{fps:14,noise:.8,seed:9}),sig=N.buildBvp(frames),parent=N.hrWindows(sig,10,1,{start:0,end:40000});
+  const late=N.phaseHr(parent,20000,40000),alone=N.phaseHr(N.hrWindows(sig,10,1,{start:20000,end:40000}),20000,40000);
+  assert.ok(late.n>=alone.n,'parent context never loses windows');
+  assert.ok(parent.filter(w=>w.usable&&w.start>=20000&&w.end<=40000).length===late.n,'only windows wholly inside the late half count');
+  assert.ok(Math.abs(late.bpm-75)<4);
+});
 console.log(`${passed.length} fusion/evidence tests passed.`);

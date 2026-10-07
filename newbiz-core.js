@@ -927,21 +927,28 @@
       const key=start+':'+end;if(!phaseCache.has(key))phaseCache.set(key,hrWindows(sig,10,1,{start,end,jumps,motion:moveBursts}));
       return phaseCache.get(key);
     };
-    const summarizePhase=(start,end)=>phaseHr(phaseWindows(start,end),start,end);
+    /* 하위 구간(회복 후반·압박 8초 이후·정서 블록)은 상위 구간 전체에서 만든 창 가운데 하위 구간 안에 온전히 든 창만 요약한다.
+     * 하위 구간만 잘라 창을 다시 만들면 시간 연속성 추적(앞뒤 20~30초 이웃 창)이 문맥을 잃어, 같은 프레임인데도 채택 창이 크게 준다
+     * (2026-10-07 실측 NLR-D2B1…: 회복 전체 채택 33창 · 70.9bpm 인데 회복 후반만 다시 만들면 2창 → 'inferred'(신뢰도 0.3) → 심박 회복률·잔여 심박 판정 제외).
+     * 창은 하위 구간 밖 자료를 포함하지 않으므로 앞 구간 값이 섞이지 않는다 */
+    const summarizePhase=(start,end,parent)=>phaseHr(parent&&finite(parent[0])&&finite(parent[1])?phaseWindows(...parent):phaseWindows(start,end),start,end);
     const ph = rec.phases;
     const span = n => ph[n] ? [ph[n].start, ph[n].end] : [NaN, NaN];
     const hr = {};
-    ['baseline', 'neu', 'neg', 'pos', 'recovery'].forEach(n => { hr[n] = summarizePhase(...span(n)); });
+    /* 정서 블록(중립→부정→긍정)은 연달아 이어지므로 세 블록 전체를 상위 구간으로 쓴다. 이웃 블록은 추적 기준으로만 쓰여 블록 간 차이는 0 쪽(보수적)으로만 줄 수 있다 */
+    const emo = ['neu', 'neg', 'pos'].every(n => ph[n] && finite(ph[n].start) && finite(ph[n].end)) && ph.neg.start - ph.neu.end < 5000 && ph.pos.start - ph.neg.end < 5000 ? [ph.neu.start, ph.pos.end] : null;
+    ['baseline', 'recovery'].forEach(n => { hr[n] = summarizePhase(...span(n)); });
+    ['neu', 'neg', 'pos'].forEach(n => { hr[n] = summarizePhase(...span(n), emo); });
     /* 압박: 심박은 과제 시작 후 수 초에 걸쳐 오르므로 첫 8초를 빼고 잰다 */
     const [ss, se] = span('stress');
-    hr.stress = summarizePhase(se - ss > 20000 ? ss + 8000 : ss, se);
+    hr.stress = summarizePhase(se - ss > 20000 ? ss + 8000 : ss, se, [ss, se]);
     /* 과제 직전 안정 구간(안내 읽기·카운트다운, 시작 3~25초 전): 기준선이 약하거나 오래전이면 이쪽을 비교 기준으로 */
     hr.pre = ph.preStress ? summarizePhase(Math.max(ph.preStress.start,ph.preStress.end-25000),ph.preStress.end)
       : rec.capture ? phaseHr([],NaN,NaN) : summarizePhase(ss - 25000, ss - 3000);
     hr.pre.context=!ph.preStress?'legacy-pre-task':ph.preStress.end-ph.preStress.start>=15000?'pre-task-rest':'pre-task-instructions';
     /* 회복: 회복 구간 후반 절반 심박 */
     const [rs, re] = span('recovery');
-    hr.recoveryLate = summarizePhase((rs + re) / 2, re);
+    hr.recoveryLate = summarizePhase((rs + re) / 2, re, [rs, re]);
     /* 세션 흐름으로 튀는·빠진 구간 보정 */
     const trend = sessionTrend(wins), spanOf = { baseline: span('baseline'), neu: span('neu'), neg: span('neg'), pos: span('pos'), stress: [se - ss > 20000 ? ss + 8000 : ss, se], recovery: [rs, re], recoveryLate: [(rs + re) / 2, re] };
     Object.entries(spanOf).forEach(([k, [a, b]]) => { if (hr[k]) hr[k] = repairPhase(hr[k], trend.phase(a, b)); });
@@ -964,7 +971,8 @@
      * 반응이 큰 경우에는 고전적 정의(정점 대비 되돌아온 비율)와 같다 */
     let recovery = null, recoveryResid = null, recoverySrc = null;
     const lateHr = usableHr(hr.recoveryLate) ? (recoverySrc = 'late', hr.recoveryLate) : usableHr(hr.recovery) ? (recoverySrc = 'whole', hr.recovery) : null;
-    const stressWins = phaseWindows(se - ss > 20000 ? ss + 8000 : ss,se).filter(w=>w.usable);
+    const stressFrom = se - ss > 20000 ? ss + 8000 : ss;
+    const stressWins = phaseWindows(ss,se).filter(w=>w.usable&&w.start>=stressFrom-.01&&w.end<=se+.01);
     const peak = stressWins.length >= 2 ? quantile(stressWins.map(w => w.bpm), 0.75) : usableHr(hr.stress) ? hr.stress.bpm : null;
     hr.stressPeak = finite(peak) ? round(peak, 1) : null;
     if (ref && lateHr) {

@@ -169,7 +169,8 @@ html.staging,html.staging body{overflow:hidden}
 .sbtn:hover{background:#E3E7EE}
 .sbtn[hidden]{display:none}
 .st-prog{position:absolute;top:54px;left:0;right:0;height:3px;background:#DADFE8}
-.st-prog i{display:block;height:100%;width:0;background:#7C88A2;transition:width .5s}
+.st-prog{contain:strict}
+.st-prog i{display:block;height:100%;width:100%;background:#7C88A2;transform:scaleX(0);transform-origin:left;transition:transform .35s linear;will-change:transform}
 .facewarn{position:absolute;left:50%;top:72px;transform:translateX(-50%);background:var(--rose-soft);color:#8C2440;border-radius:10px;padding:7px 14px;font-size:13.5px;display:none;z-index:4}
 .facewarn.on{display:block}
 .fswarn{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;border:1px solid var(--line-2);border-radius:12px;padding:8px 10px 8px 14px;font-size:13px;display:none;gap:10px;align-items:center;z-index:4}
@@ -202,8 +203,8 @@ html.staging,html.staging body{overflow:hidden}
 .taskbar{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;font-size:12.5px;color:#7C869B;white-space:nowrap}
 .taskbar[hidden]{display:none}
 .taskbar{background:rgba(245,247,250,.88);padding:6px 16px;border-radius:999px;z-index:3}
-.taskbar .tb{width:220px;height:5px;border-radius:9px;background:#D3D9E3;overflow:hidden}
-.taskbar .tb i{display:block;height:100%;width:0;background:#7C88A2}
+.taskbar .tb{width:220px;height:5px;border-radius:9px;background:#D3D9E3;overflow:hidden;contain:strict}
+.taskbar .tb i{display:block;height:100%;width:100%;background:#7C88A2;transform:scaleX(0);transform-origin:left;transition:transform .25s linear;will-change:transform}
 .taskbar b{color:#5A6580;font-family:var(--font-num);font-weight:600}
 /* 과제 자극 */
 .cal-dot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 8px rgba(201,60,92,.15);transition:left .35s,top .35s}
@@ -229,7 +230,8 @@ html.staging,html.staging body{overflow:hidden}
 .pvt{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center}
 .pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#B83A49;background:#EFF1F5}
 .pvt-msg{height:26px;margin-top:14px;font-size:15px;color:#59647D}
-.sart{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-family:var(--font-num);font-weight:700;color:#2C3650;line-height:1;min-width:220px;text-align:center}
+.sart{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-family:var(--font-num);font-weight:700;color:#2C3650;line-height:1;min-width:220px;text-align:center;contain:layout}
+.sart span{display:inline-block;font-size:var(--sart-max,120px);transform-origin:center;will-change:transform,opacity}
 .sart-fb{position:absolute;left:50%;top:66%;transform:translateX(-50%);font-size:15px;color:#59647D;height:24px}
 .math{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center}
 .math .prob{font-family:var(--font-num);font-size:clamp(40px,6vw,64px);font-weight:700;color:#2C3650}
@@ -588,8 +590,8 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .mist-hard{margin-left:8px;font-size:11.5px;font-weight:800;color:#fff;background:#B23A57;border-radius:6px;padding:1px 7px;animation:fadeIn .3s}
 .mist .prob{font-family:var(--font-num);font-size:clamp(34px,5vw,54px);font-weight:700;color:#2C3650;letter-spacing:.01em;margin:6px 0 0}
 .mist .prob .q{color:#9AA3B6}
-.mist .tbar{width:100%;height:6px;border-radius:9px;background:#D3D9E5;margin:16px auto 18px;overflow:hidden}
-.mist .tbar i{display:block;height:100%;background:#7D879E}
+.mist .tbar{width:100%;height:6px;border-radius:9px;background:#D3D9E5;margin:16px auto 18px;overflow:hidden;contain:strict}
+.mist .tbar i{display:block;height:100%;width:100%;background:#7D879E;transform-origin:left;will-change:transform}
 .keypad{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
 .keypad button{padding:12px 0;border-radius:12px;border:1.5px solid #C9D0DD;background:#F2F4F8;font-family:var(--font-num);font-size:22px;font-weight:700;color:#2C3650;transition:transform .08s,border-color .1s}
 .keypad button:hover{border-color:#9AA6BF}
@@ -617,7 +619,8 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 /* 기준선 풍경 */
 .calm{position:absolute;inset:57px 0 0 0;overflow:hidden}
 .calm svg{width:100%;height:100%;display:block}
-.calm-ph{width:100%;height:100%;object-fit:cover;display:block;animation:kenburns linear forwards}
+.calm-ph{width:100%;height:100%;object-fit:cover;display:block}
+.calm .cloud,.calm .wv,.calm .shim{animation:none}
 @keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.05)}}
 @keyframes drift{from{transform:translateX(-30%)}to{transform:translateX(130%)}}
 .cloud{animation:drift linear infinite}
@@ -631,6 +634,30 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .pacer{position:absolute;left:50%;top:calc(50% + 10px);transform:translate(-50%,-50%);width:min(760px,94vw);text-align:center}
 .pacer-ring{position:relative;width:min(300px,42vmin);height:min(300px,42vmin);margin:0 auto}
 .pacer-ring svg{position:absolute;inset:0;width:100%;height:100%}
+.pacer-ring{--rs:min(300px,42vmin)}
+.pacer-arc{position:absolute;inset:2.33%;contain:strict}
+.pacer-arc b{position:absolute;top:0;width:50%;height:100%;overflow:hidden}
+.pacer-arc b.r{right:0}.pacer-arc b.l{left:0}
+.pacer-arc i{position:absolute;top:0;width:200%;height:100%;box-sizing:border-box;border-radius:50%;border:calc(var(--rs) * .02) solid transparent;transform:rotate(-135deg);will-change:transform}
+.pacer-arc b.r i{right:0;border-top-color:#7FA3B8;border-right-color:#7FA3B8}
+.pacer-arc b.l i{left:0;border-bottom-color:#7FA3B8;border-left-color:#7FA3B8}
+.pacer-orb{position:absolute;left:12.67%;top:12.67%;width:74.67%;height:74.67%;box-sizing:border-box;border-radius:50%;background:rgba(127,163,184,.16);border:calc(var(--rs) * .01) solid #7FA3B8;transform:scale(.55);will-change:transform}
+.pacer.run .pacer-orb{animation:pacerOrb 10s infinite}
+.pacer.run .pacer-arc b.r i{animation:pacerArcR 5s linear infinite}
+.pacer.run .pacer-arc b.l i{animation:pacerArcL 5s linear infinite}
+@keyframes pacerOrb{0%{transform:scale(.55);animation-timing-function:cubic-bezier(.37,0,.63,1)}50%{transform:scale(1);animation-timing-function:cubic-bezier(.37,0,.63,1)}100%{transform:scale(.55)}}
+@keyframes pacerArcR{0%{transform:rotate(-135deg)}50%,100%{transform:rotate(45deg)}}
+@keyframes pacerArcL{0%,50%{transform:rotate(-135deg)}100%{transform:rotate(45deg)}}
+.pacer-wv{position:relative;margin-top:14px}
+.pacer-wv .pacer-wave{margin-top:0}
+.pacer-wx{position:absolute;inset:0;pointer-events:none;will-change:transform}
+.pacer-wy{position:absolute;left:0;top:0;width:0;height:100%;will-change:transform;transform:translateY(87.14%)}
+.pacer-wy i{position:absolute;left:-9px;top:-9px;width:14px;height:14px;border-radius:50%;background:#5F8AA3;border:2px solid #fff}
+.pacer.run .pacer-wx{animation:pacerWx 30s linear infinite}
+.pacer.run .pacer-wy{animation:pacerWy 10s infinite}
+@keyframes pacerWx{from{transform:translateX(0)}to{transform:translateX(100%)}}
+@keyframes pacerWy{0%{transform:translateY(87.14%);animation-timing-function:cubic-bezier(.37,0,.63,1)}50%{transform:translateY(12.86%);animation-timing-function:cubic-bezier(.37,0,.63,1)}100%{transform:translateY(87.14%)}}
+@media (prefers-reduced-motion:reduce){.pacer.run .pacer-wx,.pacer.run .pacer-wy{animation:none}}
 .pacer-lbl{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:2px}
 .pacer-lbl b{font-size:24px;color:#2C3650}
 .pacer-lbl span{font-family:var(--font-num);font-size:34px;font-weight:700;color:#4C5774;line-height:1}
@@ -1780,7 +1807,7 @@ let hudTimer = null, plannedMs = 1, runStart = 0;
 function startHud() {
   runStart = now();
   hudTimer = setInterval(() => {
-    $('hudBar').style.width = Math.min(100, (now() - runStart) / plannedMs * 100) + '%';
+    $('hudBar').style.transform = `scaleX(${Math.min(1, (now() - runStart) / plannedMs).toFixed(4)})`;
     const faceOk = S.demo || now() - S.lastFace < 1500;
     setDot('hudFace', faceOk ? 'ok' : 'bad'); $('hudFaceT').textContent = S.demo ? '데모' : faceOk ? '얼굴 인식' : '얼굴 없음';
     $('faceWarn').classList.toggle('on', !faceOk && S.recording);
@@ -1815,11 +1842,12 @@ function pulseSupport(key) {
 function task(label, ms) {
   $('taskbar').hidden = false; $('taskName').textContent = label;
   const t0 = now();
-  const upd = () => { const f = Math.min(1, (now() - t0) / ms); $('taskBar').style.width = f * 100 + '%'; $('taskLeft').textContent = `${Math.max(0, Math.ceil((ms - (now() - t0)) / 1000))}초 남음`; };
+  let lastLeft = '';
+  const upd = () => { const f = Math.min(1, (now() - t0) / ms); $('taskBar').style.transform = `scaleX(${f.toFixed(4)})`; const left = `${Math.max(0, Math.ceil((ms - (now() - t0)) / 1000))}초 남음`; if (left !== lastLeft) { $('taskLeft').textContent = left; lastLeft = left; } };
   upd(); const stop = every(250, upd);
   return () => { stop(); $('taskbar').hidden = true; };
 }
-function taskSet(label, i, n) { $('taskbar').hidden = false; $('taskName').textContent = label; $('taskBar').style.width = (i / n * 100) + '%'; $('taskLeft').textContent = `${i} / ${n}`; }
+function taskSet(label, i, n) { $('taskbar').hidden = false; $('taskName').textContent = label; $('taskBar').style.transform = `scaleX(${(i / n).toFixed(4)})`; $('taskLeft').textContent = `${i} / ${n}`; }
 function taskHide() { $('taskbar').hidden = true; }
 /* 카메라 색·노출 고정 (rPPG 보강): 웹캠의 자동 화이트밸런스·자동 노출은 측정 중에도 계속 조정되며 피부색을 흔든다 — 맥파보다 큰 잡음원.
  * 측정 화면으로 바뀐 뒤 밝기가 자리 잡으면(2.5초) 지원하는 카메라에서만 지금 값으로 고정한다(Media Capture Image: whiteBalanceMode·exposureMode).
@@ -1957,7 +1985,9 @@ function stepSummary(key) {
       const ph = S.phases.baseline, fr = S.frames.filter(f => ph && f.t >= ph.start && f.t <= ph.end);
       const evidence=S.phaseEvidence?.baseline;
       const q = S.demo ? 'good' : (evidence || N.liveHr(fr, 20) || {}).quality;
-      return { cls: q === 'good' ? '' : 'warn', text: `기준선 완료 · 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함' }[q] || '부족'}${evidence?.validSeconds ? ' · '+Math.round(evidence.validSeconds)+'초 활용' : ''}` };
+      /* '보통'이라도 독립 관측(겹치지 않는 10초 창) 2개 이상에서 창 간 퍼짐 4bpm 이하로 일치하면 실측값으로 쓴다(판정 포함) — 참고 표시는 약한 신호에만 */
+      const precise = evidence && q === 'fair' && evidence.validSeconds >= 20 && Number.isFinite(evidence.spreadBpm) && evidence.spreadBpm <= 4;
+      return { cls: q === 'good' ? '' : precise ? 'fair' : 'warn', text: `기준선 완료 · 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함' }[q] || '부족'}${evidence?.validSeconds ? ' · '+Math.round(evidence.validSeconds)+'초 활용' : ''}${precise ? ` · 창 간 차이 ±${evidence.spreadBpm.toFixed(1)}bpm` : ''}` };
     }
     if (key === 'pursuit' && S.pursuit) { const blocks = [...(S.pursuit.levels || []), ...(S.pursuit.reversal ? [{ ...S.pursuit.reversal, dur: (S.pursuit.reversal.end || now()) - S.pursuit.reversal.t0 }] : [])], n = blocks.reduce((a, b) => a + b.samples.length, 0), e = Math.max(1, blocks.reduce((a, b) => a + b.dur, 0) / 1000 * 25); return { cls: n / e >= 0.5 ? '' : 'warn', text: `원활 추적 완료 · 시선 표본 ${Math.min(100, Math.round(n / e * 100))}%` }; }
     if (key === 'saccade') {
@@ -2085,7 +2115,7 @@ async function runSession() {
     const rows = plan.map(([k]) => stepSummary(k)).filter(Boolean);
     body.innerHTML = `<div class="brief" style="width:min(640px,92vw)"><span class="tag">Complete</span><h2>모든 단계를 마쳤어요</h2>
       <p class="what">수고하셨어요. 아래 측정 품질을 확인한 뒤 결과를 분석합니다.</p>
-      <ul class="sumlist">${rows.map(r => `<li>${esc(r.text)}<span>${r.cls === 'skip' ? '판정 제외' : r.cls === 'warn' ? '품질 낮음 · 참고' : '양호'}</span></li>`).join('')}</ul>
+      <ul class="sumlist">${rows.map(r => `<li>${esc(r.text)}<span>${r.cls === 'skip' ? '판정 제외' : r.cls === 'warn' ? '품질 낮음 · 참고' : r.cls === 'fair' ? '실측 활용' : '양호'}</span></li>`).join('')}</ul>
       <div class="go"><button class="btn" id="fGo">결과 분석하기<span class="kbd">Enter</span></button></div></div>`;
     S.cur = 'done';
     await go('fGo');
@@ -2763,12 +2793,13 @@ function sartScreen(practice, n) {
     <div class="sart-fb" id="sartFb" style="top:76%"></div>`;
 }
 async function sartRun(seq, P, practice, onEach) {
-  const el = $('sartD'), fb = $('sartFb'), ack = $('sAck'), out = [];
+  const el = $('sartD'), fb = $('sartFb'), ack = $('sAck'), out = [], maxSize = Math.max(...P.sizes);
+  el.parentNode.style.setProperty('--sart-max', maxSize + 'px');
   let ackT = 0;
   const flash = () => { ack.classList.add('on'); clearTimeout(ackT); ackT = setTimeout(() => ack.classList.remove('on'), 160); };
   for (let i = 0; i < seq.length; i++) {
     const tr = { digit: seq[i], onset: null, rt: null };
-    el.style.fontSize = P.sizes[Math.floor(Math.random() * P.sizes.length)] + 'px';
+    el.style.transform = `scale(${(P.sizes[Math.floor(Math.random() * P.sizes.length)] / maxSize).toFixed(3)})`;   // 크기는 transform 으로(레이아웃 없음)
     el.textContent = seq[i];
     tr.onset = await nextFrame();
     S.onResp = e => { if (tr.rt === null) { tr.rt = e.timeStamp - tr.onset; flash(); } };
@@ -2856,12 +2887,12 @@ async function phaseStress(sec) {
     levels[lv - 1]++;
     const pct = total ? Math.round(correct / total * 100) : 0;
     body.innerHTML = `<div class="mist"><div class="mist-top"><span class="mist-lv">난이도&nbsp;${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lv ? 'on' : ''}"></i>`).join('')}${hard ? '<b class="mist-hard">고난도</b>' : ''}</span><span>제한 시간 ${(limit / 1000).toFixed(1)}초</span></div>
-      <div class="prob">${esc(q.text)} = <span class="q">?</span></div><div class="tbar"><i id="tb" style="width:100%"></i></div>
+      <div class="prob">${esc(q.text)} = <span class="q">?</span></div><div class="tbar"><i id="tb"></i></div>
       <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(v => `<button type="button" data-v="${v}">${v}</button>`).join('')}</div>
       <div class="fb" id="fb"></div>
       <div class="perf"><div class="perf-h"><span>내 정답률 <b>${pct}%</b> · ${correct}/${total}</span><span>목표 ${Math.round(P.target * 100)}%</span></div><div class="perf-t"><i style="width:${pct}%"></i><em style="left:${P.target * 100}%"></em></div></div></div>`;
     const t0 = now(), tb = $('tb');
-    requestAnimationFrame(() => { tb.style.transition = `width ${limit}ms linear`; tb.style.width = '0%'; });
+    requestAnimationFrame(() => { tb.style.transition = `transform ${limit}ms linear`; tb.style.transform = 'scaleX(0)'; });
     const v = await new Promise((res, rej) => {
       const w = { rej, cleanup: () => { S.onKey = null; } };
       const done = x => { clearTimeout(w.to); waiters.delete(w); S.onKey = null; res(x); };
@@ -2875,7 +2906,7 @@ async function phaseStress(sec) {
     if (hard) { hardTotal++; if (ok) hardCorrect++; }
     log.push([Math.round(t0 - S.phases.stress.start), lv, limit, v === null ? null : Math.round(now() - t0), q.ans, v, ok ? 1 : 0]);
     if (v !== null) { const hb = body.querySelector(`.keypad button[data-v="${v}"]`); if (hb) hb.classList.add('hit'); }
-    tb.style.transition = 'none'; tb.style.width = Math.max(0, 100 - (now() - t0) / limit * 100) + '%';
+    tb.style.transition = 'none'; tb.style.transform = `scaleX(${Math.max(0, 1 - (now() - t0) / limit).toFixed(4)})`;
     $('fb').textContent = v === null ? '시간 초과' : ok ? '정답' : `오답 · 정답 ${q.ans}`;
     if (!hard) limit = B.mistNext(limit, ok);           // 고난도 문제는 제한 시간 조정에 넣지 않는다
     minLimit = Math.min(minLimit, limit);
@@ -2889,39 +2920,40 @@ async function phaseStress(sec) {
 /* 공명 호흡 페이서: 들숨 5초 · 날숨 5초. 원(크기)·바깥 띠(단계 진행)·초 카운트·호흡 파형을 함께 보여 준다 */
 const BREATH_T = 10000;
 function pacerHtml(id, opt = {}) {
-  const C = 2 * Math.PI * 140;
+  /* 움직임은 모두 CSS transform 애니메이션(합성 스레드)으로: 얼굴 추론이 주 스레드를 잡고 있어도 원·띠·파형 점이 끊기지 않고,
+   * 매 프레임 SVG 를 다시 그리던 비용이 없어져 카메라 프레임(심박 표본)이 덜 밀린다(2026-10-07 실측 NLR-D2B1…: 회복 호흡 7.3fps) */
   return `<div class="pacer fade" id="${id}"><div class="pacer-ring"><svg viewBox="0 0 300 300" aria-hidden="true">
       <circle cx="150" cy="150" r="140" fill="none" stroke="#D3D9E5" stroke-width="6"/>
-      <circle id="${id}P" cx="150" cy="150" r="140" fill="none" stroke="#7FA3B8" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" transform="rotate(-90 150 150)"/>
       <circle cx="150" cy="150" r="118" fill="none" stroke="#DCE2EA" stroke-width="1.5" stroke-dasharray="2 6"/>
-      <circle id="${id}C" cx="150" cy="150" r="112" fill="rgba(127,163,184,.16)" stroke="#7FA3B8" stroke-width="3" style="transform-origin:150px 150px"/>
-    </svg><div class="pacer-lbl"><b id="${id}L">준비</b><span id="${id}S"></span></div></div>
+    </svg><div class="pacer-arc" aria-hidden="true"><b class="r"><i></i></b><b class="l"><i></i></b></div><div class="pacer-orb" aria-hidden="true"></div>
+    <div class="pacer-lbl"><b id="${id}L">준비</b><span id="${id}S"></span></div></div>
     ${opt.meta === false ? '' : `<div class="pacer-meta"><span>호흡 <b id="${id}N">0</b>${opt.cycles ? ` / ${opt.cycles}` : ''}</span><span>속도 <b>분당 6회</b></span><span>들숨 <b>5초</b> · 날숨 <b>5초</b></span></div>`}
-    ${opt.wave === false ? '' : `<svg class="pacer-wave" id="${id}W" viewBox="0 0 760 70" preserveAspectRatio="none" aria-hidden="true"></svg>`}</div>`;
+    ${opt.wave === false ? '' : `<div class="pacer-wv"><svg class="pacer-wave" id="${id}W" viewBox="0 0 760 70" preserveAspectRatio="none" aria-hidden="true"></svg><div class="pacer-wx"><div class="pacer-wy"><i></i></div></div></div>`}</div>`;
 }
 function startPacer(id, t0) {
-  const C = 2 * Math.PI * 140, P = $(id + 'P'), Cc = $(id + 'C'), L = $(id + 'L'), Sx = $(id + 'S'), Nn = $(id + 'N'), Wv = $(id + 'W');
-  const ease = x => 0.5 - 0.5 * Math.cos(Math.PI * x);
+  const root = $(id), L = $(id + 'L'), Sx = $(id + 'S'), Nn = $(id + 'N'), Wv = $(id + 'W');
   const WIN = 30000, Wd = 760, yOf = t => 35 + 26 * Math.cos(2 * Math.PI * t / BREATH_T);   // 들숨 동안 위로 (y 감소)
   if (Wv) {
     let d = '';
     for (let x = 0; x <= Wd; x += 4) d += (x ? 'L' : 'M') + x + ' ' + yOf(x / Wd * WIN).toFixed(1) + ' ';
-    Wv.innerHTML = `<path d="${d}" fill="none" stroke="#B8C8D4" stroke-width="2.5"/><circle id="${id}D" r="7" fill="#5F8AA3" stroke="#fff" stroke-width="2"/>`;
+    Wv.innerHTML = `<path d="${d}" fill="none" stroke="#B8C8D4" stroke-width="2.5"/>`;
   }
-  const dot = $(id + 'D');
-  let raf = 0, last = '';
+  /* 애니메이션 시작 시각을 t0 에 맞춘다(음수 지연) — 원·띠·파형 점·글자가 같은 시계로 움직인다 */
+  const lag = -Math.max(0, now() - t0) + 'ms';
+  root.querySelectorAll('.pacer-orb,.pacer-arc i,.pacer-wx,.pacer-wy').forEach(el => { el.style.animationDelay = lag; });
+  root.classList.add('run');
+  let last = '', lastN = -1;
+  /* 글자는 바뀔 때만(초 단위) 고친다 — 매 프레임 DOM 을 건드리지 않는다 */
   const tick = () => {
     const el = Math.max(0, now() - t0), tt = el % BREATH_T, inhale = tt < BREATH_T / 2, ph = (inhale ? tt : tt - BREATH_T / 2) / (BREATH_T / 2);
-    Cc.style.transform = `scale(${(inhale ? 0.55 + 0.45 * ease(ph) : 1 - 0.45 * ease(ph)).toFixed(4)})`;
-    P.style.strokeDashoffset = (C * (1 - ph)).toFixed(1);
     const lbl = inhale ? '들이쉬기' : '내쉬기', sec = String(Math.max(1, Math.ceil(5 - ph * 5)));
     if (lbl + sec !== last) { L.textContent = lbl; Sx.textContent = sec; last = lbl + sec; }
-    if (Nn) Nn.textContent = Math.floor(el / BREATH_T) + 1;
-    if (dot) { const x = (el % WIN) / WIN * Wd; dot.setAttribute('cx', x.toFixed(1)); dot.setAttribute('cy', yOf(el % WIN).toFixed(1)); }
-    raf = requestAnimationFrame(tick);
+    const n = Math.floor(el / BREATH_T) + 1;
+    if (Nn && n !== lastN) { Nn.textContent = n; lastN = n; }
   };
-  raf = requestAnimationFrame(tick);
-  return () => cancelAnimationFrame(raf);
+  tick();
+  const timer = setInterval(tick, 100);
+  return () => { clearInterval(timer); root.classList.remove('run'); };
 }
 async function phaseRecovery(sec) {
   await brief('recovery');

@@ -5,7 +5,9 @@
   if(root)root.NLFusionFactory=factory;
 })(typeof globalThis!=='undefined'?globalThis:null,function(N){
   'use strict';
-  const VERSION='condition-fusion-6',finite=Number.isFinite;
+  const VERSION='condition-fusion-7',finite=Number.isFinite;
+  // 통합 스펙트럼 SNR 기준(dB): 무맥박 합성 96건(창을 모두 채택으로 간주한 느슨한 조건)의 최댓값 −3.44dB 보다 높게 둔다 (tools/pulse_pooled_bench.cjs)
+  const POOLED_SNR=-3;
   // 'aggregate'(전체 피부 평균)와 'combined'(영역 파형 합성)는 영역들과 픽셀을 공유하므로 독립 영역으로 세지 않는다
   const SHARED=new Set(['aggregate','combined']),physicalRoi=p=>!SHARED.has(p.roi);
   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
@@ -160,7 +162,7 @@
         if(opt.guided!==false)candidates.push(...guided(raw,fs,opt));
         const fused=fuse(candidates);if(!fused)continue;
         if(sec<8&&fused.period<.55){fused.usable=false;fused.recoverable=false;fused.quality='poor';fused.status='uncertain';fused.confidence=Math.min(fused.confidence,.29);fused.reason='short-window-ambiguity';}
-        const result={...fused,start,end,t:(start+end)/2,windowSec:sec};
+        const result={...fused,start,end,t:(start+end)/2,windowSec:sec,fs};
         if(!chosen||(!chosen.usable&&result.usable)||result.confidence>chosen.confidence+.12||(result.usable&&sec>chosen.windowSec&&result.confidence>=chosen.confidence-.04))chosen=result;
         if(result.usable&&(result.snr>=3||sec===16))break;
       }
@@ -237,6 +239,34 @@
         correction:{kind:'temporal-continuity',reference:Math.round(ref*10)/10,anchored,prior:viaPrior,differenceBpm:Math.round((pick.bpm-ref)*10)/10,regions:rois,method:pick.method}};
     });
   }
+  /* 구간 통합 스펙트럼 (Welch, 1967 의 평균 periodogram): 채택 창 하나의 SNR 은 짧은 관측이라 잡음에 크게 흔들린다(창 기준 3dB).
+   * 겹치지 않는 창들의 정규화 스펙트럼을 평균하면 창마다 다른 곳에 생기는 잡음 피크는 낮아지고, 같은 주파수에 반복되는 맥박만 남는다.
+   * 선택 편향을 막기 위해 ① 이웃 창에 기대어 받아들인 창(tracked·accumulated)은 쓰지 않고 ② 창 안의 색차 기반(POS·CHROM) 피부 영역 파형을
+   *   추정 bpm 과 무관하게 모두 평균한다. 값을 만들지 않는다 — 구간 bpm 은 그대로이고, '구간 전체로 측정됐는가'의 판정 근거만 더한다 */
+  function pooled(rows,start,end){
+    const own=rows.filter(w=>w.usable&&!w.reason&&finite(w.fs)&&(w.start??w.t)>=start-.01&&(w.end??w.t)<=end+.01&&Array.isArray(w.alternatives));
+    const picked=[];
+    own.slice().sort((a,b)=>(b.confidence||0)-(a.confidence||0)).forEach(w=>{if(picked.every(p=>w.end<=p.start||w.start>=p.end))picked.push(w);});
+    if(picked.length<2)return null;
+    const fs=picked[0].fs,nfft=4096,df=fs/nfft,b0=Math.ceil(.6/df),b1=Math.floor(3.3/df),avg=new Float64Array(b1+1);let k=0;
+    for(const w of picked){
+      const waves=[...new Set((w.alternatives||[]).filter(p=>p.method!=='green'&&!p.guided&&physicalRoi(p)&&p._wave).map(p=>p._wave))];
+      if(!waves.length||w.fs!==fs)continue;
+      const seg=new Float64Array(b1+1);
+      for(const x of waves){
+        const n=x.length,m=N.mean(Array.from(x)),h=Float64Array.from(x,(v,i)=>(v-m)*(.5-.5*Math.cos(2*Math.PI*i/(n-1))));
+        const p=N.powerSpectrum(h,nfft);let tot=0;for(let i=b0;i<=b1;i++)tot+=p[i];
+        if(tot>0)for(let i=b0;i<=b1;i++)seg[i]+=p[i]/tot/waves.length;
+      }
+      for(let i=b0;i<=b1;i++)avg[i]+=seg[i];k++;
+    }
+    if(k<2)return null;
+    const i0=Math.ceil(.7/df),i1=Math.floor(3/df);let pk=i0;
+    for(let i=i0;i<=i1;i++)if(avg[i]>avg[pk])pk=i;
+    const f0=pk*df;let sig=0,noise=0;
+    for(let i=b0;i<=b1;i++){const f=i*df;if(Math.abs(f-f0)<=.1||Math.abs(f-2*f0)<=.1)sig+=avg[i];else noise+=avg[i];}
+    return {k,bpm:f0*60,snrDb:sig>0&&noise>0?10*Math.log10(sig/noise):-20};
+  }
   // Integrate support on unique time intervals. Overlapping windows add no extra seconds.
   function support(rows,start,end){
     const events=[];
@@ -288,11 +318,17 @@
     const avg=key=>rows.reduce((a,r)=>a+(r[key]||0)*r.weight,0)/rows.reduce((a,r)=>a+r.weight,0);
     const bpm=weightedQuantile(rows,'bpm'),snr=avg('snr'),confidence=s.seconds?s.effective/s.seconds:avg('confidence')||.65;
     const spread=Math.sqrt(avgSquared(rows,bpm)),range=[weightedQuantile(rows,'bpm',.1),weightedQuantile(rows,'bpm',.9)];
-    return {bpm,snr,quality:snr>=3&&confidence>=.65?'good':'fair',n:valid.length,
+    /* 통합 스펙트럼 판정: 겹치지 않는 창 2개 이상(≥20초 독립 관측)의 평균 스펙트럼이 POOLED_SNR 이상이고, 그 피크가 구간 bpm 과
+     * 3bpm 안에서 일치하며, 창 간 퍼짐이 4bpm 이하일 때 구간을 '측정'으로 본다. 기준값은 무맥박 합성 신호의 위양성 상한으로 정했다
+     * (tools/pulse_pooled_bench.cjs) */
+    const pool=pooled(valid,start,end);
+    const pooledOk=!!pool&&s.seconds>=20&&pool.snrDb>=POOLED_SNR&&Math.abs(pool.bpm-bpm)<=3&&spread<=4;
+    return {bpm,snr,quality:(snr>=3&&confidence>=.65)||pooledOk?'good':'fair',n:valid.length,
       validSeconds:s.seconds,effectiveSeconds:s.effective,coverage:clamp(s.seconds/Math.max(.001,(end-start)/1000)),
       confidence,spreadBpm:spread,rangeBpm:range,recovered:avg('recovered'),
-      status:s.seconds<10||snr<3?'limited':'measured',candidateWindows:inside.length,
+      status:s.seconds<10||(snr<3&&!pooledOk)?'limited':'measured',candidateWindows:inside.length,
+      ...(pool?{pooled:{windows:pool.k,bpm:pool.bpm,snrDb:pool.snrDb,accepted:pooledOk}}:{}),
       methods:[...new Set(valid.flatMap(w=>w.methods||['pos']))],regions:[...new Set(valid.flatMap(w=>w.regions||[]))]};
   }
-  return {VERSION,windows,fuse,support,summarize,periodicity};
+  return {VERSION,windows,fuse,support,summarize,periodicity,pooled};
 });
