@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "cc4fb4ebfb99d7523aeee6e672878f5448b7c773",
+      "parents": [
+        "83de6b0b3b16514f0801224215d625036c1a5608"
+      ],
+      "committedAt": "2026-10-07T11:01:12+09:00",
+      "subject": "Team section: update heading and lead copy",
+      "url": "https://github.com/jeebs0627/neurolens/commit/cc4fb4ebfb99d7523aeee6e672878f5448b7c773",
+      "files": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55757343951",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-07T02:01:18Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/8gwkYofLXkriJ1NAWavkoTeUrPCX",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "6b8428519f9cf452f861c3af2e6ab6365a58a3ab",
       "parents": [
         "db504748f372943022f5c6169023edfb0cea771f"
@@ -1207,7 +1245,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55590182582",
@@ -1239,9 +1277,9 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-05T09:52:50.345666+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-07T02:01:32.478021+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "a9ea5961e949392cd569f9819ddc86d4f8e39539",
@@ -11515,9 +11553,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "d5b0370b9bde5ee83c7157a34876910cd20ac2cd"
+    "sourceHead": "cc4fb4ebfb99d7523aeee6e672878f5448b7c773"
   },
-  "updatedAt": "2026-10-07T01:48:30.207259+00:00",
-  "aiCooldownUntil": "2026-10-07T01:53:05.279728+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-07T02:01:38.670150+00:00",
+  "aiCooldownUntil": "2026-10-07T03:01:38.281775+00:00",
+  "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
