@@ -3,6 +3,149 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "98c57f2830305a5f03423cad89ea4fee70a7b742",
+      "parents": [
+        "1ede9cfd775148f9ec034715fc838698ea6f1f1a"
+      ],
+      "committedAt": "2026-10-07T17:08:15+09:00",
+      "subject": "Condition: keep downward-gaze calibration samples, honest calibration grade, separate capture fps",
+      "url": "https://github.com/jeebs0627/neurolens/commit/98c57f2830305a5f03423cad89ea4fee70a7b742",
+      "files": [
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 5
+        },
+        {
+          "path": "newbiz-battery.js",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "gaze",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex 105e4d2..fc14876 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -1567,7 +1567,12 @@ function processResult(fr, packet, context) {\n     f.lookV = f.lookUp - f.lookDown;   // 위·아래 점수는 따로 두면 화면 끝 포화를 모델이 나눠 맞출 수 있는지 그림자 비교(shadow2)로 본다\n   }\n-  f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));\n-  f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));\n-  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2;\n+  /* 아래를 볼 때는 윗눈꺼풀이 시선을 따라 함께 내려온다(눈꺼풀-시선 연동: Becker & Fuchs, 1988). 얼굴 모델은 이를 '반쯤 감음'으로 읽어\n+   * 화면 아래쪽을 보는 표본이 모두 버려졌다(2026-10-07 실측 NLR-B8F9…·0819…·6229…, 1707×1067 화면: 보정점 9개 중 가운데·아래 5개 표본 0개\n+   * → 위쪽 점만으로 맞춘 모델이 아래쪽을 크게 빗나감). 아래보기 점수만큼 감김 점수를 덜어 판단한다. 감김이 0.75 이상이면(실제 깜빡임) 그대로 거른다 */\n+  const lid = (b, d) => b >= 0.75 ? b : Math.max(0, b - 0.9 * d);\n+  const lidL = lid(bs.eyeBlinkLeft || 0, bs.eyeLookDownLeft || 0), lidR = lid(bs.eyeBlinkRight || 0, bs.eyeLookDownRight || 0);\n+  f.eyes.left.q *= (eyes?.left ?? 1) * (1 - lidL);\n+  f.eyes.right.q *= (eyes?.right ?? 1) * (1 - lidR);\n+  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = (lidL + lidR) / 2;\n   /* 시선 유효: 적어도 한 눈이 또렷하고(품질 0.15 이상) 깜빡이는 중이 아닐 때만. 반쯤 감긴 눈의 홍채 위치는 크게 튄다 */\n   const gazeValid = eyeQ >= 0.15 && blinkAvg < 0.45;\n@@ -2209,6 +2214,9 @@ async function cal9(W, H) {\n     if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });\n     const pt = [];\n-    S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), pt);\n+    /* 표본이 6개 미만이면(아래쪽처럼 눈이 덜 보이는 위치) 최대 1.2초 더 받는다 — 점마다 고르게 표본이 있어야 화면 전체를 맞춘다 */\n+    S.onFeature = featSampler(now(), 650, 2900, () => ({ x, y }), pt);\n     await wait(1700);\n+    for (let k = 0; k < 4 && pt.length < 6; k++) await wait(300);\n+    S.onFeature = null;\n     const keep = new Set(N.robustFeatures(pt.map(s => s.f)));\n     samples.push(...pt.filter(s => keep.has(s.f)));\n@@ -2259,4 +2267,5 @@ async function calCollect(points, label) {\n     await wait(500); fs.length = 0;\n     await wait(800);\n+    for (let k = 0; k < 4 && fs.length < 6; k++) await wait(300);   // 표본이 적은 점은 최대 1.2초 더\n     S.onFeature = null;\n     out.push({ ...p, fs: N.robustFeatures(fs.slice()) });\n@@ -2443,4 +2452,10 @@ async function calibrate() {\n       info = `<div class=\"calsum\"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div><div><span>정밀 보정 후</span><b>${fine ? fine.after + '%' : '—'}</b></div></div>${fine ? `<p class=\"small muted\" style=\"margin:8px 0 0\">새 위치 ${fine.points}곳으로 평가해 ‘${esc(fine.chosen)}’을 골랐어요 (적용 전 ${fine.before}% → ${fine.after}%)</p>` : ''}`;\n       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다\n+      /* 오차는 표본이 있는 점만으로 계산되므로, 점이 빠지면 '양호'가 과장된다(실측 NLR-B8F9…: 9점 중 4점만으로 2.8% '양호').\n+       * 평가점의 75% 미만만 잡히면 '보통'으로, 화면 아래 40%의 점이 하나도 잡히지 않으면 아래쪽 시선을 믿을 수 없어 다시 보정을 권한다 */\n+      const est = pairs.filter(p => Number.isFinite(p.gx)), low = pairs.filter(p => p.y > H * 0.6);\n+      acc.coverage = Math.round(est.length / Math.max(1, pairs.length) * 100) / 100;\n+      if (low.length && !low.some(p => Number.isFinite(p.gx))) { acc.grade = 'poor'; acc.missing = 'lower'; }\n+      else if (acc.coverage < 0.75 && acc.grade === 'good') acc.grade = 'fair';\n     }\n     S.calib = { ...acc, samples: s9.length + sp.length };\n@@ -2450,5 +2465,5 @@ async function calibrate() {\n       return;\n     }\n-    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style=\"margin:12px 0 0\">오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);\n+    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style=\"margin:12px 0 0\">${acc.missing === 'lower' ? '화면 <b>아래쪽</b> 점을 볼 때 눈이 잘 보이지 않았어요. 노트북을 책 등으로 조금 높이거나 의자를 낮춰, 화면 아래쪽을 볼 때 눈을 크게 내리깔지 않아도 되게 맞춰 주세요. 눈은 평소처럼 편하게 뜨면 돼요.' : `오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.`}</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);\n     if (c === 1) { S.model = null; S.affine = null; return; }\n   }\ndiff --git a/newbiz-battery.js b/newbiz-battery.js\nindex dfd2b7e..eff513e 100644\n--- a/newbiz-battery.js\n+++ b/newbiz-battery.js\n@@ -1075,5 +1075,8 @@\n       downgraded: DOMAIN_KEYS.filter(k => domains[k].notes.some(n => n.includes('수렴 원칙'))),\n       hidden: hidden.length ? { n: hidden.length, sec: round(hidden.reduce((x, h) => x + h.end - h.start, 0) / 1000, 1), dropped } : null,\n+      /* fps = 얼굴 인식이 된 프레임 수/초(시선 지표 신뢰도용). 심박 단계는 인식을 일부러 초당 10~15회로 줄이므로 이 값이 낮게 보인다 —\n+       * 카메라가 실제로 받은 프레임(심박 표본)은 captureFps 로 따로 남긴다(2026-10-07 실측 NLR-B8F9…: 압박 fps 7.4 · captureFps 20.7) */\n       fps: Object.fromEntries(['baseline', 'pursuit', 'saccade', 'neg', 'pvt', 'sart', 'stress', 'recovery'].map(k => [k, fpsOf(k) === null ? null : round(fpsOf(k), 1)]).filter(x => x[1] !== null)),\n+      captureFps: Object.fromEntries(['baseline', 'pursuit', 'saccade', 'neg', 'pvt', 'sart', 'stress', 'recovery'].map(k => { const sp = span(k); if (!sp) return [k, null]; const n = frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length; return [k, round(n / Math.max(1, (sp[1] - sp[0]) / 1000), 1)]; }).filter(x => x[1] !== null)),\n       lightJumps: base.lightJumps || 0, breath: resp ? { bpm: resp.bpm, clear: resp.clear, src: resp.src, off: breathOff } : null,\n     };\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-98c57f283030-gaze",
+          "domain": "gaze",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "하향 시선 보정 표본 회복 수식 및 커버리지 평가 알고리즘의 오차·이탈률 실측 검증",
+          "rationale": "개발자는 하향 시선 시 윗눈꺼풀 연동 현상으로 인해 시선 표본이 '반쯤 감음'으로 오진되어 버려지는 문제를 해결하고자 lid = (b, d) => b >= 0.75 ? b : Math.max(0, b - 0.9 * d) 수식 및 표본 부족 시 최대 1.2초 추가 대기 로직을 작성하였다. 그러나 이는 특정 관측에 기반한 연구자의 가설 단계 수식이며, 실제 약한 신호를 회복하는 과정에서 눈동자가 반쯤 가려진 불확실한 신호가 유입되어 전체 gaze 오차가 증가하거나, 대기 시간 연장으로 인한 사용자 이탈이 발생할 위험이 있다. 또한 coverage 기반의 poor/fair 강등 로직이 과도한 실패 판정을 내리지 않는지 분모를 포함한 전체 데이터셋 연계 평가가 필요하다.",
+          "validationPlan": "1. 기존 데이터셋 로그 연계 분석: 과거 수집된 데이터셋(NLR-B8F9 등 포함)에서 하향 보정점의 표본 수 및 시선 추정 오차(errPct)를 변경 전/후 수식으로 re-run하여 표본 회복량과 오차 변화 수치를 비교한다.\n2. 신호 유효성 및 오차 평가: 약한 신호 회복(lookDown 보정)에 따른 유효 프레임 증가율 대비 중앙값/95분위 시선 추정 오차의 트레이드오프를 평가한다.\n3. 기기/참가자/날짜별 분리 검증: 조명 조건, 카메라 각도, 안경 착용 여부, 사용자 참가자별로 분리하여 표본 부족에 따른 1.2초 추가 대기 발생 비율 및 보정 중도 이탈률(분모: 전체 시도 세션 수)을 집계한다.\n4. 회귀 검증: 하향 외 상단/중단 보정점에서의 정확도 저하 여부 및 coverage < 0.75 강등 규칙의 타당성을 평가한다.",
+          "prompt": "NeuroLens 시선 추적 모듈의 condition.html 코드 변경사항을 검증하고 개발 과제를 수행하라.\n\n[현재 코드 및 변경 사항 확인]\n1. condition.html의 lid 수식 적용부: lid = (b, d) => b >= 0.75 ? b : Math.max(0, b - 0.9 * d)\n2. 보정 표본 수집 대기 로직: for (let k = 0; k < 4 && pt.length < 6; k++) await wait(300);\n3. 보정 품질 평가 및 강등 로직: coverage 계산 및 low.length && !low.some(...) 조건 시 poor/fair 강등 처리를 확인하라.\n\n[과제 목표]\n- 하향 시선 표본 회복 알고리즘이 실제 오차 감소에 기여하는지, 약한 신호 회복 시 노이즈 유입량과 신호 유효량의 균형을 평가하라.\n- 데이터셋 로그 메모리 및 실측 기록을 연계하여 분석하되, 실측 데이터가 없으면 임의의 성능 수치를 만들어내지 말고 dataset 매니페스트/로그 분석을 요청하는 구성을 취하라.\n- 참가자/기기/일시별 세션 분모를 설정하고, 실패 시도 및 이탈률을 포함하여 오차 지표를 산출하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: 기존에 하향 보정점 표본 부재로 보정이 실패하던 세션 중 하향 오차가 화면 폭 대비 허용 범위 내로 유지되면서 회복된 세션 비율 증가.\n- 회귀 기준: 보정 대기시간 연장(1.2초)으로 인한 세션 취소율 증가, 혹은 보정된 하향 신호의 노이즈로 인한 95분위 gaze 오차가 20% 이상 악화되는 현상 발생 시 회귀로 판단.\n\n[결과 보고 양식]\n1. 코드 변경 위치 및 확인 결과 (파일명 및 줄 번호)\n2. 데이터셋 연계 평가 결과 (분모: 전체 세션 수, 분자: 정상 완료/강등/실패 세션 수)\n3. 조건별(기기 각도, 참가자 그룹) 신호 회복량 대비 오차 평가표\n4. 발견된 한계점 및 후속 수식 개선 제안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 98c57f2830305a5f03423cad89ea4fee70a7b742\nDataset-Task: evo-98c57f283030-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-98c57f283030-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "검사 단계별 프레임 수집률(captureFps) 추적 로직 및 측정 신뢰도 연계 검증",
+          "rationale": "newbiz-battery.js의 패치에서는 심박 측정 단계 등에서 얼굴 인식 연산 절약을 위해 인식 fps가 의도적으로 저하(10~15fps)될 때, 실제 카메라 수신 프레임률이 정상인지를 구분하기 위하여 captureFps 수집 로직을 추가하였다. 이는 알고리즘 동작의 가시성을 높이는 개발 보고성 변경이다. 수집된 captureFps가 실제로 기기 스레드 병목이나 프레임 드롭을 정확히 반영하는지, 타임스탬프 계산 과정에서 배열 계산 성능 저하나 메모리 누수가 없는지 검증해야 한다.",
+          "validationPlan": "1. 데이터셋 연계 captureFps 정확도 평가: 다양한 기기 성능(고성능 PC, 저사양 웹캠, 모바일 브라우저)에서 수집된 세션 로그 dataset을 조회하여 captureFps와 실제 카메라 수신 타임스탬프 간의 일치도를 검증한다.\n2. 부하 및 오차 검증: span(k) 범위 검색 및 frames.filter 연산이 장시간 세션(neg, stress 등)에서 CPU 점유율 및 프레임 드롭을 유발하지 않는지 성능 프로파일링을 수행한다.\n3. 분모 기반 탈락률 평가: captureFps가 정상 수치(예: 20fps 이상)임에도 fps(얼굴 인식)가 급감하여 측정이 제외(excluded)된 세션의 비율을 기기/환경별 분모 기반으로 분석한다.",
+          "prompt": "newbiz-battery.js에 추가된 captureFps 지표 산출 로직에 대한 검증 및 개선 과제를 수행하라.\n\n[현재 코드 확인]\n- newbiz-battery.js의 captureFps 추가 부: frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length 기반의 수신 프레임률 계산식을 확인하라.\n\n[과제 내용]\n1. captureFps 계산 연산이 측정 세션 진행 중 메모리 점유 및 스레드 지연을 유발하지 않는지 확인하라.\n2. 얼굴 인식 fps와 captureFps의 차이가 조명, 기기 성능, 심박 단계 조절 등 어떤 요인에 의해 발생하는지 dataset 로그 데이터를 연결하여 조건별로 분석하라.\n3. 없는 성능 수치나 정답 지표를 산출하지 말고, 실제 로그 데이터셋 분석 코드를 작성하거나 필요한 분석 리포트 구조를 제시하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: 모든 측정 단계(baseline~recovery)에서 captureFps가 타임스탬프 기반 프레임 수와 정확히 일치하며 연산 오버헤드가 1ms 이내로 유지됨.\n- 회귀 기준: frames 배열 크기 증가에 따른 루프 지연 발생, sp[0], sp[1] 예외 처리 누락으로 인한 NaN 반환 또는 측정 데이터 손실 발생 시 회귀로 판단.\n\n[결과 보고 양식]\n1. newbiz-battery.js 코드 검증 결과 및 계산 효율성 평가\n2. 기기 사양/검사 단계별 fps vs captureFps 비교 분석표 (데이터셋 연계)\n3. 시스템 부하 및 예외 케이스 처리 결과\n4. 후속 최적화 제안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 98c57f2830305a5f03423cad89ea4fee70a7b742\nDataset-Task: evo-98c57f283030-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        }
+      ],
+      "analysisState": "generated",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55774452894",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-07T08:08:21Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/6V3XuT9fopFYsSapt6PUAcpQG1JC",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-07T08:08:43.253047+00:00",
+      "analysis": {
+        "summary": "2026년 10월 7일 자 커밋(sha: 98c57f28)을 통해 condition.html 및 newbiz-battery.js의 코드 변경이 확인되었다. 주요 패치 내용은 다음과 같다: (1) 하향 시선 주시 시 눈꺼풀 내림 현상을 감김으로 오진해 표본이 탈락하는 현상을 방지하기 위해, lookDown 수치 기반의 눈꺼풀 보정 수식(lid)을 적용함, (2) 보정점당 표본 수가 6개 미만일 때 최대 1.2초(300ms x 4회) 추가 대기하는 표본 수집 연장 로직을 추가함, (3) 화면 하단 영역 표본 누락 시 보정 등급을 poor/fair로 강등하고 UI 안내 문구를 변경함, (4) 심박 측정 등 처리 속도 조절 단계에서 원본 카메라 수신 프레임률을 별도 추적하는 captureFps 지표를 추가함.\n\n이상의 변경은 연구자의 개발 가설 및 특정 관측(예: NLR-B8F9 등)에 기반한 알고리즘 조정이며, 검증된 임상적 정답이나 정밀도 향상을 의미하지 않는다. 특히 0.9 배율의 하향 보정 상수, 0.75 깜빡임 임계값, 1.2초 대기시간 추가 및 captureFps 프레임 계산 방식은 다양한 웹캠 환경, 조명, 사용자의 안구 구조에 따른 미검증 영향(노이즈 유입, 보정 이탈률 증가, 렌더링 스레드 부하 등)을 동반할 수 있으므로 분모가 포함된 다중 세션 실측 데이터셋 연계 검증이 필수적이다.",
+        "tasks": [
+          {
+            "id": "evo-98c57f283030-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "하향 시선 보정 표본 회복 수식 및 커버리지 평가 알고리즘의 오차·이탈률 실측 검증",
+            "rationale": "개발자는 하향 시선 시 윗눈꺼풀 연동 현상으로 인해 시선 표본이 '반쯤 감음'으로 오진되어 버려지는 문제를 해결하고자 lid = (b, d) => b >= 0.75 ? b : Math.max(0, b - 0.9 * d) 수식 및 표본 부족 시 최대 1.2초 추가 대기 로직을 작성하였다. 그러나 이는 특정 관측에 기반한 연구자의 가설 단계 수식이며, 실제 약한 신호를 회복하는 과정에서 눈동자가 반쯤 가려진 불확실한 신호가 유입되어 전체 gaze 오차가 증가하거나, 대기 시간 연장으로 인한 사용자 이탈이 발생할 위험이 있다. 또한 coverage 기반의 poor/fair 강등 로직이 과도한 실패 판정을 내리지 않는지 분모를 포함한 전체 데이터셋 연계 평가가 필요하다.",
+            "validationPlan": "1. 기존 데이터셋 로그 연계 분석: 과거 수집된 데이터셋(NLR-B8F9 등 포함)에서 하향 보정점의 표본 수 및 시선 추정 오차(errPct)를 변경 전/후 수식으로 re-run하여 표본 회복량과 오차 변화 수치를 비교한다.\n2. 신호 유효성 및 오차 평가: 약한 신호 회복(lookDown 보정)에 따른 유효 프레임 증가율 대비 중앙값/95분위 시선 추정 오차의 트레이드오프를 평가한다.\n3. 기기/참가자/날짜별 분리 검증: 조명 조건, 카메라 각도, 안경 착용 여부, 사용자 참가자별로 분리하여 표본 부족에 따른 1.2초 추가 대기 발생 비율 및 보정 중도 이탈률(분모: 전체 시도 세션 수)을 집계한다.\n4. 회귀 검증: 하향 외 상단/중단 보정점에서의 정확도 저하 여부 및 coverage < 0.75 강등 규칙의 타당성을 평가한다.",
+            "prompt": "NeuroLens 시선 추적 모듈의 condition.html 코드 변경사항을 검증하고 개발 과제를 수행하라.\n\n[현재 코드 및 변경 사항 확인]\n1. condition.html의 lid 수식 적용부: lid = (b, d) => b >= 0.75 ? b : Math.max(0, b - 0.9 * d)\n2. 보정 표본 수집 대기 로직: for (let k = 0; k < 4 && pt.length < 6; k++) await wait(300);\n3. 보정 품질 평가 및 강등 로직: coverage 계산 및 low.length && !low.some(...) 조건 시 poor/fair 강등 처리를 확인하라.\n\n[과제 목표]\n- 하향 시선 표본 회복 알고리즘이 실제 오차 감소에 기여하는지, 약한 신호 회복 시 노이즈 유입량과 신호 유효량의 균형을 평가하라.\n- 데이터셋 로그 메모리 및 실측 기록을 연계하여 분석하되, 실측 데이터가 없으면 임의의 성능 수치를 만들어내지 말고 dataset 매니페스트/로그 분석을 요청하는 구성을 취하라.\n- 참가자/기기/일시별 세션 분모를 설정하고, 실패 시도 및 이탈률을 포함하여 오차 지표를 산출하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: 기존에 하향 보정점 표본 부재로 보정이 실패하던 세션 중 하향 오차가 화면 폭 대비 허용 범위 내로 유지되면서 회복된 세션 비율 증가.\n- 회귀 기준: 보정 대기시간 연장(1.2초)으로 인한 세션 취소율 증가, 혹은 보정된 하향 신호의 노이즈로 인한 95분위 gaze 오차가 20% 이상 악화되는 현상 발생 시 회귀로 판단.\n\n[결과 보고 양식]\n1. 코드 변경 위치 및 확인 결과 (파일명 및 줄 번호)\n2. 데이터셋 연계 평가 결과 (분모: 전체 세션 수, 분자: 정상 완료/강등/실패 세션 수)\n3. 조건별(기기 각도, 참가자 그룹) 신호 회복량 대비 오차 평가표\n4. 발견된 한계점 및 후속 수식 개선 제안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 98c57f2830305a5f03423cad89ea4fee70a7b742\nDataset-Task: evo-98c57f283030-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-98c57f283030-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "검사 단계별 프레임 수집률(captureFps) 추적 로직 및 측정 신뢰도 연계 검증",
+            "rationale": "newbiz-battery.js의 패치에서는 심박 측정 단계 등에서 얼굴 인식 연산 절약을 위해 인식 fps가 의도적으로 저하(10~15fps)될 때, 실제 카메라 수신 프레임률이 정상인지를 구분하기 위하여 captureFps 수집 로직을 추가하였다. 이는 알고리즘 동작의 가시성을 높이는 개발 보고성 변경이다. 수집된 captureFps가 실제로 기기 스레드 병목이나 프레임 드롭을 정확히 반영하는지, 타임스탬프 계산 과정에서 배열 계산 성능 저하나 메모리 누수가 없는지 검증해야 한다.",
+            "validationPlan": "1. 데이터셋 연계 captureFps 정확도 평가: 다양한 기기 성능(고성능 PC, 저사양 웹캠, 모바일 브라우저)에서 수집된 세션 로그 dataset을 조회하여 captureFps와 실제 카메라 수신 타임스탬프 간의 일치도를 검증한다.\n2. 부하 및 오차 검증: span(k) 범위 검색 및 frames.filter 연산이 장시간 세션(neg, stress 등)에서 CPU 점유율 및 프레임 드롭을 유발하지 않는지 성능 프로파일링을 수행한다.\n3. 분모 기반 탈락률 평가: captureFps가 정상 수치(예: 20fps 이상)임에도 fps(얼굴 인식)가 급감하여 측정이 제외(excluded)된 세션의 비율을 기기/환경별 분모 기반으로 분석한다.",
+            "prompt": "newbiz-battery.js에 추가된 captureFps 지표 산출 로직에 대한 검증 및 개선 과제를 수행하라.\n\n[현재 코드 확인]\n- newbiz-battery.js의 captureFps 추가 부: frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length 기반의 수신 프레임률 계산식을 확인하라.\n\n[과제 내용]\n1. captureFps 계산 연산이 측정 세션 진행 중 메모리 점유 및 스레드 지연을 유발하지 않는지 확인하라.\n2. 얼굴 인식 fps와 captureFps의 차이가 조명, 기기 성능, 심박 단계 조절 등 어떤 요인에 의해 발생하는지 dataset 로그 데이터를 연결하여 조건별로 분석하라.\n3. 없는 성능 수치나 정답 지표를 산출하지 말고, 실제 로그 데이터셋 분석 코드를 작성하거나 필요한 분석 리포트 구조를 제시하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: 모든 측정 단계(baseline~recovery)에서 captureFps가 타임스탬프 기반 프레임 수와 정확히 일치하며 연산 오버헤드가 1ms 이내로 유지됨.\n- 회귀 기준: frames 배열 크기 증가에 따른 루프 지연 발생, sp[0], sp[1] 예외 처리 누락으로 인한 NaN 반환 또는 측정 데이터 손실 발생 시 회귀로 판단.\n\n[결과 보고 양식]\n1. newbiz-battery.js 코드 검증 결과 및 계산 효율성 평가\n2. 기기 사양/검사 단계별 fps vs captureFps 비교 분석표 (데이터셋 연계)\n3. 시스템 부하 및 예외 케이스 처리 결과\n4. 후속 최적화 제안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 98c57f2830305a5f03423cad89ea4fee70a7b742\nDataset-Task: evo-98c57f283030-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "c25836f4eb9360c2ca17002b555a52296cab2611ca26d46773bc10488acb2cd8",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 3,
+          "usage": {
+            "promptTokenCount": 3577,
+            "candidatesTokenCount": 2267,
+            "totalTokenCount": 7997
+          }
+        },
+        "generatedAt": "2026-10-07T08:09:27.882334+00:00",
+        "sourceSha": "98c57f2830305a5f03423cad89ea4fee70a7b742",
+        "sourceEvidence": {
+          "sha": "98c57f2830305a5f03423cad89ea4fee70a7b742",
+          "parents": [
+            "1ede9cfd775148f9ec034715fc838698ea6f1f1a"
+          ],
+          "committedAt": "2026-10-07T08:08:15Z",
+          "subject": "Condition: keep downward-gaze calibration samples, honest calibration grade, separate capture fps",
+          "url": "https://github.com/jeebs0627/neurolens/commit/98c57f2830305a5f03423cad89ea4fee70a7b742",
+          "files": [
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 20,
+              "deletions": 5
+            },
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -1566,9 +1566,14 @@ <h2>결과를 정리하고 있어요</h2>\n     f.lookUp = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0)) / 2; f.lookDown = ((bs.eyeLookDownLeft || 0) + (bs.eyeLookDownRight || 0)) / 2;\n     f.lookV = f.lookUp - f.lookDown;   // 위·아래 점수는 따로 두면 화면 끝 포화를 모델이 나눠 맞출 수 있는지 그림자 비교(shadow2)로 본다\n   }\n-  f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));\n-  f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));\n-  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2;\n+  /* 아래를 볼 때는 윗눈꺼풀이 시선을 따라 함께 내려온다(눈꺼풀-시선 연동: Becker & Fuchs, 1988). 얼굴 모델은 이를 '반쯤 감음'으로 읽어\n+   * 화면 아래쪽을 보는 표본이 모두 버려졌다(2026-10-07 실측 NLR-B8F9…·0819…·6229…, 1707×1067 화면: 보정점 9개 중 가운데·아래 5개 표본 0개\n+   * → 위쪽 점만으로 맞춘 모델이 아래쪽을 크게 빗나감). 아래보기 점수만큼 감김 점수를 덜어 판단한다. 감김이 0.75 이상이면(실제 깜빡임) 그대로 거른다 */\n+  const lid = (b, d) => b >= 0.75 ? b : Math.max(0, b - 0.9 * d);\n+  const lidL = lid(bs.eyeBlinkLeft || 0, bs.eyeLookDownLeft || 0), lidR = lid(bs.eyeBlinkRight || 0, bs.eyeLookDownRight || 0);\n+  f.eyes.left.q *= (eyes?.left ?? 1) * (1 - lidL);\n+  f.eyes.right.q *= (eyes?.right ?? 1) * (1 - lidR);\n+  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = (lidL + lidR) / 2;\n   /* 시선 유효: 적어도 한 눈이 또렷하고(품질 0.15 이상) 깜빡이는 중이 아닐 때만. 반쯤 감긴 눈의 홍채 위치는 크게 튄다 */\n   const gazeValid = eyeQ >= 0.15 && blinkAvg < 0.45;\n   Object.assign(fr, roi, {\n@@ -2208,8 +2213,11 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     dot.style.left = x + 'px'; dot.style.top = y + 'px';\n     if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });\n     const pt = [];\n-    S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), pt);\n+    /* 표본이 6개 미만이면(아래쪽처럼 눈이 덜 보이는 위치) 최대 1.2초 더 받는다 — 점마다 고르게 표본이 있어야 화면 전체를 맞춘다 */\n+    S.onFeature = featSampler(now(), 650, 2900, () => ({ x, y }), pt);\n     await wait(1700);\n+    for (let k = 0; k < 4 && pt.length < 6; k++) await wait(300);\n+    S.onFeature = null;\n     const keep = new Set(N.robustFeatures(pt.map(s => s.f)));\n     samples.push(...pt.filter(s => keep.has(s.f)));\n   }\n@@ -2258,6 +2266,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     S.onFeature = (t, f) => fs.push(f);\n     await wait(500); fs.length = 0;\n     await wait(800);\n+    for (let k = 0; k < 4 && fs.length < 6; k++) await wait(300);   // 표본이 적은 점은 최대 1.2초 더\n     S.onFeature = null;\n     out.push({ ...p, fs: N.robustFeatures(fs.slice()) });\n   }\n@@ -2442,14 +2451,20 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n         eyes:Object.fromEntries(Object.entries(S.model.eyes||{}).map(([side,m])=>[side,m?.validation||null]))};\n       info = `<div class=\"calsum\"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div><div><span>정밀 보정 후</span><b>${fine ? fine.after + '%' : '—'}</b></div></div>${fine ? `<p class=\"small muted\" style=\"margin:8px 0 0\">새 위치 ${fine.points}곳으로 평가해 ‘${esc(fine.chosen)}’을 골랐어요 (적용 전 ${fine.before}% → ${fine.after}%)</p>` : ''}`;\n       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다\n+      /* 오차는 표본이 있는 점만으로 계산되므로, 점이 빠지면 '양호'가 과장된다(실측 NLR-B8F9…: 9점 중 4점만으로 2.8% '양호').\n+       * 평가점의 75% 미만만 잡히면 '보통'으로, 화면 아래 40%의 점이 하나도 잡히지 않으면 아래쪽 시선을 믿을 수 없어 다시 보정을 권한다 */\n+      const est = pairs.filter(p => Number.isFinite(p.gx)), low = pairs.filter(p => p.y > H * 0.6);\n+      acc.coverage = Math.round(est.length / Math.max(1, pairs.length) * 100) / 100;\n+      if (low.length && !low.some(p => Number.isFinite(p.gx))) { acc.grade = 'poor'; acc.missing = 'lower'; }\n+      else if (acc.coverage < 0.75 && acc.grade === 'good') acc.grade = 'fair';\n     }\n     S.calib = { ...acc, samples: s9.length + sp.length };\n     if (acc.grade !== 'poor') {\n       const c = await pauseCard('보정 완료', `${info}<p style=\"margin:12px 0 0\">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);\n       if (c === 1) continue;\n       return;\n     }\n-    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style=\"margin:12px 0 0\">오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);\n+    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style=\"margin:12px 0 0\">${acc.missing === 'lower' ? '화면 <b>아래쪽</b> 점을 볼 때 눈이 잘 보이지 않았어요. 노트북을 책 등으로 조금 높이거나 의자를 낮춰, 화면 아래쪽을 볼 때 눈을 크게 내리깔지 않아도 되게 맞춰 주세요. 눈은 평소처럼 편하게 뜨면 돼요.' : `오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.`}</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);\n     if (c === 1) { S.model = null; S.affine = null; return; }\n   }\n }\nFILE newbiz-battery.js\n@@ -1074,7 +1074,10 @@\n       excluded: indicators.filter(i => i.excluded).map(i => i.label),\n       downgraded: DOMAIN_KEYS.filter(k => domains[k].notes.some(n => n.includes('수렴 원칙'))),\n       hidden: hidden.length ? { n: hidden.length, sec: round(hidden.reduce((x, h) => x + h.end - h.start, 0) / 1000, 1), dropped } : null,\n+      /* fps = 얼굴 인식이 된 프레임 수/초(시선 지표 신뢰도용). 심박 단계는 인식을 일부러 초당 10~15회로 줄이므로 이 값이 낮게 보인다 —\n+       * 카메라가 실제로 받은 프레임(심박 표본)은 captureFps 로 따로 남긴다(2026-10-07 실측 NLR-B8F9…: 압박 fps 7.4 · captureFps 20.7) */\n       fps: Object.fromEntries(['baseline', 'pursuit', 'saccade', 'neg', 'pvt', 'sart', 'stress', 'recovery'].map(k => [k, fpsOf(k) === null ? null : round(fpsOf(k), 1)]).filter(x => x[1] !== null)),\n+      captureFps: Object.fromEntries(['baseline', 'pursuit', 'saccade', 'neg', 'pvt', 'sart', 'stress', 'recovery'].map(k => { const sp = span(k); if (!sp) return [k, null]; const n = frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length; return [k, round(n / Math.max(1, (sp[1] - sp[0]) / 1000), 1)]; }).filter(x => x[1] !== null)),\n       lightJumps: base.lightJumps || 0, breath: resp ? { bpm: resp.bpm, clear: resp.clear, src: resp.src, off: breathOff } : null,\n     };\n ",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37591780681"
+      }
+    },
+    {
       "sha": "6295e36bb6bb280f6ea1923f0a529101d056b7cd",
       "parents": [
         "407db089e96c04c884d6987142b2494fec7789d1"
@@ -1145,7 +1288,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-55597825634",
@@ -1177,7 +1320,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-07T01:02:39.970377+00:00",
+      "lastAttemptAt": "2026-10-07T08:09:27.925607+00:00",
       "analysisError": "HTTP_503",
       "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
@@ -11688,9 +11831,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "18bb1fb53e45bb7c6aea2070f0f7f05128b58bbb"
+    "sourceHead": "98c57f2830305a5f03423cad89ea4fee70a7b742"
   },
-  "updatedAt": "2026-10-07T07:16:22.023145+00:00",
-  "aiCooldownUntil": "2026-10-07T07:21:21.176208+00:00",
+  "updatedAt": "2026-10-07T08:09:53.212339+00:00",
+  "aiCooldownUntil": "2026-10-07T08:14:51.924589+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
