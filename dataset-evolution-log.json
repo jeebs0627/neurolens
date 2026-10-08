@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "e426f569f46f9175e4264f421e490cf233ee657d",
+      "parents": [
+        "9b8c01a00c59505a5523c7aee12c95ab97fed1fc"
+      ],
+      "committedAt": "2026-10-08T10:33:44+09:00",
+      "subject": "nlcolab export: 키보드 입력이 없는 환경(! 실행·파이프)에서는 바로 안내 후 종료 — getpass 무한 대기 방지",
+      "url": "https://github.com/jeebs0627/neurolens/commit/e426f569f46f9175e4264f421e490cf233ee657d",
+      "files": [
+        {
+          "path": "tools/colab/nlcolab/export.py",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 0
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55852871417",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T01:33:48Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/DVdXcbwEHniHskR1utjXnVqLj6Bk",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "8aaa22474da4d91fa3aa020b9756fa5ba2eb7f07",
       "parents": [
         "e6f2c91253b5c7c6f1ae7de89bd3380ed3ddfa9e"
@@ -12834,9 +12872,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "9f79147784319cc4a6d724cadf0d9bfab166a7b6"
+    "sourceHead": "e426f569f46f9175e4264f421e490cf233ee657d"
   },
-  "updatedAt": "2026-10-08T01:18:46.901038+00:00",
+  "updatedAt": "2026-10-08T01:34:09.696794+00:00",
   "aiCooldownUntil": "2026-10-08T02:13:41.295227+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
