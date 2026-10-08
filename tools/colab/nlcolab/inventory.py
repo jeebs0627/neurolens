@@ -132,18 +132,61 @@ def build_inventory(raw_dir: str | Path, withdrawn_ids: set[str] | None = None, 
             rows.append(Eligibility(session_id=f.stem, code=None, created_at=None, schema="?", core=None, session_kind="unknown", synthetic=False, consent=True, demo=False, outcome=None, subject_key=None, subject_link_confidence="none", frames=0, calibration_frames=0, targets={}, labels={"present": False, "valid": 0}, reference={"present": False}, gaze_status="corrupt", gaze_reasons=[str(ex)[:120]], rppg_status="corrupt"))
     real = [r for r in rows if not r.synthetic]
     synth = [r for r in rows if r.synthetic]
+    field = field_telemetry(raw)
 
     def counts(group):
         return {"sessions": len(group), "gaze": dict(Counter(r.gaze_status for r in group)), "rppg": dict(Counter(r.rppg_status for r in group)), "sessionKind": dict(Counter(r.session_kind for r in group)),
                 "subjectKeys": len({r.subject_key for r in group if r.subject_key}), "subjectLink": dict(Counter(r.subject_link_confidence for r in group)), "labelSessions": sum(1 for r in group if r.labels.get("valid")),
                 "validLabels": sum(r.labels.get("valid", 0) for r in group), "holdoutLabels": sum(r.labels.get("holdout", 0) for r in group), "referencePaired": sum(1 for r in group if r.reference.get("grade") == "paired"), "referenceExploratory": sum(1 for r in group if r.reference.get("grade") == "exploratory"),
                 "gazeReasons": dict(Counter(x for r in group for x in r.gaze_reasons)), "rppgReasons": dict(Counter(x for r in group for x in r.rppg_reasons)), "schemas": dict(Counter(r.schema for r in group)), "cores": dict(Counter(str(r.core) for r in group))}
-    inv = {"schema": "nl-inventory-1", "rawDir": str(raw), "total": len(rows), "real": counts(real), "synthetic": counts(synth), "errors": errors, "sessions": [asdict(r) for r in rows],
+    inv = {"schema": "nl-inventory-1", "rawDir": str(raw), "total": len(rows), "real": counts(real), "synthetic": counts(synth), "errors": errors, "fieldTelemetry": field, "sessions": [asdict(r) for r in rows],
            "labelGrades": {"explicit_target_confirmed": sum(r.labels.get("valid", 0) for r in real), "calibration_target_sessions": sum(1 for r in real if r.targets), "free_click_weak": "recorded in telemetry.inputs; excluded from primary training/evaluation", "reference_eyetracker": 0,
                            "note": "proxy and calibration labels are not independent eye-tracker ground truth; rPPG 'paired' requires verified sync ≤100 ms"},
            "note": "All records are listed, including ineligible ones with reasons. Synthetic fixtures are separated and never counted as human data."}
     log(f"inventory: {len(real)} real sessions ({inv['real']['gaze'].get('eligible', 0)} gaze-eligible, {inv['real']['rppg'].get('eligible', 0)} rppg-eligible), {len(synth)} synthetic")
     return inv
+
+
+def field_telemetry(raw: Path) -> dict:
+    """How the browser gaze model actually ran in the field (meta.gazeModel recorded at session start) and, for shadow/active sessions,
+    how far the model output (sx,sy) sat from the engine coordinate (rx,ry). Aggregates only; nothing identifying."""
+    modes, lat, inferred, dropped, errors, guards, agree, with_output = Counter(), [], 0, 0, 0, Counter(), [], 0
+    for f in sorted((raw / "sessions").glob("*.json")):
+        try:
+            obj = load_json(f)
+        except Exception:  # noqa: BLE001
+            continue
+        meta = obj.get("meta") or {}
+        if meta.get("synthetic") or "payload" not in obj:
+            continue
+        gm = meta.get("gazeModel")
+        mode = (gm or {}).get("mode") or "off"
+        modes[mode] += 1
+        if not gm or mode == "off":
+            continue
+        L = gm.get("latency") or {}
+        if isinstance(L.get("meanMs"), (int, float)):
+            lat.append(L["meanMs"])
+        inferred += gm.get("inferred") or 0
+        dropped += gm.get("dropped") or 0
+        errors += gm.get("errors") or 0
+        for k, v in (gm.get("guardReasons") or {}).items():
+            guards[k] += v
+        p = obj["payload"]
+        cols = p.get("sampleColumns") or []
+        if "sx" in cols:
+            ix, iy, rx, ry = cols.index("sx"), cols.index("sy"), cols.index("rx"), cols.index("ry")
+            diffs = []
+            for block in ([(p.get("pursuit") or {}).get("circle", {}).get("s") or []] + [t.get("s") or [] for t in (p.get("freeview") or [])] + [t.get("s") or [] for t in (p.get("saccade") or [])]):
+                for r in block:
+                    if len(r) > iy and r[ix] is not None and r[iy] is not None and r[rx] is not None:
+                        diffs.append(((r[ix] - r[rx]) ** 2 + (r[iy] - r[ry]) ** 2) ** 0.5)
+            if diffs:
+                with_output += 1
+                diffs.sort()
+                agree.append(diffs[len(diffs) // 2])
+    return {"sessionsByModelMode": dict(modes), "sessionsWithModelOutput": with_output, "latencyMeanMs": (sum(lat) / len(lat)) if lat else None, "latencyMaxMeanMs": max(lat) if lat else None, "inferred": inferred, "dropped": dropped, "errors": errors, "guardReasons": dict(guards),
+            "shadowVsEngineMedianPx": (sorted(agree)[len(agree) // 2] if agree else None), "note": "mode is fixed per session at start; shadow records sx,sy without applying them; agreement is model-vs-engine distance, not accuracy"}
 
 
 def inventory_markdown(inv: dict) -> str:

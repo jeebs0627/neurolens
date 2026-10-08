@@ -18,6 +18,7 @@ from .evaluate import bootstrap_gain, compare, evaluate_split, limitations
 from .export import raw_hashes
 from .gaze_dataset import build_records, check_no_leak
 from .inventory import build_inventory, inventory_markdown
+from .ledger import build_entry
 from .release import ROOT, build_manifest, model_card, policy_check, write_candidate
 from .rppg_dataset import build_rows
 from .safe_io import dump_json, load_json
@@ -211,6 +212,8 @@ class Pipeline:
             if not (resume and rppg_done):
                 self.rppg(inv)
             self._mark("run", "evaluated", gaze=self.state["stages"]["gaze"]["status"], rppg=self.state["stages"]["rppg"]["status"])
+            dump_json(self.work / "ledger-entry.json", build_entry(self.work, self.state))
+            self.log("ledger entry written → publish with: python -m nlcolab publish-ledger <work_dir> (non-sensitive aggregates only)")
         except Exception as e:  # noqa: BLE001
             self._mark("run", "failed", reason=str(e)[:300], trace=traceback.format_exc()[-2000:])
             raise

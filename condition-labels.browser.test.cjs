@@ -115,13 +115,16 @@ const server = http.createServer((req, response) => { const file = path.resolve(
     });
     const dpage = await reviewer.newPage(); const derrors = []; dpage.on('pageerror', e => derrors.push(e.message));
     await dpage.goto(base + '/dataset.html#training');
-    await dpage.waitForFunction(() => /라벨 수집 세션/.test(document.querySelector('#trainingInventory')?.textContent || '') && /registry/.test(document.querySelector('#trainingRegistry')?.textContent || ''));
+    await dpage.waitForFunction(() => /라벨 수집 세션/.test(document.querySelector('#trainingInventory')?.textContent || '') && /registry/.test(document.querySelector('#trainingRegistry')?.textContent || '') && /딥러닝 모델 작동 상태/.test(document.querySelector('#trainingStatus')?.textContent || ''));
     await dpage.waitForFunction(() => /라벨 수집 세션\s*1/.test(document.querySelector('#trainingInventory').textContent.replace(/\s+/g, ' ')));
-    const txt = await dpage.evaluate(() => ({ inv: document.querySelector('#trainingInventory').textContent.replace(/\s+/g, ' '), reg: document.querySelector('#trainingRegistry').textContent.replace(/\s+/g, ' '), next: document.querySelector('#trainingNext').textContent, hidden: document.querySelector('#pane-training').hidden }));
+    const txt = await dpage.evaluate(() => ({ inv: document.querySelector('#trainingInventory').textContent.replace(/\s+/g, ' '), reg: document.querySelector('#trainingRegistry').textContent.replace(/\s+/g, ' '), next: document.querySelector('#trainingNext').textContent, status: document.querySelector('#trainingStatus').textContent.replace(/\s+/g, ' '), trend: document.querySelector('#trainingTrend').textContent.replace(/\s+/g, ' '), svg: document.querySelectorAll('#trainingTrend svg').length, hidden: document.querySelector('#pane-training').hidden }));
     assert.equal(txt.hidden, false); assert.match(txt.inv, /유효 라벨 표적 11/); assert.match(txt.inv, /최종 holdout\(eval_only\) 3/); assert.match(txt.inv, /gaze-label/); assert.match(txt.inv, /시선 잔차 ?1 ?0/, 'label session counts as gaze-eligible even without a calibration summary');
-    assert.match(txt.reg, /기존 엔진.*유일한 시선 추정기/, 'empty registry → baseline engine remains the only estimator'); assert.match(txt.next, /insufficient_data/); assert.match(txt.next, /01_dataset_audit/);
+    assert.match(txt.status, /딥러닝 모델 작동 상태\s*꺼짐/, 'empty registry → model off is stated plainly'); assert.match(txt.status, /현장 작동 기록\s*0 세션/);
+    assert.match(txt.reg, /active\s*없음/); assert.match(txt.next, /사람 키 보유 세션/); assert.match(txt.next, /01_dataset_audit/);
+    /* 공개 원장(training-ledger.json)이 있으면 실행 수·차트가 그려지고, 1회면 ‘기준점’으로 표시된다 */
+    const fs2 = require('node:fs'); if (fs2.existsSync(path.join(root, 'training-ledger.json'))) { const runs = JSON.parse(fs2.readFileSync(path.join(root, 'training-ledger.json'), 'utf8')).runs.length; assert.match(txt.trend, new RegExp('실행 ' + runs + '회')); assert.ok(txt.svg >= 2, 'two SVG charts'); if (runs === 1) assert.match(txt.trend, /기준점/); }
     assert.deepEqual(derrors, []);
     await reviewer.close();
-    console.log('PASS /dataset training pane: label inventory from list metadata, empty registry, policy-driven next job');
+    console.log('PASS /dataset training dashboard: status cards, ledger trend charts, list-metadata inventory, empty registry, policy-driven next job');
   } finally { await browser.close(); await new Promise(r => server.close(r)); }
 })().catch(e => { console.error(e); server.close(); process.exitCode = 1; });

@@ -34,11 +34,13 @@
       <div id="labSummary"></div><div class="table-wrap"><table id="labTable"></table></div></section>
   </section>
   <section id="pane-training" class="workspace-pane" hidden>
-    <section class="panel"><div class="toolbar"><div><h2>Colab 학습 파이프라인</h2><p class="muted">수집(자동 기록 · 라벨 수집 모드) → 인증된 내보내기 → 불변 스냅샷 → 학습·평가 → 통과한 후보만 등록 → shadow·canary·승인 → 다음 검사부터 적용. 사용량 증가만으로 정확도가 좋아진다고 보장하지 않습니다.</p></div><a class="button" href="condition.html?mode=gaze-label" target="_blank" rel="noopener">시선 라벨 수집 모드 ↗</a></div>
-      <div id="trainingInventory"></div></section>
+    <section class="panel"><div class="toolbar"><div><h2>딥러닝 보정 모델 · 학습 대시보드</h2><p class="muted">수집(자동 기록 · 라벨 수집 모드) → 인증된 내보내기 → 불변 스냅샷 → 학습·평가 → 통과한 후보만 등록 → shadow·canary·승인 → 다음 검사부터 적용. 아래 모든 값은 training-ledger.json(실행별 비민감 집계)·model-registry.json·불러온 세션의 작동 기록에서 그대로 읽습니다.</p></div><a class="button" href="condition.html?mode=gaze-label" target="_blank" rel="noopener">시선 라벨 수집 모드 ↗</a></div>
+      <div id="trainingStatus"></div></section>
+    <section class="panel"><div id="trainingTrend"></div></section>
+    <section class="panel"><div id="trainingDetail"></div></section>
+    <section class="panel"><div id="trainingInventory"></div></section>
     <section class="panel"><div id="trainingNext"></div></section>
     <section class="panel"><div id="trainingRegistry"></div></section>
-    <section class="panel"><div id="trainingValidation"></div></section>
   </section>
   <section id="pane-validation" class="workspace-pane" hidden>
     <section class="panel"><h2>실측 품질과 개선 근거의 축적</h2><p class="muted">실측 집계는 현재 불러온 검사 범위에 한정합니다. 미로그인·미수집 기록은 포함되지 않습니다.</p><div class="metrics" id="metrics"></div><div id="accumulationMetrics"></div></section>

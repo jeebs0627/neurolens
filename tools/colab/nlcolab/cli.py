@@ -33,6 +33,7 @@ def main(argv=None):
     for name in ("audit", "snapshot", "train-gaze", "train-rppg", "run"):
         p = sub.add_parser(name); p.add_argument("raw_dir"); p.add_argument("work_dir"); p.add_argument("--allow-synthetic", action="store_true"); p.add_argument("--no-mlp", action="store_true"); p.add_argument("--no-resume", action="store_true"); p.add_argument("--seed", type=int, default=20261008)
     p = sub.add_parser("status"); p.add_argument("work_dir")
+    p = sub.add_parser("publish-ledger"); p.add_argument("work_dir"); p.add_argument("--ledger", default=None, help="repo training-ledger.json (default: <repo>/training-ledger.json)")
     a = ap.parse_args(argv)
     if a.cmd == "fixtures":
         out = subprocess.check_output(["node", str(HERE / "fixtures.cjs"), a.out, f"--sessions={a.sessions}", f"--seed={a.seed}", f"--legacy={a.legacy}"], text=True, encoding="utf-8")
@@ -54,6 +55,15 @@ def main(argv=None):
     if a.cmd == "import":
         ev = import_local(a.raw_dir, a.sources)
         print(json.dumps({k: v for k, v in ev.items() if k != "sessions"}, ensure_ascii=False, indent=2))
+        return 0
+    if a.cmd == "publish-ledger":
+        from .ledger import build_entry, publish  # noqa: PLC0415
+        work = Path(a.work_dir)
+        state = load_json(work / "state.json")
+        entry = build_entry(work, state)
+        ledger_path = Path(a.ledger) if a.ledger else HERE.parents[1] / "training-ledger.json"
+        led = publish(entry, ledger_path)
+        print(json.dumps({"ledger": str(ledger_path), "runs": len(led["runs"]), "latest": {k: entry[k] for k in ("runId", "at", "status")}, "gaze": (entry.get("gaze") or {}).get("status"), "rppg": (entry.get("rppg") or {}).get("status")}, ensure_ascii=False, indent=2))
         return 0
     if a.cmd == "status":
         st = Path(a.work_dir) / "state.json"

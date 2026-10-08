@@ -158,6 +158,21 @@ class PipelineTests(unittest.TestCase):
         patched = registry_patch(reg_path, man, "REPORT.md", "candidate")
         self.assertIsNone(patched["active"]); self.assertIsNone(patched["shadow"]); self.assertEqual(patched["candidates"][0]["state"], "candidate")
 
+    def test_ledger_entry_is_public_aggregates_only(self):
+        from nlcolab.ledger import build_entry, publish, FORBIDDEN_KEYS
+        work = TMP / "work-b"
+        if not (work / "state.json").exists():
+            self.skipTest("gaze run not available")
+        entry = build_entry(work, load_json(work / "state.json"))
+        text = json.dumps(entry, ensure_ascii=False)
+        self.assertNotIn("SYN-", text, "no session codes in the public ledger")
+        self.assertFalse(any(k in text for k in ("record_id", "subject_key", "access_token")))
+        self.assertEqual(entry["data"]["sessions"], 0, "synthetic sessions are not counted as real data")
+        led = publish(entry, TMP / "ledger.json"); led2 = publish(entry, TMP / "ledger.json")
+        self.assertEqual(len(led2["runs"]), 1, "re-publishing the same run replaces, never duplicates")
+        self.assertEqual(led["schema"], "nl-training-ledger-1")
+        self.assertTrue(FORBIDDEN_KEYS)
+
     def test_safe_io_rejects_non_finite_json_and_zip_traversal(self):
         p = TMP / "bad.json"
         p.write_text('{"a": NaN}', encoding="utf-8")

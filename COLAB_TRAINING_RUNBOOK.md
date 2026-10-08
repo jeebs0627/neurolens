@@ -131,3 +131,10 @@ py -3 tools\newbiz_research_export_test.py                  # 4 OK (페이지네
 실측 첫 실행에서 고친 코드 결함: baseline 도구 상대 경로(ENOENT), 스냅샷 저장 후 실패 시 재개 불가, 중단 세션(core 미기록) 세로 특징 미재계산, 삭제된 클릭 보정 표적(kind `click`) 미분류, integrity 검사 과엄격(레코드 없는 세션의 재현 불가를 전체 실패로 취급), 실패한 gate 뒤 이전 후보 패키지 잔존.
 
 다음에 필요한 자료: ① `/condition?mode=gaze-label` 로 **서로 다른 사람 3명 이상**(각자 자기 브라우저 → 고유 subjectKey) 라벨 세션, ② 기준 심박(BLE 또는 CSV+동기화 검증) 동시 측정 세션 6건 이상. 그 전까지 학습 배치는 `evaluated`/`insufficient` 로 끝나는 것이 정상이다.
+
+## 9. 학습·모델 대시보드 (`/dataset` 06) 와 공개 원장
+
+- `training-ledger.json`(저장소 루트 · 배포됨): 학습 배치 실행 1회당 집계 1건. 세션·적격·라벨 세션·사람 키·기준 심박 수, 분할 크기, 모델별 val/locked/temporal 중앙·P95 오차, gate 결과·실패 항목, bootstrap, rPPG 상태, 현장 작동 기록(모델 모드별 세션 수·지연·shadow 출력 차이), 한계. **참가 코드·세션 ID·subjectKey·원자료는 들어가지 않는다**(ledger.py 가 금지 키를 검사).
+- 배치가 끝나면 `python -m nlcolab publish-ledger <work_dir>` 가 `work/ledger-entry.json` 을 원장에 병합한다(같은 runId 는 교체). 이 파일을 commit·배포하면 대시보드가 갱신된다.
+- 대시보드 카드: ① 딥러닝 모델 작동 상태(registry active/shadow/꺼짐) ② 현장 작동 기록(불러온 세션의 `meta.gazeModel` 모드·지연·추론 수) ③ 최근 학습 실행(상태·선택 모델·gate) ④ 학습 데이터 규모. 그 아래 실행별 중앙 오차(기존 엔진 vs 선택 모델, val·locked test)와 데이터 규모 차트, 실행 표, 최근 실행 상세(모델별 지표·분할·bootstrap·rPPG), 세션 집계, 다음 작업, registry.
+- 읽는 법: ‘개선’은 같은 정책 아래 같은 지표의 실행 간 변화뿐이다. 실행 1회는 기준점이다. val 만 좋아지고 locked/temporal 이 나빠지면 등록되지 않는다. 오차는 표적 proxy 기준 px 이며 외부 eye tracker 정확도가 아니다. ‘작동 중’은 registry 와 현장 세션의 모드 기록으로만 판단한다.
