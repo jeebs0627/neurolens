@@ -3,6 +3,97 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "b299f1aceab835b9c68b5e6559677a95945749e8",
+      "parents": [
+        "fcc9dde60a11fd4177fca57dab61a3bf16aea4b3"
+      ],
+      "committedAt": "2026-10-08T10:15:23+09:00",
+      "subject": "nlcolab: 터미널 로그인 도우미(login) · export --session-file · login/export/import 는 표준 라이브러리만으로 실행",
+      "url": "https://github.com/jeebs0627/neurolens/commit/b299f1aceab835b9c68b5e6559677a95945749e8",
+      "files": [
+        {
+          "path": "tools/colab/login.py",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "tools/colab/nlcolab/cli.py",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 6
+        },
+        {
+          "path": "tools/colab/nlcolab/login.py",
+          "status": "modified",
+          "additions": 64,
+          "deletions": 0
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": []
+    },
+    {
+      "sha": "548bc8d4d5784cb33305aabcdf5aaebd482da3be",
+      "parents": [
+        "b299f1aceab835b9c68b5e6559677a95945749e8"
+      ],
+      "committedAt": "2026-10-08T10:15:23+09:00",
+      "subject": "dataset-training: release policy 값·Colab 링크도 esc 처리 (push 보안 검토 지적 · 같은 출처 정적 JSON 이지만 방어적 이스케이프)",
+      "url": "https://github.com/jeebs0627/neurolens/commit/548bc8d4d5784cb33305aabcdf5aaebd482da3be",
+      "files": [
+        {
+          "path": "dataset-training.js",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        }
+      ],
+      "domains": [
+        "research"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/dataset-training.js b/dataset-training.js\nindex e7fb2d6..c62cb00 100644\n--- a/dataset-training.js\n+++ b/dataset-training.js\n@@ -66,5 +66,5 @@\n       <p class=\"muted\">세션 종류 ${esc(JSON.stringify(agg.kind))} · 스키마 ${esc(JSON.stringify(agg.schema))} · core ${esc(JSON.stringify(agg.core))} · 최근 세션 ${esc(date(agg.latest))}</p>`;\n     $('trainingNext').innerHTML = `<h3>다음 Colab 작업</h3><ul>${nextJob(agg).map(x => `<li>${esc(x)}</li>`).join('')}</ul>\n-      <p>${NB.map(nb => `<a class=\"button\" target=\"_blank\" rel=\"noopener\" href=\"${colab(nb)}\">${esc(nb)} ↗</a>`).join(' ')}</p>\n+      <p>${NB.map(nb => `<a class=\"button\" target=\"_blank\" rel=\"noopener\" href=\"${esc(colab(nb))}\">${esc(nb)} ↗</a>`).join(' ')}</p>\n       <p class=\"muted\">Colab 은 활성 런타임에서만 실행되는 배치입니다(무인 스케줄러·상시 서버 아님). 끊기면 같은 노트북을 다시 열어 이어서 실행합니다. 실행 결과(스냅샷·run 상태·보고서)는 Drive 의 neurolens-training/work 에, 후보 모델은 검토된 commit 으로만 저장소에 들어옵니다.</p>`;\n     const entry = (label, e) => e ? `<tr><td>${esc(label)}</td><td><code>${esc(e.id)}</code> v${esc(e.version)}<small>${esc(e.kind)} · ${esc(e.state || label)}</small></td><td>${esc(e.sha256 ? e.sha256.slice(0, 16) + '…' : '—')}</td><td>${esc(e.approvedBy || '—')}<small>${esc(date(e.approvedAt || e.createdAt))}</small></td><td>${e.report ? esc(e.report) : '—'}</td></tr>` : `<tr><td>${esc(label)}</td><td colspan=\"4\" class=\"muted\">없음 — 기존 엔진(In_mind core 파이프라인)이 유일한 시선 추정기</td></tr>`;\n@@ -77,6 +77,6 @@\n       <li>마지막 실측 검증: <b>${lastVal ? esc(date(lastVal.at)) + ' · ' + esc(lastVal.event) : '없음'}</b></li>\n       <li>미검증 항목: 실기기 ONNX Runtime Web 로드·지연(desktop/저사양) · 외부 eye tracker 기준 정확도 · 사카드 잠복기/추적 지연 개선 · IBI/HRV(HR-only 기준) · 모델 서명 체계 · Colab 실제 실행(자료 접근 후)</li>\n-      <li>정책 최소량(시선): 학습 ${policy?.gaze_residual?.minTrainGroups ?? '?'} 그룹 · 검증 ${policy?.gaze_residual?.minValGroups ?? '?'} · 평가 ${policy?.gaze_residual?.minLockedTestGroups ?? '?'} · 창 ${policy?.gaze_residual?.minTrainWindows ?? '?'} · 중앙 오차 개선 ≥ ${policy ? Math.round(policy.gaze_residual.minRelativeGainMedian * 100) : '?'}% · P95 비율 ≤ ${policy?.gaze_residual?.maxP95Ratio ?? '?'} · coverage 감소 ≤ ${policy?.gaze_residual?.maxCoverageDropPp ?? '?'}%p</li>\n-      <li>정책 최소량(rPPG): paired 세션 ${policy?.rppg_quality?.minPairedSessions ?? '?'} · epoch ${policy?.rppg_quality?.minPairedEpochs ?? '?'} · 동기화 ≤ ${policy?.rppg_quality?.maxSyncUncertaintyMs ?? '?'}ms</li></ul>\n+      <li>정책 최소량(시선): 학습 ${esc(policy?.gaze_residual?.minTrainGroups ?? '?')} 그룹 · 검증 ${esc(policy?.gaze_residual?.minValGroups ?? '?')} · 평가 ${esc(policy?.gaze_residual?.minLockedTestGroups ?? '?')} · 창 ${esc(policy?.gaze_residual?.minTrainWindows ?? '?')} · 중앙 오차 개선 ≥ ${esc(policy ? Math.round(policy.gaze_residual.minRelativeGainMedian * 100) : '?')}% · P95 비율 ≤ ${esc(policy?.gaze_residual?.maxP95Ratio ?? '?')} · coverage 감소 ≤ ${esc(policy?.gaze_residual?.maxCoverageDropPp ?? '?')}%p</li>\n+      <li>정책 최소량(rPPG): paired 세션 ${esc(policy?.rppg_quality?.minPairedSessions ?? '?')} · epoch ${esc(policy?.rppg_quality?.minPairedEpochs ?? '?')} · 동기화 ≤ ${esc(policy?.rppg_quality?.maxSyncUncertaintyMs ?? '?')}ms</li></ul>\n       <p class=\"muted\">숫자 임계값은 공학적 초기값이며 임상 기준이 아닙니다. 코드 변경·프롬프트·학습 완료 이벤트는 정확도 검증이 아닙니다.</p>`;\n   }\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-548bc8d4d578-research",
+          "domain": "research",
+          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-548bc8d4d578-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 548bc8d4d5784cb33305aabcdf5aaebd482da3be\n변경 제목: dataset-training: release policy 값·Colab 링크도 esc 처리 (push 보안 검토 지적 · 같은 출처 정적 JSON 이지만 방어적 이스케이프)\n관련 파일: dataset-training.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-548bc8d4d578-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "pending",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55852035982",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T01:15:29Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/8JGh3r3tRtiqPrJ3aroUNsrrLwRK",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67",
       "parents": [
         "2be449afa04fd9181926160d6cbdd363b6cea607"
@@ -12641,9 +12732,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "199fc0ece624c9cef4a774e704d05a96fc240daf"
+    "sourceHead": "548bc8d4d5784cb33305aabcdf5aaebd482da3be"
   },
-  "updatedAt": "2026-10-08T01:13:42.244939+00:00",
+  "updatedAt": "2026-10-08T01:15:47.071250+00:00",
   "aiCooldownUntil": "2026-10-08T02:13:41.295227+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
