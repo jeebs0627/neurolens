@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "924c04dfcb90cf5f58e56c0d7f440c3b01f589aa",
+      "parents": [
+        "f0937dc4a14aabe8a25adfccc79e6aa9ecc5c1f1"
+      ],
+      "committedAt": "2026-10-08T10:34:17+09:00",
+      "subject": "nlcolab export: 비TTY 안내 문자열 구문 오류 수정",
+      "url": "https://github.com/jeebs0627/neurolens/commit/924c04dfcb90cf5f58e56c0d7f440c3b01f589aa",
+      "files": [
+        {
+          "path": "tools/colab/nlcolab/export.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 4
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55852895577",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T01:34:22Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/AbD83EvKWNe2PUEcJD3WUTp8d2Ng",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "e426f569f46f9175e4264f421e490cf233ee657d",
       "parents": [
         "9b8c01a00c59505a5523c7aee12c95ab97fed1fc"
@@ -37,6 +75,26 @@
           "at": "2026-10-08T01:33:48Z",
           "url": "https://vercel.com/ax-open-lab/neurolens/DVdXcbwEHniHskR1utjXnVqLj6Bk",
           "source": "github-commit-status"
+        },
+        {
+          "key": "check-55852901146",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-08T01:34:30Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/DVdXcbwEHniHskR1utjXnVqLj6Bk",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6925035028-19434892643",
+          "type": "deployment",
+          "deploymentId": 6925035028,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-08T01:34:30Z",
+          "url": "https://neurolens-km5vsr2rf-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
         }
       ]
     },
@@ -12872,9 +12930,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "e426f569f46f9175e4264f421e490cf233ee657d"
+    "sourceHead": "924c04dfcb90cf5f58e56c0d7f440c3b01f589aa"
   },
-  "updatedAt": "2026-10-08T01:34:09.696794+00:00",
+  "updatedAt": "2026-10-08T01:34:50.861234+00:00",
   "aiCooldownUntil": "2026-10-08T02:13:41.295227+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
