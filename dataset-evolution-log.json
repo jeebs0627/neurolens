@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "a9121d9d1c6a68cb5af79ef4c77acfdec0d17a97",
+      "parents": [
+        "34537063f65e3f99a4e67e32a12c795b5b5c768d"
+      ],
+      "committedAt": "2026-10-08T20:51:44+09:00",
+      "subject": "메인페이지 성과 수치를 IR 덱 v2(엄격한 검증 기준)로 갱신",
+      "url": "https://github.com/jeebs0627/neurolens/commit/a9121d9d1c6a68cb5af79ef4c77acfdec0d17a97",
+      "files": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 21,
+          "deletions": 19
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55886276765",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T11:51:50Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/4sCpWW32VMixnXUkyLuebhxtEGQR",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "28f49ab85cc7af5b0e780b7bddd37640a9d4555a",
       "parents": [
         "58a8ca95ea0697fc72d05bb6b7c5c458f8cceed8"
@@ -170,7 +208,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55882058871",
@@ -202,7 +240,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-08T10:47:55.396876+00:00",
+      "lastAttemptAt": "2026-10-08T11:52:14.215052+00:00",
       "analysisError": "HTTP_503",
       "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
@@ -13821,9 +13859,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "714cd40ae3e50e9a8bb4a5d7bce00db8267d6beb"
+    "sourceHead": "a9121d9d1c6a68cb5af79ef4c77acfdec0d17a97"
   },
-  "updatedAt": "2026-10-08T10:48:58.088039+00:00",
-  "aiCooldownUntil": "2026-10-08T10:53:31.282013+00:00",
+  "updatedAt": "2026-10-08T11:52:37.009137+00:00",
+  "aiCooldownUntil": "2026-10-08T11:57:35.793631+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
