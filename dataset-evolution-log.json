@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "674b963946acc70a87c36ac643a5337f773044d4",
+      "parents": [
+        "9fca22204d0e3d0e34200a833c83e1311e090e70"
+      ],
+      "committedAt": "2026-10-08T11:38:19+09:00",
+      "subject": "inventory: 현장 작동 집계를 세션별 격리·숫자 검증·행 상한으로 보강 (보안 검토: 잘못된 세션 1건이 감사 전체를 중단시키던 문제) · 원자료 중복 읽기 제거",
+      "url": "https://github.com/jeebs0627/neurolens/commit/674b963946acc70a87c36ac643a5337f773044d4",
+      "files": [
+        {
+          "path": "tools/colab/nlcolab/inventory.py",
+          "status": "modified",
+          "additions": 66,
+          "deletions": 37
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55855687654",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T02:38:24Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/DAH1Gvf13mwz6HQxEHZiTzSh2z76",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "b184ab8636fdb8ea2a71b7262cae4558356cd4c0",
       "parents": [
         "f5878cfc9b8411e3aa2f1dff26540677bd9b5ad7"
@@ -13349,9 +13387,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "7a3d9c356d13ad4ea6cd649d6c68a509864ac95d"
+    "sourceHead": "674b963946acc70a87c36ac643a5337f773044d4"
   },
-  "updatedAt": "2026-10-08T02:36:10.413132+00:00",
+  "updatedAt": "2026-10-08T02:38:42.097352+00:00",
   "aiCooldownUntil": "2026-10-08T03:35:27.716046+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
