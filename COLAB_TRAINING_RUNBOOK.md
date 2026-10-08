@@ -6,20 +6,20 @@
 
 | 영역 | implemented | tested | deployed | real-data-validated |
 |---|---|---|---|---|
-| v3 연구 패키지(`nl-research-3`: px/py·sx/sy·bx/by 열, 표적 ID·round·구간, 잔차 보정·snapshot·digest, clock segments, weak 클릭 좌표, sessionKind/viewport/gazeModel/subjectKey) | ✔ newbiz-research.js, condition.html | ✔ node 단위 + Playwright E2E | ✖ (이 commit 미배포) | ✖ 실측 세션 없음 |
-| 전용 시선 라벨 모드 `/condition?mode=gaze-label` (표적 계획·확인 창·거부/재시도/무효화 이벤트·holdout 전후 digest·점수 없는 결과 화면·기존 outbox 전송) | ✔ condition-labels.js, condition.html | ✔ condition-labels.test.cjs, condition-labels.browser.test.cjs(헤드리스 Edge, 합성 관측) | ✖ | ✖ 실사용자 수집 전 |
-| 전역 잔차 모델 클라이언트(registry 고정, 같은 출처 경로만, SHA-256·스키마·allowlist·버전·테스트 벡터 검증, fail-closed, 단일 in-flight 추론, shadow/active, 세션 종료 전 drain) | ✔ condition-gaze-model.js, model-registry.json | ✔ condition-gaze-model.test.cjs(주입 ORT) | ✖ | ✖ 실기기 ONNX Runtime Web 로드·지연 미측정 |
-| 인증된 학습 export(JWT · dataset_list/dataset_detail · 끝 페이지까지 · 해시 검증 · 증분) | ✔ nlcolab/export.py | ✔ 코드 경로(네트워크 모의 없음: 실제 RPC 호출은 미실행) | — | ✖ 운영 DB 접근 없음 |
+| v3 연구 패키지(`nl-research-3`: px/py·sx/sy·bx/by 열, 표적 ID·round·구간, 잔차 보정·snapshot·digest, clock segments, weak 클릭 좌표, sessionKind/viewport/gazeModel/subjectKey) | ✔ newbiz-research.js, condition.html | ✔ node 단위 + Playwright E2E | ✔ 2026-10-08 운영 반영 | ✖ 실측 v3 세션 아직 없음 |
+| 전용 시선 라벨 모드 `/condition?mode=gaze-label` (표적 계획·확인 창·거부/재시도/무효화 이벤트·holdout 전후 digest·점수 없는 결과 화면·기존 outbox 전송) | ✔ condition-labels.js, condition.html | ✔ condition-labels.test.cjs, condition-labels.browser.test.cjs(헤드리스 Edge, 합성 관측) | ✔ 운영 반영(카드 렌더 확인) | ✖ 실사용자 수집 전 |
+| 전역 잔차 모델 클라이언트(registry 고정, 같은 출처 경로만, SHA-256·스키마·allowlist·버전·테스트 벡터 검증, fail-closed, 단일 in-flight 추론, shadow/active, 세션 종료 전 drain) | ✔ condition-gaze-model.js, model-registry.json | ✔ condition-gaze-model.test.cjs(주입 ORT) | ✔ 운영 반영(registry 비어 있음 → off 확인) | ✖ 등록 모델 없음 · 실기기 ORT 로드·지연 미측정 |
+| 인증된 학습 export(JWT · dataset_list/dataset_detail · 끝 페이지까지 · 해시 검증 · 증분) | ✔ nlcolab/export.py | ✔ | — | ✔ 2026-10-08 실제 50건 export(§8) |
 | service_role exporter 보강(Range 페이지네이션·calibrationFrames·landmarks·annotations·export_index) | ✔ tools/newbiz_research_export.py | ✔ paging 단위 테스트 | — | ✖ |
 | v1/v2/v3 adapter(canonical clock, 표적 backfill 플래그, pursuit 메타 legacy 표, 랜드마크 기반 세로 특징 재계산, reference 최신 유효 연결) | ✔ session_adapter.cjs, adapter.py | ✔ session_adapter.test.cjs, test_pipeline.py | — | ✖ |
 | 기존 엔진 baseline 재현(Node, snapshot/replay, fidelity) | ✔ baseline_predict.cjs | ✔ (합성: snapshot vs replay 중앙값 <3px) | — | ✖ |
 | 인벤토리·적격성·라벨 등급·subject 연결 보고 | ✔ inventory.py (+ /dataset 06 pane) | ✔ | ✖ | ✖ |
 | 불변 스냅샷·변경 탐지·철회 표시·`no_new_eligible_data` | ✔ snapshot.py | ✔ | — | ✖ |
 | 시선 잔차 데이터셋(allowlist·창 가중·eval_only 분리)·group/time split·접근 로그 | ✔ gaze_dataset.py, splits.py | ✔ 누수 검사 테스트 | — | ✖ |
-| baseline/ridge/MLP 학습·val 선택·ONNX(opset 17)·ORT parity·bootstrap·release policy gate·manifest·모델 카드·registry 패치(candidate 만) | ✔ train_gaze.py, evaluate.py, release.py | ✔ 합성 end-to-end(ridge·MLP 모두 baseline 대비 개선, parity ok, gate 는 그룹 수 부족으로 실패 — 의도된 동작) | — | ✖ |
-| rPPG 기준 오차 선택기(고정 10초 epoch pairing·paired/exploratory 분리·causal 분리·abstain·risk-coverage·oracle·`insufficient_reference_labels`) | ✔ rppg_dataset.py, train_rppg.py | ✔ (합성: BLE 기준은 exploratory → insufficient; 검증 annotation 주입 시 paired 행 생성) | — | ✖ paired 기준 세션 0 |
+| baseline/ridge/MLP 학습·val 선택·ONNX(opset 17)·ORT parity·bootstrap·release policy gate·manifest·모델 카드·registry 패치(candidate 만) | ✔ train_gaze.py, evaluate.py, release.py | ✔ 합성 end-to-end | — | ✔ 실측 50세션 실행(§8): evaluated · 후보 없음 (정확도 검증이 아니라 ‘학습해도 baseline 을 못 넘음’의 실측 근거) |
+| rPPG 기준 오차 선택기(고정 10초 epoch pairing·paired/exploratory 분리·causal 분리·abstain·risk-coverage·oracle·`insufficient_reference_labels`) | ✔ rppg_dataset.py, train_rppg.py | ✔ | — | ✔ 실측 실행: `insufficient_reference_labels` (기준 심박 0건) |
 | Colab 노트북 4개(실행 화면) | ✔ notebooks/ | ✔ JSON 구조 검증만 · **Colab 실제 실행 미수행** | — | ✖ |
-| /dataset 06 학습 파이프라인 pane | ✔ dataset-training.js | ✔ Playwright | ✖ | ✖ |
+| /dataset 06 학습 파이프라인 pane | ✔ dataset-training.js | ✔ Playwright | ✔ 운영 반영 | — |
 | 재생 도구 메타데이터 adapter(gaze_replay.cjs) | ✔ | ✔ 합성 실행 | — | ✖ 실측 13세션 재실행 미수행(원자료 접근 없음) |
 
 **실제로 수행하지 않은 것**: 운영 DB 변경(마이그레이션 불필요 — 기존 RPC 재사용), 실제 참가자 데이터의 Colab 업로드·학습, Vercel 배포, 운영 모델 승인, 실기기·모바일 지연 계측, 외부 eye tracker·접촉 PPG 기준 수집. 이 문서의 어떤 수치도 사람 대상 정확도가 아닙니다.
@@ -110,3 +110,24 @@ py -3 tools\newbiz_research_export_test.py                  # 4 OK (페이지네
 - 라벨 수집 모드 실사용 테스트(데스크톱·터치 1종), ONNX Runtime Web 실기기 로드·지연(현재 등록 모델 없음 → 로드 경로는 registry 비어 있을 때 off 로만 확인).
 - 과거 세션의 `payload.landmarks` 유무(없으면 core<2.3 세션은 세로 특징 재계산 불가로 제외됨).
 - 모델 서명 체계 없음(해시만). 배포 신뢰 경계는 Vercel 배포 + 같은 출처 경로 제한.
+
+## 8. 실측 자료 첫 실행 결과 (2026-10-08 · 로컬 CLI = Colab 배치와 동일)
+
+인증 export: 연구 관리자 JWT 로 `dataset_list`(1페이지·100행 상한·마지막 페이지 50행) → `dataset_detail` 50건, 해시 불일치 0, 토큰 파일 없음. 원자료는 `training/raw`(git·배포 제외)에만 있다.
+
+| 항목 | 값 |
+|---|---|
+| 세션 | 50 (2026-10-03~07 · nl-research-2 47 · nl-research-1 3 · 전부 core 2.3 이전 · 라벨 모드 0 · subjectKey 0) |
+| 시선 적격 | 38 (전부 표적 구간 backfill · 세로 특징은 50건 모두 랜드마크로 재계산) · baseline 재생 36 · 803 창 · 9,084 프레임 |
+| 분할(세션 단위) | train 17 · val 6 · locked 6 · temporal 7 · eval_only 0 |
+| val 중앙 오차 | baseline 135px · ridge 147px(−9%) · MLP 117px(+13.7%, bootstrap 95% CI +7.6~+18%) |
+| locked_test | MLP 127px vs baseline 122px (**−4% 회귀**) |
+| temporal_test | MLP 191px vs baseline 168px (**−14% 회귀**) |
+| 결론 | **evaluated · 후보 없음 · 기존 엔진 유지**. val 개선이 세션·시간 holdout 에서 재현되지 않음 → 사람 연결 없는 반복 세션의 개인 잔차를 학습했을 가능성 |
+| rPPG | `insufficient_reference_labels` (기준 심박 0건 · 맥파 창 보유 18세션) |
+
+정책 `2026-10-08.2`: locked/temporal test 회귀 금지 규칙은 **이 결과를 본 뒤 추가**했다(`release_policy.json.gaze_residual.lockedTestRuleHistory`). 더 좋은 점수를 위한 조정이 아니라 회귀 차단이지만, 이로써 현 locked_test 는 회귀 benchmark 가 됐고 새 일반화 주장에는 새 prospective holdout(라벨 수집 모드·subjectKey 보유 세션)이 필요하다. 사람 연결이 없는 자료로 만든 후보는 통과하더라도 `release.maxState = shadow` 까지만 허용된다.
+
+실측 첫 실행에서 고친 코드 결함: baseline 도구 상대 경로(ENOENT), 스냅샷 저장 후 실패 시 재개 불가, 중단 세션(core 미기록) 세로 특징 미재계산, 삭제된 클릭 보정 표적(kind `click`) 미분류, integrity 검사 과엄격(레코드 없는 세션의 재현 불가를 전체 실패로 취급), 실패한 gate 뒤 이전 후보 패키지 잔존.
+
+다음에 필요한 자료: ① `/condition?mode=gaze-label` 로 **서로 다른 사람 3명 이상**(각자 자기 브라우저 → 고유 subjectKey) 라벨 세션, ② 기준 심박(BLE 또는 CSV+동기화 검증) 동시 측정 세션 6건 이상. 그 전까지 학습 배치는 `evaluated`/`insufficient` 로 끝나는 것이 정상이다.

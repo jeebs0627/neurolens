@@ -86,10 +86,10 @@ def classify(session: Session, sync_threshold_ms: float = 100.0) -> Eligibility:
             supervised = True
         if supervised and not any(r in ("no-calibration-frames", "no-calibration-targets", "no-screen-size", "legacy-vertical-feature-not-reconstructible") for r in reasons):
             e.gaze_status = "eligible"
-        elif len(session.frames):
-            e.gaze_status = "unlabeled-only"
         else:
-            e.gaze_status = "corrupt"
+            e.gaze_status = "unlabeled-only"
+            if not session.frames:
+                reasons.append("no-recorded-frames")
     e.gaze_reasons = reasons
     # --- rPPG quality task
     rr = []

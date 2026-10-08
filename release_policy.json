@@ -1,11 +1,11 @@
 {
   "schema": "nl-release-policy-1",
-  "version": "2026-10-08.1",
+  "version": "2026-10-08.2",
   "note": "Engineering starting thresholds, fixed before any test-set read. Tune on validation and bump the version; never retune after reading the locked test. Not clinical criteria.",
   "gaze_residual": {
     "primaryMetric": "medianPx on val/locked_test (target-proxy error; not eye-tracker accuracy)",
     "minRelativeGainMedian": 0.05,
-    "maxP95Ratio": 1.10,
+    "maxP95Ratio": 1.1,
     "maxCoverageDropPp": 2.0,
     "minTrainGroups": 8,
     "minValGroups": 3,
@@ -15,11 +15,45 @@
     "requireSubjectLinkForPersonClaims": true,
     "maxParams": 50000,
     "maxOnnxBytes": 1048576,
-    "latencyBudgetMsP95": { "desktop": 5, "lowEnd": 8 },
-    "parityTolerance": { "abs": 1e-5, "rel": 1e-4 },
-    "guard": { "zMax": 4, "maxCorrectionFrac": 0.15, "maxMissing": 2 },
-    "requiredChecks": ["integrity", "label-provenance", "time-alignment", "split-disjoint", "withdrawal", "allowlist", "parity", "schema", "size", "val-gain", "p95", "coverage"],
-    "promotion": "human approval recorded in model-registry.json after shadow in /condition and an approved small canary; never automatic on data or training events"
+    "latencyBudgetMsP95": {
+      "desktop": 5,
+      "lowEnd": 8
+    },
+    "parityTolerance": {
+      "abs": 1e-05,
+      "rel": 0.0001
+    },
+    "guard": {
+      "zMax": 4,
+      "maxCorrectionFrac": 0.15,
+      "maxMissing": 2
+    },
+    "requiredChecks": [
+      "integrity",
+      "label-provenance",
+      "time-alignment",
+      "split-disjoint",
+      "withdrawal",
+      "allowlist",
+      "parity",
+      "schema",
+      "size",
+      "val-gain",
+      "p95",
+      "coverage",
+      "locked-test-no-regression",
+      "temporal-test-no-regression"
+    ],
+    "promotion": "human approval recorded in model-registry.json after shadow in /condition and an approved small canary; never automatic on data or training events",
+    "maxLockedTestRegression": 0.0,
+    "maxTemporalTestRegression": 0.0,
+    "lockedTestRuleHistory": [
+      {
+        "addedAt": "2026-10-08",
+        "version": "2026-10-08.2",
+        "disclosure": "Added after the first real-data run (snapshot 63d02bd1…) revealed that a val-selected MLP (+13.7% val) regressed on locked_test (−4%) and temporal_test (−14%). The rule forbids regression; it does not tune for a better score. That locked_test read is logged in the split manifest and the split is now a regression benchmark, not a fresh holdout."
+      }
+    ]
   },
   "rppg_quality": {
     "minPairedSessions": 6,
@@ -32,6 +66,10 @@
   "data_changes_that_trigger_retrain": {
     "minNewEligibleSessions": 5,
     "minNewGroups": 2,
-    "orAnyOf": ["annotation revision affecting labels/reference", "withdrawal of a session in the last snapshot", "feature/preprocessing/exporter/config version change"]
+    "orAnyOf": [
+      "annotation revision affecting labels/reference",
+      "withdrawal of a session in the last snapshot",
+      "feature/preprocessing/exporter/config version change"
+    ]
   }
 }

@@ -3,6 +3,14 @@
   "entries": [
     {
       "date": "2026-10-08",
+      "version": "nlcolab-0.1.0 · release policy 2026-10-08.2",
+      "status": "실측 50세션 첫 학습 배치 실행 · 후보 없음 · 기존 엔진 유지",
+      "change": "연구 관리자 JWT 로 50세션 인증 export(해시 검증 0 불일치) → 인벤토리(시선 적격 38 · rPPG 적격 0) → 세션 단위 분할 → baseline/ridge/MLP 비교. MLP 가 val 에서 +13.7% 였으나 locked test −4%·temporal test −14% 회귀 → 정책에 holdout 회귀 금지 규칙 추가(사후 추가 사실 공개) → evaluated·후보 미등록. rPPG 는 기준 심박 0건으로 insufficient_reference_labels.",
+      "evidence": "training/work/gaze/REPORT.md·run.json·split-manifest.json(접근 로그)·snapshot(63d02bd1…). 첫 실행에서 코드 결함 6건 수정(경로·재개·core 미기록 세로 특징·click 표적·integrity 정의·후보 잔존). 수치는 보정 표적 proxy 오차이며 외부 eye tracker 정확도가 아님. 사람 연결 없음(subjectKey 0).",
+      "next": "서로 다른 사람 3명 이상의 /condition?mode=gaze-label 세션(고유 subjectKey)과 기준 심박 동시 측정 6건 이상 확보 뒤 재실행. 그 전까지 배치는 evaluated/insufficient 로 끝나는 것이 정상."
+    },
+    {
+      "date": "2026-10-08",
       "version": "nl-research-3 / gaze-label-1 / gaze-model-client-1 / nlcolab-0.1.0",
       "status": "구현·단위/브라우저/end-to-end(합성) 검증 · 실측 미검증 · 미배포",
       "change": "연구 패키지 v3(모델 원출력·전역 모델 출력 열, 표적 ID·round·구간, 잔차 보정·개인 파이프라인 snapshot·digest, clock segments, weak 클릭 좌표), 전용 시선 라벨 수집 모드(/condition?mode=gaze-label), registry 고정·fail-closed ONNX 클라이언트, JWT 기반 인증 export·인벤토리·불변 스냅샷·group/time split·ridge/MLP 잔차 학습·ONNX parity·release policy·rPPG 기준 오차 선택기, Colab 노트북 4개, /dataset 06 학습 파이프라인 pane, 메타데이터 기반 재생 도구.",

@@ -129,17 +129,31 @@ class Pipeline:
             boot = None
         cmp = compare(evals["baseline"]["val"], evals["candidates"][chosen]["val"]) if chosen != "baseline-engine" else None
         dump_json(out / "split-manifest.json", split_manifest)
-        checks = {"integrity": all(r.get("fidelity") != "unavailable" for r in reports), "label-provenance": True, "time-alignment": all("needs-sync" not in r.get("skipped", {}) for r in reports), "split-disjoint": disjoint["ok"], "withdrawal": True, "allowlist": True, "schema": True}
+        # integrity: every training record comes from a session whose baseline was reproduced, and the export verified every payload hash
+        used = {r.session_id for r in records}
+        index_path = self.raw / "index.json"
+        export_ok = (load_json(index_path).get("corrupt", 1) == 0) if index_path.exists() else False
+        checks = {"integrity": export_ok and all(r.get("fidelity") != "unavailable" for r in reports if r["session"] in used), "label-provenance": True, "time-alignment": all("needs-sync" not in r.get("skipped", {}) for r in reports), "split-disjoint": disjoint["ok"], "withdrawal": True, "allowlist": True, "schema": True,
+                  "subject-link": split_manifest["groupKey"] == "subject_key"}
         status, gate, manifest, card_path = "evaluated", None, None, None
         if chosen != "baseline-engine":
             r = results[chosen]
-            gate = policy_check(self.policy, split_manifest=split_manifest, chosen=chosen, results=results, val_eval=evals["candidates"][chosen]["val"], base_eval=evals["baseline"]["val"], bootstrap=boot, parity=r.parity, onnx_bytes=Path(r.artifact).stat().st_size, params=r.params, checks=checks)
+            gate = policy_check(self.policy, split_manifest=split_manifest, chosen=chosen, results=results, val_eval=evals["candidates"][chosen]["val"], base_eval=evals["baseline"]["val"], bootstrap=boot, parity=r.parity, onnx_bytes=Path(r.artifact).stat().st_size, params=r.params, checks=checks,
+                                locked=(evals["candidates"][chosen].get("locked_test", {}), evals["baseline"].get("locked_test", {})), temporal=(evals["candidates"][chosen].get("temporal_test", {}), evals["baseline"].get("temporal_test", {})))
+            if not gate["pass"]:
+                import shutil  # noqa: PLC0415
+                shutil.rmtree(out / "candidate", ignore_errors=True)   # a previous run's candidate package must not survive a failed gate
+                (out / "model-registry.candidate.json").unlink(missing_ok=True)
+            # 사람 연결이 없는 자료(세션 단위 분할)로 만든 후보는 shadow 까지만: person-disjoint 평가 없이는 active 불가 (release_policy.requireSubjectLinkForPersonClaims)
+            gate["shadowOnly"] = not checks["subject-link"] and bool(self.policy["gaze_residual"].get("requireSubjectLinkForPersonClaims", True))
             if gate["pass"] and not self.allow_synthetic:
                 X, _, _, _ = matrix(val[:5])
                 Z = pre.transform(X)
                 model_id = f"gaze-residual-{snap['hash'][:8]}-{chosen.split('-')[0]}"
                 manifest = build_manifest(model_id=model_id, version=datetime.now(timezone.utc).strftime("%Y.%m.%d"), onnx_path=Path(r.artifact), pre=pre.to_json(), contract="add-residual", test_vectors=test_vectors(Z, r.model.predict(Z)), core_versions=sorted({x.versions.get("core") for x in train if x.versions.get("core")}),
-                                          snapshot_hash=snap["hash"], split_hash=split_manifest["groupsHash"], policy=self.policy, opset=r.onnx["opset"], metrics={"val": evals["candidates"][chosen]["val"], "baselineVal": evals["baseline"]["val"], "lockedTest": evals["candidates"][chosen].get("locked_test"), "temporalTest": evals["candidates"][chosen].get("temporal_test"), "evalOnlyHoldout": evals["candidates"][chosen]["evalOnly"], "bootstrap": boot, "compare": cmp}, limitations=limitations(records), parent=None)
+                                          snapshot_hash=snap["hash"], split_hash=split_manifest["groupsHash"], policy=self.policy, opset=r.onnx["opset"], metrics={"val": evals["candidates"][chosen]["val"], "baselineVal": evals["baseline"]["val"], "lockedTest": evals["candidates"][chosen].get("locked_test"), "baselineLockedTest": evals["baseline"].get("locked_test"), "temporalTest": evals["candidates"][chosen].get("temporal_test"), "baselineTemporalTest": evals["baseline"].get("temporal_test"), "evalOnlyHoldout": evals["candidates"][chosen]["evalOnly"], "bootstrap": boot, "compare": cmp, "gate": gate}, limitations=limitations(records), parent=None)
+                manifest["release"]["maxState"] = "shadow" if gate["shadowOnly"] else "active"
+                manifest["release"]["maxStateReason"] = "session-level split only (no subjectKey): person-disjoint generalisation not demonstrated → shadow until a subject-linked prospective evaluation passes" if gate["shadowOnly"] else None
                 written = write_candidate(out / "candidate", manifest, Path(r.artifact), model_card(manifest, {}), ROOT / "model-registry.json", str(out / "REPORT.md"), "candidate")
                 status = "candidate"
                 card_path = written["dir"]
@@ -185,7 +199,7 @@ class Pipeline:
             snap, diff, trigger, reason = self.snapshot(inv)
             gaze_done = st.get("gaze", {}).get("status") in ("evaluated", "candidate", "insufficient_data") and st.get("gaze", {}).get("snapshot") == snap["hash"]
             rppg_done = st.get("rppg", {}).get("status") in ("evaluated", "insufficient_reference_labels")
-            if not trigger and gaze_done and rppg_done:
+            if not trigger and gaze_done and rppg_done and resume:
                 self._mark("run", "no_new_eligible_data", reason=reason)
                 return self.state
             if not trigger:

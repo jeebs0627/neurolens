@@ -145,9 +145,12 @@ class PipelineTests(unittest.TestCase):
         base = {"n": 100, "medianPx": 50.0, "p95Px": 120.0, "windows": 40}
         good = {"n": 100, "medianPx": 44.0, "p95Px": 118.0, "windows": 40}
         checks = {k: True for k in ("integrity", "label-provenance", "time-alignment", "split-disjoint", "withdrawal", "allowlist", "schema")}
-        g = policy_check(policy, split_manifest=sm, chosen="ridge-residual", results={}, val_eval=good, base_eval=base, bootstrap={"ci95": [0.02, 0.2]}, parity={"ok": True}, onnx_bytes=1000, params=100, checks=checks)
+        held = ({"n": 50, "medianPx": 45.0}, {"n": 50, "medianPx": 50.0})
+        g = policy_check(policy, split_manifest=sm, chosen="ridge-residual", results={}, val_eval=good, base_eval=base, bootstrap={"ci95": [0.02, 0.2]}, parity={"ok": True}, onnx_bytes=1000, params=100, checks=checks, locked=held, temporal=held)
         self.assertTrue(g["pass"], g["failed"])
-        bad = policy_check(policy, split_manifest=sm, chosen="ridge-residual", results={}, val_eval={**good, "medianPx": 49.0}, base_eval=base, bootstrap={"ci95": [-0.1, 0.2]}, parity={"ok": False}, onnx_bytes=1000, params=100, checks={**checks, "withdrawal": False})
+        regress = policy_check(policy, split_manifest=sm, chosen="ridge-residual", results={}, val_eval=good, base_eval=base, bootstrap={"ci95": [0.02, 0.2]}, parity={"ok": True}, onnx_bytes=1000, params=100, checks=checks, locked=({"n": 50, "medianPx": 52.0}, {"n": 50, "medianPx": 50.0}), temporal=held)
+        self.assertFalse(regress["pass"]); self.assertIn("locked-test-no-regression", regress["failed"])
+        bad = policy_check(policy, split_manifest=sm, chosen="ridge-residual", results={}, val_eval={**good, "medianPx": 49.0}, base_eval=base, bootstrap={"ci95": [-0.1, 0.2]}, parity={"ok": False}, onnx_bytes=1000, params=100, checks={**checks, "withdrawal": False}, locked=held, temporal=held)
         self.assertFalse(bad["pass"]); self.assertTrue({"val-gain", "bootstrap", "parity", "withdrawal"} <= set(bad["failed"]))
         reg_path = TMP / "registry.json"
         reg_path.write_text(json.dumps({"schema": SCH.REGISTRY_SCHEMA, "active": None, "shadow": None, "candidates": [], "history": []}), encoding="utf-8")

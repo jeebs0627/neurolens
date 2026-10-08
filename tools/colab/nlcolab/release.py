@@ -36,9 +36,17 @@ def environment() -> dict:
     return env
 
 
-def policy_check(policy: dict, *, split_manifest: dict, chosen: str, results: dict, val_eval: dict, base_eval: dict, bootstrap: dict | None, parity: dict | None, onnx_bytes: int, params: int, checks: dict) -> dict:
+def policy_check(policy: dict, *, split_manifest: dict, chosen: str, results: dict, val_eval: dict, base_eval: dict, bootstrap: dict | None, parity: dict | None, onnx_bytes: int, params: int, checks: dict, locked: tuple[dict, dict] | None = None, temporal: tuple[dict, dict] | None = None) -> dict:
     P = policy["gaze_residual"]
     out = {}
+    # held-out session/time tests: the fixed candidate must not regress (read once at the gate; access is logged in the split manifest)
+    def no_regress(pair, limit_key):
+        if not pair or not pair[0].get("n") or not pair[1].get("n"):
+            return None
+        return (pair[0]["medianPx"] - pair[1]["medianPx"]) / max(1e-9, pair[1]["medianPx"]) <= P.get(limit_key, 0.0)
+    lt, tt = no_regress(locked, "maxLockedTestRegression"), no_regress(temporal, "maxTemporalTestRegression")
+    out["locked-test-no-regression"] = bool(lt) if lt is not None else False
+    out["temporal-test-no-regression"] = bool(tt) if tt is not None else False
     s = split_manifest["splits"]
     out["minTrainGroups"] = s["train"]["groups"] >= P["minTrainGroups"]
     out["minValGroups"] = s["val"]["groups"] >= P["minValGroups"]
@@ -54,6 +62,7 @@ def policy_check(policy: dict, *, split_manifest: dict, chosen: str, results: di
     for k in ("integrity", "label-provenance", "time-alignment", "split-disjoint", "withdrawal", "allowlist", "schema"):
         out[k] = bool(checks.get(k))
     out["chosenIsLearned"] = chosen != "baseline-engine"
+    out["subject-link"] = bool(checks.get("subject-link"))   # informational: decides shadow-only, not pass/fail
     required = P["requiredChecks"] + ["minTrainGroups", "minValGroups", "minLockedTestGroups", "minTrainWindows", "bootstrap", "chosenIsLearned"]
     failed = [k for k in required if not out.get(k)]
     return {"policyVersion": policy["version"], "checks": out, "failed": failed, "pass": not failed, "valGain": gain}
@@ -84,7 +93,7 @@ def model_card(man: dict, run: dict) -> str:
 
 def registry_patch(registry_path: Path, man: dict, report_path: str, run_status: str) -> dict:
     reg = load_json(registry_path) if registry_path.exists() else {"schema": SCH.REGISTRY_SCHEMA, "active": None, "shadow": None, "candidates": [], "history": []}
-    entry = {"id": man["id"], "kind": man["kind"], "version": man["version"], "url": f"models/gaze/{man['id']}/model.onnx", "manifestUrl": f"models/gaze/{man['id']}/manifest.json", "sha256": man["sha256"], "state": "candidate", "createdAt": man["createdAt"], "report": report_path, "approvedBy": None}
+    entry = {"id": man["id"], "kind": man["kind"], "version": man["version"], "url": f"models/gaze/{man['id']}/model.onnx", "manifestUrl": f"models/gaze/{man['id']}/manifest.json", "sha256": man["sha256"], "state": "candidate", "maxState": (man.get("release") or {}).get("maxState", "active"), "createdAt": man["createdAt"], "report": report_path, "approvedBy": None}
     reg["candidates"] = [c for c in reg.get("candidates", []) if c.get("id") != man["id"]] + [entry]
     reg.setdefault("history", []).append({"at": man["createdAt"], "event": "candidate-registered", "id": man["id"], "state": run_status, "actor": "nlcolab", "note": "active/shadow unchanged; promotion requires human approval + shadow + canary"})
     reg["updatedAt"] = man["createdAt"]
