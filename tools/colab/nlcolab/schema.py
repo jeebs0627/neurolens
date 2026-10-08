@@ -13,7 +13,7 @@ REGISTRY_SCHEMA = "nl-model-registry-1"
 SNAPSHOT_SCHEMA = "nl-dataset-snapshot-1"
 SPLIT_SCHEMA = "nl-split-manifest-1"
 
-LABEL_SOURCES = ("reference_eyetracker", "explicit_target_confirmed", "calibration_target", "free_click_weak", "engine_prediction", "unlabeled")
+LABEL_SOURCES = ("reference_eyetracker", "explicit_target_confirmed", "calibration_target", "instructed_fixation", "free_click_weak", "engine_prediction", "unlabeled")
 LABEL_ROLES = ("train", "internal", "holdout", "eval_only", "weak", "excluded")
 
 # Browser-available features only. Target/click coordinates, labels, confidences, future frames and time-to-confirm are never inputs.

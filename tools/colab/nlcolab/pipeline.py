@@ -56,6 +56,15 @@ class Pipeline:
     def audit(self) -> dict:
         self._mark("audit", "running")
         inv = build_inventory(self.raw, log=self.log)
+        # field evaluation of the browser model on known targets (v3 sessions only; aggregates go to the public ledger without session codes)
+        try:
+            import subprocess  # noqa: PLC0415
+            tool = Path(__file__).resolve().parents[1] / "field_analysis.cjs"
+            proc = subprocess.run(["node", str(tool), str(self.raw.resolve() / "sessions"), "--out=" + str((self.work / "field-analysis.json").resolve())], capture_output=True, text=True, encoding="utf-8", timeout=1800, cwd=str(tool.parents[2]))
+            if proc.returncode != 0:
+                self.log("field analysis failed: " + (proc.stderr or "")[-300:])
+        except Exception as e:  # noqa: BLE001
+            self.log(f"field analysis skipped: {e}")
         dump_json(self.work / "inventory.json", inv)
         (self.work / "inventory.md").write_text(inventory_markdown(inv), encoding="utf-8")
         self._mark("audit", "evaluated", real=inv["real"]["sessions"], synthetic=inv["synthetic"]["sessions"], eligibleGaze=inv["real"]["gaze"].get("eligible", 0), eligibleRppg=inv["real"]["rppg"].get("eligible", 0))
@@ -114,6 +123,17 @@ class Pipeline:
         val = [r for r in records if r.split_role == "val"]
         results = train_candidates(train, val, out / "models", use_mlp=self.use_mlp, log=self.log)
         chosen, why = choose(results, P["minRelativeGainMedian"])
+        # session-grouped k-fold CV on train+val only: a single val split can favour a model by chance (2026-10-08: MLP +14% on val, regressed on holdout)
+        try:
+            from .cv_select import group_cv  # noqa: PLC0415
+            cv = group_cv(records, log=self.log)
+            base_cv = cv["table"]["baseline"]["meanMedianPx"]
+            cv_name = {"mlp-residual": "mlp_64_32", "ridge-residual": "ridge_all_l1"}.get(chosen)
+            if chosen != "baseline-engine" and cv_name in cv["table"] and cv["table"][cv_name]["meanMedianPx"] > base_cv * (1 - P["minRelativeGainMedian"]):
+                why = {**why, "cvOverride": f"{chosen} CV {cv['table'][cv_name]['meanMedianPx']}px vs baseline {base_cv}px (needs ≥{int(P['minRelativeGainMedian'] * 100)}% gain)"}
+                self.log("group CV does not confirm the val gain → " + why["cvOverride"])
+        except Exception as e:  # noqa: BLE001
+            cv = {"error": str(e)[:200]}
         pre = results["baseline-engine"].pre
         base = Identity()
         evals = {"baseline": {k: evaluate_split(records, base, pre, k) for k in ("val",)}, "candidates": {}}
@@ -174,7 +194,7 @@ class Pipeline:
             elif gate["pass"] and self.allow_synthetic:
                 status = "evaluated"
                 self.log("synthetic run passed the gate numerically; no candidate is registered from synthetic data")
-        report = {"schema": "nl-gaze-run-1", "status": status, "chosen": chosen, "why": why, "compare": cmp, "bootstrap": boot, "gate": gate, "evaluations": evals, "splits": s, "splitManifest": split_manifest, "datasetReports": reports, "limitations": limitations(records), "synthetic": self.allow_synthetic, "candidate": card_path, "snapshot": snap["hash"], "engine": bsum.get("engine")}
+        report = {"schema": "nl-gaze-run-1", "status": status, "chosen": chosen, "why": why, "groupCv": cv, "compare": cmp, "bootstrap": boot, "gate": gate, "evaluations": evals, "splits": s, "splitManifest": split_manifest, "datasetReports": reports, "limitations": limitations(records), "synthetic": self.allow_synthetic, "candidate": card_path, "snapshot": snap["hash"], "engine": bsum.get("engine")}
         dump_json(out / "run.json", report)
         (out / "REPORT.md").write_text(gaze_markdown(report), encoding="utf-8")
         self._mark("gaze", status, chosen=chosen, reason=why.get("reason"), gatePass=bool(gate and gate["pass"]))
@@ -207,6 +227,8 @@ class Pipeline:
         return res
 
     def run(self, resume: bool = True) -> dict:
+        # one ledger row per batch run: a fresh runId every time run() starts (the work dir is reused across runs)
+        self.state["runId"] = digest({"raw": str(self.raw), "at": now()})[:16]
         try:
             st = self.state["stages"]
             inv = load_json(self.work / "inventory.json") if resume and st.get("audit", {}).get("status") == "evaluated" and (self.work / "inventory.json").exists() else self.audit()

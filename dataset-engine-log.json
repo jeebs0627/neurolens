@@ -3,6 +3,14 @@
   "entries": [
     {
       "date": "2026-10-08",
+      "version": "condition timing/camera/telemetry fixes · gaze-features-3 · group-CV selection",
+      "status": "현장 실측 4건 분석 · 결함 수정 · 재학습(후보 없음)",
+      "change": "rAF onset 보정(max(rAF, 요청)), 카메라 고정 범위 검사·재시도, 암묵 응시 거부 기록, meta.gazeModel 현장 지표·calibration.viewport 저장. 학습에 지시 응시 라벨·drift 일치 잔차·세션 단위 교차검증·현장 평가 집계 추가. 엔진 회귀 옵션(특징별 수축·기울기 상한) 추가했으나 기본값 유지.",
+      "evidence": "field_analysis(4세션): 데스크톱 세로 오차가 주원인(세로 이득 0.45~0.73), rAF 앞섬 26~91%, 폰 카메라 고정 실패. engine_bench(33세션): 수축·상한·집계 변형 모두 held-out 미개선. 재학습: MLP val +14.5% / locked·temporal 악화 / CV 169.6 vs 146.4px → 후보 없음.",
+      "next": "다양한 사람·기기의 /condition?mode=gaze-label 세션과 지시 응시 라벨 축적, 폰은 세로 화면·손떨림 조건 별도 평가. 세로 특징(홍채 v) 잡음 감소 연구(시간 평활·양안 결합)는 별도 실험으로."
+    },
+    {
+      "date": "2026-10-08",
       "version": "gaze-residual-a05c5d16-mlp-shadowx · gaze-model-client-1",
       "status": "shadow 정책 예외 배포 (측정 미적용 · 출력 기록만)",
       "change": "연구 관리자 승인으로 holdout 회귀 MLP 를 shadow 로 등록. registry.shadow 설정, manifest 에 gate 실패·승인자·사유 기록, 대시보드 ‘딥러닝 모델 작동 상태 = 그림자 작동’.",

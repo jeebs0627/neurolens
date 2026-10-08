@@ -1811,7 +1811,9 @@ function interrupt(err) {
 }
 function every(ms, fn) { const id = setInterval(fn, ms); const stop = () => clearInterval(id); S.cleanup.push(stop); return stop; }
 // rAF is a pre-paint onset estimate, not a photodiode measurement of physical display latency.
-const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(onset=>{S.telemetry?.stimuli.push({key:S.cur,requested,onset});r(onset);})); };
+/* rAF 타임스탬프는 그 프레임의 시작(vsync) 시각이라, 요청보다 앞설 수 있다(2026-10-08 실측: 자극의 26~91% · 최대 92ms 앞섬). 표시는 요청 뒤에만 일어나므로
+ * onset = max(rAF, 요청 시각) 으로 쓰고 원래 rAF 값은 rafTs 로 보존한다(반응시간·사카드 잠복기가 그만큼 부풀지 않게) */
+const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(rafTs=>{const onset=Math.max(rafTs,requested);S.telemetry?.stimuli.push({key:S.cur,requested,onset,rafTs,clamped:rafTs<requested});r(onset);})); };
 /* 입력 이벤트: 시각(event.timeStamp, performance.now 와 같은 시계)·dispatch 지연·종류. 포인터 이벤트는 client 좌표를 함께 남긴다 —
  * 일반 검사 중의 클릭 좌표는 provenance 를 보존한 weak 기록(free_click_weak)일 뿐이며 시선 정답으로 쓰지 않는다 */
 function recordInput(e){const t=e.timeStamp,dispatch=now()-t;const row={key:S.cur,t,dispatchMs:dispatch>=0&&dispatch<60000?dispatch:null,type:e.type};
@@ -1914,13 +1916,16 @@ async function lockCamera() {
   const track = S.stream && S.stream.getVideoTracks()[0];
   if (!track || !track.getCapabilities) return { applied: false, reason: 'no-capabilities' };
   const cap = track.getCapabilities(), set = track.getSettings(), adv = {};
-  if ((cap.whiteBalanceMode || []).includes('manual')) { adv.whiteBalanceMode = 'manual'; if (Number.isFinite(set.colorTemperature)) adv.colorTemperature = set.colorTemperature; }
-  if ((cap.exposureMode || []).includes('manual')) { adv.exposureMode = 'manual'; if (Number.isFinite(set.exposureTime)) adv.exposureTime = set.exposureTime; }
+  /* 현재 값이 장치가 보고한 범위를 벗어나면(일부 안드로이드: colorTemperature 0 등) 범위 안으로 자르고, 그래도 실패하면 그 항목 없이 다시 시도한다 */
+  const inRange = (v, r) => Number.isFinite(v) && (!r || ((r.min == null || v >= r.min) && (r.max == null || v <= r.max)));
+  if ((cap.whiteBalanceMode || []).includes('manual')) { adv.whiteBalanceMode = 'manual'; if (inRange(set.colorTemperature, cap.colorTemperature)) adv.colorTemperature = set.colorTemperature; }
+  if ((cap.exposureMode || []).includes('manual')) { adv.exposureMode = 'manual'; if (inRange(set.exposureTime, cap.exposureTime)) adv.exposureTime = set.exposureTime; }
   if (!Object.keys(adv).length) return { applied: false, reason: 'unsupported' };
   try {
-    await track.applyConstraints({ advanced: [adv] });
+    try { await track.applyConstraints({ advanced: [adv] }); }
+    catch (e1) { delete adv.colorTemperature; delete adv.exposureTime; await track.applyConstraints({ advanced: [adv] }); adv.retried = String(e1 && e1.message || e1).slice(0, 80); }
     const s2 = track.getSettings();
-    return { applied: true, at: now(), whiteBalance: s2.whiteBalanceMode || null, exposure: s2.exposureMode || null, colorTemperature: s2.colorTemperature ?? null, exposureTime: s2.exposureTime ?? null };
+    return { applied: true, at: now(), whiteBalance: s2.whiteBalanceMode || null, exposure: s2.exposureMode || null, colorTemperature: s2.colorTemperature ?? null, exposureTime: s2.exposureTime ?? null, retriedWithout: adv.retried || null };
   } catch (e) { return { applied: false, reason: String(e && e.message || e).slice(0, 120) }; }
 }
 async function unlockCamera(why) {
@@ -2215,10 +2220,12 @@ function startAutoAnchor() {
     const W = stage.clientWidth, H = stage.clientHeight, xs = buf.map(p => p.x), ys = buf.map(p => p.y);
     const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));
     const mdx = mx - W / 2, mdy = my - H / 2;
-    if (madX > W * 0.03 || madY > H * 0.045 || Math.abs(mdx - S.drift.dx) > W * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25) return;
+    /* 거부한 시도도 기록한다: 받아들인 것만 남기면 학습 라벨이 ‘엔진과 가까운 경우’로 치우친다 */
+    const why = madX > W * 0.03 || madY > H * 0.045 ? 'scattered' : Math.abs(mdx - S.drift.dx) > W * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25 ? 'far-from-current-drift' : null;
+    if (why) { S.telemetry?.drift.push({ t: now(), key: S.cur, samples: buf.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx: W / 2, ty: H / 2, applied: false, reason: why, source: 'implicit-background-center' }); buf.length = 0; return; }
     const k = 0.15;
     S.drift = { dx: S.drift.dx + k * (mdx - S.drift.dx), dy: S.drift.dy + k * (mdy - S.drift.dy) };
-    S.telemetry?.drift.push({ t: now(), key: S.cur, samples: buf.length, measuredDx: mdx, measuredDy: mdy, dx: S.drift.dx, dy: S.drift.dy, weight: k, applied: true, source: 'implicit-background-center' });
+    S.telemetry?.drift.push({ t: now(), key: S.cur, samples: buf.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx: W / 2, ty: H / 2, dx: S.drift.dx, dy: S.drift.dy, weight: k, applied: true, source: 'implicit-background-center' });
   });
   return () => { col(); upd(); };
 }
@@ -2233,10 +2240,11 @@ async function anchorFix(ms, tx, ty) {
   if (xs.length < 4) return;
   const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));
   const mdx = mx - tx, mdy = my - ty;
-  if (madX > W * 0.035 || madY > H * 0.05 || Math.abs(mdx - S.drift.dx) > W * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35) return;
+  const why = madX > W * 0.035 || madY > H * 0.05 ? 'scattered' : Math.abs(mdx - S.drift.dx) > W * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35 ? 'far-from-current-drift' : null;
+  if (why) { S.telemetry?.drift.push({ t: now(), t0, key: S.cur, samples: xs.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx, ty, applied: false, reason: why, source: 'implicit-task-fixation' }); return; }
   const k = 0.25;
   S.drift = { dx: S.drift.dx + k * (mdx - S.drift.dx), dy: S.drift.dy + k * (mdy - S.drift.dy) };
-  S.telemetry?.drift.push({ t: now(), key: S.cur, samples: xs.length, measuredDx: mdx, measuredDy: mdy, dx: S.drift.dx, dy: S.drift.dy, weight: k, applied: true, source: 'implicit-task-fixation' });
+  S.telemetry?.drift.push({ t: now(), t0, key: S.cur, samples: xs.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx, ty, dx: S.drift.dx, dy: S.drift.dy, weight: k, applied: true, source: 'implicit-task-fixation' });
 }
 async function driftCheck() {
   if (S.demo || !S.model) return;
@@ -2256,7 +2264,7 @@ async function driftCheck() {
     /* 보통은 화면의 25~30% 안쪽 치우침만 받아들이지만, 표본이 한곳에 촘촘히 모여 있으면(머리 위치가 바뀐 경우) 45%까지 받아들인다 */
     const applied=(Math.abs(mdx) < W * 0.25 && Math.abs(mdy) < H * 0.3) || (tight && Math.abs(mdx) < W * 0.45 && Math.abs(mdy) < H * 0.45);
     const k = Math.min(1, 0.35 + xs.length / 30), dx = S.drift.dx + k * (mdx - S.drift.dx), dy = S.drift.dy + k * (mdy - S.drift.dy);
-    S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,measuredDx:mdx,measuredDy:mdy,dx,dy,weight:k,applied,source:'instructed-center-fixation'});
+    S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,measuredDx:mdx,measuredDy:mdy,madX,madY,tx:W/2,ty:H/2,windowMs:1200,dx,dy,weight:k,applied,source:'instructed-center-fixation'});
     if (applied) { S.drift = { dx, dy }; S.gaze = null; }
   } else {
     S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,dx:null,dy:null,applied:false,source:'insufficient-observations'});

@@ -231,8 +231,287 @@
         "Some sessions lack a subject key: session-level split only; cross-person generalisation is not demonstrated."
       ],
       "notes": []
+    },
+    {
+      "runId": "3f406ffdb6ccfec2-2",
+      "at": "2026-10-08T10:34:19.591423+00:00",
+      "snapshot": "c75710fb0e92f6e5adaa2380649865c70a5f87342afb1944561277213a275fc0",
+      "policyVersion": "2026-10-08.2",
+      "engine": "In_mind core 2.3",
+      "status": "evaluated",
+      "data": {
+        "sessions": 54,
+        "eligibleGaze": 42,
+        "labelSessions": 0,
+        "validLabels": 0,
+        "holdoutLabels": 0,
+        "subjects": 4,
+        "referencePaired": 0,
+        "referenceExploratory": 0,
+        "schemas": {
+          "nl-research-2": 47,
+          "nl-research-1": 3,
+          "nl-research-3": 4
+        },
+        "newSinceLast": 0,
+        "withdrawnSinceLast": 0
+      },
+      "gaze": {
+        "status": "evaluated",
+        "chosen": "mlp-residual",
+        "why": "best-val-gain",
+        "splits": {
+          "train": {
+            "groups": 20,
+            "sessions": 20,
+            "windows": 468,
+            "records": 5382
+          },
+          "val": {
+            "groups": 6,
+            "sessions": 6,
+            "windows": 107,
+            "records": 1085
+          },
+          "locked_test": {
+            "groups": 6,
+            "sessions": 6,
+            "windows": 170,
+            "records": 1986
+          },
+          "temporal_test": {
+            "groups": 8,
+            "sessions": 8,
+            "windows": 214,
+            "records": 2389
+          },
+          "eval_only": {
+            "groups": 0,
+            "sessions": 0,
+            "windows": 0,
+            "records": 0
+          }
+        },
+        "groupKey": "session_id",
+        "baseline": {
+          "val": {
+            "n": 1085,
+            "windows": 107,
+            "medianPx": 196.1,
+            "p95Px": 795.3,
+            "medianPctW": 11.05,
+            "biasXPx": 18.3,
+            "biasYPx": -8.9,
+            "byRegion": {
+              "corner": 214.9,
+              "periphery": 197.3,
+              "center": 151.4
+            }
+          },
+          "lockedTest": {
+            "n": 1986,
+            "windows": 170,
+            "medianPx": 127.6,
+            "p95Px": 444.8,
+            "medianPctW": 7.01,
+            "biasXPx": 12.4,
+            "biasYPx": -0.3,
+            "byRegion": {
+              "corner": 228.8,
+              "periphery": 114.4,
+              "center": 147.4
+            }
+          },
+          "temporalTest": {
+            "n": 2389,
+            "windows": 214,
+            "medianPx": 139.1,
+            "p95Px": 521.5,
+            "medianPctW": 8.92,
+            "biasXPx": 10.0,
+            "biasYPx": -9.4,
+            "byRegion": {
+              "corner": 197.9,
+              "periphery": 133.0,
+              "center": 120.0
+            }
+          },
+          "evalOnly": null
+        },
+        "models": {
+          "ridge-residual": {
+            "params": 82,
+            "val": {
+              "n": 1085,
+              "windows": 107,
+              "medianPx": 192.3,
+              "p95Px": 809.7,
+              "medianPctW": 10.84,
+              "biasXPx": 49.6,
+              "biasYPx": -7.9,
+              "byRegion": {
+                "corner": 252.9,
+                "periphery": 192.4,
+                "center": 156.8
+              }
+            },
+            "lockedTest": null,
+            "temporalTest": null,
+            "evalOnly": null,
+            "parity": true
+          },
+          "mlp-residual": {
+            "params": 4770,
+            "val": {
+              "n": 1085,
+              "windows": 107,
+              "medianPx": 167.7,
+              "p95Px": 789.2,
+              "medianPctW": 9.45,
+              "biasXPx": 10.6,
+              "biasYPx": -1.9,
+              "byRegion": {
+                "corner": 209.1,
+                "periphery": 167.2,
+                "center": 159.3
+              }
+            },
+            "lockedTest": {
+              "n": 1986,
+              "windows": 170,
+              "medianPx": 147.9,
+              "p95Px": 531.3,
+              "medianPctW": 8.12,
+              "biasXPx": 14.0,
+              "biasYPx": -28.1,
+              "byRegion": {
+                "corner": 196.2,
+                "periphery": 138.4,
+                "center": 161.2
+              }
+            },
+            "temporalTest": {
+              "n": 2389,
+              "windows": 214,
+              "medianPx": 157.4,
+              "p95Px": 479.8,
+              "medianPctW": 10.09,
+              "biasXPx": 5.5,
+              "biasYPx": -31.7,
+              "byRegion": {
+                "corner": 194.9,
+                "periphery": 152.6,
+                "center": 140.7
+              }
+            },
+            "evalOnly": null,
+            "parity": true
+          }
+        },
+        "groupCv": {
+          "k": 5,
+          "groups": 26,
+          "selected": "mlp_small_reg",
+          "meanMedianPx": {
+            "baseline": 146.4,
+            "ridge_all_l1": 157.8,
+            "ridge_all_l10": 153.8,
+            "ridge_all_l100": 147.0,
+            "ridge_nobase_l10": 151.4,
+            "ridge_pose_l10": 153.6,
+            "mlp_64_32": 169.6,
+            "mlp_small_reg": 144.3,
+            "mlp_nobase_small": 151.7
+          }
+        },
+        "gate": {
+          "pass": false,
+          "failed": [
+            "locked-test-no-regression",
+            "temporal-test-no-regression",
+            "bootstrap"
+          ],
+          "shadowOnly": true,
+          "valGain": 0.1448
+        },
+        "bootstrap": {
+          "groups": 6,
+          "medianGain": 0.1473451610964277,
+          "ci95": [
+            -0.13432624098907847,
+            0.20519765039991694
+          ],
+          "pGainBelowZero": 0.13,
+          "note": "group bootstrap over sessions/subjects; not a clinical accuracy claim"
+        },
+        "candidate": null,
+        "synthetic": false
+      },
+      "rppg": {
+        "status": "insufficient_reference_labels",
+        "pairedSessions": 0,
+        "pairedEpochs": 0,
+        "exploratoryRows": 0,
+        "val": null,
+        "engineVal": null,
+        "coverage": null
+      },
+      "field": {
+        "sessionsByModelMode": {
+          "off": 51,
+          "shadow": 3
+        },
+        "sessionsWithModelOutput": 3,
+        "latencyMeanMs": null,
+        "latencyMaxMeanMs": null,
+        "inferred": 0,
+        "dropped": 0,
+        "errors": 0,
+        "guardReasons": {},
+        "shadowVsEngineMedianPx": 73.79024325749306,
+        "malformedSessions": 0,
+        "note": "mode is fixed per session at start; shadow records sx,sy without applying them; agreement is model-vs-engine distance, not accuracy"
+      },
+      "limitations": [
+        "Labels are target-proxy (intended fixation) and calibration targets; no external eye-tracker reference exists, so 'accuracy' here is target-proxy error.",
+        "Errors are reported in CSS pixels and % of viewport width; viewing distance/physical screen size were not measured, so no degrees of visual angle.",
+        "Saccade latency / pursuit lag accuracy improvements are unverified without an external dynamic gaze reference.",
+        "Frames within a window are not independent; counts of windows/sessions/groups are reported alongside frames.",
+        "reference_eyetracker labels: none.",
+        "Some sessions lack a subject key: session-level split only; cross-person generalisation is not demonstrated."
+      ],
+      "notes": [
+        "2026-10-08 second run: +4 v3 field sessions (4 subject keys), instructed-fixation labels added (feature version 3), session-grouped CV added; not directly comparable to run 1 split sizes"
+      ],
+      "fieldEval": {
+        "sessions": 4,
+        "devices": [
+          "android/chrome",
+          "windows/chrome"
+        ],
+        "withShadowOutput": 3,
+        "engineCircle": {
+          "hxPctW": 7.03,
+          "hyPctH": 10.38
+        },
+        "shadowSameSessions": {
+          "engineHxPctW": 8.33,
+          "engineHyPctH": 8.9,
+          "shadowHxPctW": 5.53,
+          "shadowHyPctH": 10.87,
+          "engineLevelHxPctW": 10.77,
+          "shadowLevelHxPctW": 8.27
+        },
+        "fineHeldOutErrPct": 9.8,
+        "driftAbsP90": {
+          "dxPctW": 20.93,
+          "dyPctH": 22.57
+        },
+        "onsetBeforeRequestPct": 48.45,
+        "note": "known-target error = pursuit circle (x,y) with an assumed 120 ms target lag; target-proxy, not eye-tracker accuracy"
+      }
     }
   ],
   "note": "Public aggregates of training batch runs (no participant data). Improvement = change of the same metric between runs under the same policy; one run shows no trend.",
-  "updatedAt": "2026-10-08T02:47:08.204797+00:00"
+  "updatedAt": "2026-10-08T10:34:19.591423+00:00"
 }

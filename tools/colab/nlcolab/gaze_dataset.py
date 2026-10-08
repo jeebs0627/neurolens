@@ -85,6 +85,8 @@ def _window_records(session: Session, table: dict, fit_name: str, contract: str,
     for r in rows:
         feats = features_from(r, W, H, contract)
         bx, by = (r["ax"], r["ay"]) if contract == "replace-residual" else (r["bx"], r["by"])
+        # the browser subtracts the running drift after the model: g = base + delta - drift → target residual = target - (base - drift)
+        bx, by = bx - (r.get("driftDx") or 0.0), by - (r.get("driftDy") or 0.0)
         out.append(Record(record_id=f"{session.session_id}:{window_id}:{round(r['tc'])}", session_id=session.session_id or "", window_id=f"{session.session_id}:{window_id}", subject_key=session.subject_key, subject_link_confidence=session.subject_link_confidence, created_at=session.created_at,
                           label_source=label_source, label_role=role, split_role=split_role, features=feats, base={"px": r["px"], "py": r["py"], "ax": r["ax"], "ay": r["ay"], "bx": r["bx"], "by": r["by"], "mode": r.get("mode"), "driftDx": r.get("driftDx", 0), "driftDy": r.get("driftDy", 0), "fit": fit_name},
                           target={"x": tx, "y": ty, "nx": nx, "ny": ny, "region": region_of(nx, ny), "W": W, "H": H}, residual={"dx": tx - bx, "dy": ty - by, "dxFrac": (tx - bx) / W, "dyFrac": (ty - by) / H, "contract": contract}, weight=w,
@@ -130,6 +132,27 @@ def build_records(session: Session, baseline: dict | None, contract: str = "add-
             recs.extend(rs)
         else:
             report["skipped"]["too-few-frames"] += 1
+    # --- instructed centre-dot fixations during the test (drift checks): proxy labels spread over the whole session.
+    # Only 'instructed-center-fixation' events are used: they are recorded whether or not the engine accepted them, so they are not
+    # selected on engine error (implicit fixations before 2026-10-08 were logged only when accepted → biased, excluded).
+    for e in ((session.telemetry or {}).get("drift") or []):
+        if e.get("source") != "instructed-center-fixation" or not isinstance(e.get("t"), (int, float)) or not isinstance(e.get("measuredDx"), (int, float)):
+            continue
+        t_end = e["t"]
+        start = t_end - (e.get("windowMs") or 1200)
+        if hidden_overlaps(session, start, t_end):
+            report["skipped"]["instructed-hidden-overlap"] += 1
+            continue
+        tx = e.get("tx") if isinstance(e.get("tx"), (int, float)) else session.W / 2
+        ty = e.get("ty") if isinstance(e.get("ty"), (int, float)) else session.H / 2
+        qc = {"inferredBackfill": False, "uncertaintyMs": 0, "engineAccepted": bool(e.get("applied")), "measuredDx": e["measuredDx"], "measuredDy": e.get("measuredDy"), "step": e.get("key"), "minutesFromStart": round(t_end / 60000, 2)}
+        rs = _window_records(session, table, fit_name, contract, window_id=f"fix:{round(t_end)}", label_source="instructed_fixation", role="train", split_role="supervised", tx=tx, ty=ty, start=start, end=t_end, qc=qc)
+        if rs:
+            report["windows"] += 1
+            recs.extend(rs)
+        else:
+            report["skipped"]["instructed-too-few-frames"] += 1
+
     # --- v3 gaze labels
     if session.labels:
         unchanged = (session.labels.get("holdout") or {}).get("pipelineUnchanged")

@@ -107,6 +107,8 @@ const server = http.createServer((req, response) => { const file = path.resolve(
     await reviewer.route('**/auth.js', r => r.fulfill({ contentType: 'text/javascript', body: `window.NLAuth={getUser:async()=>({id:'reviewer'}),signOut:async()=>{},signIn:async()=>{},client:{rpc:async(fn,args={})=>{const r=await fetch(NL_SUPABASE.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)});const data=await r.json();return r.ok?{data}:{error:{message:data.error}};}}};` }));
     await reviewer.route('**/supabase.min.js', r => r.fulfill({ contentType: 'text/javascript', body: '' }));
     await reviewer.route('https://raw.githubusercontent.com/**', r => r.abort());
+    /* registry 는 저장소 상태(현재 shadow 등록)와 무관하게 고정: 비어 있으면 ‘꺼짐’이 명시돼야 한다 */
+    await reviewer.route('**/model-registry.json', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ schema: 'nl-model-registry-1', updatedAt: '2026-10-08T00:00:00Z', active: null, shadow: null, candidates: [], history: [] }) }));
     await reviewer.route('**.supabase.co/rest/v1/rpc/**', async route => {
       const fn = route.request().url().split('/').at(-1), p = route.request().postDataJSON(); let data = true;
       const rowsOut = [...sessions.values()].map(s => ({ id: s.id, code: s.code, created_at: '2026-10-08T01:00:00Z', meta: s.meta, audit: s.summary.dataset, reference_review: null, annotation_count: 0 }));
@@ -120,7 +122,7 @@ const server = http.createServer((req, response) => { const file = path.resolve(
     const txt = await dpage.evaluate(() => ({ inv: document.querySelector('#trainingInventory').textContent.replace(/\s+/g, ' '), reg: document.querySelector('#trainingRegistry').textContent.replace(/\s+/g, ' '), next: document.querySelector('#trainingNext').textContent, status: document.querySelector('#trainingStatus').textContent.replace(/\s+/g, ' '), trend: document.querySelector('#trainingTrend').textContent.replace(/\s+/g, ' '), svg: document.querySelectorAll('#trainingTrend svg').length, hidden: document.querySelector('#pane-training').hidden }));
     assert.equal(txt.hidden, false); assert.match(txt.inv, /유효 라벨 표적 11/); assert.match(txt.inv, /최종 holdout\(eval_only\) 3/); assert.match(txt.inv, /gaze-label/); assert.match(txt.inv, /시선 잔차 ?1 ?0/, 'label session counts as gaze-eligible even without a calibration summary');
     assert.match(txt.status, /딥러닝 모델 작동 상태\s*꺼짐/, 'empty registry → model off is stated plainly'); assert.match(txt.status, /현장 작동 기록\s*0 세션/);
-    assert.match(txt.reg, /active\s*없음/); assert.match(txt.next, /사람 키 보유 세션/); assert.match(txt.next, /01_dataset_audit/);
+    assert.match(txt.reg, /active\s*없음/); assert.match(txt.next, /사람 키 보유 세션|라벨 수집 세션 \d+건/, 'next job names the missing data (subjects or label sessions, depending on the public ledger)'); assert.match(txt.next, /01_dataset_audit/);
     /* 공개 원장(training-ledger.json)이 있으면 실행 수·차트가 그려지고, 1회면 ‘기준점’으로 표시된다 */
     const fs2 = require('node:fs'); if (fs2.existsSync(path.join(root, 'training-ledger.json'))) { const runs = JSON.parse(fs2.readFileSync(path.join(root, 'training-ledger.json'), 'utf8')).runs.length; assert.match(txt.trend, new RegExp('실행 ' + runs + '회')); assert.ok(txt.svg >= 2, 'two SVG charts'); if (runs === 1) assert.match(txt.trend, /기준점/); }
     assert.deepEqual(derrors, []);

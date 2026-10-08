@@ -38,12 +38,36 @@ def build_entry(work: Path, state: dict) -> dict:
             models[name] = {"params": c.get("params"), "val": _m(c.get("val")), "lockedTest": _m(c.get("locked_test")), "temporalTest": _m(c.get("temporal_test")), "evalOnly": _m(c.get("evalOnly")), "parity": (c.get("parity") or {}).get("ok")}
         entry["gaze"] = {"status": gaze["status"], "chosen": gaze["chosen"], "why": gaze["why"].get("reason"), "splits": {k: {"groups": v["groups"], "sessions": v["sessions"], "windows": v["windows"], "records": v["records"]} for k, v in gaze["splits"].items()}, "groupKey": gaze["splitManifest"]["groupKey"],
                          "baseline": {"val": _m(ev["baseline"].get("val")), "lockedTest": _m(ev["baseline"].get("locked_test")), "temporalTest": _m(ev["baseline"].get("temporal_test")), "evalOnly": _m(ev["baseline"].get("evalOnly"))}, "models": models,
+                         "groupCv": ({"k": gaze["groupCv"].get("k"), "groups": gaze["groupCv"].get("groups"), "selected": gaze["groupCv"].get("selected"), "meanMedianPx": {k: v["meanMedianPx"] for k, v in gaze["groupCv"].get("table", {}).items()}} if isinstance(gaze.get("groupCv"), dict) and gaze["groupCv"].get("table") else None),
                          "gate": {"pass": gaze["gate"]["pass"], "failed": gaze["gate"]["failed"], "shadowOnly": gaze["gate"].get("shadowOnly"), "valGain": round(gaze["gate"].get("valGain", 0), 4)} if gaze.get("gate") else None, "bootstrap": gaze.get("bootstrap"), "candidate": Path(gaze["candidate"]).name if gaze.get("candidate") else None, "synthetic": gaze.get("synthetic", False)}
         entry["policyVersion"] = (gaze.get("gate") or {}).get("policyVersion")
     if rppg:
         entry["rppg"] = {"status": rppg["status"], "pairedSessions": rppg.get("pairedSessions"), "pairedEpochs": rppg.get("pairedEpochs"), "exploratoryRows": rppg.get("exploratoryRows"), "val": rppg.get("val", {}).get("model") if rppg.get("val") else None, "engineVal": rppg.get("val", {}).get("engine") if rppg.get("val") else None, "coverage": rppg.get("val", {}).get("modelCoverage") if rppg.get("val") else None}
+    entry["fieldEval"] = field_eval(work)
     _assert_public(entry)
     return entry
+
+
+def field_eval(work: Path) -> dict | None:
+    """Aggregate of field_analysis.cjs over v3 sessions: engine vs browser shadow model on known targets (pursuit circle/levels), drift checks.
+    Session codes are dropped; only counts and means are kept."""
+    p = work / "field-analysis.json"
+    if not p.exists():
+        return None
+    rows = [r for r in load_json(p) if "error" not in r]
+    def m(vals):
+        v = [x for x in vals if isinstance(x, (int, float))]
+        return round(sum(v) / len(v), 2) if v else None
+    sh = [r for r in rows if (r.get("knownTargets") or {}).get("shadow")]
+    return {"sessions": len(rows), "devices": sorted({r["device"].split(" ")[0] for r in rows}), "withShadowOutput": len(sh),
+            "engineCircle": {"hxPctW": m([r["knownTargets"]["engine"]["circle"]["hxPctW"] for r in rows]), "hyPctH": m([r["knownTargets"]["engine"]["circle"]["hyPctH"] for r in rows])},
+            "shadowSameSessions": {"engineHxPctW": m([r["knownTargets"]["engineSameSamples"]["circle"]["hxPctW"] for r in sh]), "engineHyPctH": m([r["knownTargets"]["engineSameSamples"]["circle"]["hyPctH"] for r in sh]),
+                                   "shadowHxPctW": m([r["knownTargets"]["shadow"]["circle"]["hxPctW"] for r in sh]), "shadowHyPctH": m([r["knownTargets"]["shadow"]["circle"]["hyPctH"] for r in sh]),
+                                   "engineLevelHxPctW": m([r["knownTargets"]["engineSameSamples"]["level"]["hxPctW"] for r in sh]), "shadowLevelHxPctW": m([r["knownTargets"]["shadow"]["level"]["hxPctW"] for r in sh])},
+            "fineHeldOutErrPct": m([(r.get("calibration") or {}).get("fineHeldOut", {}).get("errPct") for r in rows]),
+            "driftAbsP90": {"dxPctW": m([r["drift"]["measuredAbsP90"]["dxPctW"] for r in rows]), "dyPctH": m([r["drift"]["measuredAbsP90"]["dyPctH"] for r in rows])},
+            "onsetBeforeRequestPct": m([r["timing"]["onsetBeforeRequestPct"] for r in rows]),
+            "note": "known-target error = pursuit circle (x,y) with an assumed 120 ms target lag; target-proxy, not eye-tracker accuracy"}
 
 
 def _assert_public(value, path="entry"):

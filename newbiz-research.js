@@ -64,7 +64,9 @@
       stim: { mode: rec.stimMode || null, form: rec.stimForm || null }, measuredAt: rec.measuredAt || null,
       protocol: sessionKind === 'gaze-label' ? { kind: 'gaze-label', steps: ['calibration', 'gazeLabel'] } : rec.lab ? { kind: 'lab', steps: rec.lab } : { kind: 'full' },
       /* 검사 시작 전에 고정한 전역 시선 모델 스냅샷(없으면 null). mode: 'off' | 'shadow' | 'active' */
-      gazeModel: rec.gazeModel ? { id: rec.gazeModel.id || null, version: rec.gazeModel.version || null, mode: rec.gazeModel.mode || 'off', sha256: rec.gazeModel.sha256 || null, preprocessing: rec.gazeModel.preprocessing || null, loadError: rec.gazeModel.loadError || null } : null,
+      /* 2026-10-08 수정: 지연·추론 수·건너뜀·guard 사유가 빠져 현장 작동을 확인할 수 없었다 → describe() 전체(함수·바이트 제외)를 남긴다 */
+      gazeModel: rec.gazeModel ? { id: rec.gazeModel.id || null, version: rec.gazeModel.version || null, mode: rec.gazeModel.mode || 'off', reason: rec.gazeModel.reason || null, sha256: rec.gazeModel.sha256 || null, contract: rec.gazeModel.contract || null, preprocessing: rec.gazeModel.preprocessing || null, loadError: rec.gazeModel.loadError || null,
+        loadMs: rec.gazeModel.loadMs ?? null, latency: rec.gazeModel.latency || null, inferred: rec.gazeModel.inferred ?? null, dropped: rec.gazeModel.dropped ?? null, errors: rec.gazeModel.errors ?? null, guardReasons: rec.gazeModel.guardReasons || null, clientVersion: rec.gazeModel.clientVersion || null, ortVersion: rec.gazeModel.ortVersion || null } : null,
       /* 연구용 가명 키(새 수집부터, 기기 키와 구분) — 이름·이메일 해시가 아니다 */
       subjectKey: env.subjectKey || null, subjectKeySource: env.subjectKey ? (env.subjectKeySource || 'local-random') : null,
     };
@@ -97,7 +99,7 @@
       reference:rec.reference ? {...rec.reference,samples:rec.reference.samples.map(v=>({...v,t:rel(v.t,t0)})),events:(rec.reference.events||[]).map(v=>({...v,t:rel(v.t,t0)}))} : null,
       landmarks: rec.landmarks ? { idx: rec.landmarks.idx, scale: 1e4, rows: rec.landmarks.rows.map(r => [rel(r[0], t0), ...r.slice(1)]) } : null,
       calibration: rec.calibLog ? {
-        screen: rec.calibLog.screen, targets: (rec.calibLog.targets || []).map(x => [rel(x.t, t0), q(x.x, 1), q(x.y, 1), x.kind]),
+        screen: rec.calibLog.screen, viewport: rec.calibLog.viewport || null, targets: (rec.calibLog.targets || []).map(x => [rel(x.t, t0), q(x.x, 1), q(x.y, 1), x.kind]),
         /* v3: 표적 ID·round·표시 시작/종료·역할. v1/v2 의 [t,x,y,kind] 는 그대로 둔다 */
         targetsV2: (rec.calibLog.targets || []).map((x, i) => ({ id: x.id || ('C' + String(i + 1).padStart(2, '0')), round: x.round ?? null, kind: x.kind, role: x.role || calibRole(x.kind), x: q(x.x, 1), y: q(x.y, 1), onset: rel(x.t, t0), offset: rel(x.offset, t0), sampleStart: rel(x.sampleStart, t0), sampleEnd: rel(x.sampleEnd, t0), samples: x.samples ?? null, kept: x.kept ?? null })),
         rounds: (rec.calibLog.rounds || []).map(r => ({ ...r, start: rel(r.start, t0), end: rel(r.end, t0) })),

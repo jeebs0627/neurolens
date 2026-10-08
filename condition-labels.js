@@ -26,6 +26,7 @@
     reference_eyetracker: 'external eye tracker, time/coordinate verified',
     explicit_target_confirmed: 'instructed target + user confirmation (proxy, not independent measurement)',
     calibration_target: 'known calibration target (role: train / internal / holdout)',
+    instructed_fixation: 'instructed centre-dot fixation during the test (drift check); proxy, spread over the session',
     free_click_weak: 'ordinary UI click coordinate (weak; excluded from primary training/evaluation)',
     engine_prediction: 'engine output (baseline/comparison input, never ground truth)',
     unlabeled: 'valid observation without location/heart-rate truth',

@@ -539,7 +539,8 @@
       });
       // 제곱항은 더 강하게 수축. 머리 자세(yaw·pitch·cx·cy)는 보정 중 시선을 따라 함께 움직인 상관을 배우지 않도록 100배 수축
       // (2026-10-04 실측 재현: 보정 밖 검증점 오차 21% → 16%, 과제 중 세로 좌표가 화면 밖 +2,000px → 화면 안)
-      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 : HEAD_SD_MIN[keys[a - 1]] ? HEAD_RIDGE : 1);
+      /* opt.keyRidge: 특징별 수축 배율(기본 없음 = 기존과 동일). 실측 벤치(tools/colab/engine_bench.cjs)에서만 비교한다 */
+      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 * (opt.quadRidge ?? 1) : HEAD_SD_MIN[keys[a - 1]] ? HEAD_RIDGE : 1) * (a <= keys.length && opt.keyRidge && finite(opt.keyRidge[keys[a - 1]]) ? opt.keyRidge[keys[a - 1]] : 1);
       return solve(XtX, Xty);
     };
     const wx = fit('x'), wy = fit('y');
@@ -585,20 +586,21 @@
   }
   /* 영점 조정: 표적(x,y) ↔ 예측(gx,gy) 쌍으로 축별 1차 보정 x' = a·x + b 를 맞춘다.
    * 표적이 한 축에서 퍼져 있지 않으면 이동(b)만 쓰고, 기울기는 0.75~1.35 로 제한해 과보정을 막는다 */
-  function fitAffine(pairs) {
+  function fitAffine(pairs, opt = {}) {
     const P = (pairs || []).filter(p => finite(p.x) && finite(p.y) && finite(p.gx) && finite(p.gy));
     if (P.length < 3) return null;
+    const lo = opt.minSlope ?? 0.75, hiX = opt.maxSlopeX ?? opt.maxSlope ?? 1.35, hiY = opt.maxSlopeY ?? opt.maxSlope ?? 1.35;
     /* 기울기 0.75~1.35 로 제한해 과보정을 막는다. 세로 압축은 눈꼬리 기준 v(eyeUV)로 원천에서 풀었으므로 넓은 상한(2.2)은 쓰지 않는다
      * (실측 재생 13세션: 넓은 상한과 결과 동일) */
-    const axis = (t, g) => {
+    const axis = (t, g, hi) => {
       const mt = mean(t), mg = mean(g);
       let cov = 0, vg = 0, vt = 0;
       for (let i = 0; i < t.length; i++) { cov += (g[i] - mg) * (t[i] - mt); vg += (g[i] - mg) ** 2; vt += (t[i] - mt) ** 2; }
       const r = vt > 0 && vg > 0 ? cov / Math.sqrt(vt * vg) : 0;
-      const a = vt > 0 && vg > 0 ? clamp(cov / vg, 0.75, 1.35) : 1;
+      const a = vt > 0 && vg > 0 ? clamp(cov / vg, lo, hi) : 1;
       return { a, b: mt - a * mg, r: round(r, 2) };
     };
-    return { x: axis(P.map(p => p.x), P.map(p => p.gx)), y: axis(P.map(p => p.y), P.map(p => p.gy)) };
+    return { x: axis(P.map(p => p.x), P.map(p => p.gx), hiX), y: axis(P.map(p => p.y), P.map(p => p.gy), hiY) };
   }
   const applyAffine = (A, g) => (A && g ? { x: A.x.a * g.x + A.x.b, y: A.y.a * g.y + A.y.b } : g);
   /* 화면 밖 완만한 압축: 화면 안(0~W, 0~H)은 그대로, 밖으로 나간 거리 e 는 M·tanh(e/M)(M = 화면의 35%)로 줄인다.

@@ -135,6 +135,18 @@ function modelFromSnapshot(snap) {
   return { model: m, affine: snap.affine || null, resid: snap.resid || null, drift: snap.drift || { dx: 0, dy: 0 }, coreVersion: snap.coreVersion || null, gazeModel: snap.gazeModel || null };
 }
 const within = (S, a, b) => S.calibrationFrames.filter(f => f.gazeOk && f.tc >= a && f.tc < b).map(S.feat).filter(Boolean);
+/* 표적별 특징 집계(opt.aggregate): 한 표적을 보는 동안의 프레임 특징을 중앙값으로 모아 회귀 입력 잡음을 줄인다(회귀 희석 완화).
+ * 행 수(가중)는 원래 프레임 수만큼(최대 cap) 복제해 기존 표본 수 조건(quad≥120)과 표적 간 비중을 유지한다 */
+function medianFeature(fs) {
+  const m = a => { const s = a.filter(finite).sort((x, y) => x - y); return s.length ? (s[(s.length - 1) >> 1] + s[s.length >> 1]) / 2 : undefined; };
+  const keys = new Set(); fs.forEach(f => Object.keys(f).forEach(k => { if (typeof f[k] === 'number') keys.add(k); }));
+  const out = {}; keys.forEach(k => { out[k] = m(fs.map(f => f[k])); });
+  out.eyes = { left: { u: m(fs.map(f => f.eyes?.left?.u)), v: m(fs.map(f => f.eyes?.left?.v)), q: m(fs.map(f => f.eyes?.left?.q)) ?? 0 }, right: { u: m(fs.map(f => f.eyes?.right?.u)), v: m(fs.map(f => f.eyes?.right?.v)), q: m(fs.map(f => f.eyes?.right?.q)) ?? 0 } };
+  return out;
+}
+function aggregateTargets(list, cap = 12) { return list.flatMap(p => { if (!p.fs.length) return []; const f = medianFeature(p.fs), n = Math.min(cap, p.fs.length); return Array.from({ length: n }, () => ({ x: p.x, y: p.y, f })); }); }
+function aggregatePursuit(sp, binMs = 200) { const bins = new Map(); for (const s of sp) { const k = Math.floor(s.f.tc / binMs); (bins.get(k) || bins.set(k, []).get(k)).push(s); } return [...bins.values()].filter(b => b.length >= 2).map(b => ({ x: mean0(b.map(s => s.x)), y: mean0(b.map(s => s.y)), f: medianFeature(b.map(s => s.f)), w: b[0].w * b.length })); }
+const mean0 = a => a.reduce((s, x) => s + x, 0) / a.length;
 /* condition.html calibrate() 순서(커서 과제 제외)로 보정 표본을 다시 만들어 ‘선택용(selection)’과 ‘최종 refit(final)’ 모델을 모두 돌려준다 */
 function reconstructPipeline(N, S, opt = {}) {
   const { W, H } = S; if (!finite(W) || !finite(H) || !S.targets.length) return null;
@@ -143,11 +155,13 @@ function reconstructPipeline(N, S, opt = {}) {
   const pt = t => ({ x: t.x, y: t.y, fs: within(S, t.sampleStart ?? t.onset + 500, t.sampleEnd ?? t.offset ?? t.onset + 2500) });
   const fix9 = T.filter(t => t.kind === 'fix9').map(pt), val = T.filter(t => t.role === 'internal' && t.kind !== 'zone').map(pt), zc = T.filter(t => t.kind === 'zone').map(pt), fp = T.filter(t => t.kind === 'fine').map(pt);
   const flat = l => l.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f }))), robust = l => l.map(p => ({ ...p, fs: N.robustFeatures(p.fs) }));
-  const s9 = flat(robust(fix9));
+  const agg = !!opt.aggregate, flatT = l => (agg ? aggregateTargets(l, opt.aggregateCap ?? 12) : flat(l));
+  const s9 = flatT(robust(fix9));
   let sp = [];
   if (S.pursuit && opt.pursuit !== false) {
     const pu = S.pursuit, t0 = pu.t0, pos = tt => ({ x: W * (0.5 + pu.ax * Math.sin(2 * Math.PI * pu.fx * tt / 1000)), y: H * (0.5 + pu.ay * Math.sin(2 * Math.PI * pu.fy * tt / 1000 + pu.phaseY)) });
     sp = within(S, t0 + pu.sampleFrom, t0 + pu.sampleTo).map(f => ({ ...pos(f.tc - t0 - pu.lagMs), f, w: pu.weight }));
+    if (agg) sp = aggregatePursuit(sp, opt.pursuitBinMs ?? 200);
   }
   const at = (m, A, R, p) => { const g = p.fs.map(f => N.applyResidual(R, N.applyAffine(A, N.predictGaze(m, f)))).filter(q => q && finite(q.x) && finite(q.y)); return g.length >= 4 ? { x: p.x, y: p.y, gx: N.median(g.map(q => q.x)), gy: N.median(g.map(q => q.y)) } : { x: p.x, y: p.y, gx: null, gy: null }; };
   const acc = pts => N.gazeAccuracy(pts, W, H), valR = robust(val), zcR = robust(zc), fpR = robust(fp);
@@ -161,7 +175,7 @@ function reconstructPipeline(N, S, opt = {}) {
   const stage2 = { model: cands[0].key, modelErr: cands[0].acc.errPct, affine: !!affine, pursuitSamples: sp.length };
   const coreVersion = S.meta?.versions?.core || null;
   if (!fpR.length) { const fit = { model, affine, resid: null, drift: { dx: 0, dy: 0 }, coreVersion }; return { ok: true, round, stage2, selection: { ...fit, key: cands[0].key }, final: fit, refitApplied: false, fineHeldOut: null }; }
-  const train = [...s9, ...flat(valR), ...flat(zcR)], m2 = N.fitGaze(train, LAM); if (m2) N.validateGazeEyes(m2, valR, W, H);
+  const train = [...s9, ...flatT(valR), ...flatT(zcR)], m2 = N.fitGaze(train, LAM); if (m2) N.validateGazeEyes(m2, valR, W, H);
   const cand = [{ key: '기존 보정', model, A: affine, R: null }];
   if (m2) cand.push({ key: '전체 표본 재학습', model: m2, A: N.fitAffine([...valR, ...zcR].map(p => at(m2, null, null, p))), R: null });
   cand.slice().forEach(c0 => { const pr = [...valR, ...zcR].map(p => at(c0.model, c0.A, null, p)); const R = N.fitResidual(pr, W, H); if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R }); });
@@ -172,7 +186,7 @@ function reconstructPipeline(N, S, opt = {}) {
   const selection = { model: b0.model, affine: b0.A, resid: b0.R, drift: { dx: 0, dy: 0 }, coreVersion, key: b0.key, fineErrPct: b0.acc.errPct };
   let final = { model: b0.model, affine: b0.A, resid: b0.R, drift: { dx: 0, dy: 0 }, coreVersion }, refitApplied = false;
   const pts = [...valR, ...zcR, ...fpR];
-  const mF = b0.key.startsWith('전체') ? (N.fitGaze([...train, ...flat(fpR)], LAM) || b0.model) : b0.model;
+  const mF = b0.key.startsWith('전체') ? (N.fitGaze([...train, ...flatT(fpR)], LAM) || b0.model) : b0.model;
   if (mF !== b0.model) N.validateGazeEyes(mF, valR, W, H);
   const AF = N.fitAffine(pts.map(p => at(mF, null, null, p))) || b0.A, RF = b0.R ? N.fitResidual(pts.map(p => at(mF, AF, null, p)), W, H) : null;
   const eB = acc(pts.map(p => at(b0.model, b0.A, b0.R, p))), eF = acc(pts.map(p => at(mF, AF, RF, p)));

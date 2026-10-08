@@ -18,7 +18,7 @@ import numpy as np
 from . import schema as SCH
 from .gaze_dataset import FEATURES, Record
 
-SOURCE_WEIGHT = {"explicit_target_confirmed": 1.0, "calibration_target": 0.8, "free_click_weak": 0.0}
+SOURCE_WEIGHT = {"explicit_target_confirmed": 1.0, "calibration_target": 0.8, "instructed_fixation": 0.6, "free_click_weak": 0.0}
 
 
 @dataclass
