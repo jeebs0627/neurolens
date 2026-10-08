@@ -3,6 +3,62 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "e22a9b683a890c36794ce3a398eaa31dfa1ff4bb",
+      "parents": [
+        "282db69c07342e5531f64ec4759b9aae9a778dbd"
+      ],
+      "committedAt": "2026-10-08T10:59:22+09:00",
+      "subject": "adapter: core 버전이 비어 있는(중단·interrupted) 세션도 core 2.3 이전으로 보고 세로 특징을 랜드마크로 재계산 · feature version 2",
+      "url": "https://github.com/jeebs0627/neurolens/commit/e22a9b683a890c36794ce3a398eaa31dfa1ff4bb",
+      "files": [
+        {
+          "path": "tools/colab/nlcolab/adapter.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "tools/colab/nlcolab/inventory.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tools/colab/nlcolab/snapshot.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tools/colab/session_adapter.cjs",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55853973689",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T01:59:27Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/BZ5cGWLhEq2jguMVMGvmyYYzKApr",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "a97505e859b90817feeed9c693a7160c53ed2ef0",
       "parents": [
         "f5d27c69766f37468e43cbc8da2dae5ffe040ef2"
@@ -13032,9 +13088,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "7ce82b9de60436e87657f2d0428db1bf3c7f728c"
+    "sourceHead": "e22a9b683a890c36794ce3a398eaa31dfa1ff4bb"
   },
-  "updatedAt": "2026-10-08T01:58:10.765731+00:00",
+  "updatedAt": "2026-10-08T01:59:45.306093+00:00",
   "aiCooldownUntil": "2026-10-08T02:13:41.295227+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
