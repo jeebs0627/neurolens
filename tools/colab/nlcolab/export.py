@@ -49,16 +49,13 @@ def sign_in(url: str, anon: str, email: str, password: str) -> str:
     return tok
 
 
-def interactive_token(url: str = DEFAULT_URL, anon: str = DEFAULT_ANON) -> str:
-    """Colab/terminal: paste an access token, or sign in with email+password (never echoed, never stored)."""
+def interactive_token(url: str = DEFAULT_URL, anon: str = DEFAULT_ANON, email: str | None = None) -> str:
+    """Terminal/Colab: NL_ACCESS_TOKEN if set, otherwise e-mail + getpass password. The token stays in memory; nothing is written to disk."""
     tok = os.environ.get("NL_ACCESS_TOKEN")
     if tok:
         return tok
-    mode = input("access token 붙여넣기(1) / 이메일+비밀번호 로그인(2) [2]: ").strip() or "2"
-    if mode == "1":
-        return getpass.getpass("access token: ").strip()
-    email = input("연구 관리자 이메일: ").strip()
-    return sign_in(url, anon, email, getpass.getpass("비밀번호: "))
+    email = email or input("연구 관리자 이메일: ").strip()
+    return sign_in(url, anon, email, getpass.getpass("비밀번호 (입력이 보이지 않음): "))
 
 
 def rpc(url: str, anon: str, token: str, name: str, args: dict):
