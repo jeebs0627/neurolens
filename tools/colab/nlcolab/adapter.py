@@ -121,6 +121,10 @@ def _targets(cal: dict | None, flags: list[str]) -> tuple[list[Target], list[dic
     for i, r in enumerate(rows):
         nxt = rows[i + 1]["t"] if i + 1 < len(rows) else r["t"] + 3000
         kind = r["kind"]
+        if kind == "click":
+            # deleted click-calibration experiment (core 2.1–2.2): user click near a target → weak label only, never supervised/eval
+            T.append(Target(f"C{i + 1:02d}", r["round"], "click", "weak", r["x"], r["y"], r["t"], min(nxt, r["t"] + 2500), r["t"] + 500, min(nxt, r["t"] + 2500), True, 300.0, "click-calibration:weak"))
+            continue
         if kind == "fix9":
             role, frm, to, method = "train", SCH.LEGACY_CAL9["from_ms"], SCH.LEGACY_CAL9["to_ms"], "cal9:+650..+2900|next"
         elif kind == "zone":

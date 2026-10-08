@@ -18,7 +18,7 @@ def node_available() -> bool:
 
 
 def run_baseline(raw_dir: str | Path, out_dir: str | Path, log=print, timeout: int = 3600) -> dict:
-    raw, out = Path(raw_dir), Path(out_dir)
+    raw, out = Path(raw_dir).resolve(), Path(out_dir).resolve()   # node runs with cwd=repo root, so paths must be absolute
     out.mkdir(parents=True, exist_ok=True)
     if not node_available():
         raise RuntimeError("node is required for baseline reproduction (install Node.js ≥ 18)")

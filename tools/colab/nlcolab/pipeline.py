@@ -183,14 +183,18 @@ class Pipeline:
             st = self.state["stages"]
             inv = load_json(self.work / "inventory.json") if resume and st.get("audit", {}).get("status") == "evaluated" and (self.work / "inventory.json").exists() else self.audit()
             snap, diff, trigger, reason = self.snapshot(inv)
-            if not trigger:
+            gaze_done = st.get("gaze", {}).get("status") in ("evaluated", "candidate", "insufficient_data") and st.get("gaze", {}).get("snapshot") == snap["hash"]
+            rppg_done = st.get("rppg", {}).get("status") in ("evaluated", "insufficient_reference_labels")
+            if not trigger and gaze_done and rppg_done:
                 self._mark("run", "no_new_eligible_data", reason=reason)
                 return self.state
-            if not (resume and st.get("gaze", {}).get("status") in ("evaluated", "candidate", "insufficient_data") and (self.work / "gaze" / "run.json").exists() and st.get("gaze", {}).get("snapshot") == snap["hash"]):
+            if not trigger:
+                self.log(f"snapshot unchanged ({reason}) but a previous run did not finish for it → resuming the unfinished stages")
+            if not (resume and gaze_done and (self.work / "gaze" / "run.json").exists()):
                 self.gaze(inv, snap)
                 self.state["stages"]["gaze"]["snapshot"] = snap["hash"]
                 dump_json(self.state_path, self.state)
-            if not (resume and st.get("rppg", {}).get("status") in ("evaluated", "insufficient_reference_labels")):
+            if not (resume and rppg_done):
                 self.rppg(inv)
             self._mark("run", "evaluated", gaze=self.state["stages"]["gaze"]["status"], rppg=self.state["stages"]["rppg"]["status"])
         except Exception as e:  # noqa: BLE001

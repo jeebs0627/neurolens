@@ -96,10 +96,11 @@ function loadSession(obj, opt = {}) {
       targets = raw.map((r, i) => {
         const next = raw[i + 1], nextT = next ? next.t : r.t + 3000;
         let role, kind = r.kind, from, to, unc = 300;
-        if (r.kind === 'fix9') { role = 'train'; from = 650; to = 2900; }
+        if (r.kind === 'click') { role = 'weak'; from = 500; to = 2500; }   // 삭제된 클릭 보정 실험(core 2.1~2.2): weak 라벨, 학습·평가 제외
+        else if (r.kind === 'fix9') { role = 'train'; from = 650; to = 2900; }
         else if (r.kind === 'zone') { role = 'internal'; from = 500; to = 2500; }
         else { valCount[r.round] = (valCount[r.round] || 0) + 1; if (valCount[r.round] <= 4) { role = 'internal'; } else { role = 'holdout-then-refit'; kind = 'fine'; } from = 500; to = 2500; }
-        return { id: 'C' + String(i + 1).padStart(2, '0'), round: r.round, kind, role, x: r.x, y: r.y, onset: r.t, offset: Math.min(nextT, r.t + to), sampleStart: r.t + from, sampleEnd: Math.min(nextT, r.t + to), samples: null, kept: null, inferredBackfill: true, backfillMethod: r.kind === 'fix9' ? 'cal9:+650..+2900|next' : 'calCollect:+500..+2500|next', uncertaintyMs: unc };
+        return { id: 'C' + String(i + 1).padStart(2, '0'), round: r.round, kind, role, x: r.x, y: r.y, onset: r.t, offset: Math.min(nextT, r.t + to), sampleStart: r.t + from, sampleEnd: Math.min(nextT, r.t + to), samples: null, kept: null, inferredBackfill: true, backfillMethod: r.kind === 'fix9' ? 'cal9:+650..+2900|next' : r.kind === 'click' ? 'click-calibration:weak' : 'calCollect:+500..+2500|next', uncertaintyMs: unc };
       });
     }
   }

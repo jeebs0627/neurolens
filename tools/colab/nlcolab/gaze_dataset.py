@@ -110,6 +110,9 @@ def build_records(session: Session, baseline: dict | None, contract: str = "add-
         if t.round != last_round:
             report["skipped"]["earlier-round"] += 1
             continue
+        if t.role == "weak":
+            report["skipped"]["weak-click-target"] += 1
+            continue
         if t.inferred_backfill and not include_legacy_backfill:
             report["skipped"]["legacy-backfill-excluded"] += 1
             continue
