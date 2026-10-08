@@ -3,6 +3,117 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "99903b247265c02df0428a74db8d1474f5b7f128",
+      "parents": [
+        "a51e5ae5825562e0781acbeb596cd5eef26f117a"
+      ],
+      "committedAt": "2026-10-08T11:47:10+09:00",
+      "subject": "shadow 정책 예외 배포: MLP 잔차 모델(gaze-residual-a05c5d16-mlp-shadowx) registry.shadow 등록 · 모델 클라이언트 스코프 결함 수정",
+      "url": "https://github.com/jeebs0627/neurolens/commit/99903b247265c02df0428a74db8d1474f5b7f128",
+      "files": [
+        {
+          "path": "COLAB_TRAINING_RUNBOOK.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "condition-gaze-model.js",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 4
+        },
+        {
+          "path": "dataset-engine-log.json",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "model-registry.json",
+          "status": "modified",
+          "additions": 39,
+          "deletions": 3
+        },
+        {
+          "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/MODEL_CARD.md",
+          "status": "modified",
+          "additions": 151,
+          "deletions": 0
+        },
+        {
+          "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/manifest.json",
+          "status": "modified",
+          "additions": 1413,
+          "deletions": 0
+        },
+        {
+          "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/model.onnx",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "tools/colab/nlcolab/cli.py",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 1
+        },
+        {
+          "path": "tools/colab/nlcolab/pipeline.py",
+          "status": "modified",
+          "additions": 21,
+          "deletions": 8
+        },
+        {
+          "path": "tools/colab/nlcolab/release.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "training-ledger.json",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3
+        }
+      ],
+      "domains": [
+        "research"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-99903b247265-research",
+          "domain": "research",
+          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-99903b247265-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 99903b247265c02df0428a74db8d1474f5b7f128\n변경 제목: shadow 정책 예외 배포: MLP 잔차 모델(gaze-residual-a05c5d16-mlp-shadowx) registry.shadow 등록 · 모델 클라이언트 스코프 결함 수정\n관련 파일: COLAB_TRAINING_RUNBOOK.md, condition-gaze-model.js, dataset-engine-log.json, model-registry.json, models/gaze/gaze-residual-a05c5d16-mlp-shadowx/MODEL_CARD.md, models/gaze/gaze-residual-a05c5d16-mlp-shadowx/manifest.json, models/gaze/gaze-residual-a05c5d16-mlp-shadowx/model.onnx, tools/colab/nlcolab/cli.py, tools/colab/nlcolab/pipeline.py, tools/colab/nlcolab/release.py, training-ledger.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-99903b247265-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "pending",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55856060718",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T02:47:16Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/3HX14hwasWRSaeRwcfASrNdwQSrd",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "674b963946acc70a87c36ac643a5337f773044d4",
       "parents": [
         "9fca22204d0e3d0e34200a833c83e1311e090e70"
@@ -13407,9 +13518,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "205cdbc514ade69c4619abd97c51668d0ff1c2d6"
+    "sourceHead": "99903b247265c02df0428a74db8d1474f5b7f128"
   },
-  "updatedAt": "2026-10-08T02:39:21.817202+00:00",
+  "updatedAt": "2026-10-08T02:47:37.100673+00:00",
   "aiCooldownUntil": "2026-10-08T03:35:27.716046+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
