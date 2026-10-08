@@ -93,7 +93,8 @@ def model_card(man: dict, run: dict) -> str:
 
 def registry_patch(registry_path: Path, man: dict, report_path: str, run_status: str) -> dict:
     reg = load_json(registry_path) if registry_path.exists() else {"schema": SCH.REGISTRY_SCHEMA, "active": None, "shadow": None, "candidates": [], "history": []}
-    entry = {"id": man["id"], "kind": man["kind"], "version": man["version"], "url": f"models/gaze/{man['id']}/model.onnx", "manifestUrl": f"models/gaze/{man['id']}/manifest.json", "sha256": man["sha256"], "state": "candidate", "maxState": (man.get("release") or {}).get("maxState", "active"), "createdAt": man["createdAt"], "report": report_path, "approvedBy": None}
+    rel = man.get("release") or {}
+    entry = {"id": man["id"], "kind": man["kind"], "version": man["version"], "url": f"models/gaze/{man['id']}/model.onnx", "manifestUrl": f"models/gaze/{man['id']}/manifest.json", "sha256": man["sha256"], "state": rel.get("state", "candidate"), "maxState": rel.get("maxState", "active"), "createdAt": man["createdAt"], "report": report_path, "approvedBy": (rel.get("exception") or {}).get("approver"), "exception": rel.get("exception")}
     reg["candidates"] = [c for c in reg.get("candidates", []) if c.get("id") != man["id"]] + [entry]
     reg.setdefault("history", []).append({"at": man["createdAt"], "event": "candidate-registered", "id": man["id"], "state": run_status, "actor": "nlcolab", "note": "active/shadow unchanged; promotion requires human approval + shadow + canary"})
     reg["updatedAt"] = man["createdAt"]

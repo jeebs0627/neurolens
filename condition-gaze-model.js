@@ -21,7 +21,8 @@
   const ORT_VERSION = '1.22.0', ORT_URL = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/ort.min.mjs`, ORT_WASM = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/`;
   const finite = Number.isFinite;
   const deps = { fetch: null, loadOrt: null, subtle: null, now: () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) };
-  const Labels = () => (typeof module === 'object' && module.exports ? require('./condition-labels.js') : root && root.NLLabels);
+  const G = typeof globalThis !== 'undefined' ? globalThis : null;   // 팩토리 스코프에는 UMD 의 root 가 없다 — 전역은 globalThis 로만 접근
+  const Labels = () => (typeof module === 'object' && module.exports ? require('./condition-labels.js') : G && G.NLLabels);
   const EYE_MODE = { both: 0, left: 1, right: 2, weighted: 3 };
 
   function hex(buf) { return Array.from(new Uint8Array(buf)).map(v => v.toString(16).padStart(2, '0')).join(''); }
@@ -106,7 +107,7 @@
   /* 검사 시작 시 1회: registry → 항목 선택 → manifest/모델 로드 → 해시·스키마·테스트 벡터 검증 → 세션 고정 */
   async function freeze(env = {}) {
     const started = deps.now();
-    const flag = (() => { try { return new URLSearchParams(root.location ? root.location.search : '').get('gazemodel'); } catch (_) { return null; } })();
+    const flag = (() => { try { return new URLSearchParams(G && G.location ? G.location.search : '').get('gazemodel'); } catch (_) { return null; } })();
     if (flag === 'off') return { mode: 'off', reason: 'url-flag-off', clientVersion: VERSION };
     let registry;
     try { registry = await fetchJson(env.registryUrl || REGISTRY_URL); } catch (e) { return { mode: 'off', reason: 'registry-unavailable', loadError: String(e.message || e), clientVersion: VERSION }; }
@@ -155,6 +156,8 @@
     const vec = vectorize(gm.manifest, featureValues(f, base, W, H));
     gm.busy = true; gm.pending++;
     const t0 = deps.now();
+    /* 다음 프레임이 바로 들어올 수 있도록 결과 콜백 ‘전에’ busy 를 푼다 */
+    const release = () => { gm.busy = false; gm.pending--; if (!gm.pending) gm.waiters.splice(0).forEach(r => r()); };
     gm.run(vec.vector).then(y0 => {
       /* 출력 단위: manifest.output.units 가 'viewport-fraction' 이면 (W,H) 를 곱해 CSS px 잔차로 바꾼 뒤 안전 제한을 적용한다 */
       const frac = gm.manifest.output && gm.manifest.output.units === 'viewport-fraction';
@@ -163,9 +166,9 @@
       if (g.reason) gm.guardReasons[g.reason] = (gm.guardReasons[g.reason] || 0) + 1;
       gm.inferred++;
       const ms = deps.now() - t0; gm.latencySum = (gm.latencySum || 0) + ms; gm.latencyMax = Math.max(gm.latencyMax || 0, ms);
+      release();
       onResult({ dx: g.dx, dy: g.dy, raw: y0, reason: g.reason, ms, missing: vec.missing });
-    }).catch(e => { gm.errors++; onResult({ dx: 0, dy: 0, reason: 'inference-error:' + String(e.message || e).slice(0, 60), ms: deps.now() - t0 }); })
-      .finally(() => { gm.busy = false; gm.pending--; if (!gm.pending) gm.waiters.splice(0).forEach(r => r()); });
+    }, e => { gm.errors++; release(); onResult({ dx: 0, dy: 0, reason: 'inference-error:' + String(e.message || e).slice(0, 60), ms: deps.now() - t0 }); });
     return true;
   }
   /* 세션 종료 전: 대기 중인 추론을 모두 기다린다(최대 timeout). 그래야 분석 좌표에 빠진 보정이 없다 */

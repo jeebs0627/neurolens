@@ -3,6 +3,14 @@
   "entries": [
     {
       "date": "2026-10-08",
+      "version": "gaze-residual-a05c5d16-mlp-shadowx · gaze-model-client-1",
+      "status": "shadow 정책 예외 배포 (측정 미적용 · 출력 기록만)",
+      "change": "연구 관리자 승인으로 holdout 회귀 MLP 를 shadow 로 등록. registry.shadow 설정, manifest 에 gate 실패·승인자·사유 기록, 대시보드 ‘딥러닝 모델 작동 상태 = 그림자 작동’.",
+      "evidence": "헤드리스 Edge 에서 ORT Web 1.22.0 로드 625ms · 테스트 벡터 일치 · 추론 0.09ms 평균. 모델 클라이언트 스코프 결함(root 미정의 → fail-closed) 수정. 현장 세션 기록(meta.gazeModel, sx/sy)은 배포 뒤 검사가 진행돼야 쌓임.",
+      "next": "배포 후 /condition 1회 이상 진행해 현장 작동 기록(지연·guard 사유·shadow vs 엔진 차이) 확인. 사람 3명 이상 라벨 세션 → 재학습 → prospective 평가 통과 시에만 active 검토."
+    },
+    {
+      "date": "2026-10-08",
       "version": "nlcolab-0.1.0 · release policy 2026-10-08.2",
       "status": "실측 50세션 첫 학습 배치 실행 · 후보 없음 · 기존 엔진 유지",
       "change": "연구 관리자 JWT 로 50세션 인증 export(해시 검증 0 불일치) → 인벤토리(시선 적격 38 · rPPG 적격 0) → 세션 단위 분할 → baseline/ridge/MLP 비교. MLP 가 val 에서 +13.7% 였으나 locked test −4%·temporal test −14% 회귀 → 정책에 holdout 회귀 금지 규칙 추가(사후 추가 사실 공개) → evaluated·후보 미등록. rPPG 는 기준 심박 0건으로 insufficient_reference_labels.",

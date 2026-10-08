@@ -35,10 +35,13 @@ def now() -> str:
 
 
 class Pipeline:
-    def __init__(self, raw_dir: str | Path, work_dir: str | Path, *, allow_synthetic: bool = False, use_mlp: bool = True, seed: int = 20261008, log=print, policy_path: Path = POLICY_PATH):
+    def __init__(self, raw_dir: str | Path, work_dir: str | Path, *, allow_synthetic: bool = False, use_mlp: bool = True, seed: int = 20261008, log=print, policy_path: Path = POLICY_PATH, package_exception: dict | None = None):
         self.raw, self.work = Path(raw_dir), Path(work_dir)
         self.work.mkdir(parents=True, exist_ok=True)
         self.allow_synthetic, self.use_mlp, self.seed, self.log = allow_synthetic, use_mlp, seed, log
+        # package_exception = {"model": "mlp-residual", "approver": "...", "reason": "..."}: a human-approved policy exception that packages a
+        # gate-failing model for SHADOW only (outputs recorded, never applied). The gate result and the approval are written into the manifest.
+        self.package_exception = package_exception
         self.policy = load_json(policy_path)
         self.state_path = self.work / "state.json"
         self.state = load_json(self.state_path) if self.state_path.exists() else {"schema": "nl-pipeline-state-1", "runId": digest({"raw": str(self.raw), "at": now()})[:16], "stages": {}, "allowSynthetic": allow_synthetic}
@@ -137,6 +140,9 @@ class Pipeline:
         checks = {"integrity": export_ok and all(r.get("fidelity") != "unavailable" for r in reports if r["session"] in used), "label-provenance": True, "time-alignment": all("needs-sync" not in r.get("skipped", {}) for r in reports), "split-disjoint": disjoint["ok"], "withdrawal": True, "allowlist": True, "schema": True,
                   "subject-link": split_manifest["groupKey"] == "subject_key"}
         status, gate, manifest, card_path = "evaluated", None, None, None
+        exc = self.package_exception
+        if exc and exc.get("model") in results and results[exc["model"]].model is not None and chosen == "baseline-engine":
+            chosen = exc["model"]   # exception packaging of a model the val gate did not even select: still evaluated on locked/temporal below
         if chosen != "baseline-engine":
             r = results[chosen]
             gate = policy_check(self.policy, split_manifest=split_manifest, chosen=chosen, results=results, val_eval=evals["candidates"][chosen]["val"], base_eval=evals["baseline"]["val"], bootstrap=boot, parity=r.parity, onnx_bytes=Path(r.artifact).stat().st_size, params=r.params, checks=checks,
@@ -147,17 +153,24 @@ class Pipeline:
                 (out / "model-registry.candidate.json").unlink(missing_ok=True)
             # 사람 연결이 없는 자료(세션 단위 분할)로 만든 후보는 shadow 까지만: person-disjoint 평가 없이는 active 불가 (release_policy.requireSubjectLinkForPersonClaims)
             gate["shadowOnly"] = not checks["subject-link"] and bool(self.policy["gaze_residual"].get("requireSubjectLinkForPersonClaims", True))
-            if gate["pass"] and not self.allow_synthetic:
+            use_exception = bool(exc and exc.get("model") == chosen and not gate["pass"])
+            if (gate["pass"] or use_exception) and not self.allow_synthetic:
                 X, _, _, _ = matrix(val[:5])
                 Z = pre.transform(X)
-                model_id = f"gaze-residual-{snap['hash'][:8]}-{chosen.split('-')[0]}"
-                manifest = build_manifest(model_id=model_id, version=datetime.now(timezone.utc).strftime("%Y.%m.%d"), onnx_path=Path(r.artifact), pre=pre.to_json(), contract="add-residual", test_vectors=test_vectors(Z, r.model.predict(Z)), core_versions=sorted({x.versions.get("core") for x in train if x.versions.get("core")}),
+                model_id = f"gaze-residual-{snap['hash'][:8]}-{chosen.split('-')[0]}" + ("-shadowx" if use_exception else "")
+                # supports.core = engine that reconstructed the training features (baseline replay), not the sessions' historical versions
+                manifest = build_manifest(model_id=model_id, version=datetime.now(timezone.utc).strftime("%Y.%m.%d"), onnx_path=Path(r.artifact), pre=pre.to_json(), contract="add-residual", test_vectors=test_vectors(Z, r.model.predict(Z)), core_versions=[bsum.get("engine")] if bsum.get("engine") else [],
                                           snapshot_hash=snap["hash"], split_hash=split_manifest["groupsHash"], policy=self.policy, opset=r.onnx["opset"], metrics={"val": evals["candidates"][chosen]["val"], "baselineVal": evals["baseline"]["val"], "lockedTest": evals["candidates"][chosen].get("locked_test"), "baselineLockedTest": evals["baseline"].get("locked_test"), "temporalTest": evals["candidates"][chosen].get("temporal_test"), "baselineTemporalTest": evals["baseline"].get("temporal_test"), "evalOnlyHoldout": evals["candidates"][chosen]["evalOnly"], "bootstrap": boot, "compare": cmp, "gate": gate}, limitations=limitations(records), parent=None)
-                manifest["release"]["maxState"] = "shadow" if gate["shadowOnly"] else "active"
-                manifest["release"]["maxStateReason"] = "session-level split only (no subjectKey): person-disjoint generalisation not demonstrated → shadow until a subject-linked prospective evaluation passes" if gate["shadowOnly"] else None
-                written = write_candidate(out / "candidate", manifest, Path(r.artifact), model_card(manifest, {}), ROOT / "model-registry.json", str(out / "REPORT.md"), "candidate")
-                status = "candidate"
+                manifest["release"]["maxState"] = "shadow" if (gate["shadowOnly"] or use_exception) else "active"
+                manifest["release"]["maxStateReason"] = ("policy exception: gate failed (" + ", ".join(gate["failed"]) + ") - shadow only, outputs recorded and never applied" if use_exception else "session-level split only (no subjectKey): person-disjoint generalisation not demonstrated -> shadow until a subject-linked prospective evaluation passes" if gate["shadowOnly"] else None)
+                if use_exception:
+                    manifest["release"]["state"] = "shadow-exception"
+                    manifest["release"]["exception"] = {"approver": exc.get("approver"), "reason": exc.get("reason"), "approvedAt": datetime.now(timezone.utc).isoformat(), "gateFailed": gate["failed"], "note": "Human-approved deviation from release_policy. This model regressed on locked/temporal tests; it must never be promoted to active without a passing prospective evaluation."}
+                written = write_candidate(out / "candidate", manifest, Path(r.artifact), model_card(manifest, {}), ROOT / "model-registry.json", str(out / "REPORT.md"), "shadow-exception" if use_exception else "candidate")
+                status = "candidate" if gate["pass"] else "evaluated"
                 card_path = written["dir"]
+                if use_exception:
+                    self.log(f"policy exception: packaged {chosen} for SHADOW only -> {written['dir']}")
             elif gate["pass"] and self.allow_synthetic:
                 status = "evaluated"
                 self.log("synthetic run passed the gate numerically; no candidate is registered from synthetic data")

@@ -3,7 +3,7 @@
   "runs": [
     {
       "runId": "3f406ffdb6ccfec2",
-      "at": "2026-10-08T02:26:54.439472+00:00",
+      "at": "2026-10-08T02:47:08.204797+00:00",
       "snapshot": "a05c5d1632214f00514ea72711d4c9ae54e8f158d23cbf5f328c5a32d67f2238",
       "policyVersion": "2026-10-08.2",
       "engine": "In_mind core 2.3",
@@ -195,7 +195,7 @@
           "pGainBelowZero": 0.0,
           "note": "group bootstrap over sessions/subjects; not a clinical accuracy claim"
         },
-        "candidate": null,
+        "candidate": "gaze-residual-a05c5d16-mlp-shadowx",
         "synthetic": false
       },
       "rppg": {
@@ -219,6 +219,7 @@
         "errors": 0,
         "guardReasons": {},
         "shadowVsEngineMedianPx": null,
+        "malformedSessions": 0,
         "note": "mode is fixed per session at start; shadow records sx,sy without applying them; agreement is model-vs-engine distance, not accuracy"
       },
       "limitations": [
@@ -233,5 +234,5 @@
     }
   ],
   "note": "Public aggregates of training batch runs (no participant data). Improvement = change of the same metric between runs under the same policy; one run shows no trend.",
-  "updatedAt": "2026-10-08T02:26:54.439472+00:00"
+  "updatedAt": "2026-10-08T02:47:08.204797+00:00"
 }

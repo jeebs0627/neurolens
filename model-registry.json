@@ -1,10 +1,33 @@
 {
   "schema": "nl-model-registry-1",
-  "updatedAt": "2026-10-08T00:00:00Z",
+  "updatedAt": "2026-10-08T02:45:22.332629+00:00",
   "note": "Immutable artifacts live under models/<kind>/<id>/ (model.onnx + manifest.json). The browser pins one entry per session at start; changing 'active' only affects sessions that start after the deployment. 'trained' or 'candidate' never means 'active'. Promotion requires the release policy checks in release_policy.json plus a recorded approver; the git history of this file is the append-only promotion ledger.",
   "policy": "release_policy.json",
   "active": null,
-  "shadow": null,
+  "shadow": {
+    "id": "gaze-residual-a05c5d16-mlp-shadowx",
+    "kind": "gaze-residual",
+    "version": "2026.10.08",
+    "url": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/model.onnx",
+    "manifestUrl": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/manifest.json",
+    "sha256": "2d434f626cb34808de95f08c2aa22bfc60c7149867ba1181314562c40ab4c141",
+    "state": "shadow-exception",
+    "maxState": "shadow",
+    "createdAt": "2026-10-08T02:44:41.861805+00:00",
+    "report": "..\\..\\training\\work\\gaze\\REPORT.md",
+    "approvedBy": "research admin xshoner@gmail.com (user instruction in Claude Code session, 2026-10-08)",
+    "exception": {
+      "approver": "research admin xshoner@gmail.com (user instruction in Claude Code session, 2026-10-08)",
+      "reason": "사용자 결정: holdout(locked -4%, temporal -14%) 회귀로 gate 를 통과하지 못한 MLP 를 측정에 적용하지 않는 shadow 모드로 올려 실기기 지연·출력 분포 자료를 모은다. active 승격 불가.",
+      "approvedAt": "2026-10-08T02:44:43.378586+00:00",
+      "gateFailed": [
+        "locked-test-no-regression",
+        "temporal-test-no-regression"
+      ],
+      "note": "Human-approved deviation from release_policy. This model regressed on locked/temporal tests; it must never be promoted to active without a passing prospective evaluation."
+    },
+    "approvedAt": "2026-10-08T02:45:22.332629+00:00"
+  },
   "candidates": [],
   "history": [
     {
@@ -13,6 +36,19 @@
       "state": "no-model",
       "reason": "no eligible training data has been audited yet; baseline engine (In_mind core 2.3 pipeline) remains the only gaze estimator",
       "actor": "developer"
+    },
+    {
+      "at": "2026-10-08T02:45:22.332629+00:00",
+      "event": "shadow-exception-approved",
+      "id": "gaze-residual-a05c5d16-mlp-shadowx",
+      "state": "shadow",
+      "actor": "research admin xshoner@gmail.com (user instruction in Claude Code session, 2026-10-08)",
+      "reason": "사용자 결정: holdout(locked -4%, temporal -14%) 회귀로 gate 를 통과하지 못한 MLP 를 측정에 적용하지 않는 shadow 모드로 올려 실기기 지연·출력 분포 자료를 모은다. active 승격 불가.",
+      "gateFailed": [
+        "locked-test-no-regression",
+        "temporal-test-no-regression"
+      ],
+      "note": "Policy exception approved by the research admin. SHADOW ONLY: outputs (sx,sy) are recorded in research sessions and never applied to measurement or display. Promotion to active requires a passing prospective evaluation with subject-linked sessions. Rollback = set shadow to null in a reviewed commit."
     }
   ]
 }

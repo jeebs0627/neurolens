@@ -138,3 +138,12 @@ py -3 tools\newbiz_research_export_test.py                  # 4 OK (페이지네
 - 배치가 끝나면 `python -m nlcolab publish-ledger <work_dir>` 가 `work/ledger-entry.json` 을 원장에 병합한다(같은 runId 는 교체). 이 파일을 commit·배포하면 대시보드가 갱신된다.
 - 대시보드 카드: ① 딥러닝 모델 작동 상태(registry active/shadow/꺼짐) ② 현장 작동 기록(불러온 세션의 `meta.gazeModel` 모드·지연·추론 수) ③ 최근 학습 실행(상태·선택 모델·gate) ④ 학습 데이터 규모. 그 아래 실행별 중앙 오차(기존 엔진 vs 선택 모델, val·locked test)와 데이터 규모 차트, 실행 표, 최근 실행 상세(모델별 지표·분할·bootstrap·rPPG), 세션 집계, 다음 작업, registry.
 - 읽는 법: ‘개선’은 같은 정책 아래 같은 지표의 실행 간 변화뿐이다. 실행 1회는 기준점이다. val 만 좋아지고 locked/temporal 이 나빠지면 등록되지 않는다. 오차는 표적 proxy 기준 px 이며 외부 eye tracker 정확도가 아니다. ‘작동 중’은 registry 와 현장 세션의 모드 기록으로만 판단한다.
+
+## 10. shadow 정책 예외 기록 (2026-10-08)
+
+연구 관리자가 "1번 먼저 진행해줘"(shadow 배포)로 **정책 예외**를 승인했다. 대상은 §8 의 MLP(`gaze-residual-a05c5d16-mlp-shadowx`, 4,770 파라미터, ONNX 19,730 bytes, opset 17). gate 실패 항목(locked/temporal 회귀), 승인자, 사유, 시각은 manifest `release.exception` 과 `model-registry.json` history(`shadow-exception-approved`)에 남겼다.
+
+- 적용 범위: **shadow 전용**. 검사 시작 시 모델을 고정하고 추론 결과를 `sx,sy` 열에 기록할 뿐 측정 좌표·표시 커서에는 쓰지 않는다. `release.maxState = shadow`. active 승격은 subjectKey 가 있는 prospective 평가를 통과해야 한다.
+- 실기기 확인(헤드리스 Edge · 로컬 서버): ONNX Runtime Web 1.22.0 WASM 로드 625 ms, 테스트 벡터 5개 일치, 추론 평균 0.09 ms · 최대 0.3 ms. 합성 입력에서는 guard 가 보정량을 15 % 상한에서 잘랐다(`capped`) — 실제 세션의 guard 사유 분포는 `meta.gazeModel.guardReasons` 로 쌓인다.
+- 이 과정에서 `condition-gaze-model.js` 의 스코프 결함(UMD `root` 를 팩토리 안에서 참조 → registry 에 모델이 있을 때 항상 fail-closed)을 발견해 수정했다. registry 가 비어 있던 동안에는 드러나지 않았다.
+- rollback: `model-registry.json` 의 `shadow` 를 `null` 로 되돌리는 commit → 배포. 진행 중 세션은 영향 없음.

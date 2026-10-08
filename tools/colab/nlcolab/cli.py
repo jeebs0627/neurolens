@@ -32,6 +32,7 @@ def main(argv=None):
     p = sub.add_parser("import"); p.add_argument("raw_dir"); p.add_argument("sources", nargs="+")
     for name in ("audit", "snapshot", "train-gaze", "train-rppg", "run"):
         p = sub.add_parser(name); p.add_argument("raw_dir"); p.add_argument("work_dir"); p.add_argument("--allow-synthetic", action="store_true"); p.add_argument("--no-mlp", action="store_true"); p.add_argument("--no-resume", action="store_true"); p.add_argument("--seed", type=int, default=20261008)
+        p.add_argument("--exception-model", default=None, help="human-approved policy exception: package this model for SHADOW only even if the gate fails"); p.add_argument("--exception-approver", default=None); p.add_argument("--exception-reason", default=None)
     p = sub.add_parser("status"); p.add_argument("work_dir")
     p = sub.add_parser("publish-ledger"); p.add_argument("work_dir"); p.add_argument("--ledger", default=None, help="repo training-ledger.json (default: <repo>/training-ledger.json)")
     a = ap.parse_args(argv)
@@ -70,7 +71,10 @@ def main(argv=None):
         print(json.dumps(load_json(st) if st.exists() else {"status": "no-run"}, ensure_ascii=False, indent=2))
         return 0
     from .pipeline import Pipeline  # noqa: PLC0415  (numpy/torch only needed from here on; login/export/import run on plain Python)
-    pl = Pipeline(a.raw_dir, a.work_dir, allow_synthetic=a.allow_synthetic, use_mlp=not a.no_mlp, seed=a.seed)
+    exc = {"model": a.exception_model, "approver": a.exception_approver, "reason": a.exception_reason} if getattr(a, "exception_model", None) else None
+    if exc and not (exc["approver"] and exc["reason"]):
+        ap.error("--exception-model requires --exception-approver and --exception-reason")
+    pl = Pipeline(a.raw_dir, a.work_dir, allow_synthetic=a.allow_synthetic, use_mlp=not a.no_mlp, seed=a.seed, package_exception=exc)
     if a.cmd == "audit":
         pl.audit()
     elif a.cmd == "snapshot":
