@@ -757,7 +757,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="p"><div class="num">9,200<b>명+@</b></div><div class="lb">AI 학습 데이터</div></div>
       <div class="p"><div class="num">19<b>개 지표</b></div><div class="lb">In_mind · 시선·심박·생체반응 동시 측정</div></div>
       <div class="p"><div class="num">1,600<b>명</b></div><div class="lb">경기도 8개교 현장 실증</div></div>
-      <div class="p"><div class="num">AUC <b>0.819</b></div><div class="lb">정서적 스트레스 신호 선별(실증)</div></div>
+      <div class="p"><div class="num">AUC <b>0.83~0.84</b></div><div class="lb">PHQ-9 우울위험 선별 · 엄격한 검증</div></div>
       <div class="p im"><div class="num">기술<b>백서</b></div><div class="lb">In_mind 알고리즘 · 검증 절차 공개</div></div>
       <div class="p im"><div class="num">IRB<b> 준비</b></div><div class="lb">컨디션 AI · 동의 기반 연구 데이터로 규준 수립</div></div>
     </div>
@@ -1065,24 +1065,24 @@ footer p{font-size:12.5px;color:var(--gray)}
   <div class="wrap">
     <span class="eyebrow">Validation</span>
     <h2 class="sec">검사마다 근거를 투명하게 —<br>검증된 성능과 <em>근거 기반 설계</em></h2>
-    <div class="ltabs" role="tablist" aria-label="검증 근거 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사 · 내부 검증 AUC 0.74~0.82</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 AI 컨디션 검사 · In_mind</button></div>
+    <div class="ltabs" role="tablist" aria-label="검증 근거 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사 · 엄격한 검증 AUC 0.62~0.84</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 AI 컨디션 검사 · In_mind</button></div>
     <div class="lpanel" data-panel="t">
 
     <div class="vgrid">
       <div class="vcard">
-        <div class="vh" style="background:var(--grad-blue)"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-8.7-9C2.2 8.5 4.5 5.6 7.5 5.6c1.9 0 3.4 1 4.5 2.5 1.1-1.5 2.6-2.5 4.5-2.5 3 0 5.3 2.9 4.2 6.4C19 16.6 12 21 12 21z"/></svg>정서적 스트레스 신호 (EARP)</div>
+        <div class="vh" style="background:var(--grad-blue)"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-8.7-9C2.2 8.5 4.5 5.6 7.5 5.6c1.9 0 3.4 1 4.5 2.5 1.1-1.5 2.6-2.5 4.5-2.5 3 0 5.3 2.9 4.2 6.4C19 16.6 12 21 12 21z"/></svg>PHQ-9 우울위험 선별 (EARP)</div>
         <div class="vb">
-          <div class="big" style="color:var(--blue)">AUC 0.819</div>
-          <div class="sub-metric"><span>Recall 82.9%</span><span>NPV 92.8%</span></div>
-          <div class="bench">참고 벤치마크 <b>(시선 단독) 0.55~0.60</b> 대비 경쟁력 있는 성능</div>
+          <div class="big" style="color:var(--blue)">AUC 0.83<span style="font-size:.55em">~</span>0.84</div>
+          <div class="sub-metric"><span>Recall 81~88%</span><span>Specificity 64%</span><span>NPV 95~97%*</span></div>
+          <div class="bench"><b>Nested CV · OOF · 순열 검증</b> 통과 · 참고 벤치마크 (시선 단독) 0.55~0.60</div>
         </div>
       </div>
       <div class="vcard">
         <div class="vh" style="background:var(--grad-violet)"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c.8-3.6 3.9-5.5 7.5-5.5s6.7 1.9 7.5 5.5"/></svg>Big Five (OCEAN) · 성인</div>
         <div class="vb">
-          <div class="big" style="color:var(--violet)">AUC 0.727<span style="font-size:.55em">~</span>0.753</div>
-          <div class="sub-metric"><span>학생 0.701(남)~0.704(여)</span></div>
-          <div class="bench">참고 벤치마크 <b>(텍스트 기반) 35~53%</b> 대비 경쟁력</div>
+          <div class="big" style="color:var(--violet)">AUC 0.62<span style="font-size:.55em">~</span>0.84</div>
+          <div class="sub-metric"><span>남성 0.705~0.841</span><span>여성 0.620~0.684</span></div>
+          <div class="bench"><b>성별·특성·Hz별</b> 분리 보고 · 보수적 검증</div>
         </div>
       </div>
       <div class="vcard">
@@ -1098,7 +1098,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <div class="support-row">
       <div class="support-box">
         <h4>SUPPORTING</h4>
-        <div class="line">MBTI 4-letter 완전 일치 <b>70.8%</b> · 3차원 이상 <b>97.9%</b> <span style="font-size:12px;color:var(--gray2)">(내부 검증 기준)</span></div>
+        <div class="line">MBTI 후보 <b>78.6%</b> · Top-3 후보 내 3글자 이상 일치 · CareerFit Top-3 <b>78.3%</b> (무작위 45.8%) <span style="font-size:12px;color:var(--gray2)">(보수적 검증 기준)</span></div>
       </div>
       <div class="support-box ext">
         <h4>EXTERNAL VALIDATION</h4>
@@ -1122,17 +1122,19 @@ footer p{font-size:12.5px;color:var(--gray)}
         <table>
           <thead><tr><th>검사</th><th>성능 지표</th><th>수치</th><th>1줄 해석</th></tr></thead>
           <tbody>
-            <tr><td>Big5 (성인 남성)</td><td>AUC (전체 판별력)</td><td class="pv">0.727</td><td>위험군/정상군 구분의 전체 판별력. 1.0 만점. 학계 평균 0.704 상회.</td></tr>
-            <tr><td>Big5 (성인 여성)</td><td>AUC (전체 판별력)</td><td class="pv">0.753</td><td>수천 회 반복 검증으로 편향 제거. 해외사 0.73 동등 이상.</td></tr>
-            <tr><td>MBTI</td><td>4개 요소 완전 일치율</td><td class="pv">70.8%</td><td>16개 유형 4글자 모두 일치. 학계 텍스트 기반 35~53% 대비 1.3~2.0배.</td></tr>
+            <tr><td>Big5 (성인 남성)</td><td>AUC (전체 판별력)</td><td class="pv">0.705~0.841</td><td>성격 특성(OCEAN)·측정 Hz별 범위. 1.0 만점. Nested CV·OOF 기반 보수적 검증.</td></tr>
+            <tr><td>Big5 (성인 여성)</td><td>AUC (전체 판별력)</td><td class="pv">0.620~0.684</td><td>성격 특성·측정 Hz별 범위. 누수·선택 낙관을 줄인 보수적 검증 결과를 그대로 공개.</td></tr>
+            <tr><td>MBTI</td><td>후보 일치율</td><td class="pv">78.6%</td><td>예측 상위 3개 후보 안에 실제 유형과 3글자 이상 일치하는 후보가 포함된 비율.</td></tr>
             <tr><td>RIASEC (직업흥미 유형)</td><td>Top3 적중률</td><td class="pv">89.6%</td><td>실제 1·2순위가 예측 상위 3 안에 포함. 통계적 유의 (p=0.019). (고양 낙민초 5~6학년 실증)</td></tr>
-            <tr><td>커리어 적합도</td><td>Top-10 적중률</td><td class="pv">86.7%</td><td>263개 직업 중 실제 1순위가 예측 Top-10 안에 포함. 동종 15~35% 대비 우위.</td></tr>
-            <tr><td>정서적 어려움</td><td>AUC (전체 판별력)</td><td class="pv">0.819</td><td>내부 반복 검증 기준.</td></tr>
-            <tr><td>정서적 어려움</td><td>Recall (위험군 포착)</td><td class="pv">82.9%</td><td>실제 위험군 100명 중 약 83명을 놓치지 않고 찾아냄. (비진단적 1차 선별)</td></tr>
-            <tr><td>정서적 어려움</td><td>NPV (안전판정 신뢰도)</td><td class="pv">92.8%</td><td>안전(정상) 판정 100명 중 약 93명이 실제 안전(정상). 1차 필터로 신뢰 가능.</td></tr>
+            <tr><td>커리어 적합도</td><td>Top-3 적중률</td><td class="pv">78.3%</td><td>실제 1순위가 예측 Top-3 안에 포함된 비율. 무작위 기준 45.8%.</td></tr>
+            <tr><td>PHQ-9 우울위험</td><td>AUC (전체 판별력)</td><td class="pv">0.83~0.84</td><td>Nested CV·OOF·순열 검증 기준 연구 모델(여성 ≥24Hz 0.84 · 남성 전체 0.83). 진단이 아닌 위험 선별.</td></tr>
+            <tr><td>PHQ-9 우울위험</td><td>Recall (위험군 포착)</td><td class="pv">81~88%</td><td>실제 위험군 100명 중 약 81~88명을 놓치지 않고 찾아냄. (비진단적 1차 선별)</td></tr>
+            <tr><td>PHQ-9 우울위험</td><td>Specificity (비위험군 구분)</td><td class="pv">64%</td><td>실제 비위험군 100명 중 약 64명을 "위험 아님"으로 구분.</td></tr>
+            <tr><td>PHQ-9 우울위험</td><td>NPV (안전판정 신뢰도)</td><td class="pv">95~97%*</td><td>"위험 아님" 판정 100명 중 약 95~97명이 실제 비위험(유병률 15% 가정). 1차 필터로 신뢰 가능.</td></tr>
           </tbody>
         </table>
       </div>
+      <p style="font-size:12px;color:var(--gray2);margin:10px 4px 0;line-height:1.6">* NPV는 PHQ-9 기반 full multimodal model(HEXACO 성격 5개 + 정규화 안구 특징 3개)에 현장 유병률 15%를 가정한 값입니다. 우울증 ‘진단’이 아닌 PHQ-9 기준 우울위험 선별 연구 모델입니다. 모든 수치는 2025년 개발단계 대비 검증 기준을 강화한(Nested CV · OOF · 순열 검증 · fold 내부 전처리) 보수적 결과입니다.</p>
     </div>
 
     <!-- 용어 해설 -->
@@ -1140,8 +1142,8 @@ footer p{font-size:12.5px;color:var(--gray)}
       <h4><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.5 2.5 0 1 1 3.4 2.3c-.7.3-.9.8-.9 1.6M12 16.5h.01"/></svg>지표 용어, 쉽게 풀면</h4>
       <div class="gl-grid">
         <div class="gl"><b>AUC</b>위험군과 비위험군을 얼마나 잘 구분하는지 나타내는 지표. 1.0이면 완벽한 구분, 0.5는 동전 던지기 수준의 무작위입니다. 0.8대는 선별 검사로서 우수한 수준입니다.</div>
-        <div class="gl"><b>Recall (민감도)</b>실제 위험군 100명 중 검사가 놓치지 않고 찾아낸 비율. 82.9%라면 100명 중 약 83명을 정확히 포착한다는 의미로, 선별 검사에서 가장 중요한 지표입니다.</div>
-        <div class="gl"><b>NPV (음성예측도)</b>검사에서 "위험 아님"으로 판정된 사람이 실제로도 비위험일 확률. 92.8%는 '괜찮다'는 결과를 그만큼 믿을 수 있다는 뜻입니다.</div>
+        <div class="gl"><b>Recall (민감도)</b>실제 위험군 100명 중 검사가 놓치지 않고 찾아낸 비율. 81~88%라면 100명 중 약 81~88명을 포착한다는 의미로, 선별 검사에서 가장 중요한 지표입니다.</div>
+        <div class="gl"><b>NPV (음성예측도)</b>검사에서 "위험 아님"으로 판정된 사람이 실제로도 비위험일 확률. 95~97%(유병률 15% 가정)는 '괜찮다'는 결과를 그만큼 믿을 수 있다는 뜻입니다.</div>
       </div>
     </div>
 
