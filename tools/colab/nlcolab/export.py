@@ -57,10 +57,8 @@ def interactive_token(url: str = DEFAULT_URL, anon: str = DEFAULT_ANON, email: s
     import sys  # noqa: PLC0415
     if not sys.stdin.isatty():
         # Claude Code의 `!` 실행이나 파이프에는 키보드 입력이 없어 getpass 가 영원히 기다린다 → 바로 안내하고 종료
-        raise SystemExit("비밀번호를 입력받을 터미널이 없습니다. Windows 터미널(PowerShell)을 직접 열어 같은 명령을 실행하세요:
-"
-                         "  cd C:\Users\Curioud\Desktop\neurolens-main
-  py -3 tools\colab\export.py training\raw --email xshoner@gmail.com")
+        raise SystemExit("비밀번호를 입력받을 터미널이 없습니다. Windows 터미널(PowerShell)을 직접 열어 같은 명령을 실행하세요:\n"
+                         "  cd <저장소 폴더>\n  py -3 tools\\colab\\export.py training\\raw --email <연구 관리자 이메일>")
     email = email or input("연구 관리자 이메일: ").strip()
     return sign_in(url, anon, email, getpass.getpass("비밀번호 (입력이 보이지 않음): "))
 
