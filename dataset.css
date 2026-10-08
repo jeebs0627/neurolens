@@ -6,3 +6,9 @@
 
 /* 06 학습 대시보드 */
 .dash-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0 6px}.dash-card{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fbfcfe;min-width:0}.dash-card small{display:block;color:var(--muted);font-size:11px}.dash-card strong{display:block;font-size:20px;margin:6px 0 4px;color:#173e48;overflow-wrap:anywhere}.dash-card span{font-size:12px;color:#4d6274;overflow-wrap:anywhere}.dash-card.ok{border-color:#9fd3bf;background:#eefaf4}.dash-card.warn{border-color:#f0cf8a;background:#fff8e8}.dash-card.off{border-color:#d9dee7;background:#f6f8fb}.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:12px 0}.dash-grid>div{min-width:0}.chart-empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}@media(max-width:800px){.dash-cards{grid-template-columns:1fr 1fr}.dash-grid{grid-template-columns:1fr}}
+
+/* 05 검사별 누적 · 측정 환경 메모 */
+.env-cell{min-width:180px}.env-cell button{padding:2px 10px;font-size:12px;margin-left:4px}
+.env-dialog{border:1px solid var(--line);border-radius:14px;padding:20px;max-width:min(560px,94vw);width:100%}.env-dialog::backdrop{background:#0e1a3366}
+.env-dialog form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 14px}.env-dialog label{display:flex;flex-direction:column;gap:4px;font-size:13px}.env-dialog label:last-of-type{grid-column:1/-1}
+.env-dialog .env-actions{order:99;grid-column:1/-1;display:flex;gap:8px}

@@ -18,6 +18,10 @@
       "destination": "/condition.html"
     },
     {
+      "source": "/datacollection",
+      "destination": "/datacollection.html"
+    },
+    {
       "source": "/checkin",
       "destination": "/indexadmin.html"
     },
@@ -69,7 +73,7 @@
       ]
     },
     {
-      "source": "/(dataset|admin|chat_admin|chat|indexadmin|report|result|resultadmin|test)\\.html",
+      "source": "/(dataset|datacollection|admin|chat_admin|chat|indexadmin|report|result|resultadmin|test)\\.html",
       "headers": [
         {
           "key": "X-Robots-Tag",

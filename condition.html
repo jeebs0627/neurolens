@@ -553,6 +553,12 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
 .preview .guide-msg{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(14,26,51,.72);color:#fff;font-size:12.5px;font-weight:700;border-radius:999px;padding:5px 12px;white-space:nowrap;z-index:2;max-width:94%;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:820px), (pointer:coarse) and (max-height:820px){.preview .guide-msg{white-space:normal;text-align:center;border-radius:12px;width:max-content;line-height:1.35}}
 .preview .guide-msg.ok{background:rgba(31,122,90,.85)}
+/* 거리 막대: 얼굴 폭으로 잰 현재 거리(점)와 적정 구간(초록) */
+.dist{display:flex;align-items:center;gap:8px;margin:8px auto 0;max-width:420px;font-size:12px;color:var(--muted)}
+.dist-bar{position:relative;flex:1;height:10px;border-radius:99px;background:#E1E6EF}
+.dist-bar i{position:absolute;left:22.5%;width:52.5%;top:0;bottom:0;border-radius:99px;background:#BFE9D2}
+.dist-bar b{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--amber);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);display:none}
+.dist-bar b.ok{background:#1F9D63}.dist-bar b.on{display:block}
 
 /* ---------- 측정 무대 고도화 ---------- */
 @keyframes cardIn{from{opacity:0;transform:translate(-50%,calc(-50% + 14px))}to{opacity:1;transform:translate(-50%,-50%)}}
@@ -1147,7 +1153,8 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
     <div class="setup">
       <div>
         <div class="preview"><video id="camPreview" playsinline muted></video><canvas id="overlay"></canvas><div class="guide-msg" id="guideMsg" hidden></div></div>
-        <p class="small muted" style="margin:8px 2px 0">가로·세로 기준선이 만나는 곳에 코끝을, 점선 타원 안에 얼굴을 맞춰 주세요 · 초록 점: 홍채 · 분홍 상자: 심박을 읽는 피부 영역</p>
+        <div class="dist" id="distBox" hidden aria-hidden="true"><span>멀리</span><div class="dist-bar"><i></i><b id="distMark"></b></div><span>가까이</span></div>
+        <p class="small muted" style="margin:8px 2px 0">초록 점(내 눈동자)을 <b>흰 동그라미 두 개</b>에 맞추면 위치와 거리가 함께 맞아요 · 점선 타원 안에 얼굴 전체 · 분홍 상자: 심박을 읽는 피부 영역</p>
       </div>
       <div>
         <ul class="checks">
@@ -1227,6 +1234,7 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 <script src="condition-research-store.js"></script>
 <script src="condition-labels.js"></script>
 <script src="condition-gaze-model.js"></script>
+<script src="collect-env.js"></script>
 <script type="module">
 const N = window.NLNewbiz, B = window.NLBattery, R = window.NLReport;
 const MP_VER = '0.10.14';
@@ -1412,6 +1420,27 @@ if (LAB_Q !== null) {
     if (!S.stream && !$('camStart').disabled) $('camStart').click();
   });
 }
+/* ---------- 데이터 수집 모드 (datacollection.html → ?collect=gaze|rppg|label) ----------
+ * 체크인·검사 고르기 없이 카메라 준비(거리·자세 확인) → 모듈 하나만 측정 → 수집 요약. 기록은 연구 실측(lab)과 같은 경로로
+ * dataset 에 쌓이고, protocol.collect 에 모듈과 수집 페이지에서 적은 측정 환경 메모가 붙는다 */
+const COLLECT_MODS = {
+  gaze: { label: '시선 보정', lab: ['calibration'] },
+  /* 공명 호흡(분당 6회) 2분: 알려진 0.1Hz 호흡 리듬이 심박 출렁임(RSA)의 기준이 되고, 가운데 원을 보므로 머리가 고정된다 */
+  rppg: { label: 'rPPG 호흡 따라하기', lab: ['recovery'], dur: { recovery: 120 } },
+  label: { label: '시선 라벨' },
+};
+const COLLECT_KEY = new URLSearchParams(location.search).get('collect');
+if (Object.hasOwn(COLLECT_MODS, COLLECT_KEY) && (COLLECT_KEY === 'label') === LABEL_MODE) {
+  const m = COLLECT_MODS[COLLECT_KEY];
+  S.collect = { module: COLLECT_KEY, page: 'datacollection-1', env: NLCollectEnv.load(), ...(m.dur ? { dur: m.dur } : {}) };
+  if (LABEL_MODE) Object.assign(S, { demo: false, lab: null, sessionKind: 'gaze-label', mode: 'full', mods: { alert: false, oculo: false, sustain: false, core: false }, checkin: {} });
+  else Object.assign(S, { demo: false, lab: m.lab, sessionKind: 'condition', mode: 'full', mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {} });
+  document.querySelector('#sSetup .flow').style.display = 'none';
+  document.querySelector('#sSetup .kicker').textContent = `Data Collection · ${m.label} 수집`;
+  document.querySelector('#sSetup [data-back]').replaceWith(Object.assign(document.createElement('a'), { className: 'btn ghost', href: 'datacollection.html', textContent: '수집 메뉴로' }));
+  show('sSetup');
+  setTimeout(() => { if (!S.stream && !$('camStart').disabled) $('camStart').click(); });   // 카메라 버튼 처리기는 이 아래에서 등록된다
+}
 $('goDemo').addEventListener('click', () => { S.demo = true; S.lab = null; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
 $('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
 function openSimReport(persona, mode, opt = {}) {
@@ -1553,6 +1582,9 @@ $('camStart').addEventListener('click', async () => {
     procVideo.classList.add('on');
     await Promise.all([procVideo.play(), prevVideo.play()]);
     fitPreview(); prevVideo.onresize = fitPreview;   // 휴대폰 회전 시 영상 비율이 바뀐다
+    /* 기준선·눈동자 목표·거리 안내는 영상이 나오자마자 그린다. 얼굴 인식 모델(휴대폰에서 10초 이상)을 기다리면
+     * 그동안 안내 없는 카메라 화면만 보여 거리·자세를 잡을 수 없었다 */
+    if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }
     phase = 'model';
     S.camera = new NLCamera(procVideo, {
       base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
@@ -1565,7 +1597,7 @@ $('camStart').addEventListener('click', async () => {
     });
     await S.camera.init(); S.camT0 = now(); S.featMiss = 0; clockSegment('camera-init', { backend: S.camera.info.backend });
     st.textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';
-    startLoop(); if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }
+    startLoop();
   } catch (e) {
     S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); S.stream = null;
     st.className = 'status err';
@@ -1672,14 +1704,22 @@ function drawOverlay() {
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭) */
-    const pos = posCheck(), okc = pos && pos.ok;
+    /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭).
+     * 밝은 배경·작은 휴대폰 화면에서도 보이게 어두운 그림자를 깔고 휴대폰에서는 선을 굵게 */
+    const pos = posCheck(), okc = pos && pos.ok, lw = MOBILE ? 1.6 : 1;
     ctx.save();
-    ctx.setLineDash([7, 6]); ctx.lineWidth = 1.5; ctx.strokeStyle = okc ? 'rgba(59,227,138,.85)' : 'rgba(255,255,255,.6)';
+    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 3;
+    ctx.setLineDash([7, 6]); ctx.lineWidth = 1.5 * lw; ctx.strokeStyle = okc ? 'rgba(59,227,138,.9)' : 'rgba(255,255,255,.75)';
     ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.moveTo(0, H * POS.cy); ctx.lineTo(W, H * POS.cy); ctx.stroke();
-    ctx.setLineDash([4, 6]); ctx.lineWidth = 2.5;
+    ctx.setLineDash([4, 6]); ctx.lineWidth = 2.5 * lw;
     ctx.beginPath(); ctx.ellipse(W / 2, H * POS.cy, H * (4 / 3) * POS.rx, H * POS.ry, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
+    /* 눈동자 목표: 적정 거리(얼굴 폭 기준 구간의 가운데)에서 두 눈동자가 올 자리. 눈 간격·눈 높이 비율은 인식된 얼굴에서
+     * 천천히 읽어 맞추고, 인식 전에는 평균 비율을 쓴다 → 초록 점을 두 고리에 맞추면 좌우·높이·거리가 함께 맞는다 */
+    const fwIdeal = (POS.fwMin + POS.fwMax) / 2 / (videoAspect() / (4 / 3)) * W;
+    const half = EYE.sep * fwIdeal / 2, ty = H * POS.cy + EYE.dy * fwIdeal, rr = Math.max(9, fwIdeal * 0.08);
+    ctx.lineWidth = 2.5 * lw; ctx.strokeStyle = okc ? '#3BE38A' : 'rgba(255,255,255,.95)';
+    [W / 2 - half, W / 2 + half].forEach(x => { ctx.beginPath(); ctx.arc(x, ty, rr, 0, 7); ctx.stroke(); });
     if (S.feat && now() - S.lastFace < 500) {
       const fx = S.feat.cx * W, fy = S.feat.cy * H;
       ctx.strokeStyle = okc ? '#3BE38A' : '#FFC24A'; ctx.lineWidth = 2;
@@ -1687,15 +1727,28 @@ function drawOverlay() {
       ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(W / 2, H * POS.cy); ctx.globalAlpha = 0.5; ctx.stroke();
     }
     ctx.restore();
-    const lm = S.lastLm;
+    const lm = S.lastLm, fresh = S.feat && now() - S.lastFace < 500;
     if (lm) {
       ctx.fillStyle = 'rgba(255,255,255,.35)';
       for (let i = 0; i < 468; i += 3) ctx.fillRect(lm[i].x * W - 1, lm[i].y * H - 1, 2, 2);
-      ctx.fillStyle = '#3BE38A';
-      [468, 473].forEach(i => { ctx.beginPath(); ctx.arc(lm[i].x * W, lm[i].y * H, 4, 0, 7); ctx.fill(); });
+      ctx.fillStyle = '#3BE38A'; ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 1.5;
+      [468, 473].forEach(i => { ctx.beginPath(); ctx.arc(lm[i].x * W, lm[i].y * H, 4 * lw, 0, 7); ctx.fill(); ctx.stroke(); });
       ctx.strokeStyle = '#FF7A99'; ctx.lineWidth = 2;
       (S.rois || []).forEach(r => ctx.strokeRect(r.x * W, r.y * H, r.w * W, r.h * H));
+      if (fresh) {
+        const fwPx = S.feat.fw * W, sep = Math.hypot((lm[468].x - lm[473].x) * W, (lm[468].y - lm[473].y) * H) / fwPx, dy = ((lm[468].y + lm[473].y) / 2 - S.feat.cy) * H / fwPx;
+        if (sep > 0.3 && sep < 0.6) EYE.sep += 0.05 * (sep - EYE.sep);
+        if (dy > -0.4 && dy < 0.05) EYE.dy += 0.05 * (dy - EYE.dy);
+      }
     }
+    /* 거리 막대: 얼굴 폭(4:3 기준값)을 0.08~0.48 범위에 놓는다. 초록 구간 = POS.fwMin~fwMax */
+    const dm = $('distMark');
+    $('distBox').hidden = !S.stream;
+    if (fresh) {
+      const r = S.feat.fw * (videoAspect() / (4 / 3));
+      dm.style.left = (Math.min(1, Math.max(0, (r - 0.08) / 0.4)) * 100).toFixed(1) + '%';
+      dm.className = 'on' + (r >= POS.fwMin && r <= POS.fwMax ? ' ok' : '');
+    } else dm.className = '';
     requestAnimationFrame(draw);
   };
   requestAnimationFrame(draw);
@@ -1703,6 +1756,8 @@ function drawOverlay() {
 /* 얼굴 위치·거리 판정: 화면은 거울처럼 보이므로 안내 방향도 거울 기준 */
 /* 얼굴 폭·타원은 영상 높이에 비례하되 4:3 기준값을 그대로 보존한다. */
 const POS = { cy: 0.48, rx: 0.17, ry: 0.32, tol: 0.08, fwMin: 0.17, fwMax: 0.38 };
+/* 눈동자 목표용 얼굴 비율(얼굴 폭 대비): 두 눈동자 간격, 얼굴 중심에서 눈 높이까지(위가 −). 인식된 얼굴로 갱신 */
+const EYE = { sep: 0.45, dy: -0.15 };
 const videoAspect = (video = procVideo) => (video.videoWidth > 0 && video.videoHeight > 0) ? video.videoWidth / video.videoHeight : 4 / 3;
 /* 미리보기 칸을 실제 영상 비율에 맞춘다: 잘림(object-fit:cover)이 없어야 기준선·홍채·피부 영역이 얼굴 위에 정확히 겹친다 */
 function fitPreview() {
@@ -1734,7 +1789,7 @@ function liveHrNow(frames, key = 'setup') {
   return { ...est, bpm: Math.round(v) };
 }
 function setupTicker() {
-  setInterval(() => {
+  const tick = () => {
     if ($('sSetup').hidden) return;
     const t = now(), faceOk = t - S.lastFace < 500;
     const recent = S.buf.filter(f => f.ok && f.t > t - 2000);
@@ -1749,7 +1804,7 @@ function setupTicker() {
     const pos = posCheck(), gm = $('guideMsg');
     setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';
     gm.hidden = !S.stream;
-    gm.textContent = pos ? pos.msg : MOBILE ? '얼굴을 찾는 중 · 휴대폰을 눈높이로, 타원 안에 얼굴 전체가 보이게' : '얼굴을 찾는 중 · 타원 안에 얼굴 전체가 보이게 해 주세요';
+    gm.textContent = pos ? pos.msg : !S.camT0 ? '얼굴 인식 준비 중 · 먼저 흰 동그라미 두 개에 눈을 맞춰 보세요' : MOBILE ? '얼굴을 찾는 중 · 휴대폰을 눈높이로, 타원 안에 얼굴 전체가 보이게' : '얼굴을 찾는 중 · 타원 안에 얼굴 전체가 보이게 해 주세요';
     gm.className = 'guide-msg' + (pos && pos.ok ? ' ok' : '');
     const lightOk = lum >= 70 && lum <= 215;
     setDot('dLight', !Number.isFinite(lum) ? '' : lightOk ? 'ok' : 'warn');
@@ -1763,7 +1818,8 @@ function setupTicker() {
         : live.quality === 'good' ? '카메라만으로 심박이 안정적으로 잡히고 있어요' : live.quality === 'fair' ? '심박 신호를 읽는 중이에요. 움직임을 줄여 주세요' : '신호가 약해요. 조명을 밝게 하고 정면을 봐 주세요';
     }
     $('goRun').disabled = !faceOk;
-  }, 1000);
+  };
+  tick(); setInterval(tick, 1000);
 }
 $('goRun').addEventListener('click', () => runSession());
 
@@ -1989,7 +2045,7 @@ const V = {
   calm: '<svg viewBox="0 0 300 170"><defs><linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9E2EC"/><stop offset="1" stop-color="#EEF1F5"/></linearGradient></defs><rect x="6" y="6" width="288" height="158" rx="10" fill="url(#cg1)"/><path d="M6 104 L60 70 L100 92 L150 58 L206 96 L246 74 L294 100 V112 H6Z" fill="#CBD5E1"/><rect x="6" y="110" width="288" height="54" fill="#DCE4EC"/><path class="a-swing" d="M60 130 q20 -6 40 0 t40 0" fill="none" stroke="#EEF2F6" stroke-width="3" style="animation-duration:9s"/><circle cx="150" cy="96" r="4" fill="#7C88A2"/></svg>',
 };
 function stepInfo(key) {
-  const d = B.DUR[S.mode], P = B.PROTOCOL;
+  const d = { ...B.DUR[S.mode], ...(S.collect?.dur || {}) }, P = B.PROTOCOL;
   const I = {
     calibration: { tag: '측정 준비 · Gaze calibration', title: '시선 보정 · 영점 조정', vis: V.cal, time: '약 1분 25초', resp: '눈으로 바라보기 · 따라가기',
       what: '눈과 머리 자세를 화면 좌표에 맞춰, 화면의 어느 곳을 보고 있는지 추정할 수 있게 합니다. 이후 모든 시선 검사의 정확도를 좌우하는 단계라 네 가지 방법을 겹쳐 쓰고, 검사 중에도 응시점이 나올 때마다 영점을 자동으로 다시 맞춥니다.',
@@ -2032,7 +2088,7 @@ function stepInfo(key) {
       orig: '이 라벨은 ‘표적을 보려 했다’는 <b>의도의 기록</b>이에요. 눈이 실제로 그 좌표에 있었는지 재는 외부 시선 추적기 측정이 아니라서, 학습·평가 보고서에서는 proxy 라벨로 구분해요. 눈 깜빡임·얼굴 손실·화면 이탈·창 크기 변경 구간은 자동으로 제외돼요.',
       ref: 'Sugano et al., 2015 · Huang et al., 2016 (상호작용 기반 보정 자료)', cta: '준비됐어요 · 시작' },
     recovery: { tag: 'Domain 4 · 자율신경 조절', title: '공명 호흡 회복', vis: V.breath, time: `${d.recovery}초`, resp: '호흡 따라 하기',
-      what: '분당 6회 호흡을 따라 하는 동안, 압박으로 오른 심박이 얼마나 되돌아오고 호흡에 맞춰 출렁이는지로 회복력과 자율신경 조절을 봅니다.',
+      what: S.collect ? '분당 6회 호흡을 따라 하는 동안 카메라로 심박을 읽어요. 호흡에 맞춰 출렁이는 심박(호흡성 동부정맥)과 신호 품질을 연구 자료로 모읍니다. 가운데 원을 바라보고 머리는 움직이지 마세요.' : '분당 6회 호흡을 따라 하는 동안, 압박으로 오른 심박이 얼마나 되돌아오고 호흡에 맞춰 출렁이는지로 회복력과 자율신경 조절을 봅니다.',
       how: ['원이 커지고 바깥 띠가 차오를 때 <b>5초 들이쉬고</b>, 작아질 때 <b>5초 내쉬어요</b>', '코로 천천히, 편안한 깊이로 — 억지로 깊게 쉬지 않아도 돼요', '아래 파형의 점이 올라가면 들숨, 내려가면 날숨이에요'],
       orig: '분당 6회(0.1Hz)는 성인 대부분의 <b>공명 주파수</b> 근처로, 호흡에 맞춰 심박이 가장 크게 출렁이는 속도예요. 이 출렁임의 폭이 미주신경성 조절의 대리 지표가 됩니다.',
       ref: 'Lehrer & Gevirtz, 2014 · Shaffer & Meehan, 2020' },
@@ -2152,7 +2208,7 @@ async function runSession() {
   S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';
   if (S.stimMode === 'photo' && !S.demo) { try { localStorage.setItem(FORM_KEY, S.stim.form); } catch (_) {} }
   if (S.demo) S.calib = { grade: 'good', errPct: null, mouse: true };
-  const d = B.DUR[S.mode], m = S.mods, plan = [];
+  const d = { ...B.DUR[S.mode], ...(S.collect?.dur || {}) }, m = S.mods, plan = [];
   if (!S.demo) plan.push(['calibration', () => calibrate()]);
   plan.push(['baseline', () => phaseBaseline(d.baseline)]);
   if (m.oculo) plan.push(['pursuit', () => phasePursuit(d)], ['saccade', () => phaseSaccade(d)]);
@@ -3205,7 +3261,7 @@ function liveRecord() {
     frames: S.frames, phases: S.phases, trials, pursuit, saccade: saccade.length ? saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
     stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: gazeLostCalib(), checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
     stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null, measuredAt: new Date().toISOString(),
-    capture: S.camera ? { ...S.camera.info } : null, lab: S.lab || null, hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
+    capture: S.camera ? { ...S.camera.info } : null, lab: S.lab || null, collect: S.collect || null, hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
   };
 }
 /* 데모: 생리 신호는 시뮬레이션 피험자로, 직접 수행한 과제(마우스 시선·키보드 반응)는 실제 입력으로 채운다 */
@@ -3231,6 +3287,7 @@ function finish() {
     try {
       await NLGazeModel.drain(S.gazeModel);    // active/shadow 모델의 대기 중 추론이 끝난 뒤 분석 좌표를 만든다
       if (S.sessionKind === 'gaze-label') { finishLabels(liveRecord()); return; }
+      if (S.collect) { finishCollect(liveRecord()); return; }
       const rec = S.demo ? demoRecord() : liveRecord();
       const server = S.demo ? [] : await serverHistory();
       const res = finishWith(rec, server);
@@ -3248,9 +3305,41 @@ function finishLabels(rec) {
     <p class="lead">이 모드는 검사 결과나 점수를 만들지 않아요. 아래 수치는 수집 상태이며, ‘표적 proxy 오차’는 표적을 보려 한 기록과 기존 엔진 추정의 차이일 뿐 실제 시선 정확도 검증이 아니에요.</p>
     <table class="btbl" style="margin-top:14px"><tbody>${rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td><b>${esc(b)}</b></td></tr>`).join('')}</tbody></table>
     <div id="r-app" style="margin-top:14px"></div>
-    <div class="btns" style="margin-top:18px"><a class="btn" href="condition.html?mode=gaze-label">한 번 더 수집</a><a class="btn ghost" href="dataset.html#training">dataset · 학습 파이프라인</a><a class="btn ghost" href="condition.html">검사 첫 화면</a></div></div>`;
+    <div class="btns" style="margin-top:18px"><a class="btn" href="${S.collect ? 'condition.html?mode=gaze-label&collect=label' : 'condition.html?mode=gaze-label'}">한 번 더 수집</a><a class="btn ghost" href="dataset.html#training">dataset · 학습 파이프라인</a>${S.collect ? '<a class="btn ghost" href="datacollection.html">수집 메뉴</a>' : '<a class="btn ghost" href="condition.html">검사 첫 화면</a>'}</div></div>`;
   show('sReport');
-  researchSubmit(rec, null);
+  researchSubmit(rec, null).then(() => collectLog(rec, s ? `유효 라벨 ${s.valid}/${s.targets}` : '라벨 없음'));
+}
+/* 데이터 수집 모드 마무리: 점수·리포트 없이 이 모듈의 수집 품질만 보여 주고 연구 저장소로 보낸다(계정·이 기기 결과 내역에는 남기지 않음) */
+function finishCollect(rec) {
+  let res = null;
+  try { res = B.run(rec); } catch (e) { console.warn('collect analysis failed', e); }
+  const key = rec.lab[0], t = NLDataset.build(rec, res).tests.find(x => x.key === key) || {}, a = t.acquisition || {}, p = t.pulse, c = rec.calibration;
+  const f1 = v => (Number.isFinite(v) ? (Math.round(v * 10) / 10).toString() : '—');
+  const rows = [['측정 상태', t.status || '—'], ['카메라 프레임', `${f1(a.fps)} fps`], ['눈 품질(중앙값)', f1(a.eyeQuality?.median)], ['머리 움직임 p95', a.headMotionPctPerSec ? `${f1(a.headMotionPctPerSec.p95)} %/s` : '—']];
+  let main = '';
+  if (key === 'calibration') {
+    main = c && Number.isFinite(c.errPct) ? `보정 오차 ${f1(c.errPct)}% · ${c.grade}` : '보정 실패';
+    rows.unshift(['보정 오차 (화면 대비)', c && Number.isFinite(c.errPct) ? `${f1(c.errPct)}%` : '계산 불가'], ['보정 등급', c?.grade || '—'], ['정밀 보정 전 → 후', c?.fine ? `${f1(c.fine.before)}% → ${f1(c.fine.after)}%` : '—']);
+  } else {
+    main = p && Number.isFinite(p.bpm) ? `심박 ${Math.round(p.bpm)} bpm · 유효 ${Math.round(p.validSeconds || 0)}초` : '심박 신호 부족';
+    rows.unshift(['심박', p && Number.isFinite(p.bpm) ? `${Math.round(p.bpm)} bpm` : '측정 불가'], ['유효 신호 시간', p ? `${Math.round(p.validSeconds || 0)}초 / ${Math.round(S.collect.dur?.recovery || 0)}초` : '—'], ['신호 대 잡음비', p && Number.isFinite(p.snr) ? `${f1(p.snr)} dB` : '—'], ['신호 판정', p?.status || '—']);
+  }
+  $('sReport').innerHTML = `<div class="card"><div class="kicker">Data Collection · 수집 완료</div><h2>${esc(COLLECT_MODS[S.collect.module].label)} 측정을 마쳤어요</h2>
+    <p class="lead">이 모드는 점수나 리포트를 만들지 않아요. 아래는 이번 수집의 품질이며, 기록은 dataset ‘검사별 누적’에 쌓여 보정 근거와 학습 자료로 쓰입니다.${S.collect.env ? `<br><span class="small muted">측정 환경: ${esc(NLCollectEnv.text(S.collect.env))}</span>` : ''}</p>
+    <table class="btbl" style="margin-top:14px"><tbody>${rows.map(([x, y]) => `<tr><td>${esc(x)}</td><td><b>${esc(y)}</b></td></tr>`).join('')}</tbody></table>
+    <div id="r-app" style="margin-top:14px"></div>
+    <div class="btns" style="margin-top:18px"><a class="btn" href="${esc(location.pathname + location.search)}">한 번 더 측정</a><a class="btn ghost" href="datacollection.html">수집 메뉴</a><a class="btn ghost" href="dataset.html#lab">dataset · 검사별 누적</a></div></div>`;
+  show('sReport');
+  researchSubmit(rec, res).then(() => collectLog(rec, main));
+}
+/* 이 기기의 수집 기록(최근 50건): 수집 페이지에서 오늘 몇 번 모였는지 바로 보이게 한다. 원자료는 넣지 않는다 */
+function collectLog(rec, main) {
+  if (!S.collect) return;
+  try {
+    const list = JSON.parse(localStorage.getItem('nlCollect:log') || '[]');
+    list.unshift({ at: rec.measuredAt, module: S.collect.module, main, code: S.attemptId === rec.attemptId ? S.research?.code || null : null, env: NLCollectEnv.text(S.collect.env) });
+    localStorage.setItem('nlCollect:log', JSON.stringify(list.slice(0, 50)));
+  } catch (_) {}
 }
 /* 비교용 기록: 이 기기 기록 + (로그인 시) 계정 기록을 합쳐 최신순으로. 측정마다 체크해 둔 실천 항목도 붙인다 */
 function mergeHistory(local, server) {

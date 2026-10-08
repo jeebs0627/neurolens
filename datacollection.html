@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>데이터 수집 | NeuroLens</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E1A33'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<!--
+  데이터 수집 (/datacollection) — 전체 컨디션 검사(약 8분) 대신 모듈 하나만 1~3분 실측해 보정 근거·엔진 고도화·학습 자료를 빠르게 모은다.
+  측정은 condition.html?collect=<모듈> 이 맡는다(카메라 준비 = 거리·자세 확인 → 그 모듈만 → 수집 요약). 기록은 연구 데이터 경로로
+  dataset ‘05 검사별 누적’에 쌓이고, 여기서 적은 측정 환경 메모(collect-env.js)가 protocol.collect.env 로 함께 붙는다.
+-->
+<style>
+:root{--ink:#0E1A33;--muted:#66728A;--line:#E1E6EF;--bg:#F3F5F9;--card:#fff;--blue:#1F4FD8;--blue-soft:#EDF2FE;--care:#167A6B;--care-soft:#EAF6F3;--violet:#6A4FD8;--violet-soft:#F1EEFC;--rose:#C93C5C;
+  --font:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;--num:'Sora','Noto Sans KR',sans-serif;--shadow:0 1px 2px rgba(14,26,51,.04),0 8px 24px rgba(14,26,51,.06)}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);font-size:15px;line-height:1.65;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+a{color:var(--blue)}
+button,input,select{font:inherit}
+:focus-visible{outline:3px solid rgba(31,79,216,.3);outline-offset:2px}
+header{background:#fff;border-bottom:1px solid var(--line)}
+.hd{max-width:1040px;margin:auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--num);font-weight:800;font-size:17px;color:var(--ink);text-decoration:none}
+.brand small{font-family:var(--font);font-weight:600;font-size:12px;color:var(--muted);margin-left:8px}
+nav a{font-size:13px;margin-left:12px;text-decoration:none}
+main{max-width:1040px;margin:auto;padding:24px 16px 48px}
+.kicker{font-family:var(--num);font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+h1{font-size:clamp(24px,5vw,32px);line-height:1.3;margin:6px 0 8px;word-break:keep-all}
+h2{font-size:19px;margin:0 0 4px;word-break:keep-all}
+.lead{color:var(--muted);margin:0;max-width:720px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow);margin-top:18px}
+.step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;font-weight:700;margin-right:8px;vertical-align:2px}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.flow li{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}
+.flow b{display:block;color:var(--ink);font-size:14px}
+.env{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 14px;margin-top:12px}
+.env label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
+.env label:last-child{grid-column:1/-1}
+.env select,.env input{width:100%;min-height:42px;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;color:var(--ink)}
+.auto{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
+.mod{display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:16px;padding:18px;background:#fff}
+.mod .tag{font-size:12px;font-weight:700;border-radius:99px;padding:2px 10px;align-self:flex-start}
+.mod h3{font-size:18px;margin:10px 0 2px}
+.mod .time{font-family:var(--num);font-size:13px;color:var(--muted);margin:0 0 8px}
+.mod ul{margin:0 0 12px;padding-left:18px;font-size:13.5px}
+.mod li{margin:2px 0}
+.mod .why{font-size:12.5px;color:var(--muted);background:var(--bg);border-radius:10px;padding:8px 10px;margin:0 0 14px}
+.btn{margin-top:auto;display:block;width:100%;min-height:46px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}
+
+.m-gaze .tag{background:var(--blue-soft);color:var(--blue)}
+.m-rppg .tag{background:var(--care-soft);color:var(--care)}.m-rppg .btn{background:var(--care)}
+.m-label .tag{background:var(--violet-soft);color:var(--violet)}.m-label .btn{background:var(--violet)}
+.mod .btn:disabled{background:#B9C2D3;cursor:not-allowed}
+.consent{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px 14px;border-radius:12px;background:var(--blue-soft);font-size:13.5px}
+.consent input{width:20px;height:20px;margin-top:2px;flex:none}
+.more{font-size:13px;margin-top:14px;color:var(--muted)}
+.more a{display:inline-block;margin:4px 10px 0 0}
+.tip{font-size:13px;color:var(--muted);margin:12px 0 0}
+.wrap{overflow-x:auto;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px}
+.muted{color:var(--muted)}
+.cnt{font-family:var(--num);font-weight:700}
+@media (max-width:640px){.flow{grid-template-columns:1fr 1fr}.card{padding:16px;border-radius:14px}}
+</style>
+</head>
+<body>
+<header><div class="hd"><a class="brand" href="/">NeuroLens<small>Data Collection</small></a><nav><a href="condition.html">컨디션 검사</a><a href="dataset.html#lab">dataset</a></nav></div></header>
+<main>
+  <div class="kicker">Data Collection · 모듈 실측</div>
+  <h1>모듈 하나만 1~3분, 빠르게 실측 데이터를 모아요</h1>
+  <p class="lead">전체 검사(약 8분)를 다 하지 않아도 됩니다. 카메라 거리·자세를 확인한 뒤 고른 모듈 하나만 측정하고, 결과는 <a href="dataset.html#lab">dataset · 검사별 누적</a>에 쌓여 보정 근거·엔진 고도화·신경망 학습 자료로 쓰입니다.</p>
+  <ol class="flow">
+    <li><b>① 환경 메모</b>기기·화면·조명</li>
+    <li><b>② 카메라 준비</b>거리·자세·조명 확인</li>
+    <li><b>③ 모듈 측정</b>1~3분</li>
+    <li><b>④ 수집 요약</b>품질 확인 → dataset</li>
+  </ol>
+
+  <section class="card" aria-labelledby="envH">
+    <h2 id="envH"><span class="step">1</span>측정 환경 메모</h2>
+    <p class="lead" style="font-size:13.5px">이 기기에 기억해 두고 측정마다 함께 기록해요. 조건이 바뀌면 고쳐 주세요. 나중에 dataset 에서 검사별로 고칠 수도 있어요.</p>
+    <form class="env" id="envForm" autocomplete="off"></form>
+    <p class="auto" id="autoInfo"></p>
+  </section>
+
+  <section class="card" aria-labelledby="modH">
+    <h2 id="modH"><span class="step">2</span>측정할 모듈</h2>
+    <label class="consent"><input type="checkbox" id="consent"> <span><b>연구 데이터 제공에 동의합니다.</b> 영역 지표·측정 품질과 측정 신호 원자료(프레임별 피부색 평균·얼굴 위치·눈과 홍채의 <b>좌표</b>)를 보냅니다. 카메라 영상·사진, 이름·연락처는 보내지 않아요. 제출 후 참가 코드로 언제든 철회할 수 있어요. <a href="condition.html#rsBox">자세히</a></span></label>
+    <div class="mods">
+      <article class="mod m-gaze">
+        <span class="tag">시선추적</span>
+        <h3>시선추적 보정 단계 측정</h3>
+        <p class="time">약 2분 · PC 권장</p>
+        <ul>
+          <li>빨간 점 9개 응시 → 화면 전체를 도는 점 따라가기</li>
+          <li>시선 커서를 원 안으로 옮기기 → 정밀 보정 점 8개</li>
+        </ul>
+        <p class="why">보정 표적과 눈·홍채 좌표가 짝지어 기록돼 보정 모델 비교·세로 오차 진단·시선 모델 학습에 바로 쓰입니다.</p>
+        <button class="btn" data-go="condition.html?collect=gaze">시선 보정 측정 시작</button>
+      </article>
+      <article class="mod m-rppg">
+        <span class="tag">rPPG 생체신호</span>
+        <h3>호흡 따라하기 심박 측정</h3>
+        <p class="time">2분 · PC·스마트폰</p>
+        <ul>
+          <li>가운데 원이 커질 때 5초 들숨, 작아질 때 5초 날숨 (분당 6회)</li>
+          <li>원을 바라보며 머리는 움직이지 않기</li>
+        </ul>
+        <p class="why">분당 6회(0.1Hz) 호흡은 심박을 호흡에 맞춰 크게 출렁이게 해, 알려진 리듬이 카메라 심박 추정의 기준이 됩니다. 가운데 원을 보니 자세도 고정돼요.</p>
+        <button class="btn" data-go="condition.html?collect=rppg">rPPG 측정 시작</button>
+      </article>
+      <article class="mod m-label">
+        <span class="tag">추가 · 학습용</span>
+        <h3>시선 라벨 수집</h3>
+        <p class="time">약 3~4분 · PC 권장</p>
+        <ul>
+          <li>시선 보정 후 화면 곳곳의 점을 바라보고 클릭·스페이스</li>
+          <li>마지막 몇 개 점은 평가 전용(학습 제외)</li>
+        </ul>
+        <p class="why">‘이 점을 보고 있었다’는 라벨이 붙은 관측이라 딥러닝 시선 모델의 학습·평가 자료로 가장 직접적입니다.</p>
+        <button class="btn" data-go="condition.html?mode=gaze-label&collect=label">시선 라벨 수집 시작</button>
+      </article>
+    </div>
+    <p class="more">그 밖의 단계만 실측: <a href="condition.html?lab=baseline">안정 기준선</a><a href="condition.html?lab=pursuit">원활 추적</a><a href="condition.html?lab=saccade">사카드</a><a href="condition.html?lab=pvt">PVT</a><a href="condition.html?lab=sart">SART</a></p>
+    <p class="tip"><b>스마트폰:</b> 세로로 눈높이에 두고(거치대 권장) 얼굴과 25~35cm. 카메라 화면의 흰 동그라미 두 개에 눈동자(초록 점)를 맞추면 거리·위치가 맞아요.</p>
+  </section>
+
+  <section class="card" aria-labelledby="logH">
+    <h2 id="logH"><span class="step">3</span>이 기기의 최근 수집</h2>
+    <p class="lead" style="font-size:13.5px" id="logSum"></p>
+    <div class="wrap"><table><thead><tr><th>측정 시각</th><th>모듈</th><th>결과</th><th>참가 코드</th><th>환경</th></tr></thead><tbody id="logRows"></tbody></table></div>
+    <p class="tip">서버에 쌓인 전체 기록과 검사별 메모·집계는 <a href="dataset.html#lab">dataset · 05 검사별 누적</a>(연구 관리자 로그인)에서 봅니다.</p>
+  </section>
+</main>
+<script src="collect-env.js"></script>
+<script>
+(function () {
+  'use strict';
+  const E = NLCollectEnv, $ = id => document.getElementById(id);
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const form = $('envForm');
+  form.innerHTML = E.formHtml('env-');
+  /* 처음이면 기기·카메라를 짐작해 채운다(사용자가 고칠 수 있음) */
+  const phone = matchMedia('(pointer:coarse)').matches && Math.min(screen.width, screen.height) < 820;
+  E.fill(form, E.load() || (phone ? { device: '스마트폰', camera: '휴대폰 전면', posture: '기기 거치대' } : {}));
+  form.addEventListener('input', () => E.save(E.read(form)));
+  $('autoInfo').textContent = `자동 기록: 화면 ${screen.width}×${screen.height} · 배율 ${devicePixelRatio} · 창 ${innerWidth}×${innerHeight} · ${phone ? '터치 기기' : '마우스 기기'} — 해상도·카메라 해상도·브라우저 종류는 측정 기록에 자동으로 들어가요.`;
+
+  const consent = $('consent'), btns = document.querySelectorAll('[data-go]');
+  try { consent.checked = localStorage.getItem('nlCollect:consent') === '1'; } catch (_) {}
+  const sync = () => btns.forEach(b => { b.disabled = !consent.checked; b.title = consent.checked ? '' : '연구 데이터 제공에 동의해야 기록이 저장돼요'; });
+  consent.addEventListener('change', () => { try { localStorage.setItem('nlCollect:consent', consent.checked ? '1' : '0'); } catch (_) {} sync(); });
+  sync();
+  btns.forEach(b => b.addEventListener('click', () => { E.save(E.read(form)); location.href = b.dataset.go; }));
+
+  const NAMES = { gaze: '시선 보정', rppg: 'rPPG 호흡', label: '시선 라벨' };
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem('nlCollect:log') || '[]'); if (!Array.isArray(log)) log = []; } catch (_) {}
+  const today = new Date().toDateString(), n = k => log.filter(x => x.module === k && new Date(x.at).toDateString() === today).length;
+  $('logSum').innerHTML = `오늘 <span class="cnt">${n('gaze')}</span> 시선 보정 · <span class="cnt">${n('rppg')}</span> rPPG · <span class="cnt">${n('label')}</span> 시선 라벨 · 이 기기 전체 ${log.length}건`;
+  $('logRows').innerHTML = log.length ? log.map(x => `<tr><td>${esc(x.at ? new Date(x.at).toLocaleString('ko-KR') : '—')}</td><td>${esc(NAMES[x.module] || x.module)}</td><td>${esc(x.main)}</td><td>${x.code ? `<code>${esc(x.code)}</code>` : '<span class="muted">전송 대기·미동의</span>'}</td><td class="muted">${esc(x.env || '—')}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="muted">아직 이 기기에서 수집한 기록이 없어요.</td></tr>';
+})();
+</script>
+</body>
+</html>

@@ -62,7 +62,7 @@
       screen: env.screen || null, dpr: env.dpr || null, camera: env.camera || null, fps, viewport: env.viewport || null,
       client: browserFamily(env.ua), tzOffsetMin: env.tz ?? null, localHour: rec.measuredAt ? new Date(rec.measuredAt).getHours() : null,
       stim: { mode: rec.stimMode || null, form: rec.stimForm || null }, measuredAt: rec.measuredAt || null,
-      protocol: sessionKind === 'gaze-label' ? { kind: 'gaze-label', steps: ['calibration', 'gazeLabel'] } : rec.lab ? { kind: 'lab', steps: rec.lab } : { kind: 'full' },
+      protocol: { ...(sessionKind === 'gaze-label' ? { kind: 'gaze-label', steps: ['calibration', 'gazeLabel'] } : rec.lab ? { kind: 'lab', steps: rec.lab } : { kind: 'full' }), ...(rec.collect ? { collect: rec.collect } : {}) },
       /* 검사 시작 전에 고정한 전역 시선 모델 스냅샷(없으면 null). mode: 'off' | 'shadow' | 'active' */
       /* 2026-10-08 수정: 지연·추론 수·건너뜀·guard 사유가 빠져 현장 작동을 확인할 수 없었다 → describe() 전체(함수·바이트 제외)를 남긴다 */
       gazeModel: rec.gazeModel ? { id: rec.gazeModel.id || null, version: rec.gazeModel.version || null, mode: rec.gazeModel.mode || 'off', reason: rec.gazeModel.reason || null, sha256: rec.gazeModel.sha256 || null, contract: rec.gazeModel.contract || null, preprocessing: rec.gazeModel.preprocessing || null, loadError: rec.gazeModel.loadError || null,
