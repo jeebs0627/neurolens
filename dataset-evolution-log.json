@@ -3,6 +3,68 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "a97505e859b90817feeed9c693a7160c53ed2ef0",
+      "parents": [
+        "f5d27c69766f37468e43cbc8da2dae5ffe040ef2"
+      ],
+      "committedAt": "2026-10-08T10:56:55+09:00",
+      "subject": "nlcolab: 실측 첫 실행에서 드러난 결함 수정 — baseline 도구 절대 경로, 실패 후 재개, legacy click 표적은 weak",
+      "url": "https://github.com/jeebs0627/neurolens/commit/a97505e859b90817feeed9c693a7160c53ed2ef0",
+      "files": [
+        {
+          "path": "tools/colab/nlcolab/adapter.py",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "tools/colab/nlcolab/baseline.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tools/colab/nlcolab/gaze_dataset.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 0
+        },
+        {
+          "path": "tools/colab/nlcolab/pipeline.py",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 3
+        },
+        {
+          "path": "tools/colab/session_adapter.cjs",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 2
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55853871512",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T01:57:02Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2oGenurVJ83eQmahkz7rXiSAUBsk",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "924c04dfcb90cf5f58e56c0d7f440c3b01f589aa",
       "parents": [
         "f0937dc4a14aabe8a25adfccc79e6aa9ecc5c1f1"
@@ -12950,9 +13012,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "69bae3f05ee81ed456d3291286922ea8a8da3050"
+    "sourceHead": "a97505e859b90817feeed9c693a7160c53ed2ef0"
   },
-  "updatedAt": "2026-10-08T01:35:48.886368+00:00",
+  "updatedAt": "2026-10-08T01:57:16.832349+00:00",
   "aiCooldownUntil": "2026-10-08T02:13:41.295227+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
