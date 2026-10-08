@@ -77,7 +77,7 @@ def classify(session: Session, sync_threshold_ms: float = 100.0) -> Eligibility:
             reasons.append("no-calibration-targets")
         if session.W is None or session.H is None:
             reasons.append("no-screen-size")
-        if session.core is not None and session.core < 2.3 and "legacy-lid-v-no-landmarks" in session.flags:
+        if "legacy-lid-v-no-landmarks" in session.flags:
             reasons.append("legacy-vertical-feature-not-reconstructible")
         if any(t.inferred_backfill for t in session.targets):
             reasons.append("target-windows-inferred-backfill")

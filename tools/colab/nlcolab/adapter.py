@@ -258,7 +258,9 @@ def load_session(obj: dict) -> Session:
         W, H = (meta.get("screen") or {}).get("vw"), (meta.get("screen") or {}).get("vh")
     targets, rounds = _targets(cal, flags)
     pursuit = _pursuit(cal, core, flags)
-    if core is not None and core < 2.3:
+    if core is None:
+        flags.append("core-version-unknown-assumed-pre-2.3")   # all unversioned sessions predate core 2.3 (2026-10-07)
+    if core is None or core < 2.3:
         flags.append("vertical-feature-recomputed-from-landmarks" if (p.get("landmarks") or {}).get("rows") else "legacy-lid-v-no-landmarks")
     cols = p.get("sampleColumns") or ["t", "x", "y", "rx", "ry", "blink"]
     samples = {}

@@ -13,7 +13,7 @@ from . import schema as SCH
 from .canonical import digest
 from .safe_io import dump_json, load_json
 
-FEATURE_VERSION = "gaze-features-1"
+FEATURE_VERSION = "gaze-features-2"   # 2: unknown core → legacy vertical axis recomputed from landmarks
 EXPORTER_VERSION = "nlcolab-export-1"
 
 

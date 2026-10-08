@@ -73,7 +73,9 @@ function loadSession(obj, opt = {}) {
   const c = p.calibration || null, W = c?.screen?.w ?? meta.screen?.vw ?? null, H = c?.screen?.h ?? meta.screen?.vh ?? null;
   /* 랜드마크 기반 특징 재계산: core < 2.3 은 기록된 v 가 눈꺼풀 기준이라 현재 엔진에 맞게 눈꼬리 기준으로 다시 잰다 */
   const lmap = landmarkMap(p);
-  const needCorner = core !== null && core < 2.3;
+  /* core 2.3(2026-10-07) 전 기록의 v 는 눈꺼풀 기준이라 눈꼬리 기준으로 다시 잰다. 버전이 기록되지 않은 세션(초기 nl-research-1/2)은 모두 2.3 이전이므로 legacy 로 간주한다(플래그) */
+  const needCorner = core === null || core < 2.3;
+  if (core === null) flags.push('core-version-unknown-assumed-pre-2.3');
   let featureSource = 'recorded';
   const feat = f => { if (!needCorner) return f; const g = recomputeFeature(f, lmap ? lmap.get(f.tc) : null, 'corner'); return g; };
   if (needCorner) { if (lmap) { featureSource = 'landmarks-corner (recorded v was lid-based)'; flags.push('vertical-feature-recomputed-from-landmarks'); } else { featureSource = 'recorded-lid-based (incompatible with core 2.3 vertical axis)'; flags.push('legacy-lid-v-no-landmarks'); } }
