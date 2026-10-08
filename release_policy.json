@@ -1,0 +1,37 @@
+{
+  "schema": "nl-release-policy-1",
+  "version": "2026-10-08.1",
+  "note": "Engineering starting thresholds, fixed before any test-set read. Tune on validation and bump the version; never retune after reading the locked test. Not clinical criteria.",
+  "gaze_residual": {
+    "primaryMetric": "medianPx on val/locked_test (target-proxy error; not eye-tracker accuracy)",
+    "minRelativeGainMedian": 0.05,
+    "maxP95Ratio": 1.10,
+    "maxCoverageDropPp": 2.0,
+    "minTrainGroups": 8,
+    "minValGroups": 3,
+    "minLockedTestGroups": 3,
+    "minTrainWindows": 150,
+    "bootstrapGainCiLowerAtLeast": 0.0,
+    "requireSubjectLinkForPersonClaims": true,
+    "maxParams": 50000,
+    "maxOnnxBytes": 1048576,
+    "latencyBudgetMsP95": { "desktop": 5, "lowEnd": 8 },
+    "parityTolerance": { "abs": 1e-5, "rel": 1e-4 },
+    "guard": { "zMax": 4, "maxCorrectionFrac": 0.15, "maxMissing": 2 },
+    "requiredChecks": ["integrity", "label-provenance", "time-alignment", "split-disjoint", "withdrawal", "allowlist", "parity", "schema", "size", "val-gain", "p95", "coverage"],
+    "promotion": "human approval recorded in model-registry.json after shadow in /condition and an approved small canary; never automatic on data or training events"
+  },
+  "rppg_quality": {
+    "minPairedSessions": 6,
+    "minPairedEpochs": 60,
+    "maxSyncUncertaintyMs": 100,
+    "toleranceBpm": 5,
+    "rule": "at equal coverage MAE must improve, or at equal MAE coverage must improve; more output with higher error fails",
+    "hrvNote": "HR-only references never validate IBI/HRV; beat-dependent claims stay marked unverified after promotion"
+  },
+  "data_changes_that_trigger_retrain": {
+    "minNewEligibleSessions": 5,
+    "minNewGroups": 2,
+    "orAnyOf": ["annotation revision affecting labels/reference", "withdrawal of a session in the last snapshot", "feature/preprocessing/exporter/config version change"]
+  }
+}

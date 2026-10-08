@@ -1034,6 +1034,14 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
     <div class="est" id="labEst"></div>
     <div class="btns"><button class="btn" id="labGo" disabled>선택한 단계 실측 시작</button></div>
   </div>
+  <!-- 전용 시선 라벨 수집 모드 (?mode=gaze-label): 표적을 실제로 응시하고 확인하는 별도 경로. 검사 결과·임상 점수를 만들지 않는다 -->
+  <div class="card" id="labelCard" hidden style="margin-top:22px;border:2px solid #1F4FD8">
+    <div class="kicker">Gaze Label · 시선 라벨 수집 모드</div>
+    <h2 style="margin-bottom:4px">점을 바라보고 확인하는 학습용 수집</h2>
+    <p class="small muted" style="margin:6px 0 12px">시선 보정을 마친 뒤 화면 곳곳의 점을 하나씩 보여 드려요. <b>점의 가운데를 바라본 채</b> 화면 아무 곳이나 클릭·터치하거나 스페이스바를 누르면 그 직전의 눈 관측이 ‘이 점을 보려 했다’는 라벨로 기록돼요. 버튼을 찾느라 다른 곳을 볼 필요가 없어요. 이 모드는 검사 결과나 점수를 만들지 않으며, 마지막 몇 개 점은 평가 전용이라 학습에 쓰지 않아요. 아래 ‘연구 데이터 제공에 동의’가 켜져 있어야 저장돼요.</p>
+    <div class="est" id="labelEst"></div>
+    <div class="btns"><button class="btn" id="labelGo">시선 라벨 수집 시작</button></div>
+  </div>
   <div class="card" id="setupCard" style="margin-top:22px">
     <div class="kicker">Before you start</div>
     <h2 style="margin-bottom:4px">시작하기 전에</h2>
@@ -1217,6 +1225,8 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 <script src="condition-dataset.js"></script>
 <script src="condition-reference.js"></script>
 <script src="condition-research-store.js"></script>
+<script src="condition-labels.js"></script>
+<script src="condition-gaze-model.js"></script>
 <script type="module">
 const N = window.NLNewbiz, B = window.NLBattery, R = window.NLReport;
 const MP_VER = '0.10.14';
@@ -1248,6 +1258,7 @@ const S = {
   onFeature: null, onResp: null, onKey: null, onGo: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,
   stim: null, stimAll: null, stimMeta: null, stimMode: 'schematic',
   hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,
+  sessionKind: 'condition', gazeLabels: null, gazeModel: null, calibRound: 0, calibDigests: null,
 };
 const referenceCollector=new NLReference.Collector(message=>{$('refStatus').textContent=message;});
 $('refConnect').onclick=async()=>{if(!$('rsOpt').checked){$('refStatus').textContent='연구 데이터 제공 동의 후 연결할 수 있어요.';return;}try{await referenceCollector.connect();}catch(e){$('refStatus').textContent=e.message;}};
@@ -1255,6 +1266,14 @@ $('refDisconnect').onclick=()=>{referenceCollector.disconnect();$('refStatus').t
 window.addEventListener('online',()=>NLResearchStore.flush().catch(()=>{}));
 NLResearchStore.flush().catch(()=>{});
 const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];
+/* ---------- 전용 시선 라벨 수집 모드 (?mode=gaze-label[&labels=train,internal,holdout][&seed=n]) ---------- */
+const LABEL_MODE = new URLSearchParams(location.search).get('mode') === 'gaze-label';
+function labelCounts() {
+  const q = (new URLSearchParams(location.search).get('labels') || '').split(',').map(Number), d = NLLabels.DEFAULT_CONFIG.counts;
+  const ok = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+  return { train: ok(q[0], 4, 60) ? q[0] : d.train, internal: ok(q[1], 2, 20) ? q[1] : d.internal, holdout: ok(q[2], 3, 12) ? q[2] : d.holdout };
+}
+
 /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */
 const resetEuro = () => { const c = (S.gazeNoise || 0) > 0.025 ? 0.35 : 0.5; S.euro = { x: N.oneEuro({ minCutoff: c, beta: 0.004 }), y: N.oneEuro({ minCutoff: c, beta: 0.004 }) }; S.view = null; S.gstab = null; };
 resetEuro();
@@ -1333,6 +1352,7 @@ function stepEstimateSec(key, d) {
     calibration: 60, baseline: d.baseline + 3, pursuit: B.pursuitSec(d) + (d.circle || 0) + 8, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,
     freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 2, pvt: d.pvt + d.pvtPractice * 3.5 + 6, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 6,
     stress: d.stress + 3, recovery: d.recovery + 3,
+    gazeLabel: LABEL_MODE ? (labelCounts().train + labelCounts().internal + labelCounts().holdout) * 3.6 : 0,
   }[key] || 0;
 }
 const MOD_STEPS = { alert: ['pvt'], oculo: ['pursuit', 'saccade'], sustain: ['sart'], core: ['freeview', 'stress', 'recovery'] };
@@ -1358,7 +1378,18 @@ loadStimuli().then(refreshIntro);
 $('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full', { seed: 7, all: true }); });
 $('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) { $('rsPhq').checked = false; referenceCollector.disconnect(); $('refStatus').textContent='연결 해제됨'; } });
-$('goCheckin').addEventListener('click', () => { S.demo = false; S.lab = null; S.mode = modeVal(); show('sCheckin'); });
+$('goCheckin').addEventListener('click', () => { S.demo = false; S.lab = null; S.sessionKind = 'condition'; S.mode = modeVal(); show('sCheckin'); });
+if (LABEL_MODE) {
+  const c = labelCounts(), total = c.train + c.internal + c.holdout;
+  $('labelCard').hidden = false;
+  $('labelEst').innerHTML = `표적 <b>${total}개</b> (학습 ${c.train} · 내부 검증 ${c.internal} · 최종 평가 ${c.holdout}) · 시선 보정 포함 약 <b>${Math.max(2, Math.round((60 + total * 3.6) / 60))}분</b>`;
+  $('labelGo').addEventListener('click', () => {
+    if (!$('rsOpt').checked) { $('labelEst').innerHTML += '<br><span style="color:var(--rose)">연구 데이터 제공에 동의해야 라벨이 저장돼요.</span>'; return; }
+    Object.assign(S, { demo: false, lab: null, sessionKind: 'gaze-label', mode: modeVal(), mods: { alert: false, oculo: false, sustain: false, core: false }, checkin: {} });
+    show('sSetup');
+    if (!S.stream && !$('camStart').disabled) $('camStart').click();
+  });
+}
 /* ---------- 연구 실측 모드 ---------- */
 const LAB_LABEL = { calibration: '시선 보정만', baseline: '안정 기준선 (심박)', pursuit: '원활 추적', saccade: '사카드', freeview: '정서 보기', pvt: 'PVT 각성', sart: 'SART 지속 주의', stress: '압박 과제 (심박)', recovery: '회복 호흡 (심박)' };
 const LAB_Q = new URLSearchParams(location.search).get('lab');
@@ -1376,7 +1407,7 @@ if (LAB_Q !== null) {
   document.querySelectorAll('[data-lab], input[name=mode]').forEach(el => el.addEventListener('change', labRefresh));
   labRefresh();
   $('labGo').addEventListener('click', () => {
-    Object.assign(S, { demo: false, lab: labPicked(), mode: modeVal(), mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {} });
+    Object.assign(S, { demo: false, lab: labPicked(), sessionKind: 'condition', mode: modeVal(), mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {} });
     show('sSetup');
     if (!S.stream && !$('camStart').disabled) $('camStart').click();
   });
@@ -1532,7 +1563,7 @@ $('camStart').addEventListener('click', async () => {
         if (S.camera?.info.backend === 'unavailable') { $('camStart').disabled = false; $('camStart').hidden = false; }
       }
     });
-    await S.camera.init(); S.camT0 = now(); S.featMiss = 0;
+    await S.camera.init(); S.camT0 = now(); S.featMiss = 0; clockSegment('camera-init', { backend: S.camera.info.backend });
     st.textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';
     startLoop(); if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }
   } catch (e) {
@@ -1557,9 +1588,9 @@ function processResult(fr, packet, context) {
   const { result: res, skin: roi, eyes, gain } = packet, t = fr.t;
   const lm = res.faceLandmarks && res.faceLandmarks[0];
   S.lastLm = lm || null;
-  if (!lm) { Object.assign(fr, { ok: false, ppgOk: false, skinOk: false, reason: 'face-missing' }); return; }
+  if (!lm) { Object.assign(fr, { ok: false, ppgOk: false, skinOk: false, reason: 'face-missing' }); if (S.labelRing) labelRingPush({ t, fr, faceMissing: true }); return; }
   const f = N.faceFeatures(lm);
-  if (!f) { S.featMiss = (S.featMiss || 0) + 1; return; }
+  if (!f) { S.featMiss = (S.featMiss || 0) + 1; if (S.labelRing) labelRingPush({ t, fr, faceMissing: true }); return; }
   const bs = blendMap(res);
   /* 세로 시선 점수(기록·그림자 비교용): MediaPipe 눈 블렌드셰이프 위로 보기 − 아래로 보기, 두 눈 평균(−1~1). 측정 모델에는 아직 쓰지 않는다 */
   if ('eyeLookUpLeft' in bs) {
@@ -1589,9 +1620,12 @@ function processResult(fr, packet, context) {
   S.rois = roi.rois; S.feat = f; S.lastFace = t;
   if (S.lmRec && S.landmarks) { const row = [t]; for (const i of LM_IDX) row.push(Math.round(lm[i].x * 1e4), Math.round(lm[i].y * 1e4)); S.landmarks.rows.push(row); }
   if (fr.gazeOk && context.feature && context.feature === S.onFeature) S.onFeature(t, f);
+  if (!S.model && S.labelRing) labelRingPush({ t, fr, f });
   if (S.model) {
-    const pred = N.predictGaze(S.model, f), g0 = N.applyResidual(S.resid, N.applyAffine(S.affine, pred));
-    if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) return;
+    const pred = N.predictGaze(S.model, f), gA = N.applyAffine(S.affine, pred), g0 = N.applyResidual(S.resid, gA);
+    if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) { if (S.labelRing) labelRingPush({ t, fr, f, pred: pred || null }); return; }
+    /* 라벨 수집용 ring: 관측 시각·프레임 품질·특징·엔진 예측(engine_prediction — 정답이 아님). 표적 좌표는 넣지 않는다 */
+    if (S.labelRing) labelRingPush({ t, fr, f, pred: { x: pred.x, y: pred.y, mode: pred.mode || 'both' }, affine: { x: gA.x, y: gA.y }, base: { x: g0.x, y: g0.y }, drift: { dx: S.drift.dx, dy: S.drift.dy }, lag: fr.lag });
     const gr = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy }, g = N.softBound(gr, stage.clientWidth || innerWidth, stage.clientHeight || innerHeight);   // 화면 밖 가속 억제
     /* 안정화: 화면 밖 제한 → 확인되지 않은 큰 점프 차단 → 5표본 중앙값. 차단된 튐은 분석에서도 뺀다(bl) */
     if (!S.gstab) { const noisy = (S.gazeNoise || 0) > 0.025; S.gstab = N.gazeStabilizer({ W: stage.clientWidth || innerWidth, H: stage.clientHeight || innerHeight, n: noisy ? 7 : 5, span: noisy ? 260 : 200 }); }
@@ -1603,10 +1637,21 @@ function processResult(fr, packet, context) {
     if (st) S.gaze = { x: st.x, y: st.y };
     if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };
     if (!bl && S.onGaze) S.onGaze({ x: st.x, y: st.y, rx: g.x, ry: g.y }, t);
-    /* 좌표 분리 저장: px,py = 시선 모델 원출력(보정 전 raw) · rx,ry = 영점·축별 보정 후(calibrated) · x,y = 화면 안정화 후 */
-    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,px:pred.x,py:pred.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});
+    /* 좌표 분리 저장: px,py = 시선 모델 원출력(보정 전 raw) · rx,ry = 영점·축별·잔차 보정 후(calibrated) · x,y = 화면 안정화 후
+     * sx,sy = 전역 잔차 모델 출력(shadow: 기록만 · active: 분석 좌표에 적용, 화면 표시는 그대로). 추론은 비동기라 결과가 오면 같은 표본 객체에 붙인다 */
+    if (context.trial && context.trial === S.curTrial) {
+      const sample = {t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,px:pred.x,py:pred.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag};
+      context.trial.samples.push(sample);
+      const gm = S.gazeModel;
+      if (gm && gm.mode !== 'off' && fr.gazeOk && S.cur !== 'calibration') {
+        const W = stage.clientWidth || innerWidth, H = stage.clientHeight || innerHeight, base = gm.contract === 'replace-residual' ? gA : g0;
+        NLGazeModel.infer(gm, { ...f, blink: fr.blink, eyeQ, lag: fr.lag }, { x: base.x, y: base.y, mode: pred.mode || 'both' }, W, H, r => { sample.sx = base.x + r.dx - S.drift.dx; sample.sy = base.y + r.dy - S.drift.dy; if (r.reason) sample.sr = r.reason; });
+      }
+    }
   }
 }
+/* 라벨 수집 ring buffer: 최근 6초의 추론 프레임만 유지(표적 하나의 확인 직전 창을 고르기에 충분) */
+function labelRingPush(row) { const R = S.labelRing; R.push(row); while (R.length && R[0].t < row.t - 6000) R.shift(); }
 function pushFrame(fr) {
   if(S.cur==='calibration'&&S.telemetry)S.telemetry.calibrationFrames.push(fr);
   S.buf.push(fr);
@@ -1767,7 +1812,13 @@ function interrupt(err) {
 function every(ms, fn) { const id = setInterval(fn, ms); const stop = () => clearInterval(id); S.cleanup.push(stop); return stop; }
 // rAF is a pre-paint onset estimate, not a photodiode measurement of physical display latency.
 const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(onset=>{S.telemetry?.stimuli.push({key:S.cur,requested,onset});r(onset);})); };
-function recordInput(e){const t=e.timeStamp,dispatch=now()-t;S.telemetry?.inputs.push({key:S.cur,t,dispatchMs:dispatch>=0&&dispatch<60000?dispatch:null,type:e.type});}
+/* 입력 이벤트: 시각(event.timeStamp, performance.now 와 같은 시계)·dispatch 지연·종류. 포인터 이벤트는 client 좌표를 함께 남긴다 —
+ * 일반 검사 중의 클릭 좌표는 provenance 를 보존한 weak 기록(free_click_weak)일 뿐이며 시선 정답으로 쓰지 않는다 */
+function recordInput(e){const t=e.timeStamp,dispatch=now()-t;const row={key:S.cur,t,dispatchMs:dispatch>=0&&dispatch<60000?dispatch:null,type:e.type};
+  if(Number.isFinite(e.clientX)&&Number.isFinite(e.clientY)){Object.assign(row,{x:e.clientX,y:e.clientY,pointerType:e.pointerType||null,isTrusted:!!e.isTrusted,labelSource:'free_click_weak',coordinateSpace:'css-client'});}
+  S.telemetry?.inputs.push(row);}
+/* 시계 구간: 탭 재개·카메라 재연결·전체 화면 변경은 새 clock segment 로 기록한다 (performance.now 자체는 단조지만 관측 공백·레이아웃 변화를 분리하기 위해) */
+function clockSegment(kind,extra={}){S.telemetry?.clock?.segments?.push({t:now(),kind,...extra});}
 function mark(name, edge) { (S.phases[name] = S.phases[name] || {})[edge] = now(); if (edge === 'start') S.stepPhases.push(name); }
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
@@ -1792,16 +1843,18 @@ function hideEnd() {
   if (S.hideStart === null) return;
   const h = { start: S.hideStart, end: now() };
   S.hideStart = null;
-  if (h.end - h.start >= 200) { S.hidden.push(h); $('hideWarn').classList.add('on'); setTimeout(() => $('hideWarn').classList.remove('on'), 4000); }
+  if (h.end - h.start >= 200) { S.hidden.push(h); $('hideWarn').classList.add('on'); setTimeout(() => $('hideWarn').classList.remove('on'), 4000); clockSegment('resume', { hiddenMs: Math.round(h.end - h.start) }); }
 }
 document.addEventListener('visibilitychange', () => (document.hidden ? hideBegin() : hideEnd()));
 window.addEventListener('blur', hideBegin);
 window.addEventListener('focus', hideEnd);
 window.addEventListener('mousemove', e => { S.mouse = { x: e.clientX, y: e.clientY }; });
-window.addEventListener('resize', () => { if (S.recording && S.model) S.resized = true; });
+window.addEventListener('resize', () => { if (S.recording && S.model) S.resized = true; S.telemetry?.layout?.push({ t: now(), kind: 'resize', vw: innerWidth, vh: innerHeight, dpr: devicePixelRatio }); });
+window.visualViewport?.addEventListener('resize', () => { S.telemetry?.layout?.push({ t: now(), kind: 'visual-viewport', w: visualViewport.width, h: visualViewport.height, scale: visualViewport.scale }); });
+window.addEventListener('scroll', () => { if (stage.classList.contains('on')) S.telemetry?.layout?.push({ t: now(), kind: 'scroll', x: scrollX, y: scrollY }); }, { passive: true });
 
 /* ---------- 상단 단계 표시 · 진행 막대 ---------- */
-const STEP_SHORT = { calibration: '시선 보정', baseline: '기준선', pursuit: '원활 추적', saccade: '사카드', freeview: '정서 보기', pvt: 'PVT', sart: 'SART', stress: '압박 과제', recovery: '회복 호흡' };
+const STEP_SHORT = { calibration: '시선 보정', baseline: '기준선', pursuit: '원활 추적', saccade: '사카드', freeview: '정서 보기', pvt: 'PVT', sart: 'SART', stress: '압박 과제', recovery: '회복 호흡', gazeLabel: '시선 라벨' };
 function renderStepper() {
   $('stepper').innerHTML = S.plan.map(([k], i) => {
     const st = S.steps[k] && S.steps[k].status, cls = k === S.cur ? 'cur' : st === 'skipped' || st === 'nogaze' ? 'skip' : st && st !== 'running' ? 'done' : '';
@@ -1916,7 +1969,7 @@ function centerMsg(html) { body.innerHTML = `<div class="center">${html}</div>`;
 const demoCue = text => S.demo ? `<div class="cue">데모 모드 · ${text}</div>` : '';
 
 /* ---------- 단계 안내 카드: 충분히 읽고 직접 시작 ---------- */
-const DCOL = { calibration: '#7C88A2', baseline: '#7C88A2', pvt: '#3C6FE0', pursuit: '#6A4FD8', saccade: '#6A4FD8', sart: '#6A4FD8', freeview: '#C9577A', stress: '#1E8A7A', recovery: '#1E8A7A' };
+const DCOL = { calibration: '#7C88A2', baseline: '#7C88A2', pvt: '#3C6FE0', pursuit: '#6A4FD8', saccade: '#6A4FD8', sart: '#6A4FD8', freeview: '#C9577A', stress: '#1E8A7A', recovery: '#1E8A7A', gazeLabel: '#1F4FD8' };
 const V = {
   cal: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/>' + [0, 1, 2].map(r => [0, 1, 2].map(c => `<circle cx="${30 + c * 120}" cy="${26 + r * 59}" r="7" fill="${r === 1 && c === 1 ? '#C93C5C' : '#B7BFCD'}"/>`).join('')).join('') + '</svg>',
   fix: '<svg viewBox="0 0 300 170"><rect x="6" y="6" width="288" height="158" rx="10" fill="#E3E7EE"/><text x="150" y="102" text-anchor="middle" font-size="48" fill="#59647D" font-family="Sora">+</text></svg>',
@@ -1968,6 +2021,11 @@ function stepInfo(key) {
       how: ['난이도 1~5의 <b>덧셈·뺄셈</b> 문제가 무작위로 나와요 · 답은 항상 <b>0~9 한 자리</b>', '키보드 숫자 키 또는 화면의 숫자 버튼으로 답해요', '먼저 <b>연습 4문제</b>(시간 제한 없음)로 내 속도를 재고, <b>30초</b> 편히 쉰 뒤 본 과제를 시작해요', '맞히면 제한 시간이 줄고 틀리면 늘어나, 누구나 <b>절반쯤 틀리는</b> 속도로 맞춰져요 — 일부러 어렵게 만든 과제이니 틀려도 괜찮아요'],
       orig: '<b>원판 구성</b> 몬트리올 영상 스트레스 과제(MIST)처럼 난이도 무작위 혼합(한 자리 2항 → 두 자리 3항), 적응형 제한 시간, 목표 대비 성적 막대를 씁니다. 곱셈·나눗셈은 빼서 계산 실력보다 시간 압박이 반응을 만들게 했어요. 원판의 ‘가짜 평균 비교’ 대신 실제 목표 정답률 80%를 보여 줘요. 압박 반응을 비교하려면 과제 종류를 고정하는 것이 표준이라 다른 과제는 섞지 않았어요.',
       ref: 'Dedovic et al., 2005 · MIST' },
+    gazeLabel: { tag: 'Research · 시선 라벨 수집', title: '점을 보고 확인하기', vis: V.cal, time: `약 ${Math.max(1, Math.round((labelCounts().train + labelCounts().internal + labelCounts().holdout) * 3.6 / 60))}분`, resp: '클릭 · 터치 · 스페이스바', trials: `표적 ${labelCounts().train + labelCounts().internal + labelCounts().holdout}개`,
+      what: '화면 곳곳의 점을 하나씩 보여 드려요. 점의 <b>가운데를 바라본 채</b> 화면 아무 곳이나 클릭·터치하거나 스페이스바를 누르면, 그 직전 약 0.3초의 눈 관측이 ‘이 점을 보려 했다’는 학습용 라벨로 기록돼요. 검사 결과나 점수는 만들지 않아요.',
+      how: ['점이 나타나면 <b>머리는 고정하고 눈으로</b> 점의 가운데를 바라봐요 (최소 1초)', '바라본 채로 <b>아무 곳이나 클릭·터치</b>하거나 <b>스페이스바</b>를 눌러요 — 버튼을 찾느라 시선을 옮기지 않아도 돼요', '잘못 눌렀으면 바로 <b>Backspace</b> 또는 ‘잘못 눌렀어요’를 눌러 다시 할 수 있어요', '마지막 몇 개 점은 <b>평가 전용</b>이에요. 같은 방법으로 바라보고 확인하면 돼요'],
+      orig: '이 라벨은 ‘표적을 보려 했다’는 <b>의도의 기록</b>이에요. 눈이 실제로 그 좌표에 있었는지 재는 외부 시선 추적기 측정이 아니라서, 학습·평가 보고서에서는 proxy 라벨로 구분해요. 눈 깜빡임·얼굴 손실·화면 이탈·창 크기 변경 구간은 자동으로 제외돼요.',
+      ref: 'Sugano et al., 2015 · Huang et al., 2016 (상호작용 기반 보정 자료)', cta: '준비됐어요 · 시작' },
     recovery: { tag: 'Domain 4 · 자율신경 조절', title: '공명 호흡 회복', vis: V.breath, time: `${d.recovery}초`, resp: '호흡 따라 하기',
       what: '분당 6회 호흡을 따라 하는 동안, 압박으로 오른 심박이 얼마나 되돌아오고 호흡에 맞춰 출렁이는지로 회복력과 자율신경 조절을 봅니다.',
       how: ['원이 커지고 바깥 띠가 차오를 때 <b>5초 들이쉬고</b>, 작아질 때 <b>5초 내쉬어요</b>', '코로 천천히, 편안한 깊이로 — 억지로 깊게 쉬지 않아도 돼요', '아래 파형의 점이 올라가면 들숨, 내려가면 날숨이에요'],
@@ -2052,7 +2110,7 @@ async function runStep(key, fn) {
   const st = S.steps[key] = { status: 'running' };
   if(S.telemetry)S.telemetry.steps[key]={start:now()};
   S.cur = key; S.stepPhases = [];
-  S.lmRec = !S.demo && (key === 'calibration' || GAZE_STEPS.includes(key));
+  S.lmRec = !S.demo && (key === 'calibration' || key === 'gazeLabel' || GAZE_STEPS.includes(key));
   /* 심박 단계는 얼굴 추론을 줄여 카메라 프레임·피부색 표본을 최대로: 기준선 15Hz(눈 깜빡임 기준값 유지), 압박·회복 10Hz.
    * 피부 영역은 묵은 랜드마크(≤0.6초)도 품질만 낮춰 쓰므로 위치 추적에는 충분하다 */
   if (S.camera) S.camera.minGap = { baseline: 66, stress: 100, recovery: 100 }[key] || 25;
@@ -2079,7 +2137,11 @@ async function runSession() {
   Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 }, gazeOut: { n: 0, off: 0 } });
   S.attemptId=crypto.randomUUID();S.startedAt=now();S.endedAt=null;S.outcome='recording';S.errorCode=null;
   S.researchConsent=!S.demo&&$('rsOpt').checked?{version:NLResearch.CONSENT_VERSION,research:true,phq:$('rsPhq').checked,at:new Date().toISOString()}:null;
-  S.telemetry={clock:{timeOrigin:performance.timeOrigin,start:S.startedAt,onset:'requestAnimationFrame-before-paint'},steps:{},stimuli:[],inputs:[],drift:[],calibrationFrames:[]};
+  S.telemetry={clock:{...NLLabels.clockInfo(window),start:S.startedAt,onset:'requestAnimationFrame-before-paint',segments:[]},steps:{},stimuli:[],inputs:[],drift:[],layout:[],calibrationFrames:[]};
+  S.calibRound=0;S.calibDigests=null;S.gazeLabels=null;
+  /* 전역 시선 모델은 검사 시작 시점에 고정한다(세션 중 교체 없음). 로드 실패·호환 불가면 기존 엔진만 쓴다 */
+  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});
+  clockSegment('session-start',{gazeModel:S.gazeModel?.mode||'off'});
   if(S.researchConsent){referenceCollector.start();datasetCheckpoint().catch(console.warn);S.datasetTimer=setInterval(()=>datasetCheckpoint().catch(console.warn),20000);}
   chooseForm(S.mode);
   S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';
@@ -2093,8 +2155,10 @@ async function runSession() {
   if (m.alert) plan.push(['pvt', () => phasePvt(d)]);
   if (m.sustain) plan.push(['sart', () => phaseSart(d)]);
   if (m.core) plan.push(['stress', () => phaseStress(d.stress)], ['recovery', () => phaseRecovery(d.recovery)]);
+  /* 전용 시선 라벨 수집: 시선 보정 → 라벨 수집만. 검사 단계·분석·점수 없음 */
+  if (S.sessionKind === 'gaze-label') { plan.length = 0; plan.push(['calibration', () => calibrate()], ['gazeLabel', () => phaseGazeLabel()]); S.steps.baseline = { status: 'off' }; }
   /* 연구 실측: 고른 단계만 남긴다. 시선 과제가 있으면 시선 보정을 앞에 둔다 */
-  if (S.lab) {
+  else if (S.lab) {
     const keep = new Set([...S.lab, ...(S.lab.some(k => GAZE_STEPS.includes(k)) ? ['calibration'] : [])]);
     for (let i = plan.length - 1; i >= 0; i--) if (!keep.has(plan[i][0])) plan.splice(i, 1);
     if (!keep.has('baseline')) S.steps.baseline = { status: 'off' };
@@ -2112,7 +2176,7 @@ async function runSession() {
     for (let i = 0; i < plan.length; i++) {
       const [key, fn] = plan[i];
       S.stepIdx = i + 1; S.stepTotal = plan.length;
-      if (GAZE_STEPS.includes(key) && !S.demo && !S.model) { S.steps[key] = { status: 'nogaze' }; renderStepper(); continue; }
+      if ((GAZE_STEPS.includes(key) || key === 'gazeLabel') && !S.demo && !S.model) { S.steps[key] = { status: 'nogaze' }; renderStepper(); continue; }
       if (key !== 'calibration') S.recording = true;   // 기록은 보정 뒤 첫 단계부터(전체 검사에서는 기준선, 연구 실측에서는 고른 첫 단계)
       await runStep(key, fn);
     }
@@ -2211,15 +2275,17 @@ async function cal9(W, H) {
   const dot = $('calDot');
   for (const [x, y] of pts) {
     dot.style.left = x + 'px'; dot.style.top = y + 'px';
-    if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });
+    const tg = calTarget(x, y, 'fix9'), t0 = now();
     const pt = [];
     /* 표본이 6개 미만이면(아래쪽처럼 눈이 덜 보이는 위치) 최대 1.2초 더 받는다 — 점마다 고르게 표본이 있어야 화면 전체를 맞춘다 */
-    S.onFeature = featSampler(now(), 650, 2900, () => ({ x, y }), pt);
+    S.onFeature = featSampler(t0, 650, 2900, () => ({ x, y }), pt);
     await wait(1700);
     for (let k = 0; k < 4 && pt.length < 6; k++) await wait(300);
     S.onFeature = null;
     const keep = new Set(N.robustFeatures(pt.map(s => s.f)));
-    samples.push(...pt.filter(s => keep.has(s.f)));
+    const kept = pt.filter(s => keep.has(s.f));
+    if (tg) Object.assign(tg, { offset: now(), sampleStart: t0 + 650, sampleEnd: now(), samples: pt.length, kept: kept.length });
+    samples.push(...kept);
   }
   S.onFeature = null;
   return samples;
@@ -2251,7 +2317,8 @@ async function calPursuit(W, H, sec = 18) {
   const t0 = await nextFrame();
   const settle = glide(dot, pos, t0, sec * 1000);
   S.onFeature = featSampler(t0, 1000, sec * 1000, t => pos(t - t0 - LAG), out, 0.5);
-  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, fx: FX, fy: FY, path: `x=W*(0.5+0.38*sin(2pi*${FX.toFixed(4)}*t)), y=H*(0.5+0.34*sin(2pi*${FY.toFixed(4)}*t+pi/2)), t in s from t0` };
+  /* v3: 주파수·진폭·지연·표본 구간·가중치를 명시 기록 — 재생 도구가 하드코딩 대신 이 값을 읽는다 */
+  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, fx: FX, fy: FY, ax: 0.38, ay: 0.34, phaseY: Math.PI / 2, lagMs: LAG, sampleFrom: 1000, sampleTo: sec * 1000, weight: 0.5, round: S.calibRound || 1, path: `x=W*(0.5+0.38*sin(2pi*${FX.toFixed(4)}*t)), y=H*(0.5+0.34*sin(2pi*${FY.toFixed(4)}*t+pi/2)), t in s from t0` };
   const stopT = task('추적 보정', sec * 1000);
   await wait(sec * 1000);
   stopT(); settle(); S.onFeature = null;
@@ -2263,16 +2330,25 @@ async function calCollect(points, label) {
   const dot = $('vDot'), out = [];
   for (const p of points) {
     dot.style.left = p.x + 'px'; dot.style.top = p.y + 'px';
-    if (S.calibLog) S.calibLog.targets.push({ t: now(), x: p.x, y: p.y, kind: label.includes('영점') ? 'zone' : 'val' });
+    const tg = calTarget(p.x, p.y, label.includes('영점') ? 'zone' : label.includes('정밀') ? 'fine' : 'val');
     const fs = [];
     S.onFeature = (t, f) => fs.push(f);
-    await wait(500); fs.length = 0;
+    await wait(500); fs.length = 0; const sampleStart = now();
     await wait(800);
     for (let k = 0; k < 4 && fs.length < 6; k++) await wait(300);   // 표본이 적은 점은 최대 1.2초 더
     S.onFeature = null;
-    out.push({ ...p, fs: N.robustFeatures(fs.slice()) });
+    const kept = N.robustFeatures(fs.slice());
+    if (tg) Object.assign(tg, { offset: now(), sampleStart, sampleEnd: now(), samples: fs.length, kept: kept.length });
+    out.push({ ...p, fs: kept, targetId: tg ? tg.id : null });
   }
   return out;
+}
+/* 보정 표적 기록(v3): ID·round·표시 시작(onset=t)·종료(offset)·표본 구간. 과거 기록의 [t,x,y,kind] 도 같은 배열에서 만든다 */
+function calTarget(x, y, kind) {
+  if (!S.calibLog) return null;
+  const tg = { t: now(), x, y, kind, id: 'C' + String(S.calibLog.targets.length + 1).padStart(2, '0'), round: S.calibRound || 1 };
+  S.calibLog.targets.push(tg);
+  return tg;
 }
 const predAt = (model, A, pt, R = null) => {
   const g = pt.fs.map(f => N.applyResidual(R, N.applyAffine(A, N.predictGaze(model, f)))).filter(Boolean);
@@ -2352,7 +2428,11 @@ async function calibrate() {
     /* 화면이 너무 작으면(분할 화면·좁은 창) 보정점이 겹쳐 시선 모델을 맞출 수 없다 — 실측 NLR-681C…: 폭 110px 화면에서 보정 단계가 1시간 멈춤 */
     if (W < 360 || H < 320) { await pauseCard('화면이 너무 작아요', `<p>지금 측정 화면이 ${W}×${H}px 이에요. 화면 분할을 끄거나 창을 최대화한 뒤 '다시 확인'을 눌러 주세요. 휴대폰은 가로로 돌리면 더 정확해요.</p>`, '다시 확인'); continue; }
     S.screenW = W; S.drift = { dx: 0, dy: 0 }; S.affine = null; S.resid = null; S.model = null; S.gaze = null; S.gazeNoise = null; resetEuro();
-    S.calibLog = { screen: { w: W, h: H }, targets: [] };
+    /* 재시도(다시 보정)마다 round 를 올리고 표적 ID·구간을 새로 기록한다. calibrationFrames 는 누적되므로 rounds 의 시각 구간으로 나눈다 */
+    S.calibRound = (S.calibRound || 0) + 1;
+    const prevRounds = S.calibLog ? S.calibLog.rounds : [], prevTargets = S.calibLog ? S.calibLog.targets : [];
+    if (prevRounds.length) prevRounds.at(-1).outcome = prevRounds.at(-1).outcome || 'recalibrated';
+    S.calibLog = { screen: { w: W, h: H }, viewport: NLLabels.viewportState(window), targets: prevTargets, rounds: [...prevRounds, { round: S.calibRound, start: now(), end: null, outcome: null }] };
     const s9 = await cal9(W, H);
     const sp = await calPursuit(W, H);
     const vpts = [[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));
@@ -2421,6 +2501,8 @@ async function calibrate() {
         if (ok.length) {
           const b0 = N.pickCalibration(ok);
           S.model = b0.model; S.affine = b0.A; S.resid = b0.R;
+          /* 선택용 모델 digest: 정밀 보정 8점은 이 모델에만 ‘처음 보는 평가 자료’다. 아래 최종 refit 뒤에는 그 점들도 학습에 들어가므로 최종 모델의 오차는 독립 평가가 아니다 */
+          S.calibDigests = { selection: NLLabels.pipelineDigest({ model: b0.model, affine: b0.A, resid: b0.R, drift: S.drift }), selectionKey: b0.key };
           /* 고른 방식으로, 정밀 보정 점까지 모두 넣어 최종 보정을 다시 맞춘다(평가가 끝난 뒤 학습 자료를 늘리는 표준 절차).
            * 전체 보정 점에서 오차가 줄어들 때만 바꾸고, 표시하는 오차는 학습에 쓰지 않았던 평가 오차(b0)를 그대로 쓴다 */
           {
@@ -2430,7 +2512,9 @@ async function calibrate() {
             const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;
             const RF = b0.R ? N.fitResidual(pts.map(p => predAt(mF, AF, p)), W, H) : null;
             const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);
-            if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }
+            const refit = eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct;
+            if (refit) { S.model = mF; S.affine = AF; S.resid = RF; }
+            S.calibDigests.refitApplied = refit; S.calibDigests.refitErr = { selected: eB.errPct, refit: eF.errPct };
           }
           fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
           acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };
@@ -2442,6 +2526,9 @@ async function calibrate() {
       S.calibLog.fine = fine;
       resetEuro();
       S.calibLog.model = { key: cands[0].key, quad: !!S.model.quad, coefficients: S.model }; S.calibLog.affine = S.affine; S.calibLog.cursor = ctl;
+      /* v3: 잔차 보정·전체 개인 파이프라인 snapshot·digest. 저장된 model/affine 만으로는 당시 분석 좌표를 재현할 수 없었다(resid 누락) */
+      S.calibLog.resid = S.resid; S.calibLog.snapshot = NLLabels.pipelineSnapshot({ ...S, coreVersion: N.VERSION });
+      S.calibLog.digests = { ...(S.calibDigests || {}), final: NLLabels.pipelineDigest({ ...S, coreVersion: N.VERSION }), note: 'selection digest = model evaluated on untouched fine points; final digest = model after refit with fine points (fine-point error is no longer independent)' };
       S.calibLog.pairs = [...val, ...zc].map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length }));
       S.calibLog.evaluation={kind:'internal-model-selection',before,after,affineApplied:!!S.affine,
         candidates:cands.map(c=>({name:c.key,accuracy:c.acc})),
@@ -2456,14 +2543,17 @@ async function calibrate() {
       if (low.length && !low.some(p => Number.isFinite(p.gx))) { acc.grade = 'poor'; acc.missing = 'lower'; }
       else if (acc.coverage < 0.75 && acc.grade === 'good') acc.grade = 'fair';
     }
-    S.calib = { ...acc, samples: s9.length + sp.length };
+    S.calib = { ...acc, samples: s9.length + sp.length, round: S.calibRound };
+    const roundRow = S.calibLog.rounds.at(-1); roundRow.end = now(); roundRow.grade = acc.grade; roundRow.errPct = acc.errPct ?? null;
     if (acc.grade !== 'poor') {
       const c = await pauseCard('보정 완료', `${info}<p style="margin:12px 0 0">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);
-      if (c === 1) continue;
+      if (c === 1) { roundRow.outcome = 'recalibrated'; continue; }
+      roundRow.outcome = 'accepted';
       return;
     }
     const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style="margin:12px 0 0">${acc.missing === 'lower' ? '화면 <b>아래쪽</b> 점을 볼 때 눈이 잘 보이지 않았어요. 노트북을 책 등으로 조금 높이거나 의자를 낮춰, 화면 아래쪽을 볼 때 눈을 크게 내리깔지 않아도 되게 맞춰 주세요. 눈은 평소처럼 편하게 뜨면 돼요.' : `오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.`}</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);
-    if (c === 1) { S.model = null; S.affine = null; return; }
+    if (c === 1) { roundRow.outcome = 'proceed-without-gaze'; S.model = null; S.affine = null; return; }
+    roundRow.outcome = 'recalibrated';
   }
 }
 
@@ -2507,6 +2597,109 @@ async function calmPhoto(sec) {
   /* 이미 밝기를 맞춘 사진(평균 140~200)은 거의 그대로, 그 밖이면 165 쪽으로 보정 */
   const lum = photoLum(img), ok = lum && lum >= 140 && lum <= 200, k = !lum || ok ? 1 : Math.min(1.6, Math.max(0.7, 165 / lum));
   return `<div class="calm fade"><img class="calm-ph" src="${esc(src)}" alt="" style="filter:brightness(${k.toFixed(2)}) saturate(${ok ? '.96' : '.85'}) contrast(${ok ? '.98' : '.92'});animation-duration:${sec + 4}s"></div><div class="calm-dot"></div><div class="calm-cue">편안히 바라보세요 · 말하거나 움직이지 않기</div>`;
+}
+/* ---------- 전용 시선 라벨 수집 (gaze-label-1) ----------
+ * 표적을 바라본 채 화면 아무 곳이나 pointerdown / 스페이스바 / Enter 로 확인한다. 라벨 좌표는 표시된 표적의 중심(CSS client px)이며 마우스 좌표가 아니다.
+ * 확인 직전 창(기본 확인 500~200ms 전, 안정화 600ms 이후)의 추론 프레임만 라벨에 연결한다. 깜빡임·얼굴 손실·화면 이탈·레이아웃 변경은 제외한다.
+ * 마지막 holdout 블록은 사전에 역할이 고정되며, 블록 전후 개인 파이프라인 digest 가 같아야 한다(학습·보정·문턱 변경 없음). 기록은 append-only 이벤트다 */
+async function phaseGazeLabel() {
+  await brief('gazeLabel');
+  const W = stage.clientWidth, H = stage.clientHeight, cfg = { ...NLLabels.DEFAULT_CONFIG, counts: labelCounts() };
+  const seedQ = Number(new URLSearchParams(location.search).get('seed'));
+  const plan = NLLabels.planTargets({ seed: Number.isInteger(seedQ) ? seedQ : undefined, config: cfg });
+  const log = NLLabels.createEventLog(now);
+  const pipelineOf = () => NLLabels.pipelineDigest({ ...S, coreVersion: N.VERSION });
+  const G = S.gazeLabels = { schema: NLLabels.SCHEMA, version: NLLabels.VERSION, config: { ...cfg, counts: plan.counts }, plan, viewport: NLLabels.viewportState(window), clock: NLLabels.clockInfo(window),
+    pipeline: { atStart: pipelineOf(), calibrationDigests: S.calibLog?.digests || null, gazeModel: S.gazeModel ? { id: S.gazeModel.id || null, mode: S.gazeModel.mode } : null }, events: log.events, labels: [], holdout: null, stage: { W, H } };
+  log.push('plan', { seed: plan.seed, counts: plan.counts, total: plan.total });
+  S.labelRing = [];
+  const R = cfg.targetRadiusPx;
+  /* 무대 마크업은 pauseCard(평가 블록 안내)가 body 를 덮어쓰므로 필요할 때마다 다시 만든다 */
+  let dot, cue, undoBox;
+  const mount = () => { body.innerHTML = `<div class="cal-dot val" id="lbDot" style="display:none;width:${2 * R}px;height:${2 * R}px;margin:-${R}px 0 0 -${R}px"></div><div class="cue" id="lbCue"></div><div id="lbUndo" style="position:absolute;right:18px;bottom:18px;display:none"><button class="sbtn" id="lbUndoBtn" type="button">잘못 눌렀어요 · 다시 (Backspace)</button></div>`; dot = $('lbDot'); cue = $('lbCue'); undoBox = $('lbUndo'); };
+  mount();
+  const layoutTimes = () => (S.telemetry?.layout || []).map(l => l.t);
+  const hiddenNow = () => [...S.hidden, ...(S.hideStart !== null ? [{ start: S.hideStart, end: null }] : [])];
+  let holdoutStarted = false;
+  for (let i = 0; i < plan.targets.length; i++) {
+    const tg = plan.targets[i];
+    if (tg.role === 'holdout' && !holdoutStarted) {
+      holdoutStarted = true;
+      G.holdout = { beginAt: now(), digestBefore: pipelineOf(), targets: plan.targets.filter(t => t.role === 'holdout').map(t => t.id) };
+      log.push('holdout-begin', { digest: G.holdout.digestBefore });
+      await pauseCard('마지막 평가 블록', `<p>이제부터 나오는 <b>${plan.counts.holdout}개</b> 점은 평가 전용이에요. 지금까지와 똑같이 점의 가운데를 바라본 채 확인해 주세요. 이 점들은 학습에 쓰지 않아요.</p>`, '계속');
+      mount(); S.telemetry?.layout?.push({ t: now(), kind: 'label-stage-remount' });
+    }
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      taskSet(tg.role === 'holdout' ? '시선 라벨 · 평가 블록' : '시선 라벨 수집', i, plan.targets.length);
+      const x = tg.nx * W, y = tg.ny * H;
+      dot.style.display = 'block'; dot.style.left = x + 'px'; dot.style.top = y + 'px'; dot.classList.remove('hit', 'miss');
+      cue.innerHTML = `점의 <b>가운데</b>를 바라본 채 아무 곳이나 클릭·터치하거나 <b>스페이스바</b>를 누르세요 · ${i + 1}/${plan.targets.length}${attempt > 1 ? ' · 다시 시도' : ''}`;
+      undoBox.style.display = 'none';
+      const vp = NLLabels.viewportState(window), center = NLLabels.targetCenter(dot.getBoundingClientRect(), vp);
+      const shownAt = await nextFrame();
+      log.push('shown', { t: shownAt, targetId: tg.id, attempt, role: tg.role, x: center.x, y: center.y, nx: center.nx, ny: center.ny, rect: center.rect, vp: { vw: vp.vw, vh: vp.vh, dpr: vp.dpr, scale: vp.visual?.scale ?? null, fullscreen: vp.fullscreen } });
+      /* 확인: pointerdown(버튼 제외) · 스페이스바 · Enter. 최소 체류 전의 입력도 받되 창 선택에서 거부된다. 12초가 지나면 시간 초과 */
+      const conf = await new Promise((res, rej) => {
+        if (S.abort) { rej(Abort); return; }
+        const w = { rej, cleanup: () => { S.onResp = null; S.onGo = null; S.onKey = null; } };
+        w.to = setTimeout(() => { waiters.delete(w); w.cleanup(); res(null); }, 12000);
+        const done = v => { clearTimeout(w.to); waiters.delete(w); w.cleanup(); res(v); };
+        S.onResp = e => done({ t: e.timeStamp, type: e.type, pointerType: e.pointerType || (e.type === 'keydown' ? 'keyboard' : null), isTrusted: !!e.isTrusted, clientX: Number.isFinite(e.clientX) ? e.clientX : null, clientY: Number.isFinite(e.clientY) ? e.clientY : null, dispatchMs: Math.max(0, now() - e.timeStamp) });
+        S.onGo = () => done({ t: now(), type: 'enter', pointerType: 'keyboard', isTrusted: true, clientX: null, clientY: null, dispatchMs: null });
+        S.onKey = e => { if (e.key === 'Backspace') { e.preventDefault(); done({ t: e.timeStamp, type: 'skip', pointerType: 'keyboard' }); } };
+        waiters.add(w);
+      });
+      if (!conf || conf.type === 'skip') { log.push('confirm', { targetId: tg.id, attempt, timeout: !conf, skipped: !!conf, window: { keep: false, reasons: [conf ? 'user-skipped' : 'timeout'], frameTimes: [], dwellConfidence: 0 } });
+        G.labels.push({ targetId: tg.id, role: tg.role, attempt, shownAt, confirmAt: null, x: center.x, y: center.y, nx: center.nx, ny: center.ny, status: 'rejected', rejectReasons: [conf ? 'user-skipped' : 'timeout'], frameTimes: [], labelSource: 'explicit_target_confirmed' });
+        if (attempt < 3) { log.push('retry', { targetId: tg.id, reason: conf ? 'user-skipped' : 'timeout' }); continue; } break; }
+      const frames = S.labelRing.filter(r => r.t >= shownAt - 200 && r.t <= conf.t).map(r => ({ t: r.t, gazeOk: !!r.fr.gazeOk && !!r.base, faceOk: !r.faceMissing && r.fr.faceOk !== false, blink: r.fr.blink, cx: r.fr.cx, cy: r.fr.cy, fw: r.fr.fw, eyeQ: r.fr.eyeQ, _r: r }));
+      const win = NLLabels.selectWindow({ frames, shownAt, confirmAt: conf.t, hidden: hiddenNow(), layoutChanges: layoutTimes(), config: cfg });
+      const chosen = new Set(win.frameTimes);
+      const label = { targetId: tg.id, role: tg.role, attempt, shownAt, confirmAt: conf.t, x: center.x, y: center.y, nx: center.nx, ny: center.ny, rect: center.rect, confirm: conf, window: win.window, dwellMs: win.dwellMs,
+        frameTimes: win.frameTimes, dwellConfidence: win.dwellConfidence, status: win.keep ? 'valid' : 'rejected', rejectReasons: win.reasons, excluded: win.excluded, stats: win.stats, observedFrames: win.observedFrames, validFrames: win.validFrames, thinned: !!win.thinned,
+        labelSource: 'explicit_target_confirmed', coordinateSpace: 'css-client',
+        /* 창 안 프레임의 엔진 예측(engine_prediction)·특징 — 표적을 이용해 보정하지 않은 당시 baseline 그대로 */
+        frames: frames.filter(f => chosen.has(f.t)).map(({ _r: r, t }) => ({ t, px: r.pred ? r.pred.x : null, py: r.pred ? r.pred.y : null, ax: r.affine ? r.affine.x : null, ay: r.affine ? r.affine.y : null, bx: r.base ? r.base.x : null, by: r.base ? r.base.y : null, mode: r.pred ? r.pred.mode : null, drift: r.drift || null, lag: r.lag ?? null,
+          u: r.f?.u, v: r.f?.v, uLeft: r.f?.eyes?.left?.u, vLeft: r.f?.eyes?.left?.v, uRight: r.f?.eyes?.right?.u, vRight: r.f?.eyes?.right?.v, qLeft: r.f?.eyes?.left?.q, qRight: r.f?.eyes?.right?.q, open: r.f?.open, yaw: r.f?.yaw, pitch: r.f?.pitch, cx: r.f?.cx, cy: r.f?.cy, fw: r.f?.fw, blink: r.fr.blink, eyeQ: r.fr.eyeQ })) };
+      log.push('confirm', { targetId: tg.id, attempt, window: { keep: win.keep, reasons: win.reasons, frameTimes: win.frameTimes, dwellConfidence: win.dwellConfidence, window: win.window }, confirm: { type: conf.type, pointerType: conf.pointerType, isTrusted: conf.isTrusted, dispatchMs: conf.dispatchMs } });
+      G.labels.push(label);
+      dot.classList.add(win.keep ? 'hit' : 'miss');
+      if (!win.keep) {
+        const why = win.reasons.map(r => ({ 'dwell-too-short': '조금 더 오래(1초 이상) 바라본 뒤 눌러 주세요', 'too-few-frames': '눈이 충분히 보이지 않았어요', 'low-fps': '카메라 프레임이 부족했어요', 'head-motion': '머리가 움직였어요', 'hidden-overlap': '다른 창을 보던 구간이에요', 'layout-changed': '창 크기가 바뀌었어요', 'window-empty': '너무 빨리 눌렀어요' }[r] || r)).join(' · ');
+        cue.innerHTML = `이 표적은 기록하지 않았어요 — ${esc(why)}`;
+        await wait(900);
+        if (attempt < 3) { log.push('retry', { targetId: tg.id, reason: win.reasons.join(',') }); continue; }
+        break;
+      }
+      /* 유효 기록 뒤 0.9초 동안 ‘잘못 눌렀어요’(버튼·Backspace) 를 받는다. 원본은 지우지 않고 invalidate + retry 이벤트를 더한다 */
+      undoBox.style.display = 'block';
+      const undo = await new Promise(res => {
+        const w = { rej: () => res(false), cleanup: () => { S.onKey = null; $('lbUndoBtn').onclick = null; } };
+        w.to = setTimeout(() => { waiters.delete(w); w.cleanup(); res(false); }, 900);
+        const yes = () => { clearTimeout(w.to); waiters.delete(w); w.cleanup(); res(true); };
+        S.onKey = e => { if (e.key === 'Backspace') { e.preventDefault(); yes(); } };
+        $('lbUndoBtn').onclick = yes;
+        waiters.add(w);
+      });
+      undoBox.style.display = 'none';
+      if (undo) { label.status = 'invalidated'; label.invalidateReason = 'user'; log.push('invalidate', { targetId: tg.id, attempt, reason: 'user' }); if (attempt < 3) { log.push('retry', { targetId: tg.id, reason: 'user-invalidated' }); continue; } }
+      break;
+    }
+    dot.style.display = 'none';
+    await wait(250);
+  }
+  taskSet('시선 라벨 수집', plan.targets.length, plan.targets.length);
+  if (G.holdout) {
+    G.holdout.endAt = now(); G.holdout.digestAfter = pipelineOf(); G.holdout.pipelineUnchanged = G.holdout.digestAfter === G.holdout.digestBefore;
+    log.push('holdout-end', { digest: G.holdout.digestAfter, unchanged: G.holdout.pipelineUnchanged });
+    /* holdout proxy 오차: 유효 holdout 라벨의 엔진 예측 중앙값 vs 표적 중심(화면 폭 % · px). ‘표적 proxy 기준 오차’이며 실제 시선 정확도 검증이 아니다 */
+    const rows = G.labels.filter(l => l.role === 'holdout' && l.status === 'valid').map(l => { const xs = l.frames.map(f => f.bx).filter(Number.isFinite), ys = l.frames.map(f => f.by).filter(Number.isFinite); return xs.length >= 3 ? { x: l.x, y: l.y, gx: N.median(xs) - (l.frames[0].drift?.dx || 0), gy: N.median(ys) - (l.frames[0].drift?.dy || 0) } : null; }).filter(Boolean);
+    G.holdout.proxyError = rows.length ? { targets: rows.length, ...N.gazeAccuracy(rows, W, H), medianPx: Math.round(N.median(rows.map(r => Math.hypot(r.gx - r.x, r.gy - r.y)))), note: 'baseline engine vs confirmed target centre; proxy, not external eye-tracker accuracy; n is targets not users' } : { targets: 0 };
+  }
+  G.effective = log.effective();
+  G.summary = NLResearch.labelSummary(G);
+  S.labelRing = null;
 }
 async function phaseBaseline(sec) {
   await brief('baseline');
@@ -2988,10 +3181,20 @@ function gazeLostCalib() {
   if (!c || !o || o.n < 60 || o.off / o.n < 0.4) return c;
   return { ...c, grade: 'poor', lost: { offscreen: Math.round(o.off / o.n * 100) / 100, samples: o.n, originalGrade: c.grade } };
 }
+/* active 전역 모델: 분석 좌표(rx,ry)를 모델 보정값(sx,sy)으로 바꾸고 기존 엔진 좌표는 bx,by 로 보존한다. shadow/off 는 그대로 */
+function applyGazeModel(samples) {
+  const gm = S.gazeModel; if (!gm || gm.mode !== 'active' || !Array.isArray(samples)) return samples;
+  return samples.map(p => (Number.isFinite(p.sx) && Number.isFinite(p.sy) ? { ...p, bx: p.rx, by: p.ry, rx: p.sx, ry: p.sy } : p));
+}
 function liveRecord() {
+  const gm = S.gazeModel, active = gm && gm.mode === 'active';
+  const trials = active ? S.trials.map(t => ({ ...t, samples: applyGazeModel(t.samples) })) : S.trials;
+  const pursuit = active && S.pursuit ? { ...S.pursuit, samples: applyGazeModel(S.pursuit.samples), levels: (S.pursuit.levels || []).map(l => ({ ...l, samples: applyGazeModel(l.samples) })), reversal: S.pursuit.reversal ? { ...S.pursuit.reversal, samples: applyGazeModel(S.pursuit.reversal.samples) } : null, circle: S.pursuit.circle ? { ...S.pursuit.circle, samples: applyGazeModel(S.pursuit.circle.samples) } : null } : S.pursuit;
+  const saccade = active ? S.saccade.map(t => ({ ...t, samples: applyGazeModel(t.samples) })) : S.saccade;
   return {
     attemptId:S.attemptId,startedAt:S.startedAt,endedAt:S.endedAt||now(),outcome:S.outcome,errorCode:S.errorCode,telemetry:S.telemetry,reference:S.researchConsent?referenceCollector.snapshot():null,researchConsent:S.researchConsent,
-    frames: S.frames, phases: S.phases, trials: S.trials, pursuit: S.pursuit, saccade: S.saccade.length ? S.saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
+    sessionKind:S.sessionKind||'condition',gazeLabels:S.gazeLabels||null,coreVersion:N.VERSION,gazeModel:S.gazeModel?NLGazeModel.describe(S.gazeModel):null,
+    frames: S.frames, phases: S.phases, trials, pursuit, saccade: saccade.length ? saccade : null, saccadeCal: S.sacCal, pvt: S.pvt, sart: S.sart,
     stressScore: S.stressScore, steps: S.steps, screenW: S.screenW, calibration: gazeLostCalib(), checkin: { ...S.checkin }, demo: false, mode: S.mode, resized: S.resized,
     stimMode: S.stimMode, stimForm: S.stim ? S.stim.form : null, stimStatus: S.stim ? S.stim.status : null, measuredAt: new Date().toISOString(),
     capture: S.camera ? { ...S.camera.info } : null, lab: S.lab || null, hidden: S.hidden.slice(), landmarks: S.landmarks, calibLog: S.calibLog,
@@ -3018,12 +3221,28 @@ function finish() {
   show('sAnalyze');
   setTimeout(async () => {
     try {
+      await NLGazeModel.drain(S.gazeModel);    // active/shadow 모델의 대기 중 추론이 끝난 뒤 분석 좌표를 만든다
+      if (S.sessionKind === 'gaze-label') { finishLabels(liveRecord()); return; }
       const rec = S.demo ? demoRecord() : liveRecord();
       const server = S.demo ? [] : await serverHistory();
       const res = finishWith(rec, server);
       if (!S.demo) { researchSubmit(rec, res); accountSave(res); }
     } catch (e) { console.error(e); if(!S.demo){S.outcome='analysis-error';S.errorCode=String(e.name||'analysis-exception');researchSubmit(liveRecord(),null);} alert('분석 중 오류가 발생했어요: ' + e.message); show('sIntro'); }
   }, 60);
+}
+/* 시선 라벨 수집 마무리: 검사 결과·점수 없이 수집 요약만 보여 주고 연구 저장소(동의 세션)로 보낸다 */
+function finishLabels(rec) {
+  const G = rec.gazeLabels, s = G ? NLResearch.labelSummary(G) : null, pe = G?.holdout?.proxyError;
+  const rows = s ? [['유효 라벨 표적', `${s.valid} / ${s.targets}`], ['학습 · 내부 검증 · 최종 평가', `${s.train} · ${s.internal} · ${s.holdout}`], ['연결된 관측 프레임', String(s.frames)], ['재시도 · 사용자 무효 · 자동 거부', `${s.retries} · ${s.invalidated} · ${s.rejected}`],
+    ['평가 블록 중 보정 변경 없음', G.holdout ? (G.holdout.pipelineUnchanged ? '확인됨' : '변경 감지 — 평가 무효') : '평가 블록 없음'],
+    ['기존 엔진의 표적 proxy 오차', pe && pe.targets ? `${pe.errPct}% (화면 폭 대비, 표적 ${pe.targets}개, 중앙값 ${pe.medianPx}px)` : '계산 불가']] : [];
+  $('sReport').innerHTML = `<div class="card"><div class="kicker">Gaze Label · 수집 완료</div><h2>시선 라벨 수집을 마쳤어요</h2>
+    <p class="lead">이 모드는 검사 결과나 점수를 만들지 않아요. 아래 수치는 수집 상태이며, ‘표적 proxy 오차’는 표적을 보려 한 기록과 기존 엔진 추정의 차이일 뿐 실제 시선 정확도 검증이 아니에요.</p>
+    <table class="btbl" style="margin-top:14px"><tbody>${rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td><b>${esc(b)}</b></td></tr>`).join('')}</tbody></table>
+    <div id="r-app" style="margin-top:14px"></div>
+    <div class="btns" style="margin-top:18px"><a class="btn" href="condition.html?mode=gaze-label">한 번 더 수집</a><a class="btn ghost" href="dataset.html#training">dataset · 학습 파이프라인</a><a class="btn ghost" href="condition.html">검사 첫 화면</a></div></div>`;
+  show('sReport');
+  researchSubmit(rec, null);
 }
 /* 비교용 기록: 이 기기 기록 + (로그인 시) 계정 기록을 합쳐 최신순으로. 측정마다 체크해 둔 실천 항목도 붙인다 */
 function mergeHistory(local, server) {
@@ -3180,7 +3399,12 @@ async function researchSubmit(rec, res) {
 }
 function researchPackage(rec,res){
   const vt=procVideo.videoWidth?{w:procVideo.videoWidth,h:procVideo.videoHeight}:null;
-  return NLResearch.pack(rec,res,rec.researchConsent,{ua:navigator.userAgent,screen:{w:screen.width,h:screen.height,vw:S.screenW,vh:stage.clientHeight},camera:vt,dpr:devicePixelRatio,tz:new Date().getTimezoneOffset(),app:'condition'});
+  return NLResearch.pack(rec,res,rec.researchConsent,{ua:navigator.userAgent,screen:{w:screen.width,h:screen.height,vw:S.screenW,vh:stage.clientHeight},camera:vt,dpr:devicePixelRatio,tz:new Date().getTimezoneOffset(),app:'condition',
+    viewport:NLLabels.viewportState(window),subjectKey:subjectKey(),subjectKeySource:'browser-local-random'});
+}
+/* 연구용 가명 키: 이 브라우저 프로필에서 만든 무작위 값(기기 수준 가명). 사람을 식별하는 값이 아니며, 한 기기를 여러 사람이 쓰면 사람 단위 분리를 보장하지 못한다 */
+function subjectKey(){
+  try{let k=localStorage.getItem('nlNewbiz:subjectKey');if(!k||!/^[0-9a-f]{32}$/.test(k)){k=Array.from(crypto.getRandomValues(new Uint8Array(16)),v=>v.toString(16).padStart(2,'0')).join('');localStorage.setItem('nlNewbiz:subjectKey',k);}return k;}catch(_){return null;}
 }
 async function datasetCheckpoint(){
   if(!S.researchConsent?.research||S.demo)return;
@@ -3268,7 +3492,7 @@ async function runBio() {
 
 
 /* 검증용: ?debug=1 이면 내부 상태와 일부 단계 함수를 노출 (E2E 테스트용) */
-if (new URLSearchParams(location.search).get('debug') === '1') window.__nl = { S, cursorTask, calPursuit, stage, resetEuro };
+if (new URLSearchParams(location.search).get('debug') === '1') window.__nl = { S, cursorTask, calPursuit, stage, resetEuro, phaseGazeLabel, labelRingPush, liveRecord, researchPackage, finishLabels, runStep, now };
 
 if (new URLSearchParams(location.search).get('qa') === '1') $('qaBox').hidden = false;
 { const rid = new URLSearchParams(location.search).get('rid'); if (rid) openSaved(rid); }

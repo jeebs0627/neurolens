@@ -15,3 +15,9 @@ gemini.key
 /tools/
 /newbiz-stim/generation-report-*/
 /newbiz-stim/02scape.png
+
+# Training pipeline (never deployed): notebooks, local exports, snapshots, checkpoints
+/notebooks/
+/training/
+/research_export/
+/tools/colab/

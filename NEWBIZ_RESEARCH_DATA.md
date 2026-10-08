@@ -88,6 +88,14 @@ node tools/condition_fusion_benchmark.cjs --write
 
 [합성 비교 결과](CONDITION_FUSION_BENCHMARK.json)는 `a7e980b`와 비교하며 정상·12fps·약한 신호·이마 손실·반복 끊김·POS 억제·평탄 입력·큰 잡음·작은 잡음의 9조건과 5개 seed를 포함합니다. 101·509는 추가 합성 검증용 seed입니다. 예를 들어 40초 중 7.8초씩 반복 관측되는 조건은 활용 시간이 0초에서 약 24.9초로 늘었습니다. 반면 일부 약한 신호 조건은 오차가 줄면서 활용 시간이 줄었고, 깨끗한 신호의 작은 오차가 늘어난 경우도 있습니다. 원본 표에 모두 남겼으며, 사람의 실제 웹캠 성공률·정확도 개선 수치로 해석하면 안 됩니다.
 
+### 스키마 `nl-research-3` (2026-10-08) · 학습 파이프라인
+
+- 시선 표본 열에 `px,py`(모델 원출력)·`sx,sy`(전역 잔차 모델 출력: shadow 기록 또는 active 적용값)·`bx,by`(active 시 보존한 기존 엔진 좌표)를 추가했습니다(`sampleColumns` 명시).
+- `payload.calibration` 에 표적 ID·round·표시 구간(`targetsV2`, `rounds`), 잔차 보정 계수(`resid`), 전체 개인 파이프라인 `snapshot` 과 선택용/최종 모델 `digests`, 추적 보정 메타(`pursuit.fx/fy/ax/ay/lagMs/sampleFrom/sampleTo/weight`)를 기록합니다. 저장된 값만으로 당시 분석 좌표를 재현할 수 있습니다.
+- 전용 시선 라벨 수집 모드(`/condition?mode=gaze-label`)는 `payload.gazeLabels`(표적 계획·확인 직전 창·append-only 이벤트·holdout 전후 digest)와 `meta.sessionKind='gaze-label'` 로 저장됩니다. 라벨은 ‘표적 응시 의도’의 proxy 이며 외부 eye tracker 정답이 아닙니다.
+- `telemetry.clock.segments`(탭 재개·카메라 재연결), `telemetry.layout`(resize·visualViewport·scroll), `telemetry.inputs` 의 포인터 좌표(`free_click_weak`, 학습·평가 제외), `meta.viewport`, `meta.gazeModel`(검사 시작 시 고정한 전역 모델), `meta.subjectKey`(브라우저 로컬 무작위 가명 · 기기 수준)가 추가됐습니다.
+- v1/v2 와 호환되며 Python/Node adapter(`tools/colab`)가 세 버전을 모두 읽습니다. 명세: [TRAINING_SCHEMA.md](TRAINING_SCHEMA.md), 운영: [COLAB_TRAINING_RUNBOOK.md](COLAB_TRAINING_RUNBOOK.md).
+
 ## 4. 내려받기
 
 ```bash
@@ -95,7 +103,9 @@ set SUPABASE_URL=https://qonoakggniupuxwvzmmw.supabase.co
 set SUPABASE_SERVICE_ROLE_KEY=<service_role — 커밋·배포 금지>
 python tools/newbiz_research_export.py --out research_export --npz
 ```
-`sessions.csv`(세션당 1행), `sessions/<code>.json`(전체), `frames/<code>.npz`(프레임·랜드마크 실수 배열). 조각 sha256 을 검증하고 불일치 세션은 건너뜁니다.
+`sessions.csv`(세션당 1행 요약), `sessions/<code>.json`(전체 + annotations), `frames/<code>.npz`(frames·calibrationFrames(`cal_`)·landmarks(`lm_`) 실수 배열), `export_index.json`(페이지 수·마지막 페이지 크기 — PostgREST 1,000행 상한을 Range 페이지네이션으로 끝까지 읽은 근거). 조각 sha256 을 검증하고 불일치 세션은 건너뜁니다.
+
+학습용 내보내기는 service_role 대신 **연구 관리자 JWT** 로 기존 `dataset_list`/`dataset_detail` 을 쓰는 `python -m nlcolab export`(tools/colab)를 권장합니다. `dataset.html` 의 ‘현재 기록 내보내기’는 요약(meta/audit/annotations)이며 원자료가 아닙니다.
 
 ## 5. 활용 예
 - **규준 수립**: 지표별 분포(백분위) → `INDICATORS` 기준점 재설정, 기기·브라우저·연령대 층화

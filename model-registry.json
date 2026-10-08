@@ -1,0 +1,18 @@
+{
+  "schema": "nl-model-registry-1",
+  "updatedAt": "2026-10-08T00:00:00Z",
+  "note": "Immutable artifacts live under models/<kind>/<id>/ (model.onnx + manifest.json). The browser pins one entry per session at start; changing 'active' only affects sessions that start after the deployment. 'trained' or 'candidate' never means 'active'. Promotion requires the release policy checks in release_policy.json plus a recorded approver; the git history of this file is the append-only promotion ledger.",
+  "policy": "release_policy.json",
+  "active": null,
+  "shadow": null,
+  "candidates": [],
+  "history": [
+    {
+      "at": "2026-10-08T00:00:00Z",
+      "event": "registry-created",
+      "state": "no-model",
+      "reason": "no eligible training data has been audited yet; baseline engine (In_mind core 2.3 pipeline) remains the only gaze estimator",
+      "actor": "developer"
+    }
+  ]
+}

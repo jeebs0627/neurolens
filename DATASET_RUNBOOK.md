@@ -119,6 +119,12 @@ t_ms,bpm,quality
 - 시선 보정의 표적·예측·후보 모델 비교와 드리프트 조치 전후 근거를 저장합니다. 이는 모델 선택/내부 검증 자료이며 독립 시선 정답이 아닙니다. 커서 보조 결과를 독립 정확도로 주장하지 않습니다.
 - 자극 시각은 rAF의 **화면 갱신 전 추정 시각**입니다. 입력 dispatch 지연을 별도 저장하고 반응시간에서 임의로 빼지 않습니다. 화면·입력 장치의 물리적 지연은 미측정 상태입니다.
 
+## 06 학습 파이프라인 · 시선 라벨 수집 모드 (2026-10-08)
+
+- `dataset.html#training`: 불러온 세션의 라벨 등급·적격성(목록 meta/audit 만 사용), 모델 registry(active/shadow/candidates/history)와 release policy, 다음 Colab 작업 안내, 미검증 항목. 학습 실행은 Colab/로컬 CLI(`tools/colab`, `python -m nlcolab …`)에서 일어나며 결과 파일(`model-registry.json`)만 읽습니다.
+- `/condition?mode=gaze-label`: 보정 뒤 표적을 바라보고 화면 아무 곳 클릭·터치·스페이스바로 확인하는 전용 수집. 검사 결과·점수를 만들지 않고 같은 연구 저장 경로로 전송됩니다(`meta.sessionKind='gaze-label'`). 마지막 블록은 평가 전용(eval_only).
+- 추가 SQL 은 없습니다. 라벨 사후 수정·무효화·복구는 기존 `dataset_annotate(kind=correction)` 에 append-only 로 기록합니다. 절차·상태 행렬·미검증 항목은 [COLAB_TRAINING_RUNBOOK.md](COLAB_TRAINING_RUNBOOK.md).
+
 ## 다음 연구 과제
 
 1. 저조도·노출 변화·안경 반사·모자·저사양 기기별 기준 장비 동시 측정. 참가자/기기/날짜를 분리한 평가셋 구성.

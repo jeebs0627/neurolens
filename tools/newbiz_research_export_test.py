@@ -1,10 +1,10 @@
-"""Offline v1/v2 export tests; no database credentials or numpy needed."""
+"""Offline v1/v2/v3 export tests; no database credentials or numpy needed."""
 import json
 import math
 import pathlib
 import subprocess
 import unittest
-from newbiz_research_export import decode_frames, FRAME_SCALE
+from newbiz_research_export import decode_frames, FRAME_SCALE, paged
 
 
 class DecodeTests(unittest.TestCase):
@@ -31,6 +31,24 @@ class DecodeTests(unittest.TestCase):
     def test_whole_missing_roi_and_empty_session(self):
         self.assertTrue(all(math.isnan(v) for v in decode_frames({"t": [0], "rr": [None]})["rr"][0]))
         self.assertEqual(decode_frames({"t": [], "rr": []})["rr"], [])
+
+    def test_pagination_reads_every_page_and_reports_evidence(self):
+        table = [{"id": i} for i in range(2350)]
+        calls = []
+
+        def fetch(rng):
+            calls.append(rng)
+            return table[rng[0]:rng[1] + 1]
+        rows, ev = paged(fetch, 1000)
+        self.assertEqual(len(rows), 2350)
+        self.assertEqual(ev["pages"], 3)
+        self.assertEqual(ev["lastPageRows"], 350)
+        self.assertTrue(ev["complete"])
+        self.assertEqual(ev["duplicates"], 0)
+        self.assertEqual(calls, [(0, 999), (1000, 1999), (2000, 2999)])
+        # exact multiple → one extra empty page confirms completion
+        rows, ev = paged(lambda rng: table[rng[0]:rng[1] + 1], 2350)
+        self.assertEqual(ev["pages"], 2); self.assertEqual(ev["lastPageRows"], 0)
 
 
 if __name__ == "__main__":

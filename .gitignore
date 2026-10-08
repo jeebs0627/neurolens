@@ -7,3 +7,6 @@ __pycache__/
 .DS_Store
 .bkit/
 .vercel/
+# Training pipeline local data: authenticated exports, snapshots, checkpoints (research data, never commit)
+/training/
+/research_export/

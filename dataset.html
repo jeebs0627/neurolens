@@ -8,7 +8,7 @@
   <section class="panel" id="gate"><div class="toolbar"><div><h2>연구 데이터 연결</h2><p id="accessStatus" role="status">연구자 권한을 확인하고 있습니다.</p></div><span class="muted">실측·개인 메모는 등록된 연구 관리자만 조회</span></div><form id="loginForm" hidden><label>이메일<input id="email" type="email" autocomplete="username" required></label><label>비밀번호<input id="password" type="password" autocomplete="current-password" required></label><button class="primary">로그인</button></form></section>
   <p class="notice" id="message" role="status" aria-live="polite">코드 변경과 배포 성공은 측정 정확도 검증과 별도로 기록합니다.</p>
   <nav class="workspace-nav" aria-label="개발실 영역">
-    <button data-view="work" aria-current="page">01 개발 과제</button><button data-view="measurements">02 실측 검토</button><button data-view="releases">03 변경·배포 이력</button><button data-view="validation">04 검증·축적 지표</button><button data-view="lab">05 검사별 누적</button>
+    <button data-view="work" aria-current="page">01 개발 과제</button><button data-view="measurements">02 실측 검토</button><button data-view="releases">03 변경·배포 이력</button><button data-view="validation">04 검증·축적 지표</button><button data-view="lab">05 검사별 누적</button><button data-view="training">06 학습 파이프라인</button>
   </nav>
   <section id="pane-work" class="workspace-pane">
     <div id="evolutionStats" class="evolution-stats"></div>
@@ -33,6 +33,13 @@
       <div class="tools"><label>검사<select id="labTest"></select></label><label>기록<select id="labKind"><option value="">전체</option><option value="lab">연구 실측만</option><option value="full">전체 검사만</option></select></label><a class="button" id="labRun" href="condition.html?lab=pursuit" target="_blank" rel="noopener">이 검사만 실측하기 ↗</a></div></div>
       <div id="labSummary"></div><div class="table-wrap"><table id="labTable"></table></div></section>
   </section>
+  <section id="pane-training" class="workspace-pane" hidden>
+    <section class="panel"><div class="toolbar"><div><h2>Colab 학습 파이프라인</h2><p class="muted">수집(자동 기록 · 라벨 수집 모드) → 인증된 내보내기 → 불변 스냅샷 → 학습·평가 → 통과한 후보만 등록 → shadow·canary·승인 → 다음 검사부터 적용. 사용량 증가만으로 정확도가 좋아진다고 보장하지 않습니다.</p></div><a class="button" href="condition.html?mode=gaze-label" target="_blank" rel="noopener">시선 라벨 수집 모드 ↗</a></div>
+      <div id="trainingInventory"></div></section>
+    <section class="panel"><div id="trainingNext"></div></section>
+    <section class="panel"><div id="trainingRegistry"></div></section>
+    <section class="panel"><div id="trainingValidation"></div></section>
+  </section>
   <section id="pane-validation" class="workspace-pane" hidden>
     <section class="panel"><h2>실측 품질과 개선 근거의 축적</h2><p class="muted">실측 집계는 현재 불러온 검사 범위에 한정합니다. 미로그인·미수집 기록은 포함되지 않습니다.</p><div class="metrics" id="metrics"></div><div id="accumulationMetrics"></div></section>
     <section class="panel"><h2>다음 검증으로 이어지는 근거</h2><div id="validationQueue"></div></section>
@@ -40,5 +47,5 @@
   </section>
 </main>
 <footer>NeuroLens · 알고리즘 연구 기록 · 원본 근거와 후속 검증을 보존합니다.</footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="supabase-config.js"></script><script src="auth.js"></script><script src="condition-dataset.js"></script><script src="newbiz-research.js"></script><script src="condition-research-store.js"></script><script src="dataset-workflow.js"></script><script src="dataset-workspace.js"></script><script src="dataset-lab.js"></script><script src="dataset.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="supabase-config.js"></script><script src="auth.js"></script><script src="condition-dataset.js"></script><script src="newbiz-research.js"></script><script src="condition-research-store.js"></script><script src="dataset-workflow.js"></script><script src="dataset-workspace.js"></script><script src="dataset-lab.js"></script><script src="dataset-training.js"></script><script src="dataset.js"></script>
 </body></html>

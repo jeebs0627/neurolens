@@ -1,0 +1,8 @@
+# nlcolab — 검증된 조합 (2026-10-08, Python 3.14 로컬 / Colab 기본 Python 3.11~3.12 에서 설치 가능한 범위)
+# 노트북은 이 파일로 설치하고 실패 시 CPU 전용 torch 인덱스로 재시도한다. GPU 는 필수가 아니다(작은 MLP · CPU 수 분).
+numpy>=2.0,<2.6
+scipy>=1.13,<1.19
+scikit-learn>=1.5,<1.10
+onnx>=1.16,<1.24
+onnxruntime>=1.18,<1.31
+torch>=2.3,<2.15

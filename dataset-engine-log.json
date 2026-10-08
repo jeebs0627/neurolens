@@ -2,6 +2,14 @@
   "schema": "condition-engine-log-1",
   "entries": [
     {
+      "date": "2026-10-08",
+      "version": "nl-research-3 / gaze-label-1 / gaze-model-client-1 / nlcolab-0.1.0",
+      "status": "구현·단위/브라우저/end-to-end(합성) 검증 · 실측 미검증 · 미배포",
+      "change": "연구 패키지 v3(모델 원출력·전역 모델 출력 열, 표적 ID·round·구간, 잔차 보정·개인 파이프라인 snapshot·digest, clock segments, weak 클릭 좌표), 전용 시선 라벨 수집 모드(/condition?mode=gaze-label), registry 고정·fail-closed ONNX 클라이언트, JWT 기반 인증 export·인벤토리·불변 스냅샷·group/time split·ridge/MLP 잔차 학습·ONNX parity·release policy·rPPG 기준 오차 선택기, Colab 노트북 4개, /dataset 06 학습 파이프라인 pane, 메타데이터 기반 재생 도구.",
+      "evidence": "node condition-labels.test.cjs(8) · condition-gaze-model.test.cjs(7) · tools/colab/session_adapter.test.cjs(5) · condition-labels.browser.test.cjs(4 PASS, 헤드리스 Edge) · 기존 dataset 브라우저 회귀 · python test_canonical/test_pipeline(10 OK). 합성 12세션: baseline 35.8px → ridge 33.1 → MLP 30.9(val), gate 는 그룹 수 부족으로 실패(의도). 실제 참가자 자료·Colab 실행·실기기 지연·배포·승인은 수행하지 않음. 등록 모델 없음 → 기존 엔진 유지.",
+      "next": "운영 DB reviewer 등록 확인 후 nlcolab export → inventory 로 실제 적격 세션·subjectKey·paired 기준 수 확인. 라벨 수집 모드 실사용·실기기 ONNX Runtime Web 지연 계측. 적격 자료가 정책 최소량을 넘으면 02 학습 → shadow → canary → 승인."
+    },
+    {
       "date": "2026-10-04",
       "version": "dataset-evolution-1 / evolution-followup-1",
       "status": "개발 워크스페이스·자동 축적 구현",
