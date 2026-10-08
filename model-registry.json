@@ -15,9 +15,9 @@
     "maxState": "shadow",
     "createdAt": "2026-10-08T02:44:41.861805+00:00",
     "report": "..\\..\\training\\work\\gaze\\REPORT.md",
-    "approvedBy": "research admin xshoner@gmail.com (user instruction in Claude Code session, 2026-10-08)",
+    "approvedBy": "research-admin (registered dataset reviewer; identity kept in the private reviewer table, not in public files)",
     "exception": {
-      "approver": "research admin xshoner@gmail.com (user instruction in Claude Code session, 2026-10-08)",
+      "approver": "research-admin (registered dataset reviewer; identity kept in the private reviewer table, not in public files)",
       "reason": "사용자 결정: holdout(locked -4%, temporal -14%) 회귀로 gate 를 통과하지 못한 MLP 를 측정에 적용하지 않는 shadow 모드로 올려 실기기 지연·출력 분포 자료를 모은다. active 승격 불가.",
       "approvedAt": "2026-10-08T02:44:43.378586+00:00",
       "gateFailed": [
@@ -42,7 +42,7 @@
       "event": "shadow-exception-approved",
       "id": "gaze-residual-a05c5d16-mlp-shadowx",
       "state": "shadow",
-      "actor": "research admin xshoner@gmail.com (user instruction in Claude Code session, 2026-10-08)",
+      "actor": "research-admin (registered dataset reviewer; identity kept in the private reviewer table, not in public files)",
       "reason": "사용자 결정: holdout(locked -4%, temporal -14%) 회귀로 gate 를 통과하지 못한 MLP 를 측정에 적용하지 않는 shadow 모드로 올려 실기기 지연·출력 분포 자료를 모은다. active 승격 불가.",
       "gateFailed": [
         "locked-test-no-regression",

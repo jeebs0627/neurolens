@@ -1395,7 +1395,7 @@
     "maxState": "shadow",
     "maxStateReason": "policy exception: gate failed (locked-test-no-regression, temporal-test-no-regression) - shadow only, outputs recorded and never applied",
     "exception": {
-      "approver": "research admin xshoner@gmail.com (user instruction in Claude Code session, 2026-10-08)",
+      "approver": "research-admin (registered dataset reviewer; identity kept in the private reviewer table, not in public files)",
       "reason": "사용자 결정: holdout(locked -4%, temporal -14%) 회귀로 gate 를 통과하지 못한 MLP 를 측정에 적용하지 않는 shadow 모드로 올려 실기기 지연·출력 분포 자료를 모은다. active 승격 불가.",
       "approvedAt": "2026-10-08T02:44:43.378586+00:00",
       "gateFailed": [
@@ -1409,5 +1409,5 @@
     "status": "unsigned",
     "note": "SHA-256 verifies transport integrity only; no signing key exists in this project — document the trusted deployment path or add an approved signing step before active use"
   },
-  "packageSha256": "f6029ccc63563fc7dfdaba82d4decb910d042769e8479121a4f553f1097ef0b6"
+  "packageSha256": "86e6483392c2e1bf86b27c15a38db85e6ab86a438d8cccaeec31350b1405211e"
 }

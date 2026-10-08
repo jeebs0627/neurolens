@@ -74,6 +74,8 @@ def main(argv=None):
     exc = {"model": a.exception_model, "approver": a.exception_approver, "reason": a.exception_reason} if getattr(a, "exception_model", None) else None
     if exc and not (exc["approver"] and exc["reason"]):
         ap.error("--exception-model requires --exception-approver and --exception-reason")
+    if exc and ("@" in exc["approver"] or "@" in exc["reason"]):
+        ap.error("approver/reason go into public files (registry, manifest): use a role label such as 'research-admin', never an e-mail address")
     pl = Pipeline(a.raw_dir, a.work_dir, allow_synthetic=a.allow_synthetic, use_mlp=not a.no_mlp, seed=a.seed, package_exception=exc)
     if a.cmd == "audit":
         pl.audit()
