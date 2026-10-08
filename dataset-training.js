@@ -65,7 +65,7 @@
       <p class="muted">라벨 출처: explicit_target_confirmed(라벨 수집 모드 · proxy) · calibration_target · free_click_weak(학습·평가 제외) · engine_prediction(정답 아님) · reference_eyetracker 0건. 제외·주의 사유: ${Object.entries(agg.reasons).map(([k, v]) => `${esc(k)} ${v}`).join(' · ') || '없음'}</p>
       <p class="muted">세션 종류 ${esc(JSON.stringify(agg.kind))} · 스키마 ${esc(JSON.stringify(agg.schema))} · core ${esc(JSON.stringify(agg.core))} · 최근 세션 ${esc(date(agg.latest))}</p>`;
     $('trainingNext').innerHTML = `<h3>다음 Colab 작업</h3><ul>${nextJob(agg).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-      <p>${NB.map(nb => `<a class="button" target="_blank" rel="noopener" href="${colab(nb)}">${esc(nb)} ↗</a>`).join(' ')}</p>
+      <p>${NB.map(nb => `<a class="button" target="_blank" rel="noopener" href="${esc(colab(nb))}">${esc(nb)} ↗</a>`).join(' ')}</p>
       <p class="muted">Colab 은 활성 런타임에서만 실행되는 배치입니다(무인 스케줄러·상시 서버 아님). 끊기면 같은 노트북을 다시 열어 이어서 실행합니다. 실행 결과(스냅샷·run 상태·보고서)는 Drive 의 neurolens-training/work 에, 후보 모델은 검토된 commit 으로만 저장소에 들어옵니다.</p>`;
     const entry = (label, e) => e ? `<tr><td>${esc(label)}</td><td><code>${esc(e.id)}</code> v${esc(e.version)}<small>${esc(e.kind)} · ${esc(e.state || label)}</small></td><td>${esc(e.sha256 ? e.sha256.slice(0, 16) + '…' : '—')}</td><td>${esc(e.approvedBy || '—')}<small>${esc(date(e.approvedAt || e.createdAt))}</small></td><td>${e.report ? esc(e.report) : '—'}</td></tr>` : `<tr><td>${esc(label)}</td><td colspan="4" class="muted">없음 — 기존 엔진(In_mind core 파이프라인)이 유일한 시선 추정기</td></tr>`;
     $('trainingRegistry').innerHTML = `<h3>모델 registry <small class="muted">${reg ? `갱신 ${esc(date(reg.updatedAt))} · 정책 ${esc(policy?.version || '?')}` : loadError ? esc(loadError) : '불러오는 중'}</small></h3>
@@ -76,8 +76,8 @@
     $('trainingValidation').innerHTML = `<h3>검증 상태</h3><ul>
       <li>마지막 실측 검증: <b>${lastVal ? esc(date(lastVal.at)) + ' · ' + esc(lastVal.event) : '없음'}</b></li>
       <li>미검증 항목: 실기기 ONNX Runtime Web 로드·지연(desktop/저사양) · 외부 eye tracker 기준 정확도 · 사카드 잠복기/추적 지연 개선 · IBI/HRV(HR-only 기준) · 모델 서명 체계 · Colab 실제 실행(자료 접근 후)</li>
-      <li>정책 최소량(시선): 학습 ${policy?.gaze_residual?.minTrainGroups ?? '?'} 그룹 · 검증 ${policy?.gaze_residual?.minValGroups ?? '?'} · 평가 ${policy?.gaze_residual?.minLockedTestGroups ?? '?'} · 창 ${policy?.gaze_residual?.minTrainWindows ?? '?'} · 중앙 오차 개선 ≥ ${policy ? Math.round(policy.gaze_residual.minRelativeGainMedian * 100) : '?'}% · P95 비율 ≤ ${policy?.gaze_residual?.maxP95Ratio ?? '?'} · coverage 감소 ≤ ${policy?.gaze_residual?.maxCoverageDropPp ?? '?'}%p</li>
-      <li>정책 최소량(rPPG): paired 세션 ${policy?.rppg_quality?.minPairedSessions ?? '?'} · epoch ${policy?.rppg_quality?.minPairedEpochs ?? '?'} · 동기화 ≤ ${policy?.rppg_quality?.maxSyncUncertaintyMs ?? '?'}ms</li></ul>
+      <li>정책 최소량(시선): 학습 ${esc(policy?.gaze_residual?.minTrainGroups ?? '?')} 그룹 · 검증 ${esc(policy?.gaze_residual?.minValGroups ?? '?')} · 평가 ${esc(policy?.gaze_residual?.minLockedTestGroups ?? '?')} · 창 ${esc(policy?.gaze_residual?.minTrainWindows ?? '?')} · 중앙 오차 개선 ≥ ${esc(policy ? Math.round(policy.gaze_residual.minRelativeGainMedian * 100) : '?')}% · P95 비율 ≤ ${esc(policy?.gaze_residual?.maxP95Ratio ?? '?')} · coverage 감소 ≤ ${esc(policy?.gaze_residual?.maxCoverageDropPp ?? '?')}%p</li>
+      <li>정책 최소량(rPPG): paired 세션 ${esc(policy?.rppg_quality?.minPairedSessions ?? '?')} · epoch ${esc(policy?.rppg_quality?.minPairedEpochs ?? '?')} · 동기화 ≤ ${esc(policy?.rppg_quality?.maxSyncUncertaintyMs ?? '?')}ms</li></ul>
       <p class="muted">숫자 임계값은 공학적 초기값이며 임상 기준이 아닙니다. 코드 변경·프롬프트·학습 완료 이벤트는 정확도 검증이 아닙니다.</p>`;
   }
   async function loadFiles() {
