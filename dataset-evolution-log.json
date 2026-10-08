@@ -3,6 +3,68 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "8aaa22474da4d91fa3aa020b9756fa5ba2eb7f07",
+      "parents": [
+        "e6f2c91253b5c7c6f1ae7de89bd3380ed3ddfa9e"
+      ],
+      "committedAt": "2026-10-08T10:17:41+09:00",
+      "subject": "nlcolab: 토큰 파일 저장 제거 — export 가 한 프로세스 안에서 getpass 로그인 후 바로 내려받음 (push 보안 검토 지적)",
+      "url": "https://github.com/jeebs0627/neurolens/commit/8aaa22474da4d91fa3aa020b9756fa5ba2eb7f07",
+      "files": [
+        {
+          "path": "tools/colab/export.py",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "tools/colab/login.py",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 11
+        },
+        {
+          "path": "tools/colab/nlcolab/cli.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 14
+        },
+        {
+          "path": "tools/colab/nlcolab/export.py",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 7
+        },
+        {
+          "path": "tools/colab/nlcolab/login.py",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 64
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55852145934",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-08T01:17:47Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/75vAKBR9ahn2euUGMoybLhTXhR4j",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "b299f1aceab835b9c68b5e6559677a95945749e8",
       "parents": [
         "fcc9dde60a11fd4177fca57dab61a3bf16aea4b3"
@@ -12752,9 +12814,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "efb610bf35546cd906532610376bbac95caa416f"
+    "sourceHead": "8aaa22474da4d91fa3aa020b9756fa5ba2eb7f07"
   },
-  "updatedAt": "2026-10-08T01:16:29.934755+00:00",
+  "updatedAt": "2026-10-08T01:18:01.422057+00:00",
   "aiCooldownUntil": "2026-10-08T02:13:41.295227+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
