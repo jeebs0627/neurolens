@@ -3,6 +3,115 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "443931cb4d23b9d337b2c387fefb1f36ceac50d8",
+      "parents": [
+        "0b1ab02302d76bb0c9534a166db2d7cfac915627"
+      ],
+      "committedAt": "2026-10-09T20:04:34+09:00",
+      "subject": "카메라 준비 화면: 영상을 가이드 캔버스에 직접 그려 눈동자 점·피부 영역이 실제 얼굴과 어긋나던 문제 수정",
+      "url": "https://github.com/jeebs0627/neurolens/commit/443931cb4d23b9d337b2c387fefb1f36ceac50d8",
+      "files": [
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 1
+        }
+      ],
+      "domains": [
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex 4e02131..cdfd487 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -1762,8 +1762,12 @@ function drawOverlay() {\n   const draw = () => {\n     if ($('sSetup').hidden) { requestAnimationFrame(draw); return; }\n-    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(3, devicePixelRatio || 1);\n+    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);\n     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }\n     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);\n     ctx.clearRect(0, 0, W, H);\n+    /* 카메라 영상을 가이드와 같은 캔버스에 직접 그린다: 일부 휴대폰 인앱 브라우저(실측 카카오톡)는 <video> 를 하드웨어 오버레이로 그리며\n+     * CSS 좌우 반전·맞춤을 따르지 않아, 눈동자 점·피부 영역 상자가 실제 얼굴과 거울상으로 어긋났다(사용자 화면 00001~00003).\n+     * 같은 캔버스·같은 좌표·같은 반전으로 그리면 브라우저와 무관하게 겹친다. <video> 는 그 아래에 남아 영상이 아직 없을 때만 보인다 */\n+    if (procVideo.readyState >= 2 && procVideo.videoWidth) ctx.drawImage(procVideo, 0, 0, W, H);\n     /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭).\n      * 밝은 배경·작은 휴대폰 화면에서도 보이게 어두운 그림자를 깔고 휴대폰에서는 선을 굵게 */\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-443931cb4d23-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "인앱 브라우저 캔버스 직접 렌더링 전환에 따른 좌표 정합성 및 측정 성공률 후속 검증",
+          "rationale": "관측된 사실: condition.html에서 dpr 상한값을 3에서 2로 조정하고, overlay 캔버스에 procVideo 프레임을 직접 그리는 ctx.drawImage(procVideo, 0, 0, W, H) 코드가 추가되었습니다.\n\n개발자 주장 및 가설: 일부 모바일 인앱 브라우저의 <video> 하드웨어 오버레이 처리 문제로 발생하던 랜드마크·피부 영역 상자의 거울상 어긋남(사용자 화면 00001~00003)을 캔버스 직접 그리기로 보정할 수 있다는 가설입니다.\n\n구분 필요성: 주석상의 문제 해결 주장과 커밋 제목은 개발자의 가설일 뿐, 독립적인 기준 센서나 실측 데이터로 검증된 정답이 아닙니다(accuracyValidated: false). 매 프레임 drawImage 실행으로 인한 모바일 프레임 드랍이나 좌표계 왜곡 가능성에 대한 검증이 필요합니다.",
+          "validationPlan": "1. 회귀 검증: 주요 모바일 OS(iOS, Android) 및 브라우저 환경(Safari, Chrome, 카카오톡 인앱 브라우저 등)에서 기존 방식과 변경된 방식 간 캔버스 변환 행렬(setTransform)과 좌표 일치성을 비교 검증합니다.\n2. 실측 검증 계획: 제공된 dataset에서 관련 실측 영상 및 참가자 로그를 연결하여, 캔버스 직접 그리기 적용 전후의 프레임 처리 속도(FPS), CPU/GPU 점유율, 좌표 이탈률을 평가합니다. 절대 실측 수치를 임의로 생성하지 않습니다.\n3. 분리 평가: 참가자, 기기 모델, 측정 날짜, 브라우저 유형별로 분리하여 평가하며, 실패한 세션을 포함한 전체 분모 기준의 측정 성공률과 불확실성 구간을 측정합니다.",
+          "prompt": "당신은 NeuroLens 개발 AI입니다. 다음 변경 사항 및 검증 과제를 수행하고 결과를 보고하십시오.\n\n[현재 코드 및 변경 사항 확인]\n- 대상 파일: condition.html (커밋 443931cb4d23b9d337b2c387fefb1f36ceac50d8)\n- 주요 변경: DPR 제한 변경(Math.min(2, ...)), overlay 캔버스 내 `if (procVideo.readyState >= 2 && procVideo.videoWidth) ctx.drawImage(procVideo, 0, 0, W, H);` 추가.\n\n[개발 및 검증 요구사항]\n1. 코드 검증: 현재 condition.html의 draw 루프 내에서 video 프레임 인출 조건 및 setTransform(dpr, 0, 0, dpr, 0, 0)과의 좌표 상호작용을 검토하십시오.\n2. 약한 신호 활용 및 회귀 검증: 저사양 모바일 환경 또는 인앱 브라우저에서 drawImage 추가로 인한 프레임 레이트 저하 시, 정상 신호를 인위적으로 생성해 채우지 말고 부분 유효 신호의 활용량과 오차 증가량을 평가하십시오.\n3. 실측 연결: 이 프롬프트나 변경 내역에 실측 성능 수치가 포함되어 있지 않으므로, dataset의 실측 기록 및 테스트 메모를 연결하여 분석을 수행하십시오. 임의의 정확도 수치를 만들어내지 마십시오.\n\n[성공 및 회귀 기준]\n- 성공 기준: 카카오톡 등 인앱 브라우저 환경에서 랜드마크 오버레이와 입력 영상 간 좌표 미스매치가 해소되고, 실패 시도를 포함한 전체 세션 대비 측정 활용률이 유지되거나 향상되는 경우.\n- 회귀 기준: drawImage 오버헤드로 인해 프레임 레이트가 저하되어 신호 수집 실패율이 증가하거나, DPR 변경(3->2)으로 인해 고해상도 기기에서 좌표 해상도 손실 오차가 크게 발생하는 경우.\n\n[결과 보고 양식]\n- 분석 대상 파일 및 커밋 정보\n- 브라우저/기기별 좌표 정합성 및 성능 평가 (분모: 전체 시도 수, 분자: 정상 측정 수, 활용률 및 오차 표시)\n- 참값/기준 센서 부재 시 단일 세션 일반화 금지 및 한계점 명시\n- 데이터세트 연동 실측 결과 요약 (없는 데이터는 N/A 처리)\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 443931cb4d23b9d337b2c387fefb1f36ceac50d8\nDataset-Task: evo-443931cb4d23-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        }
+      ],
+      "analysisState": "generated",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55977520841",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T11:04:40Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/6Jx5NcAhApSEKXCE7bQdQB3ragXf",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-09T11:04:55.214494+00:00",
+      "analysis": {
+        "summary": "condition.html 파일(커밋 443931cb4d23b9d337b2c387fefb1f36ceac50d8)에서 canvas 그려주기 루프 내 devicePixelRatio 상한을 3에서 2로 상향 변경(Math.min(2, devicePixelRatio || 1))하고, procVideo 비디오 프레임을 가이드 캔버스에 직접 그리는 ctx.drawImage(procVideo, 0, 0, W, H) 로직이 추가되었습니다.\n\n개발자 코드 주석에 따르면 특정 인앱 브라우저(예: 카카오톡)에서 <video> 태그가 하드웨어 오버레이로 그려지면서 CSS 좌우 반전 및 맞춤 설정을 따르지 않아, 눈동자 점과 피부 영역 상자가 실제 얼굴과 어긋나는 현상을 해결하기 위한 목적입니다. 그러나 해당 커밋의 accuracyValidated는 false이며 제공된 자료에는 실측 성능 데이터가 포함되어 있지 않습니다. 비디오 프레임을 매 캔버스 프레임마다 그리는 방식이 모바일 기기의 렌더링 프레임율(FPS), 연산 오버헤드, 좌우 반전 좌표 정합성 및 약한 신호 회복률에 미치는 영향은 아직 검증되지 않은 미검증 상태입니다.",
+        "tasks": [
+          {
+            "id": "evo-443931cb4d23-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "인앱 브라우저 캔버스 직접 렌더링 전환에 따른 좌표 정합성 및 측정 성공률 후속 검증",
+            "rationale": "관측된 사실: condition.html에서 dpr 상한값을 3에서 2로 조정하고, overlay 캔버스에 procVideo 프레임을 직접 그리는 ctx.drawImage(procVideo, 0, 0, W, H) 코드가 추가되었습니다.\n\n개발자 주장 및 가설: 일부 모바일 인앱 브라우저의 <video> 하드웨어 오버레이 처리 문제로 발생하던 랜드마크·피부 영역 상자의 거울상 어긋남(사용자 화면 00001~00003)을 캔버스 직접 그리기로 보정할 수 있다는 가설입니다.\n\n구분 필요성: 주석상의 문제 해결 주장과 커밋 제목은 개발자의 가설일 뿐, 독립적인 기준 센서나 실측 데이터로 검증된 정답이 아닙니다(accuracyValidated: false). 매 프레임 drawImage 실행으로 인한 모바일 프레임 드랍이나 좌표계 왜곡 가능성에 대한 검증이 필요합니다.",
+            "validationPlan": "1. 회귀 검증: 주요 모바일 OS(iOS, Android) 및 브라우저 환경(Safari, Chrome, 카카오톡 인앱 브라우저 등)에서 기존 방식과 변경된 방식 간 캔버스 변환 행렬(setTransform)과 좌표 일치성을 비교 검증합니다.\n2. 실측 검증 계획: 제공된 dataset에서 관련 실측 영상 및 참가자 로그를 연결하여, 캔버스 직접 그리기 적용 전후의 프레임 처리 속도(FPS), CPU/GPU 점유율, 좌표 이탈률을 평가합니다. 절대 실측 수치를 임의로 생성하지 않습니다.\n3. 분리 평가: 참가자, 기기 모델, 측정 날짜, 브라우저 유형별로 분리하여 평가하며, 실패한 세션을 포함한 전체 분모 기준의 측정 성공률과 불확실성 구간을 측정합니다.",
+            "prompt": "당신은 NeuroLens 개발 AI입니다. 다음 변경 사항 및 검증 과제를 수행하고 결과를 보고하십시오.\n\n[현재 코드 및 변경 사항 확인]\n- 대상 파일: condition.html (커밋 443931cb4d23b9d337b2c387fefb1f36ceac50d8)\n- 주요 변경: DPR 제한 변경(Math.min(2, ...)), overlay 캔버스 내 `if (procVideo.readyState >= 2 && procVideo.videoWidth) ctx.drawImage(procVideo, 0, 0, W, H);` 추가.\n\n[개발 및 검증 요구사항]\n1. 코드 검증: 현재 condition.html의 draw 루프 내에서 video 프레임 인출 조건 및 setTransform(dpr, 0, 0, dpr, 0, 0)과의 좌표 상호작용을 검토하십시오.\n2. 약한 신호 활용 및 회귀 검증: 저사양 모바일 환경 또는 인앱 브라우저에서 drawImage 추가로 인한 프레임 레이트 저하 시, 정상 신호를 인위적으로 생성해 채우지 말고 부분 유효 신호의 활용량과 오차 증가량을 평가하십시오.\n3. 실측 연결: 이 프롬프트나 변경 내역에 실측 성능 수치가 포함되어 있지 않으므로, dataset의 실측 기록 및 테스트 메모를 연결하여 분석을 수행하십시오. 임의의 정확도 수치를 만들어내지 마십시오.\n\n[성공 및 회귀 기준]\n- 성공 기준: 카카오톡 등 인앱 브라우저 환경에서 랜드마크 오버레이와 입력 영상 간 좌표 미스매치가 해소되고, 실패 시도를 포함한 전체 세션 대비 측정 활용률이 유지되거나 향상되는 경우.\n- 회귀 기준: drawImage 오버헤드로 인해 프레임 레이트가 저하되어 신호 수집 실패율이 증가하거나, DPR 변경(3->2)으로 인해 고해상도 기기에서 좌표 해상도 손실 오차가 크게 발생하는 경우.\n\n[결과 보고 양식]\n- 분석 대상 파일 및 커밋 정보\n- 브라우저/기기별 좌표 정합성 및 성능 평가 (분모: 전체 시도 수, 분자: 정상 측정 수, 활용률 및 오차 표시)\n- 참값/기준 센서 부재 시 단일 세션 일반화 금지 및 한계점 명시\n- 데이터세트 연동 실측 결과 요약 (없는 데이터는 N/A 처리)\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 443931cb4d23b9d337b2c387fefb1f36ceac50d8\nDataset-Task: evo-443931cb4d23-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "4782808a30bfc17ad65937712cf7b6e15220564dbbd5d945b3ee372ec080a3e0",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 1343,
+            "candidatesTokenCount": 1362,
+            "totalTokenCount": 5286
+          }
+        },
+        "generatedAt": "2026-10-09T11:05:19.460184+00:00",
+        "sourceSha": "443931cb4d23b9d337b2c387fefb1f36ceac50d8",
+        "sourceEvidence": {
+          "sha": "443931cb4d23b9d337b2c387fefb1f36ceac50d8",
+          "parents": [
+            "0b1ab02302d76bb0c9534a166db2d7cfac915627"
+          ],
+          "committedAt": "2026-10-09T11:04:34Z",
+          "subject": "카메라 준비 화면: 영상을 가이드 캔버스에 직접 그려 눈동자 점·피부 영역이 실제 얼굴과 어긋나던 문제 수정",
+          "url": "https://github.com/jeebs0627/neurolens/commit/443931cb4d23b9d337b2c387fefb1f36ceac50d8",
+          "files": [
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 1
+            }
+          ],
+          "domains": [
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -1761,10 +1761,14 @@ <h2>결과를 정리하고 있어요</h2>\n   const cv = $('overlay'), ctx = cv.getContext('2d');\n   const draw = () => {\n     if ($('sSetup').hidden) { requestAnimationFrame(draw); return; }\n-    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(3, devicePixelRatio || 1);\n+    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);\n     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }\n     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);\n     ctx.clearRect(0, 0, W, H);\n+    /* 카메라 영상을 가이드와 같은 캔버스에 직접 그린다: 일부 휴대폰 인앱 브라우저(실측 카카오톡)는 <video> 를 하드웨어 오버레이로 그리며\n+     * CSS 좌우 반전·맞춤을 따르지 않아, 눈동자 점·피부 영역 상자가 실제 얼굴과 거울상으로 어긋났다(사용자 화면 00001~00003).\n+     * 같은 캔버스·같은 좌표·같은 반전으로 그리면 브라우저와 무관하게 겹친다. <video> 는 그 아래에 남아 영상이 아직 없을 때만 보인다 */\n+    if (procVideo.readyState >= 2 && procVideo.videoWidth) ctx.drawImage(procVideo, 0, 0, W, H);\n     /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭).\n      * 밝은 배경·작은 휴대폰 화면에서도 보이게 어두운 그림자를 깔고 휴대폰에서는 선을 굵게 */\n     const pos = posCheck(), okc = pos && pos.ok, lw = MOBILE ? 1.6 : 1;",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37921505422"
+      }
+    },
+    {
       "sha": "2914a6685cef10350c397663bbc0c23c3f76b91d",
       "parents": [
         "f785ea58a2449f6baeaaa2a163dbb8869c8f3701"
@@ -117,16 +226,16 @@
         {
           "id": "evo-1a7916469700-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-1a7916469700-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 1a791646970014007dc9b8d99af1ec45f1b72b7a\n변경 제목: 휴대폰 측정 환경: 보정 점 가림 제거, 얼굴 인식 모델 미리 준비, 전체 화면 방향 고정\n관련 파일: collect-env.test.cjs, condition.html, datacollection.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-1a7916469700-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "모바일 측정 환경의 UI 조정, 모델 사전 로딩, 방향 고정이 유효 신호 수집률 및 오차에 미치는 영향 검증",
+          "rationale": "1. 관측된 변경 사실: condition.html에서 500px 이하 소형 화면에 대응하는 CSS 미디어 쿼리가 추가되어 UI 가림 현상을 줄이도록 조정되었고, warmLandmarker/takeLandmarker를 이용해 카메라 활성화 전 랜드마크 모델 사전 다운로드 및 GPU 준비를 수행하도록 변경되었습니다. 또한 enterFullscreen 함수를 통해 화면 방향 고정(screen.orientation.lock) 및 종료 시 해제 로직이 추가되었습니다. 단, collect-env.test.cjs 및 datacollection.html의 패치 상세(diff)는 본 자료에 포함되지 않았습니다.\n2. 개발자 주장 및 가설: 커밋 메시지와 코드 주석의 보정 실패율(22.4%) 및 요율 가림 비율, 가이드 지연 시간은 수집 환경 개선을 위한 개발 가설입니다. accuracyValidated가 false이므로 검증된 임상 진단이나 독립 정답으로 간주할 수 없습니다.\n3. 후속 과제 목적: 모바일 환경에서 제한된 신호를 회복하고 초기 프레임 손실을 방지하는 알고리즘적/환경적 조치들이 실제 측정 성공률과 프레임 활용률을 높이는지, 보정 오차에 미치는 부작용은 없는지 회귀 및 실측 평가를 진행하고자 합니다.",
+          "validationPlan": "1. 검증 대상 및 조건: 다양한 모바일 기기(Android, iOS) 및 화면 방향(가로, 세로)에서 수집된 세션 전체를 평가 대상으로 지정합니다. 단일 세션으로 결과를 일반화하지 않으며, 측정 도중 중단되거나 실패한 세션을 포함한 전체 시도 수 건수를 분모로 설정합니다.\n2. 실측 및 회귀 검증 항목:\n - 모델 워밍업 적용 전후의 카메라 활성화 직후 첫 얼굴 인식 완료까지의 지연 시간 및 초기 프레임 유실 비율 비교.\n - 화면 UI 가림 제거 전후의 보정점 수집 완료율 및 시선 추적 보정 오차(도 단위) 비교.\n - 화면 방향 고정이 측정 중 의도치 않은 회전 발생 및 세션 이탈률에 미치는 영향 평가.\n3. 평가 지표 및 데이터 분리 기준:\n - 참가자/기기 모형/수집 날짜별로 데이터를 분리하여 평가합니다.\n - 모든 약한 신호를 폐기하거나 임의의 정상값으로 대체하지 않고, 부분 유효 신호의 허용 오차 한계 내 활용률 대 오차 수치를 함께 평가합니다.\n4. 실측 데이터 매핑 원칙: 연구 자료 내에 없는 실측 성능 수치는 임의로 만들어내지 않으며, 연계된 데이터셋(dataset) 내 실측 로그 및 연구자 메모와 매핑하여 판단하도록 요구합니다.",
+          "prompt": "당신은 NeuroLens 측정 알고리즘 개발 및 검증 담당 AI입니다. 공개된 코드 변경 내역을 바탕으로 현재 코드를 점검하고 후속 개발 및 실측 검증 과제를 수행하십시오.\n\n[현재 코드 및 변경 사항 확인 요구]\n1. condition.html 파일에 반영된 모바일 UI 대응 CSS(500px 이하), 얼굴 인식 모델 미리 준비 로직(warmLandmarker, takeLandmarker), 화면 방향 고정 로직(enterFullscreen)의 동작 방식을 점검하십시오.\n2. 자료에서 diff가 생략된 collect-env.test.cjs 및 datacollection.html 파일의 최신 상태를 확인하여 모바일 수집 환경 테스트 및 데이터 수집 로직에 미치는 영향이 있는지 조사하십시오.\n\n[개발 및 검증 과제]\n1. 약한 신호 회복 및 프레임 활용률-오차 평가:\n   - 모바일 카메라 활성화 시점부터 첫 얼굴 인식 완료까지의 지연으로 발생하는 초기 유실 프레임을 정량 평가하십시오.\n   - 유실될 수 있는 약한 신호(부분 유효 프레임)를 폐기하지 않고 포함할 때, 활용 가능한 프레임 비율(활용률)과 시선 추적 오차 간의 트레이드오프를 평가하는 로직을 구현하거나 점검하십시오.\n2. UI 가림 제거 및 방향 고정 회귀 검증 모듈:\n   - 화면 회전 방지 및 보정점/자극 요소 가림 제거가 보정 오차 감소 및 세션 완수율 향상에 기여하는지 검증하는 테스트 기준을 수립하십시오.\n\n[성공 및 회귀 기준]\n1. 성공 기준:\n   - 실패/중단을 포함한 전체 시도 세션(분모) 대비 초기 프레임 유실률 감소.\n   - 허용 오차 범위 내에서 부분 유효 프레임의 활용률 및 전체 측정 완수율 증가.\n   - 방향 고정 지원 환경에서 측정 중 회전으로 인한 보정 실패 0건.\n2. 회귀 기준:\n   - 사전 로딩(warmLandmarker)으로 인한 초기 메모리 오버헤드 증가 및 특정 기기에서의 카메라 접근 오류 발생.\n   - screen.orientation API 미지원 브라우저(예: iOS Safari)에서 화면 전환 시 레이아웃 깨짐 현상 발생.\n   - 약한 신호의 무분별한 포함으로 인한 시선 추적 평균 오차 상승.\n\n[실증 데이터 및 평가 방법 주의사항]\n- 본 자료 및 지침에 없는 실측 성능 수치, 임상 정확도, 프레임 오차 등을 절대로 가상으로 생성하여 보고서에 채우지 마십시오.\n- 실제 성과 평가는 연계된 데이터셋(dataset) 내 수집 로그 및 연구자 메모와 연결하여 판단하고, 참가자별/기기별/날짜별 분리 평가 결과를 요구하십시오.\n\n[결과 보고 양식]\n작성된 결과는 아래 항목을 포함한 완결된 보고서 형식으로 작성하십시오:\n1. 소스 코드 점검 결과 (diff 생략 파일 포함)\n2. 약한 신호 활용률 대 오차 평가 로직 설계/검증 내역\n3. 참가자/기기/날짜별 분리 평가 계획 및 데이터셋 연계 방식\n4. 예상되는 회귀 위험 요소 및 대응 방안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1a791646970014007dc9b8d99af1ec45f1b72b7a\nDataset-Task: evo-1a7916469700-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "generated",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55968112458",
@@ -157,7 +266,77 @@
           "url": "https://neurolens-btrv6ua4x-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-09T11:05:19.467245+00:00",
+      "analysis": {
+        "summary": "2026-10-09 커밋(1a791646970014007dc9b8d99af1ec45f1b72b7a)에서는 `condition.html`을 수정하여 500px 이하 모바일 화면을 위한 CSS 미디어 쿼리를 추가하고(.st-top, .stage .cue, .selfcam 요소 조정), 얼굴 인식 모델을 사전 로드하는 워밍업 로직(`warmLandmarker`, `takeLandmarker`) 및 전체 화면 진입 시 화면 방향을 고정하는 로직(`enterFullscreen`, `screen.orientation.lock`)을 도입했습니다. 패치 요약 정보에 따르면 `collect-env.test.cjs` (+10/-0) 및 `datacollection.html` (+6/-0) 파일도 함께 수정되었으나, 실제 패치 내용(diff)은 제공된 patchExcerpt에 포함되어 있지 않아 해당 파일의 구체적 코드 변경 사항은 명시적으로 제공되지 않았습니다.\n\n커밋 주석 및 메시지에는 가로/세로 화면에서의 가림 비율(47%~100%), 보정 실패율(22.4%), 인식 가이드 출력 지연시간(10초 이상) 등 구체적인 수치가 작성되어 있으나, `accuracyValidated`가 false 상태이므로 이는 독립적인 정답이나 검증된 임상·기술 성과가 아니라 개발자의 문제의식 및 변경 가설로 분류됩니다. 따라서 이번 변경이 일상적 웹캠 및 모바일 환경에서 약한 시선 신호의 초기 유실을 방지하고, 화면 가림 없이 유효 측정 영역을 확보하여 측정 성공률과 정확도에 긍정적 영향을 미치는지에 대해 다중 세션을 분모로 한 후속 실측 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-1a7916469700-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "모바일 측정 환경의 UI 조정, 모델 사전 로딩, 방향 고정이 유효 신호 수집률 및 오차에 미치는 영향 검증",
+            "rationale": "1. 관측된 변경 사실: condition.html에서 500px 이하 소형 화면에 대응하는 CSS 미디어 쿼리가 추가되어 UI 가림 현상을 줄이도록 조정되었고, warmLandmarker/takeLandmarker를 이용해 카메라 활성화 전 랜드마크 모델 사전 다운로드 및 GPU 준비를 수행하도록 변경되었습니다. 또한 enterFullscreen 함수를 통해 화면 방향 고정(screen.orientation.lock) 및 종료 시 해제 로직이 추가되었습니다. 단, collect-env.test.cjs 및 datacollection.html의 패치 상세(diff)는 본 자료에 포함되지 않았습니다.\n2. 개발자 주장 및 가설: 커밋 메시지와 코드 주석의 보정 실패율(22.4%) 및 요율 가림 비율, 가이드 지연 시간은 수집 환경 개선을 위한 개발 가설입니다. accuracyValidated가 false이므로 검증된 임상 진단이나 독립 정답으로 간주할 수 없습니다.\n3. 후속 과제 목적: 모바일 환경에서 제한된 신호를 회복하고 초기 프레임 손실을 방지하는 알고리즘적/환경적 조치들이 실제 측정 성공률과 프레임 활용률을 높이는지, 보정 오차에 미치는 부작용은 없는지 회귀 및 실측 평가를 진행하고자 합니다.",
+            "validationPlan": "1. 검증 대상 및 조건: 다양한 모바일 기기(Android, iOS) 및 화면 방향(가로, 세로)에서 수집된 세션 전체를 평가 대상으로 지정합니다. 단일 세션으로 결과를 일반화하지 않으며, 측정 도중 중단되거나 실패한 세션을 포함한 전체 시도 수 건수를 분모로 설정합니다.\n2. 실측 및 회귀 검증 항목:\n - 모델 워밍업 적용 전후의 카메라 활성화 직후 첫 얼굴 인식 완료까지의 지연 시간 및 초기 프레임 유실 비율 비교.\n - 화면 UI 가림 제거 전후의 보정점 수집 완료율 및 시선 추적 보정 오차(도 단위) 비교.\n - 화면 방향 고정이 측정 중 의도치 않은 회전 발생 및 세션 이탈률에 미치는 영향 평가.\n3. 평가 지표 및 데이터 분리 기준:\n - 참가자/기기 모형/수집 날짜별로 데이터를 분리하여 평가합니다.\n - 모든 약한 신호를 폐기하거나 임의의 정상값으로 대체하지 않고, 부분 유효 신호의 허용 오차 한계 내 활용률 대 오차 수치를 함께 평가합니다.\n4. 실측 데이터 매핑 원칙: 연구 자료 내에 없는 실측 성능 수치는 임의로 만들어내지 않으며, 연계된 데이터셋(dataset) 내 실측 로그 및 연구자 메모와 매핑하여 판단하도록 요구합니다.",
+            "prompt": "당신은 NeuroLens 측정 알고리즘 개발 및 검증 담당 AI입니다. 공개된 코드 변경 내역을 바탕으로 현재 코드를 점검하고 후속 개발 및 실측 검증 과제를 수행하십시오.\n\n[현재 코드 및 변경 사항 확인 요구]\n1. condition.html 파일에 반영된 모바일 UI 대응 CSS(500px 이하), 얼굴 인식 모델 미리 준비 로직(warmLandmarker, takeLandmarker), 화면 방향 고정 로직(enterFullscreen)의 동작 방식을 점검하십시오.\n2. 자료에서 diff가 생략된 collect-env.test.cjs 및 datacollection.html 파일의 최신 상태를 확인하여 모바일 수집 환경 테스트 및 데이터 수집 로직에 미치는 영향이 있는지 조사하십시오.\n\n[개발 및 검증 과제]\n1. 약한 신호 회복 및 프레임 활용률-오차 평가:\n   - 모바일 카메라 활성화 시점부터 첫 얼굴 인식 완료까지의 지연으로 발생하는 초기 유실 프레임을 정량 평가하십시오.\n   - 유실될 수 있는 약한 신호(부분 유효 프레임)를 폐기하지 않고 포함할 때, 활용 가능한 프레임 비율(활용률)과 시선 추적 오차 간의 트레이드오프를 평가하는 로직을 구현하거나 점검하십시오.\n2. UI 가림 제거 및 방향 고정 회귀 검증 모듈:\n   - 화면 회전 방지 및 보정점/자극 요소 가림 제거가 보정 오차 감소 및 세션 완수율 향상에 기여하는지 검증하는 테스트 기준을 수립하십시오.\n\n[성공 및 회귀 기준]\n1. 성공 기준:\n   - 실패/중단을 포함한 전체 시도 세션(분모) 대비 초기 프레임 유실률 감소.\n   - 허용 오차 범위 내에서 부분 유효 프레임의 활용률 및 전체 측정 완수율 증가.\n   - 방향 고정 지원 환경에서 측정 중 회전으로 인한 보정 실패 0건.\n2. 회귀 기준:\n   - 사전 로딩(warmLandmarker)으로 인한 초기 메모리 오버헤드 증가 및 특정 기기에서의 카메라 접근 오류 발생.\n   - screen.orientation API 미지원 브라우저(예: iOS Safari)에서 화면 전환 시 레이아웃 깨짐 현상 발생.\n   - 약한 신호의 무분별한 포함으로 인한 시선 추적 평균 오차 상승.\n\n[실증 데이터 및 평가 방법 주의사항]\n- 본 자료 및 지침에 없는 실측 성능 수치, 임상 정확도, 프레임 오차 등을 절대로 가상으로 생성하여 보고서에 채우지 마십시오.\n- 실제 성과 평가는 연계된 데이터셋(dataset) 내 수집 로그 및 연구자 메모와 연결하여 판단하고, 참가자별/기기별/날짜별 분리 평가 결과를 요구하십시오.\n\n[결과 보고 양식]\n작성된 결과는 아래 항목을 포함한 완결된 보고서 형식으로 작성하십시오:\n1. 소스 코드 점검 결과 (diff 생략 파일 포함)\n2. 약한 신호 활용률 대 오차 평가 로직 설계/검증 내역\n3. 참가자/기기/날짜별 분리 평가 계획 및 데이터셋 연계 방식\n4. 예상되는 회귀 위험 요소 및 대응 방안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1a791646970014007dc9b8d99af1ec45f1b72b7a\nDataset-Task: evo-1a7916469700-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "4c59b489580b0364eea64f27bdabb391f9517a3ecb9fb5889c4b1755ee6eafc9",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 2756,
+            "candidatesTokenCount": 1819,
+            "totalTokenCount": 7728
+          }
+        },
+        "generatedAt": "2026-10-09T11:05:51.112713+00:00",
+        "sourceSha": "1a791646970014007dc9b8d99af1ec45f1b72b7a",
+        "sourceEvidence": {
+          "sha": "1a791646970014007dc9b8d99af1ec45f1b72b7a",
+          "parents": [
+            "a16cbffb1f0068995e91d6369c279c7539b8d3b3"
+          ],
+          "committedAt": "2026-10-09T08:31:14Z",
+          "subject": "휴대폰 측정 환경: 보정 점 가림 제거, 얼굴 인식 모델 미리 준비, 전체 화면 방향 고정",
+          "url": "https://github.com/jeebs0627/neurolens/commit/1a791646970014007dc9b8d99af1ec45f1b72b7a",
+          "files": [
+            {
+              "path": "collect-env.test.cjs",
+              "status": "modified",
+              "additions": 10,
+              "deletions": 0
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 32,
+              "deletions": 3
+            },
+            {
+              "path": "datacollection.html",
+              "status": "modified",
+              "additions": 6,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -696,6 +696,19 @@\n   .brief{padding:22px 20px;top:calc(50% + 27px)}\n   .brief h2{font-size:21px}\n }\n+/* 휴대폰 크기 측정 화면(짧은 변 ≤ 500px, 세로·가로 모두): 보정 점·과제 자극이 화면 UI 에 가리지 않게 한다.\n+ * 2026-10-09 휴대폰 흉내 스모크: 가로(798×384)는 9점 중 6점이 가림(윗줄 상단 바 61% · 아랫줄 안내문 77% · 셀프캠 47%),\n+ * 세로(384×798)는 아랫줄 3점이 안내문 88~100% 가림 → 실측 가로 보정 22.4% 실패·세로 편차의 원인.\n+ * 상단 바 → 오른쪽 위 버튼만(28px) · 안내문 → 맨 아래 한 줄(3px) · 셀프캠 → 왼쪽 위 36px (분석용 영상 요소라 숨기지 않는다) */\n+@media (max-height:500px), (max-width:500px) {\n+  .st-top{height:28px;padding:0 6px;gap:6px;background:transparent!important;justify-content:flex-end;pointer-events:none}\n+  .st-top .st-brand,.st-top .stepper,#hudFaceT{display:none}\n+  .st-act{pointer-events:auto;gap:4px}\n+  .st-act .sbtn{padding:3px 9px;font-size:11px}\n+  .st-prog{top:0;height:2px}\n+  .stage .cue{bottom:3px;width:96%;font-size:11.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n+  .selfcam,.selfcam.on{width:36px;height:auto;left:4px;top:4px;bottom:auto;opacity:.35}\n+}\n @media print{.nav,.btns,.no-print,.qa{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid-page}.method{break-inside:avoid}}\n /* ================= 2026-10 개편: 첫 화면 · 자기보고 · 통합 리포트 ================= */\n .eyebrow{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-num);font-size:11.5px;font-weight:800;letter-spacing:.12em;color:var(--blue);text-transform:uppercase}\n@@ -1564,6 +1577,15 @@ <h2>결과를 정리하고 있어요</h2>\n   try { return await make('GPU'); }\n   catch (_) { return make('CPU'); }\n }\n+/* 얼굴 인식 모델 미리 준비: 페이지가 열리자마자 내려받기·GPU 준비를 시작하고, 카메라가 켜지면 그 인식기를 한 번 넘겨준다.\n+ * 이전에는 카메라를 켠 뒤에야 시작해 휴대폰에서 얼굴 가이드(흰·녹색 선)가 10초 넘게 나오지 않았다. 실패하면 그때 새로 만든다 */\n+let warmLandmarker = loadLandmarker();\n+warmLandmarker.catch(() => {});\n+const takeLandmarker = only => {\n+  if (only || !warmLandmarker) return loadLandmarker(only);\n+  const p = warmLandmarker; warmLandmarker = null;\n+  return p.catch(() => loadLandmarker());\n+};\n \n $('camStart').addEventListener('click', async () => {\n   const st = $('setupStatus');\n@@ -1590,7 +1612,7 @@ <h2>결과를 정리하고 있어요</h2>\n     if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }\n     phase = 'model';\n     S.camera = new NLCamera(procVideo, {\n-      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n+      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: takeLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },\n       onResult: processResult,\n       onError(e) {\n@@ -1894,7 +1916,13 @@ <h2>결과를 정리하고 있어요</h2>\n stage.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; if (S.onResp) { recordInput(e); S.onResp(e); } });\n $('skip').addEventListener('click', e => { e.currentTarget.blur(); if (S.cur && !S.abort) interrupt(Skip); });\n $('quit').addEventListener('click', () => { S.abort = true; interrupt(Abort); });\n-$('fsBack').addEventListener('click', () => { document.documentElement.requestFullscreen().catch(() => {}); });\n+/* 전체 화면 + (휴대폰) 화면 방향 고정: 시작할 때의 방향(세로·가로)으로 묶어 측정 중 회전으로 보정이 깨지지 않게 한다.\n+ * 방향 고정은 전체 화면에서만 허용되는 API 라 그 뒤에 부르고, 지원하지 않는 브라우저(iOS Safari 등)에서는 조용히 넘어간다 */\n+async function enterFullscreen() {\n+  try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (_) { return; }\n+  if (MOBILE && screen.orientation?.lock) screen.orientation.lock(screen.orientation.type.startsWith('landscape') ? 'landscape' : 'portrait').catch(() => {});\n+}\n+$('fsBack').addEventListener('click', () => { enterFullscreen(); });\n document.addEventListener('fullscreenchange', () => {\n   const off = stage.classList.contains('on') && !document.fullscreenElement && !S.demo;\n   $('fsWarn').classList.toggle('on', off);\n@@ -2029,6 +2057,7 @@ <h2>결과를 정리하고 있어요</h2>\n   stage.classList.remove('on'); document.documentElement.classList.remove('staging'); clearInterval(hudTimer);\n   S.recording = false; S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null;\n   $('skip').hidden = true; $('fsWarn').classList.remove('on'); taskHide();\n+  try { screen.orientation?.unlock?.(); } catch (_) {}\n   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});\n }\n function centerMsg(html) { body.innerHTML = `<div class=\"center\">${html}</div>`; }\n@@ -2233,7 +2262,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   S.plan = plan;\n   plannedMs = plan.reduce((s, [k]) => s + stepEstimateSec(k, d), 0) * 1000;\n   stage.classList.add('on'); document.documentElement.classList.add('staging');\n-  try { await document.documentElement.requestFullscreen(); } catch (_) {}\n+  await enterFullscreen();\n   startHud();\n   startCameraLock();\n   try {",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37921505422"
+      }
     },
     {
       "sha": "788514b581ebad3a7b48fe668c3efa781edbf57b",
@@ -465,36 +644,36 @@
         {
           "id": "evo-53b329f040ed-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-53b329f040ed-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 53b329f040ed362708a50265e54a8d8eadf86f5f\n변경 제목: Core 2.5 / battery 1.6: 실측 19세션 재생으로 측정 신뢰도 보정 — 종합 평균 72→79%\n관련 파일: NEWBIZ_CALIBRATION.md, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js, tools/condition_replay.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-53b329f040ed-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "압박 심박 반응 미달 시 회복률 N/A 처리 조건의 신호 대 잡음비(SE) 및 실측 도메인 영향 검증",
+          "rationale": "관측 사실: `newbiz-core.js` 및 `newbiz-battery.js`에서 압박 심박 상승량이 `max(3bpm, 2*SE)`보다 작은 경우 회복률을 null 처리하고 `recoveryNA`로 지정하여 `aggregateDomain` 분모에서 제외하도록 변경되었습니다.\n연구자 주장 및 가설: 노이즈성 잔여 심박이 3bpm 고정 분모 하한으로 인해 회복률 판정 오류로 증폭되던 문제를 방지할 수 있다고 주장합니다.\n미검증 요소: 오차 계산식 `2*SE`의 문턱값이 실제 웹캠 환경의 광학 잡음에서 적절히 작동하는지, 반응 미달자와 단순 측정 실패 간 구별 기준이 타당한지 정량 검증되지 않았습니다.",
+          "validationPlan": "실측 데이터셋의 세션 기록과 연동하여 평가합니다. 1) 전체 시험 세션(실패 시도 포함 분모) 중 `recoveryNA`로 분모 제외된 세션 비율을 계산하고, 2) 참가자/기기/측정 날짜별로 구분하여 SE 오차 수준과 실제 압박 반응 크기 분포를 분석하며, 3) 회복률 N/A 처리 시 잔여 심박(`recoveryResid`) 지표가 자율신경 도메인 점수를 왜곡 없이 보완하는지 회귀 평가합니다.",
+          "prompt": "당신은 NeuroLens 펄스 알고리즘 개발 AI이다. 현재 `newbiz-core.js` v2.5 및 `newbiz-battery.js` v1.6의 심박 회복률 계산 모듈을 확인하라.\n\n[과제 목표]\n압박 심박 상승량이 오차 범위 `max(3bpm, 2*SE)` 미만일 때 적용되는 `recoveryNA` 판정 로직의 유효성과, 부분 유효 신호 활용에 따른 오차 범위를 함께 평가하는 회귀 검증 코드를 작성하라.\n\n[요구 사항]\n1. 코드 확인: `newbiz-core.js` 내 `seOf` 기반 오차 산출식과 `recoveryNA` 발생 조건, `newbiz-battery.js` 내 `aggregateDomain` 분모 제외 로직을 직접 점검하라.\n2. 신호 활용량 및 오차 동시 평가: 회복률이 N/A로 제외되었을 때 남아있는 `recoveryResid`(잔여 심박) 및 기타 자율신경 지표가 수렴 점수에 미치는 영향을 분석하라. 정상값을 억지로 만들어 채우지 말고, 약한 신호의 불확실성을 있는 그대로 평가하라.\n3. 평가 분모 지정: 단일 세션에 치우치지 말고 전체 실패 세션을 포함한 분모 기반으로 `recoveryNA` 발생율, 지표 활용률, 도메인 신뢰도 변화를 참가자/기기/날짜별로 분리 산출하라.\n4. 실측 연동 요구: 실측 수치를 임의로 만들어내지 말고, 데이터셋(dataset) 내 세션 메타데이터 및 관측 메모를 연동하여 판단하도록 평가 스크립트를 구성하라.\n\n[성공 및 회귀 기준]\n- 압박 반응 오차 판별식이 잡음이 큰 세션에서 무분별하게 회복률을 계산하는 오류를 차단하는지 확인.\n- 회복률 N/A 처리 시 영역 신뢰도(`conf`) 및 종합 점수가 왜곡되거나 과도하게 상승/하락하지 않는지 검증.\n\n[결과 보고 양식]\n- 관측 facts (코드 동작 및 연동된 데이터셋 분석 결과)\n- 가설 및 개발자 주장 검증 (SE 문턱값 조건 타당성)\n- 세션 분모 표 (총 세션, 정상 계산 세션, recoveryNA 지정 세션, 신뢰도 하락 세션)\n- 참가자/기기/날짜별 활용률 및 오차 범위 요약\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 53b329f040ed362708a50265e54a8d8eadf86f5f\nDataset-Task: evo-53b329f040ed-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-53b329f040ed-gaze",
           "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-53b329f040ed-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 53b329f040ed362708a50265e54a8d8eadf86f5f\n변경 제목: Core 2.5 / battery 1.6: 실측 19세션 재생으로 측정 신뢰도 보정 — 종합 평균 72→79%\n관련 파일: NEWBIZ_CALIBRATION.md, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js, tools/condition_replay.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-53b329f040ed-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "사카드·시선 지표 FPS 신뢰도 하한 완화(24/15fps → 12fps)에 따른 저사양 환경 시선 추적 오차 평가",
+          "rationale": "관측 사실: `newbiz-battery.js` v1.6에서 시선 및 사카드 신뢰도 계산 시 프레임 레이트 감점 기준(`fpsF`)을 12fps 기준(`clamp(v / 12, 0.25, 1)`)으로 완화하였습니다.\n연구자 가설 및 관측: 소스 주석에 따르면 실측 19세션 재분석 시 7fps 수준으로 프레임을 낮춰도 사카드 방향 판정 일치율이 97.6%로 유지되었다고 기록되어 있습니다.\n미검증 요소: 개발자 주석의 19세션 결과는 특정 조건 하의 재생 가설일 뿐이며, 저사양 웹캠 및 프레임 드랍 환경에서 시선 고정(fixation), 정서 응시 비율, 사카드 잠복기 오차가 얼마나 증가하는지 독립 정답 센서나 확장된 실측 데이터셋을 통한 정량 검증이 필요합니다.",
+          "validationPlan": "다양한 웹캠 기기 및 웹 브라우저 환경에서 수집된 시선 실측 데이터셋을 연동합니다. 1) 30fps, 15fps, 12fps, 8fps 등 프레임 레이트 구간별로 전체 시도(실패 시도 포함 분모) 대비 사카드 방향 판정 성공률, 정서 응시 비율 오차를 평가하고, 2) fps 하한 완화로 인해 고가용성을 얻는 대신 발생하는 시선 좌표 오차의 확산 범위를 참가자 및 기기별로 분리 평가합니다.",
+          "prompt": "당신은 NeuroLens 시선 추적 알고리즘 개발 AI이다. `newbiz-battery.js` v1.6 및 `newbiz-report.js`에 반영된 시선/사카드 fps 신뢰도 가중치 변경 코드를 확인하라.\n\n[과제 목표]\n시선 지표의 fps 가중 하한이 12fps로 완화됨에 따라 약한 프레임 신호의 활용량이 증가하는 상황에서, 지표별 오차와 유효 신호 비율을 동시에 평가하는 회귀 검증을 수행하라.\n\n[요구 사항]\n1. 현재 코드 확인: `newbiz-battery.js`의 `fpsF` 계산식 및 `INDICATORS` 내 `pursuitLatency`, `bias` 등의 fps 반영 가중 방식을 검토하라.\n2. 활용량 및 오차 동시 평가: 프레임 수가 부족한 세션에서 판정에서 폐기되지 않고 활용되는 신호의 비율(활용량)과, 그로 인해 발생하는 방향 판정 오차 및 시간 잠복기 오차(ms)를 동시에 정량 평가하라.\n3. 평가 분모 및 통계: 단일 세션 결과로 일반화하지 말고 실패한 시도를 포함한 전체 시도 수를 분모로 설정하라. 참가자 ID, 기기 모델, 측정 날짜별로 그룹화하여 지표 활용률과 오차를 분리 집계하라.\n4. 실측 데이터 연동: 이 환경에는 실측 결과가 포함되어 있지 않으므로, 임의의 수치를 창작하지 말고 dataset의 원시 시선 표본 및 프레임 타임스탬프 메모를 연동하여 검증을 수행하라.\n\n[성공 및 회귀 기준]\n- 12fps 이상 구간에서 사카드 방향 판정 일치율 및 응시 시간 비율의 회귀가 발생하지 않는지 확인.\n- 12fps 미만 구간에서 신뢰도가 적절히 하향 조정되어 전체 도메인 점수에 과도한 영향을 주지 않는지 검증.\n\n[결과 보고 양식]\n- 코드 변경 관측 사실 요약\n- 프레임 레이트 구간별(>=24fps, 15~23fps, 12~14fps, <12fps) 지표 활용률 및 오차 분포\n- 참가자/기기/날짜별 시선 평가 분모 및 신뢰도 점수 비교표\n- 향후 검증 필요 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 53b329f040ed362708a50265e54a8d8eadf86f5f\nDataset-Task: evo-53b329f040ed-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-53b329f040ed-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-53b329f040ed-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 53b329f040ed362708a50265e54a8d8eadf86f5f\n변경 제목: Core 2.5 / battery 1.6: 실측 19세션 재생으로 측정 신뢰도 보정 — 종합 평균 72→79%\n관련 파일: NEWBIZ_CALIBRATION.md, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js, tools/condition_replay.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-53b329f040ed-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "N/A(해당 없음) 지표의 영역 점수 분모 제외 메커니즘 및 조건 재현 도구(condition_replay.cjs) 회귀 검증",
+          "rationale": "관측 사실: `newbiz-battery.js`에 `notApplicable` 지표를 영역 종합 점수(`aggregateDomain`) 및 신뢰도 분모에서 제외하는 로직이 추가되었으며, `tools/condition_replay.cjs` 파일이 새로 추가되었습니다. (단, diff 스니펫상 `condition_replay.cjs` 코드는 생략됨)\n연구자 주장: 측정 실패가 아닌 '정의상 계산 불가' 지표(예: 빠른 모드 중립 구간 심박 비교)를 분모에서 뺌으로써 측정 성과 왜곡을 줄일 수 있다고 주장합니다.\n미검증 요소: N/A 지표 발생 시 남아있는 지표 수가 줄어듦에 따라 전체 측정 성공률 및 도메인 신뢰도가 유효하게 보정되는지, 아니면 특정 적은 수의 지표에 점수가 과도하게 편향되는지 회귀 검증이 필요합니다.",
+          "validationPlan": "추가된 `tools/condition_replay.cjs` 도구 및 테스트 수트를 활용하되, 실제 실측 dataset 세션 기록을 연동하여 회귀 테스트를 수행합니다. 1) quick 모드 및 full 모드 세션 전체(실패 세션 포함)를 분모로 하여 N/A 적용 여부에 따른 `aggregateDomain` 점수 변동폭을 측정하고, 2) N/A 지표 발생 시 영역 신뢰도가 인위적으로 부풀려지는 현상이 없는지 기기/참가자/날짜별로 분리 평가합니다.",
+          "prompt": "당신은 NeuroLens 측정 시스템 개발 AI이다. `newbiz-battery.js` 내 `aggregateDomain` 및 `notApplicable` 처리 변경 사항과 신규 추가된 `tools/condition_replay.cjs` 도구 체계를 확인하라.\n\n[과제 목표]\n지표가 N/A(해당 없음)로 처리될 때 영역 점수 및 신뢰도 집계 방식이 타당한지 검증하고, 재현 도구를 활용한 통합 회귀 평가 스크립트를 작성하라.\n\n[요구 사항]\n1. 현행 코드 확인: `newbiz-battery.js`의 `aggregateDomain` 및 `INDICATORS` 지표 매핑에서 `notApplicable` 속성이 어떻게 분모(`wAll`, `m`, `list`)에서 제외되는지 확인하라. `tools/condition_replay.cjs` 파일의 존재 및 diff 생략 사실을 명시하고 코드를 직접 확인하라.\n2. 신호 활용량 및 오차 동시 평가: N/A 지정으로 인해 무효화되는 지표의 비율과, 남은 지표들만으로 수렴 점수를 산출할 때의 측정 성공률 및 평가 오차 변화를 동시에 산출하라.\n3. 평가 분모 및 조건 분리: 실패한 세션과 도중 중단 세션을 분모에 포함하여 전체 측정 성공률을 계산하라. quick 모드 vs full 모드, 참가자별, 기기 종류별로 활용률과 오차를 분리하여 평가하라.\n4. 실측 데이터 연동: 가상의 임상 정답이나 성능 수치를 지어내지 말고, dataset 내 실제 측정 조건 및 세션 재현 데이터를 연결하여 검증하도록 코드를 구현하라.\n\n[성공 및 회귀 기준]\n- N/A 지표 제외 시 남아있는 지표만으로 산출된 도메인 점수가 전체 측정 상태를 왜곡하지 않는지 확인.\n- `tools/condition_replay.cjs` 실행을 통한 조건별 재생 시 기존 합성 테스트(`newbiz-battery.test.js`)와의 호환성 및 안정성 확보.\n\n[결과 보고 양식]\n- 관측된 핵심 소스 코드 변경 요약 (생략된 patch 내용 포함)\n- N/A 적용 전후의 도메인 점수 및 신뢰도 비교 분석\n- 전체 평가 분모 표 (총 세션 수, 모드별 N/A 발생 건수, 도메인 점수 변동폭)\n- 검증을 통해 확인된 제한 사항 및 후속 연구 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 53b329f040ed362708a50265e54a8d8eadf86f5f\nDataset-Task: evo-53b329f040ed-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55961501736",
@@ -526,9 +705,116 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-09T07:48:16.424588+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-09T11:05:51.122358+00:00",
+      "analysis": {
+        "summary": "제공된 GitHub 코드 변경 내역(commit: 53b329f040ed362708a50265e54a8d8eadf86f5f)에 근거한 관측 사실 및 미검증 영향 요약입니다.\n\n1. 관측된 변경 사항 (diff 범위 및 파일 내역):\n- newbiz-core.js (v2.4 -> v2.5): 압박 심박 반응(stressPeak - ref.bpm)이 측정 오차 범주인 `max(3bpm, 2*SE)` 미만일 경우, 심박 회복률(recovery)을 계산하지 않고 `recoveryNA = { reason: 'no-stress-rise', ... }` 객체를 반환하도록 로직이 변경되었습니다.\n- newbiz-battery.js (v1.5 -> v1.6): `INDICATORS` 수집 항목 중 `notApplicable` 속성을 도입하여, 정의상 계산 불가한 지표(예: 압박 반응 미달 시 회복률, 빠른 모드의 20초 미만 중립 구간 negHr)를 `aggregateDomain` 종합 점수 및 신뢰도 가중치의 분모에서 제외했습니다. 또한 시선 및 사카드 신뢰도 감점 기준 fps(`fpsF`)를 기존 24fps/15fps에서 12fps 하한 기준으로 통일 조정했습니다.\n- newbiz-report.js: 리포트 판정 출력부에서 `notApplicable` 사유를 '해당 없음' 태그로 출력하고, 저프레임 알림 표시 기준을 20fps에서 12fps 미만으로 변경했습니다.\n- tools/condition_replay.cjs: 신규 도구 파일이 추가되었으나, 제공된 diff 스니펫에서는 내부 구현 코드가 생략되어 내용을 확인할 수 없습니다. NEWBIZ_CALIBRATION.md 파일 변경 패치 내용 또한 스니펫에서 생략되었습니다.\n\n2. 미검증 영향 및 연구자 주장의 구별:\n- 커밋 제목의 '실측 19세션 재생으로 측정 신뢰도 보정 — 종합 평균 72→79%'는 개발자의 제출 보고 및 일차적 가설일 뿐, 임상적 정답이나 기준 센서로 검증된 성능 수치가 아닙니다.\n- 소스 주석 상 언급된 19세션 재분석 수치(7fps 사카드 방향 판정 97.6% 일치 등)는 시뮬레이션 및 조건 재생 환경의 일차적 관측 기록이며, 실제 실측 데이터셋과의 개별 세션 연동 회귀 검증이 추가로 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-53b329f040ed-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "압박 심박 반응 미달 시 회복률 N/A 처리 조건의 신호 대 잡음비(SE) 및 실측 도메인 영향 검증",
+            "rationale": "관측 사실: `newbiz-core.js` 및 `newbiz-battery.js`에서 압박 심박 상승량이 `max(3bpm, 2*SE)`보다 작은 경우 회복률을 null 처리하고 `recoveryNA`로 지정하여 `aggregateDomain` 분모에서 제외하도록 변경되었습니다.\n연구자 주장 및 가설: 노이즈성 잔여 심박이 3bpm 고정 분모 하한으로 인해 회복률 판정 오류로 증폭되던 문제를 방지할 수 있다고 주장합니다.\n미검증 요소: 오차 계산식 `2*SE`의 문턱값이 실제 웹캠 환경의 광학 잡음에서 적절히 작동하는지, 반응 미달자와 단순 측정 실패 간 구별 기준이 타당한지 정량 검증되지 않았습니다.",
+            "validationPlan": "실측 데이터셋의 세션 기록과 연동하여 평가합니다. 1) 전체 시험 세션(실패 시도 포함 분모) 중 `recoveryNA`로 분모 제외된 세션 비율을 계산하고, 2) 참가자/기기/측정 날짜별로 구분하여 SE 오차 수준과 실제 압박 반응 크기 분포를 분석하며, 3) 회복률 N/A 처리 시 잔여 심박(`recoveryResid`) 지표가 자율신경 도메인 점수를 왜곡 없이 보완하는지 회귀 평가합니다.",
+            "prompt": "당신은 NeuroLens 펄스 알고리즘 개발 AI이다. 현재 `newbiz-core.js` v2.5 및 `newbiz-battery.js` v1.6의 심박 회복률 계산 모듈을 확인하라.\n\n[과제 목표]\n압박 심박 상승량이 오차 범위 `max(3bpm, 2*SE)` 미만일 때 적용되는 `recoveryNA` 판정 로직의 유효성과, 부분 유효 신호 활용에 따른 오차 범위를 함께 평가하는 회귀 검증 코드를 작성하라.\n\n[요구 사항]\n1. 코드 확인: `newbiz-core.js` 내 `seOf` 기반 오차 산출식과 `recoveryNA` 발생 조건, `newbiz-battery.js` 내 `aggregateDomain` 분모 제외 로직을 직접 점검하라.\n2. 신호 활용량 및 오차 동시 평가: 회복률이 N/A로 제외되었을 때 남아있는 `recoveryResid`(잔여 심박) 및 기타 자율신경 지표가 수렴 점수에 미치는 영향을 분석하라. 정상값을 억지로 만들어 채우지 말고, 약한 신호의 불확실성을 있는 그대로 평가하라.\n3. 평가 분모 지정: 단일 세션에 치우치지 말고 전체 실패 세션을 포함한 분모 기반으로 `recoveryNA` 발생율, 지표 활용률, 도메인 신뢰도 변화를 참가자/기기/날짜별로 분리 산출하라.\n4. 실측 연동 요구: 실측 수치를 임의로 만들어내지 말고, 데이터셋(dataset) 내 세션 메타데이터 및 관측 메모를 연동하여 판단하도록 평가 스크립트를 구성하라.\n\n[성공 및 회귀 기준]\n- 압박 반응 오차 판별식이 잡음이 큰 세션에서 무분별하게 회복률을 계산하는 오류를 차단하는지 확인.\n- 회복률 N/A 처리 시 영역 신뢰도(`conf`) 및 종합 점수가 왜곡되거나 과도하게 상승/하락하지 않는지 검증.\n\n[결과 보고 양식]\n- 관측 facts (코드 동작 및 연동된 데이터셋 분석 결과)\n- 가설 및 개발자 주장 검증 (SE 문턱값 조건 타당성)\n- 세션 분모 표 (총 세션, 정상 계산 세션, recoveryNA 지정 세션, 신뢰도 하락 세션)\n- 참가자/기기/날짜별 활용률 및 오차 범위 요약\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 53b329f040ed362708a50265e54a8d8eadf86f5f\nDataset-Task: evo-53b329f040ed-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-53b329f040ed-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "사카드·시선 지표 FPS 신뢰도 하한 완화(24/15fps → 12fps)에 따른 저사양 환경 시선 추적 오차 평가",
+            "rationale": "관측 사실: `newbiz-battery.js` v1.6에서 시선 및 사카드 신뢰도 계산 시 프레임 레이트 감점 기준(`fpsF`)을 12fps 기준(`clamp(v / 12, 0.25, 1)`)으로 완화하였습니다.\n연구자 가설 및 관측: 소스 주석에 따르면 실측 19세션 재분석 시 7fps 수준으로 프레임을 낮춰도 사카드 방향 판정 일치율이 97.6%로 유지되었다고 기록되어 있습니다.\n미검증 요소: 개발자 주석의 19세션 결과는 특정 조건 하의 재생 가설일 뿐이며, 저사양 웹캠 및 프레임 드랍 환경에서 시선 고정(fixation), 정서 응시 비율, 사카드 잠복기 오차가 얼마나 증가하는지 독립 정답 센서나 확장된 실측 데이터셋을 통한 정량 검증이 필요합니다.",
+            "validationPlan": "다양한 웹캠 기기 및 웹 브라우저 환경에서 수집된 시선 실측 데이터셋을 연동합니다. 1) 30fps, 15fps, 12fps, 8fps 등 프레임 레이트 구간별로 전체 시도(실패 시도 포함 분모) 대비 사카드 방향 판정 성공률, 정서 응시 비율 오차를 평가하고, 2) fps 하한 완화로 인해 고가용성을 얻는 대신 발생하는 시선 좌표 오차의 확산 범위를 참가자 및 기기별로 분리 평가합니다.",
+            "prompt": "당신은 NeuroLens 시선 추적 알고리즘 개발 AI이다. `newbiz-battery.js` v1.6 및 `newbiz-report.js`에 반영된 시선/사카드 fps 신뢰도 가중치 변경 코드를 확인하라.\n\n[과제 목표]\n시선 지표의 fps 가중 하한이 12fps로 완화됨에 따라 약한 프레임 신호의 활용량이 증가하는 상황에서, 지표별 오차와 유효 신호 비율을 동시에 평가하는 회귀 검증을 수행하라.\n\n[요구 사항]\n1. 현재 코드 확인: `newbiz-battery.js`의 `fpsF` 계산식 및 `INDICATORS` 내 `pursuitLatency`, `bias` 등의 fps 반영 가중 방식을 검토하라.\n2. 활용량 및 오차 동시 평가: 프레임 수가 부족한 세션에서 판정에서 폐기되지 않고 활용되는 신호의 비율(활용량)과, 그로 인해 발생하는 방향 판정 오차 및 시간 잠복기 오차(ms)를 동시에 정량 평가하라.\n3. 평가 분모 및 통계: 단일 세션 결과로 일반화하지 말고 실패한 시도를 포함한 전체 시도 수를 분모로 설정하라. 참가자 ID, 기기 모델, 측정 날짜별로 그룹화하여 지표 활용률과 오차를 분리 집계하라.\n4. 실측 데이터 연동: 이 환경에는 실측 결과가 포함되어 있지 않으므로, 임의의 수치를 창작하지 말고 dataset의 원시 시선 표본 및 프레임 타임스탬프 메모를 연동하여 검증을 수행하라.\n\n[성공 및 회귀 기준]\n- 12fps 이상 구간에서 사카드 방향 판정 일치율 및 응시 시간 비율의 회귀가 발생하지 않는지 확인.\n- 12fps 미만 구간에서 신뢰도가 적절히 하향 조정되어 전체 도메인 점수에 과도한 영향을 주지 않는지 검증.\n\n[결과 보고 양식]\n- 코드 변경 관측 사실 요약\n- 프레임 레이트 구간별(>=24fps, 15~23fps, 12~14fps, <12fps) 지표 활용률 및 오차 분포\n- 참가자/기기/날짜별 시선 평가 분모 및 신뢰도 점수 비교표\n- 향후 검증 필요 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 53b329f040ed362708a50265e54a8d8eadf86f5f\nDataset-Task: evo-53b329f040ed-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-53b329f040ed-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "N/A(해당 없음) 지표의 영역 점수 분모 제외 메커니즘 및 조건 재현 도구(condition_replay.cjs) 회귀 검증",
+            "rationale": "관측 사실: `newbiz-battery.js`에 `notApplicable` 지표를 영역 종합 점수(`aggregateDomain`) 및 신뢰도 분모에서 제외하는 로직이 추가되었으며, `tools/condition_replay.cjs` 파일이 새로 추가되었습니다. (단, diff 스니펫상 `condition_replay.cjs` 코드는 생략됨)\n연구자 주장: 측정 실패가 아닌 '정의상 계산 불가' 지표(예: 빠른 모드 중립 구간 심박 비교)를 분모에서 뺌으로써 측정 성과 왜곡을 줄일 수 있다고 주장합니다.\n미검증 요소: N/A 지표 발생 시 남아있는 지표 수가 줄어듦에 따라 전체 측정 성공률 및 도메인 신뢰도가 유효하게 보정되는지, 아니면 특정 적은 수의 지표에 점수가 과도하게 편향되는지 회귀 검증이 필요합니다.",
+            "validationPlan": "추가된 `tools/condition_replay.cjs` 도구 및 테스트 수트를 활용하되, 실제 실측 dataset 세션 기록을 연동하여 회귀 테스트를 수행합니다. 1) quick 모드 및 full 모드 세션 전체(실패 세션 포함)를 분모로 하여 N/A 적용 여부에 따른 `aggregateDomain` 점수 변동폭을 측정하고, 2) N/A 지표 발생 시 영역 신뢰도가 인위적으로 부풀려지는 현상이 없는지 기기/참가자/날짜별로 분리 평가합니다.",
+            "prompt": "당신은 NeuroLens 측정 시스템 개발 AI이다. `newbiz-battery.js` 내 `aggregateDomain` 및 `notApplicable` 처리 변경 사항과 신규 추가된 `tools/condition_replay.cjs` 도구 체계를 확인하라.\n\n[과제 목표]\n지표가 N/A(해당 없음)로 처리될 때 영역 점수 및 신뢰도 집계 방식이 타당한지 검증하고, 재현 도구를 활용한 통합 회귀 평가 스크립트를 작성하라.\n\n[요구 사항]\n1. 현행 코드 확인: `newbiz-battery.js`의 `aggregateDomain` 및 `INDICATORS` 지표 매핑에서 `notApplicable` 속성이 어떻게 분모(`wAll`, `m`, `list`)에서 제외되는지 확인하라. `tools/condition_replay.cjs` 파일의 존재 및 diff 생략 사실을 명시하고 코드를 직접 확인하라.\n2. 신호 활용량 및 오차 동시 평가: N/A 지정으로 인해 무효화되는 지표의 비율과, 남은 지표들만으로 수렴 점수를 산출할 때의 측정 성공률 및 평가 오차 변화를 동시에 산출하라.\n3. 평가 분모 및 조건 분리: 실패한 세션과 도중 중단 세션을 분모에 포함하여 전체 측정 성공률을 계산하라. quick 모드 vs full 모드, 참가자별, 기기 종류별로 활용률과 오차를 분리하여 평가하라.\n4. 실측 데이터 연동: 가상의 임상 정답이나 성능 수치를 지어내지 말고, dataset 내 실제 측정 조건 및 세션 재현 데이터를 연결하여 검증하도록 코드를 구현하라.\n\n[성공 및 회귀 기준]\n- N/A 지표 제외 시 남아있는 지표만으로 산출된 도메인 점수가 전체 측정 상태를 왜곡하지 않는지 확인.\n- `tools/condition_replay.cjs` 실행을 통한 조건별 재생 시 기존 합성 테스트(`newbiz-battery.test.js`)와의 호환성 및 안정성 확보.\n\n[결과 보고 양식]\n- 관측된 핵심 소스 코드 변경 요약 (생략된 patch 내용 포함)\n- N/A 적용 전후의 도메인 점수 및 신뢰도 비교 분석\n- 전체 평가 분모 표 (총 세션 수, 모드별 N/A 발생 건수, 도메인 점수 변동폭)\n- 검증을 통해 확인된 제한 사항 및 후속 연구 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 53b329f040ed362708a50265e54a8d8eadf86f5f\nDataset-Task: evo-53b329f040ed-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "429fe80c30e26d9ffeddb97829f1c698d5ae59d06155c1b877763741374675a3",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 10381,
+            "candidatesTokenCount": 3513,
+            "totalTokenCount": 17934
+          }
+        },
+        "generatedAt": "2026-10-09T11:06:37.679706+00:00",
+        "sourceSha": "53b329f040ed362708a50265e54a8d8eadf86f5f",
+        "sourceEvidence": {
+          "sha": "53b329f040ed362708a50265e54a8d8eadf86f5f",
+          "parents": [
+            "730ce087614acfb87c8fbcaf8b45687666be6e84"
+          ],
+          "committedAt": "2026-10-09T06:25:04Z",
+          "subject": "Core 2.5 / battery 1.6: 실측 19세션 재생으로 측정 신뢰도 보정 — 종합 평균 72→79%",
+          "url": "https://github.com/jeebs0627/neurolens/commit/53b329f040ed362708a50265e54a8d8eadf86f5f",
+          "files": [
+            {
+              "path": "NEWBIZ_CALIBRATION.md",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 4
+            },
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 19,
+              "deletions": 10
+            },
+            {
+              "path": "newbiz-battery.test.js",
+              "status": "modified",
+              "additions": 22,
+              "deletions": 3
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 14,
+              "deletions": 7
+            },
+            {
+              "path": "newbiz-report.js",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 2
+            },
+            {
+              "path": "tools/condition_replay.cjs",
+              "status": "added",
+              "additions": 98,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE newbiz-battery.js\n@@ -19,7 +19,7 @@\n })(typeof window !== 'undefined' ? window : null, function (N) {\n   'use strict';\n \n-  const VERSION = 'In_mind battery 1.5';   // 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n+  const VERSION = 'In_mind battery 1.6';   // 1.6 (2026-10-10): 사카드 신뢰도 fps 기준 24→12(방향 판정, 실측 솎기 검증) · 압박 상승이 오차보다 작으면 회복률 ‘해당 없음’(분모 제외) · 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n   const finite = v => typeof v === 'number' && Number.isFinite(v);\n   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\n   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;\n@@ -228,7 +228,7 @@\n     { key: 'stressDelta', domain: 'autonomic', w: 2, label: '압박 심박 반응', unit: 'bpm', d: 1, band: BAND('low', 2, 6, 12, 25), refs: ['dedovic'],\n       desc: '제한 시간 암산 − 기준선 심박. 과도한 반응 여부만 판정한다', get: a => a.stressDelta },\n     { key: 'recovery', domain: 'autonomic', w: 2, label: '심박 회복률', unit: '%', d: 0, band: BAND('high', 100, 50, 20, -20), refs: ['thayer'],\n-      desc: '호흡 후 심박이 평소 수준으로 돌아온 정도. 1 − (회복 후반 − 기준) ÷ max(압박 정점 − 기준, 3bpm)', get: a => a.recovery },\n+      desc: '압박으로 오른 심박이 호흡 후 되돌아온 비율. 1 − (회복 후반 − 기준) ÷ (압박 정점 − 기준). 압박 상승이 측정 오차(max 3bpm, 2×SE)보다 작으면 정의되지 않아 계산하지 않는다', get: a => a.recovery },\n     { key: 'recoveryResid', domain: 'autonomic', w: 1, label: '회복 후 잔여 심박', unit: 'bpm', d: 1, band: BAND('low', 0, 3, 7, 15), refs: ['thayer'],\n       desc: '호흡 구간 후반 심박 − 기준 심박. 압박 반응이 작아 회복률을 계산할 수 없을 때도 회복을 판정한다', get: a => a.recoveryResid },\n     { key: 'coupling', domain: 'autonomic', w: 1, label: '공명 호흡 심박 동조', unit: 'bpm', d: 1, band: BAND('high', 8, 3, 1.5, 0), refs: ['lehrer'],\n@@ -884,7 +884,7 @@\n   /* NL-QC 1·3) 신뢰도 가중 영역 점수 + 수렴 원칙.\n    * list = 그 영역의 지표들 [{primary, value, score, status, r, borderline, excluded}] */\n   function aggregateDomain(k, indicators) {\n-    const list = indicators.filter(i => i.domain === k && !i.ref), m = list.filter(i => i.value !== null && !i.excluded);\n+    const list = indicators.filter(i => i.domain === k && !i.ref && !i.notApplicable), m = list.filter(i => i.value !== null && !i.excluded);\n     const prim = list.filter(i => i.primary), mp = prim.filter(i => i.value !== null && !i.excluded);\n     const wAll = list.reduce((s, i) => s + (i.primary ? 2 : 1), 0) || 1;\n     const conf = round(m.reduce((s, i) => s + (i.primary ? 2 : 1) * i.r, 0) / wAll, 2);\n@@ -945,9 +945,12 @@\n     const negN = (rec.trials || []).filter(t => t.kind === 'neg').length;\n     const posSt = (rec.trials || []).filter(t => t.kind === 'pos').map(t => N.trialStats(t, W)).filter(x => x.valid);\n     const posN = (rec.trials || []).filter(t => t.kind === 'pos').length;\n-    /* NL-QC 7) 단계별 카메라 프레임 수: 시선·사카드 지표는 24fps 이상에서 온전히, 10fps 에서 0.3배로 */\n+    /* NL-QC 7) 단계별 카메라 프레임 수: 시선 지표는 12fps 이상에서 온전히, 그 아래는 비례(하한 0.25배).\n+     * battery 1.6 (사카드 24→12, 추적·정서 보기 15→12): 실측 19세션 시선 표본을 솎아 fps 를 절반(약 7fps)으로 낮춰도\n+     * 사카드 방향 판정 97.6%(1,190시행), 정서 응시 비율 판정 33/34·긍정 34/34·유지 응시 30/34, 추적 오차 19/19·원형 추적 29/29 가 같았다.\n+     * fps 에 민감한 것은 잠복기(1/3 로 솎으면 |차| 중앙 36ms)인데 잠복기는 판정에 쓰지 않는다 */\n     const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => (f.faceOk ?? f.ok) && f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };\n-    const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp(v / (k === 'saccade' ? 24 : 15), 0.25, 1); };\n+    const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp(v / 12, 0.25, 1); };\n     const sartFrames = span('sart') ? N.Signal.timeCoverage(face,...span('sart')) : 0;\n     /* 구간 심박 신뢰도: 이전 식(창 신뢰도 × 유효 시간 × (1−보간))에 정밀도 기준을 더해 큰 쪽을 쓴다.\n      * 정밀도 = 1 − SE/5bpm, SE = 창 간 퍼짐 ÷ √(독립 10초 창 수) — 창 하나하나는 약해도 많은 창이 1~2bpm 안에서 일치하면 구간 평균은 정밀하다\n@@ -989,7 +992,7 @@\n       pursuitGain: () => rOf.pursuit() * (pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,\n       pursuitSpeed: rOf.pursuit, sartDprime: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,\n       bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)) * infF(base.hr.neu, base.hr.neg),\n-      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로\n+      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate),   // 압박 반응이 오차보다 작으면 회복률 자체를 계산하지 않는다(core recoveryNA)\n       recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)) * infF(refHr, base.hr.recoveryLate), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)\n     };\n     const hrSe = q => q && finite(q.bpm) && finite(q.spreadBpm) ? Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, (q.effectiveSeconds || q.validSeconds || 10) / 10)) : null;\n@@ -1008,16 +1011,22 @@\n       posBias: () => posSt.length >= 3 ? std(posSt.map(x => x.emoShare)) / Math.sqrt(posSt.length) * 100 : null,\n       firstNeg: () => { const f = negSt.filter(x => x.first); return f.length ? binSe(f.filter(x => x.first === 'emo').length / f.length, f.length) : null; },\n     };\n+    /* 해당 없음(측정 실패가 아님): 정의상 계산할 수 없는 지표는 영역 점수·신뢰도의 분모에서 뺀다 */\n+    /* negHr: 빠른 모드의 중립 블록(3시행 ≈ 14초)은 독립 10초 창 2개를 만들 수 없어 심박 차이를 정의할 수 없다(실측 19세션 중 18세션 r<0.5) —\n+     * 프로토콜상 측정하지 않는 지표로 둔다. 중립 블록이 20초 이상(표준 모드)이면 그대로 판정한다 */\n+    const neuSec = span('neu') ? (span('neu')[1] - span('neu')[0]) / 1000 : null;\n+    const NA = { recovery: base.recoveryNA || null, negHr: finite(neuSec) && neuSec < 20 ? { reason: 'neutral-block-too-short', sec: round(neuSec, 0) } : null };\n     const indicators = INDICATORS.map(ind => {\n-      const raw = ind.get(a), has = finite(raw), v = has ? round(raw, ind.d) : null, sc = has ? scoreOf(v, ind.band) : null;\n+      const raw = NA[ind.key] ? null : ind.get(a), has = finite(raw), v = has ? round(raw, ind.d) : null, sc = has ? scoreOf(v, ind.band) : null;\n       const r = has ? round(REL[ind.key] ? REL[ind.key]() : 1, 2) : null;\n       const se = has && SE[ind.key] ? SE[ind.key]() : null;\n       const ci = finite(se) ? [round(v - 1.96 * se, ind.d), round(v + 1.96 * se, ind.d)] : null;\n       const cuts = ind.band.dir === 'mid' ? [ind.band.up.ok, ind.band.up.concern, ind.band.down.ok, ind.band.down.concern] : [ind.band.ok, ind.band.concern];\n       const borderline = !!ci && cuts.some(cut => ci[0] < cut && cut < ci[1]);\n       const excluded = has && r < QC.minR;\n+      const notApplicable = !!NA[ind.key];\n       return { key: ind.key, domain: ind.domain, ref: !!ind.ref, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,\n-        value: v, count: has && ind.count ? ind.count(a) : null, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded,\n+        value: v, count: has && ind.count ? ind.count(a) : null, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded, ...(notApplicable ? { notApplicable: NA[ind.key] } : {}),\n         next: has && !excluded ? nextBand(ind, v) : null };\n     });\n \n@@ -1033,9 +1042,9 @@\n       if (inferred.length) domains.autonomic.notes.push(`${inferred.map(k => PH[k]).join(' · ')} 구간은 심박 신호가 약해, 앞뒤 구간의 심박 흐름으로 이어 추정했어요(신뢰도 낮게 반영)`);\n       if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);\n       else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);\n-      if (base.recovery !== null && base.hr.stressPeak !== null && refHr && refHr.bpm !== null && base.hr.stressPeak - refHr.bpm < 3) domains.autonomic.notes.push('압박 때 심박이 크게 오르지 않아, 회복률은 ‘호흡 후 심박이 평소 수준으로 돌아왔는지’로 계산했어요');\n+      if (base.recoveryNA) domains.autonomic.notes.push(`압박 때 심박 상승(${base.recoveryNA.riseBpm}bpm)이 측정 오차로 구분되는 크기(${base.recoveryNA.needBpm}bpm)보다 작아 회복률은 계산하지 않았어요 — 회복은 ‘회복 후 잔여 심박’으로 봤어요`);\n       if (base.recoverySrc === 'whole') domains.autonomic.notes.push('호흡 구간 후반 신호가 약해 호흡 구간 전체 심박으로 회복률을 계산했어요');\n-      if (base.recovery === null) domains.autonomic.notes.push(`심박 회복률을 계산하지 못했어요 — ${!refHr || refHr.quality === 'poor' || refHr.quality === 'none' ? '기준 심박' : base.hr.stressPeak === null ? '압박 구간 심박' : '호흡 구간 심박'} 신호가 약했어요. 밝은 조명에서 움직임을 줄이면 잡혀요`);\n+      if (base.recovery === null && !base.recoveryNA) domains.autonomic.notes.push(`심박 회복률을 계산하지 못했어요 — ${!refHr || refHr.quality === 'poor' || refHr.quality === 'none' ? '기준 심박' : base.hr.stressPeak === null ? '압박 구간 심박' : '호흡 구간 심박'} 신호가 약했어요. 밝은 조명에서 움직임을 줄이면 잡혀요`);\n     }\n \n     const integrated = integrate(domains, indicators, base, rec.checkin);\nFILE newbiz-battery.test.js\n@@ -293,7 +293,7 @@ for (const [p, e] of Object.entries(expect)) {\n   assert.equal(t.tentative, true);\n }\n \n-/* 15) 자율신경: 압박 반응이 작아도 회복률이 계산되고, 회복 후반이 약하면 전체 구간으로, 기준선이 약하면 과제 직전 구간을 기준으로 */\n+/* 15) 자율신경: 압박 반응이 오차보다 작으면 회복률은 해당 없음, 회복 후반이 약하면 전체 구간으로, 기준선이 약하면 과제 직전 구간을 기준으로 */\n {\n   const rec = B.simulate('balanced'); \n   const r = B.run(rec);\n@@ -304,9 +304,13 @@ for (const [p, e] of Object.entries(expect)) {\n   B.PERSONAS.balanced.hr.stress = 1;\n   const small = B.run(B.simulate('balanced'));\n   B.PERSONAS.balanced.hr.stress = P0;\n-  assert.ok(small.recovery !== null && small.recovery >= 50, `small reaction recovery ${small.recovery}`);   // 반응이 작아도 회복률이 계산된다\n+  // core 2.5: 압박 상승이 오차와 구분되지 않으면 회복률은 '해당 없음'(측정 실패가 아님 — 영역 분모에서 빠짐), 회복은 잔여 심박이 판정한다\n+  assert.equal(small.recovery, null, `small reaction recovery ${small.recovery}`);\n+  assert.equal(small.recoveryNA && small.recoveryNA.reason, 'no-stress-rise');\n+  const recInd = small.battery.indicators.find(i => i.key === 'recovery');\n+  assert.ok(recInd.notApplicable && recInd.value === null);\n   assert.ok(small.recoveryResid !== null && small.battery.domains.autonomic.status !== 'na');\n-  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('평소 수준으로 돌아왔는지')));\n+  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('회복률은 계산하지 않았어요')));\n   /* 회복 후반 신호가 망가져도 회복 구간 전체로 대신 계산 */\n   const rec3 = B.simulate('control'), rp = rec3.phases.recovery, mid = (rp.start + rp.end) / 2;\n   let sd3 = 9; const rnd3 = () => { sd3 = (sd3 * 16807) % 2147483647; return sd3 / 2147483647 - 0.5; };\n@@ -452,3 +456,18 @@ console.log('newbiz-battery tests passed');\n   assert.ok(r.ref && Number.isFinite(r.value), 'reference indicator present');\n   console.log('PASS SART signal detection: d′ and criterion');\n }\n+\n+/* battery 1.6: 빠른 모드 중립 블록(≈14초)에서는 정서 자극 심박 반응을 '해당 없음'으로 두고(영역 분모 제외) 표준 모드에서는 판정한다.\n+ * 사카드(방향 판정)는 카메라 15fps 에서도 신뢰도를 깎지 않는다(실측 솎기: 7fps 에서도 방향 판정 97.6% 일치) */\n+{\n+  const q = B.run(B.simulate('balanced', { mode: 'quick', seed: 11 })).battery, f = B.run(B.simulate('balanced', { mode: 'full', seed: 11 })).battery;\n+  const nq = q.indicators.find(i => i.key === 'negHr'), nf = f.indicators.find(i => i.key === 'negHr');\n+  assert.ok(nq.notApplicable && nq.notApplicable.reason === 'neutral-block-too-short' && nq.value === null, 'quick negHr n/a');\n+  assert.ok(!nf.notApplicable, 'full negHr scored');\n+  const rec = B.simulate('balanced', { mode: 'quick', seed: 12 }), sp = rec.phases.saccade;\n+  let last = -Infinity;\n+  rec.frames = rec.frames.filter(fr => { if (fr.t < sp.start || fr.t > sp.end) return true; if (fr.t - last < 1000 / 16) return false; /* 30fps 합성 → 두 장에 한 장(15fps) */ last = fr.t; return true; });\n+  const r = B.run(rec).battery.qc.steps.find(s => s.key === 'saccade').r;\n+  assert.ok(r >= 0.95, `saccade r at 15fps ${r}`);\n+  console.log('PASS battery 1.6: quick-mode negHr not applicable, saccade direction reliability not penalised at 15fps');\n+}\nFILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.4';   // 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.5';   // 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -983,21 +983,28 @@\n       : usableHr(hr.baseline) ? { ...hr.baseline, src: 'baseline' } : null;\n     const stressDelta = ref && usableHr(hr.stress) ? round(hr.stress.bpm - ref.bpm, 1) : null;\n     const negDelta = usableHr(hr.neu) && usableHr(hr.neg) ? round(hr.neg.bpm - hr.neu.bpm, 1) : null;\n-    /* 심박 회복률 (항상 계산되도록 재정의):\n-     *   회복률 = 1 − (회복 후반 − 기준)⁺ / max(압박 정점 − 기준, 3bpm)\n+    /* 심박 회복률 (고전적 정의 — 정점 대비 되돌아온 비율):\n+     *   회복률 = 1 − (회복 후반 − 기준)⁺ / (압박 정점 − 기준), 압박 상승이 max(3bpm, 2×SE) 이상일 때만(아래 recoveryNA)\n      *   - 압박 정점 = 압박 구간 심박 창들의 상위 25% 값(중앙값보다 반응을 잘 잡는다)\n-     *   - 분모 하한 3bpm: 반응이 작아도 비율이 폭주하지 않고, ‘다 돌아왔으면 100%’라는 직관을 지킨다\n      *   - 회복 후반 신호가 약하면 회복 구간 전체 심박으로 대신한다 (recoverySrc 에 기록)\n-     * 반응이 큰 경우에는 고전적 정의(정점 대비 되돌아온 비율)와 같다 */\n+     * core 2.4 까지는 분모 하한 3bpm 으로 '항상' 계산했으나, 압박 반응이 없으면 잔여 심박 잡음이 회복률 판정으로 증폭됐다 */\n     let recovery = null, recoveryResid = null, recoverySrc = null;\n     const lateHr = usableHr(hr.recoveryLate) ? (recoverySrc = 'late', hr.recoveryLate) : usableHr(hr.recovery) ? (recoverySrc = 'whole', hr.recovery) : null;\n     const stressFrom = se - ss > 20000 ? ss + 8000 : ss;\n     const stressWins = phaseWindows(ss,se).filter(w=>w.usable&&w.start>=stressFrom-.01&&w.end<=se+.01);\n     const peak = stressWins.length >= 2 ? quantile(stressWins.map(w => w.bpm), 0.75) : usableHr(hr.stress) ? hr.stress.bpm : null;\n     hr.stressPeak = finite(peak) ? round(peak, 1) : null;\n+    /* 회복률은 압박 반응이 측정 오차보다 클 때만 정의된다(core 2.5): 상승 ≥ max(3bpm, 2×SE(기준·압박 차)).\n+     * 실측 19세션 중 15세션이 이 기준에 못 미쳤고, 그때 회복률은 잔여 심박(회복 후반 − 기준)을 3bpm 분모로 다시 잰 값이라\n+     * 잡음만으로 −95%·‘관리 필요’가 나왔다(압박 때 심박이 오히려 내려간 세션 포함). 이 경우 null + recoveryNA, 평가는 잔여 심박이 맡는다 */\n+    const seOf = q => q && finite(q.spreadBpm) ? Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, (q.effectiveSeconds || 10) / 10)) : 2;\n+    let recoveryNA = null;\n     if (ref && lateHr) {\n       recoveryResid = round(lateHr.bpm - ref.bpm, 1);\n-      if (finite(peak)) recovery = round(clamp(1 - Math.max(0, lateHr.bpm - ref.bpm) / Math.max(peak - ref.bpm, 3), -1, 1) * 100, 0);\n+      const rise = finite(peak) ? peak - ref.bpm : null, need = Math.max(3, 2 * Math.hypot(seOf(ref), seOf(hr.stress)));\n+      if (rise === null) recoveryNA = null;\n+      else if (rise < need) recoveryNA = { reason: 'no-stress-rise', riseBpm: round(rise, 1), needBpm: round(need, 1) };\n+      else recovery = round(clamp(1 - Math.max(0, lateHr.bpm - ref.bpm) / rise, -1, 1) * 100, 0);\n     }\n     const recIbis = sig && usableHr(hr.recovery) ? ibis(beats(sig, rs, re, hr.recovery.bpm)) : [];\n     const coupling = breathingCoupling(recIbis);\n@@ -1043,7 +1050,7 @@\n     return {\n       version: VERSION, demo: !!rec.demo, measuredAt: rec.measuredAt || null, checkin: rec.checkin || null,\n       quality: { skinCoverage: sig ? round(sig.coverage*100,0) : 0, recoveredFraction: sig ? round(sig.recoveredFraction,3) : 0, faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },\n-      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),\n+      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryNA, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),\n       gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate,\n         lateNeg: blocks.neg.lateShare, binsNeg: blocks.neg.bins, binsPos: blocks.pos.bins, switches: blocks.neg.switches, latencyNeg: blocks.neg.latencyMs, halfGapNeg: blocks.neg.halfGap,\n         revisitsNeg: blocks.neg.revisits, glanceNeg: blocks.neg.glanceMs, glanceNeu: blocks.neu.glanceMs },\nFILE newbiz-report.js\n@@ -45,7 +45,10 @@\n   const stBadge = s => `<span class=\"st st-${s}\">${B.STATUS[s]}</span>`;\n   const valText = i => i.value === null ? '—' : `${i.d >= 1 ? i.value.toFixed(i.d) : i.value}${i.unit ? ` <small>${esc(i.unit)}</small>` : ''}${i.count ? ` <small>(${esc(i.count)})</small>` : ''}${i.ci ? `<div class=\"ci\">95% ${fmt(i.ci[0], i.d)}~${fmt(i.ci[1], i.d)}</div>` : ''}`;\n   /* 판정 칸: 상태 + NL-QC 표시(경계 · 신뢰도 낮음 · 제외) */\n-  const judge = i => i.excluded ? `<span class=\"st st-na\">판정 제외</span><div class=\"qtag\">신뢰도 ${Math.round(i.r * 100)}%</div>`\n+  /* 해당 없음: 측정 실패가 아니라 정의상 계산하지 않은 지표(영역 점수·신뢰도에서 빠짐) */\n+  const naWhy = n => n.reason === 'no-stress-rise' ? `압박 상승 ${n.riseBpm}bpm — 오차와 구분되려면 ${n.needBpm}bpm 이상` : n.reason === 'neutral-block-too-short' ? `빠른 모드 중립 구간 ${n.sec}초 — 심박 비교에 짧음` : '';\n+  const judge = i => i.notApplicable ? `<span class=\"st st-na\">해당 없음</span><div class=\"qtag\">${esc(naWhy(i.notApplicable))}</div>`\n+    : i.excluded ? `<span class=\"st st-na\">판정 제외</span><div class=\"qtag\">신뢰도 ${Math.round(i.r * 100)}%</div>`\n     : `${stBadge(i.status)}${i.borderline ? '<div class=\"qtag b\">경계 · 오차 범위가 기준에 걸침</div>' : ''}${finite(i.r) && i.r < 0.8 ? `<div class=\"qtag\">신뢰도 ${Math.round(i.r * 100)}%</div>` : ''}${i.next ? `<div class=\"qtag nx\">${esc(i.next.text)}</div>` : ''}`;\n \n   function moduleStatus(b, mod) {\n@@ -376,7 +379,7 @@\n       q.hidden ? `화면이 가려졌던 구간 ${q.hidden.n}회(${q.hidden.sec}초) — 겹친 시행 ${q.hidden.dropped}개를 판정에서 제외` : null,\n       q.lightJumps ? `조명 급변 ${q.lightJumps}회 — 그 전후 심박 계산 구간을 제외` : null,\n       q.breath && q.breath.clear ? `공명 호흡 순응: 카메라로 잰 호흡 분당 ${q.breath.bpm}회${q.breath.off ? ' → 안내(6회)와 달라 호흡 동조 지표 제외' : ' (안내 6회 따름)'}` : null,\n-      Object.entries(q.fps || {}).some(([, v]) => v < 20) ? `카메라 프레임이 낮았던 단계: ${Object.entries(q.fps).filter(([, v]) => v < 20).map(([k, v]) => `${STEP_NAMES[k] || ({ neg: '정서 보기' }[k]) || k} ${v}fps`).join(' · ')} — 시선 지표 신뢰도를 낮춤` : null,\n+      Object.entries(q.fps || {}).some(([, v]) => v < 12) ? `카메라 프레임이 낮았던 단계: ${Object.entries(q.fps).filter(([, v]) => v < 12).map(([k, v]) => `${STEP_NAMES[k] || ({ neg: '정서 보기' }[k]) || k} ${v}fps`).join(' · ')} — 시선 지표 신뢰도를 낮춤` : null,\n       q.hrRef === 'pre' ? '압박 과제 직전 안정 구간을 심박 비교 기준으로 사용' : null,\n       q.calib && q.calib.affine ? `시선 영점 조정 적용: 보정 오차 ${q.calib.before}% → ${q.calib.errPct}% (${esc(q.calib.model)} 모델${q.calib.control ? ` · 시선 이동 ${q.calib.control.hit}/${q.calib.control.n} 성공` : ''})` : null,\n       q.borderline.length ? `측정 오차 범위가 판정 경계에 걸친 지표 ${q.borderline.length}개: ${q.borderline.join(' · ')}` : null,",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37921505422"
+      }
     },
     {
       "sha": "a2603ccc4946ebd123821cd2f34a439bb0f9874d",
@@ -15046,9 +15332,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "0b32431e0758a96e22eb4b14323131c18b716565"
+    "sourceHead": "443931cb4d23b9d337b2c387fefb1f36ceac50d8"
   },
-  "updatedAt": "2026-10-09T10:31:59.120512+00:00",
-  "aiCooldownUntil": "2026-10-09T10:36:30.901185+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-09T11:06:38.280177+00:00"
 }
