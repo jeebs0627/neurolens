@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "46aae965238a103493203e72fbe70c5210d17ca5",
+      "parents": [
+        "327351b3342d1de9ead2feb59490644dfd1f20a5"
+      ],
+      "committedAt": "2026-10-09T14:19:47+09:00",
+      "subject": "메인페이지 성과 카드: 엔진·기술백서 / In_mind Core 신경망 엔진 · 기술백서 출판",
+      "url": "https://github.com/jeebs0627/neurolens/commit/46aae965238a103493203e72fbe70c5210d17ca5",
+      "files": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55958728000",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T05:19:48Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/9Y5cSdEuYWZiU3NtZrhfQFwXC6Aa",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "971ffc39e9b9b9ab080f262cee9f1456282c4710",
       "parents": [
         "2625680b2f15c8e3698ec7dacd2a78202e03aa61"
@@ -14399,9 +14437,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "971ffc39e9b9b9ab080f262cee9f1456282c4710"
+    "sourceHead": "46aae965238a103493203e72fbe70c5210d17ca5"
   },
-  "updatedAt": "2026-10-09T05:14:53.123703+00:00",
+  "updatedAt": "2026-10-09T05:20:06.371505+00:00",
   "aiCooldownUntil": "2026-10-09T05:29:04.653160+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
