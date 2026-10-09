@@ -3,6 +3,83 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "971ffc39e9b9b9ab080f262cee9f1456282c4710",
+      "parents": [
+        "2625680b2f15c8e3698ec7dacd2a78202e03aa61"
+      ],
+      "committedAt": "2026-10-09T14:14:01+09:00",
+      "subject": "메인페이지 문구 추가 교정 및 /condition In_Mind Core 신경망 엔진 뱃지",
+      "url": "https://github.com/jeebs0627/neurolens/commit/971ffc39e9b9b9ab080f262cee9f1456282c4710",
+      "files": [
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 9
+        }
+      ],
+      "domains": [
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex f7044f6..02455d1 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -708,4 +708,6 @@ section[id^=\"r-\"],section[id^=\"dom-\"]{scroll-margin-top:130px}\n .lp-in{position:relative;z-index:1;max-width:520px;padding:58px 0 50px 52px}\n .lp-hero .kicker{color:var(--blue)}\n+.core-badge{display:inline-flex;align-items:center;gap:7px;margin-top:12px;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(90deg,#5B3FD6,#1F4FD8);border-radius:999px;padding:6px 14px;box-shadow:0 6px 16px rgba(31,79,216,.25)}\n+.core-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#7FE0C8;box-shadow:0 0 0 3px rgba(127,224,200,.3)}\n .lp-hero h1{font-size:40px;line-height:1.28;margin:14px 0 16px;color:var(--ink);letter-spacing:-.03em}\n .lp-hero h1 em{font-style:normal;background:linear-gradient(90deg,#1F4FD8,#1baf7a);-webkit-background-clip:text;background-clip:text;color:transparent}\n@@ -991,4 +993,5 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word\n     <div class=\"lp-in\">\n       <div class=\"kicker\">Mind Condition Test</div>\n+      <span class=\"core-badge\">In_Mind Core 신경망 엔진</span>\n       <h1>오늘 내 마음 컨디션,<br><em>눈과 심박으로</em> 확인해 보세요</h1>\n       <p class=\"lead\">웹캠으로 눈의 움직임과 반응 속도, 얼굴에 비치는 심박을 재서 지금의 피로도·집중력·마음 상태·긴장 회복력을 알려 드려요. 결과에 맞춘 관리 방법까지 함께 정리해 드립니다.</p>\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-971ffc39e9b9-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-971ffc39e9b9-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 971ffc39e9b9b9ab080f262cee9f1456282c4710\n변경 제목: 메인페이지 문구 추가 교정 및 /condition In_Mind Core 신경망 엔진 뱃지\n관련 파일: condition.html, index.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-971ffc39e9b9-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "pending",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55958499162",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T05:14:03Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/EoFrHRAkrWRf9vNfixRrrF34cGBZ",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-55958526016",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-09T05:14:42Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/EoFrHRAkrWRf9vNfixRrrF34cGBZ",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6953522101-19501352315",
+          "type": "deployment",
+          "deploymentId": 6953522101,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-09T05:14:43Z",
+          "url": "https://neurolens-1d60315rl-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
+    },
+    {
       "sha": "69aa821ff94e3a875b1ea2bbb6375391b6548460",
       "parents": [
         "8fc05c5aa2b45e7e1f9102cd83c97b4915b7940c"
@@ -14322,9 +14399,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "f7d63b4ee427ba3a22d621f531597e90fe422fa1"
+    "sourceHead": "971ffc39e9b9b9ab080f262cee9f1456282c4710"
   },
-  "updatedAt": "2026-10-09T04:29:29.119091+00:00",
+  "updatedAt": "2026-10-09T05:14:53.123703+00:00",
   "aiCooldownUntil": "2026-10-09T05:29:04.653160+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
