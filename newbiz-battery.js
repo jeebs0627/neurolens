@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.5';   // 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
+  const VERSION = 'In_mind battery 1.6';   // 1.6 (2026-10-10): 사카드 신뢰도 fps 기준 24→12(방향 판정, 실측 솎기 검증) · 압박 상승이 오차보다 작으면 회복률 ‘해당 없음’(분모 제외) · 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -228,7 +228,7 @@
     { key: 'stressDelta', domain: 'autonomic', w: 2, label: '압박 심박 반응', unit: 'bpm', d: 1, band: BAND('low', 2, 6, 12, 25), refs: ['dedovic'],
       desc: '제한 시간 암산 − 기준선 심박. 과도한 반응 여부만 판정한다', get: a => a.stressDelta },
     { key: 'recovery', domain: 'autonomic', w: 2, label: '심박 회복률', unit: '%', d: 0, band: BAND('high', 100, 50, 20, -20), refs: ['thayer'],
-      desc: '호흡 후 심박이 평소 수준으로 돌아온 정도. 1 − (회복 후반 − 기준) ÷ max(압박 정점 − 기준, 3bpm)', get: a => a.recovery },
+      desc: '압박으로 오른 심박이 호흡 후 되돌아온 비율. 1 − (회복 후반 − 기준) ÷ (압박 정점 − 기준). 압박 상승이 측정 오차(max 3bpm, 2×SE)보다 작으면 정의되지 않아 계산하지 않는다', get: a => a.recovery },
     { key: 'recoveryResid', domain: 'autonomic', w: 1, label: '회복 후 잔여 심박', unit: 'bpm', d: 1, band: BAND('low', 0, 3, 7, 15), refs: ['thayer'],
       desc: '호흡 구간 후반 심박 − 기준 심박. 압박 반응이 작아 회복률을 계산할 수 없을 때도 회복을 판정한다', get: a => a.recoveryResid },
     { key: 'coupling', domain: 'autonomic', w: 1, label: '공명 호흡 심박 동조', unit: 'bpm', d: 1, band: BAND('high', 8, 3, 1.5, 0), refs: ['lehrer'],
@@ -884,7 +884,7 @@
   /* NL-QC 1·3) 신뢰도 가중 영역 점수 + 수렴 원칙.
    * list = 그 영역의 지표들 [{primary, value, score, status, r, borderline, excluded}] */
   function aggregateDomain(k, indicators) {
-    const list = indicators.filter(i => i.domain === k && !i.ref), m = list.filter(i => i.value !== null && !i.excluded);
+    const list = indicators.filter(i => i.domain === k && !i.ref && !i.notApplicable), m = list.filter(i => i.value !== null && !i.excluded);
     const prim = list.filter(i => i.primary), mp = prim.filter(i => i.value !== null && !i.excluded);
     const wAll = list.reduce((s, i) => s + (i.primary ? 2 : 1), 0) || 1;
     const conf = round(m.reduce((s, i) => s + (i.primary ? 2 : 1) * i.r, 0) / wAll, 2);
@@ -945,9 +945,12 @@
     const negN = (rec.trials || []).filter(t => t.kind === 'neg').length;
     const posSt = (rec.trials || []).filter(t => t.kind === 'pos').map(t => N.trialStats(t, W)).filter(x => x.valid);
     const posN = (rec.trials || []).filter(t => t.kind === 'pos').length;
-    /* NL-QC 7) 단계별 카메라 프레임 수: 시선·사카드 지표는 24fps 이상에서 온전히, 10fps 에서 0.3배로 */
+    /* NL-QC 7) 단계별 카메라 프레임 수: 시선 지표는 12fps 이상에서 온전히, 그 아래는 비례(하한 0.25배).
+     * battery 1.6 (사카드 24→12, 추적·정서 보기 15→12): 실측 19세션 시선 표본을 솎아 fps 를 절반(약 7fps)으로 낮춰도
+     * 사카드 방향 판정 97.6%(1,190시행), 정서 응시 비율 판정 33/34·긍정 34/34·유지 응시 30/34, 추적 오차 19/19·원형 추적 29/29 가 같았다.
+     * fps 에 민감한 것은 잠복기(1/3 로 솎으면 |차| 중앙 36ms)인데 잠복기는 판정에 쓰지 않는다 */
     const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => (f.faceOk ?? f.ok) && f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };
-    const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp(v / (k === 'saccade' ? 24 : 15), 0.25, 1); };
+    const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp(v / 12, 0.25, 1); };
     const sartFrames = span('sart') ? N.Signal.timeCoverage(face,...span('sart')) : 0;
     /* 구간 심박 신뢰도: 이전 식(창 신뢰도 × 유효 시간 × (1−보간))에 정밀도 기준을 더해 큰 쪽을 쓴다.
      * 정밀도 = 1 − SE/5bpm, SE = 창 간 퍼짐 ÷ √(독립 10초 창 수) — 창 하나하나는 약해도 많은 창이 1~2bpm 안에서 일치하면 구간 평균은 정밀하다
@@ -989,7 +992,7 @@
       pursuitGain: () => rOf.pursuit() * (pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
       pursuitSpeed: rOf.pursuit, sartDprime: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,
       bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)) * infF(base.hr.neu, base.hr.neg),
-      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate) * (refHr && finite(refHr.bpm) && finite(base.hr.stressPeak) && base.hr.stressPeak - refHr.bpm < 3 ? 0.5 : 1),   // 압박 반응이 없으면 ‘회복’은 평소 수준 확인일 뿐이라 가중을 절반으로
+      stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate),   // 압박 반응이 오차보다 작으면 회복률 자체를 계산하지 않는다(core recoveryNA)
       recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)) * infF(refHr, base.hr.recoveryLate), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)
     };
     const hrSe = q => q && finite(q.bpm) && finite(q.spreadBpm) ? Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, (q.effectiveSeconds || q.validSeconds || 10) / 10)) : null;
@@ -1008,16 +1011,22 @@
       posBias: () => posSt.length >= 3 ? std(posSt.map(x => x.emoShare)) / Math.sqrt(posSt.length) * 100 : null,
       firstNeg: () => { const f = negSt.filter(x => x.first); return f.length ? binSe(f.filter(x => x.first === 'emo').length / f.length, f.length) : null; },
     };
+    /* 해당 없음(측정 실패가 아님): 정의상 계산할 수 없는 지표는 영역 점수·신뢰도의 분모에서 뺀다 */
+    /* negHr: 빠른 모드의 중립 블록(3시행 ≈ 14초)은 독립 10초 창 2개를 만들 수 없어 심박 차이를 정의할 수 없다(실측 19세션 중 18세션 r<0.5) —
+     * 프로토콜상 측정하지 않는 지표로 둔다. 중립 블록이 20초 이상(표준 모드)이면 그대로 판정한다 */
+    const neuSec = span('neu') ? (span('neu')[1] - span('neu')[0]) / 1000 : null;
+    const NA = { recovery: base.recoveryNA || null, negHr: finite(neuSec) && neuSec < 20 ? { reason: 'neutral-block-too-short', sec: round(neuSec, 0) } : null };
     const indicators = INDICATORS.map(ind => {
-      const raw = ind.get(a), has = finite(raw), v = has ? round(raw, ind.d) : null, sc = has ? scoreOf(v, ind.band) : null;
+      const raw = NA[ind.key] ? null : ind.get(a), has = finite(raw), v = has ? round(raw, ind.d) : null, sc = has ? scoreOf(v, ind.band) : null;
       const r = has ? round(REL[ind.key] ? REL[ind.key]() : 1, 2) : null;
       const se = has && SE[ind.key] ? SE[ind.key]() : null;
       const ci = finite(se) ? [round(v - 1.96 * se, ind.d), round(v + 1.96 * se, ind.d)] : null;
       const cuts = ind.band.dir === 'mid' ? [ind.band.up.ok, ind.band.up.concern, ind.band.down.ok, ind.band.down.concern] : [ind.band.ok, ind.band.concern];
       const borderline = !!ci && cuts.some(cut => ci[0] < cut && cut < ci[1]);
       const excluded = has && r < QC.minR;
+      const notApplicable = !!NA[ind.key];
       return { key: ind.key, domain: ind.domain, ref: !!ind.ref, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
-        value: v, count: has && ind.count ? ind.count(a) : null, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded,
+        value: v, count: has && ind.count ? ind.count(a) : null, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded, ...(notApplicable ? { notApplicable: NA[ind.key] } : {}),
         next: has && !excluded ? nextBand(ind, v) : null };
     });
 
@@ -1033,9 +1042,9 @@
       if (inferred.length) domains.autonomic.notes.push(`${inferred.map(k => PH[k]).join(' · ')} 구간은 심박 신호가 약해, 앞뒤 구간의 심박 흐름으로 이어 추정했어요(신뢰도 낮게 반영)`);
       if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);
       else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);
-      if (base.recovery !== null && base.hr.stressPeak !== null && refHr && refHr.bpm !== null && base.hr.stressPeak - refHr.bpm < 3) domains.autonomic.notes.push('압박 때 심박이 크게 오르지 않아, 회복률은 ‘호흡 후 심박이 평소 수준으로 돌아왔는지’로 계산했어요');
+      if (base.recoveryNA) domains.autonomic.notes.push(`압박 때 심박 상승(${base.recoveryNA.riseBpm}bpm)이 측정 오차로 구분되는 크기(${base.recoveryNA.needBpm}bpm)보다 작아 회복률은 계산하지 않았어요 — 회복은 ‘회복 후 잔여 심박’으로 봤어요`);
       if (base.recoverySrc === 'whole') domains.autonomic.notes.push('호흡 구간 후반 신호가 약해 호흡 구간 전체 심박으로 회복률을 계산했어요');
-      if (base.recovery === null) domains.autonomic.notes.push(`심박 회복률을 계산하지 못했어요 — ${!refHr || refHr.quality === 'poor' || refHr.quality === 'none' ? '기준 심박' : base.hr.stressPeak === null ? '압박 구간 심박' : '호흡 구간 심박'} 신호가 약했어요. 밝은 조명에서 움직임을 줄이면 잡혀요`);
+      if (base.recovery === null && !base.recoveryNA) domains.autonomic.notes.push(`심박 회복률을 계산하지 못했어요 — ${!refHr || refHr.quality === 'poor' || refHr.quality === 'none' ? '기준 심박' : base.hr.stressPeak === null ? '압박 구간 심박' : '호흡 구간 심박'} 신호가 약했어요. 밝은 조명에서 움직임을 줄이면 잡혀요`);
     }
 
     const integrated = integrate(domains, indicators, base, rec.checkin);

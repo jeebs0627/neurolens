@@ -293,7 +293,7 @@ for (const [p, e] of Object.entries(expect)) {
   assert.equal(t.tentative, true);
 }
 
-/* 15) 자율신경: 압박 반응이 작아도 회복률이 계산되고, 회복 후반이 약하면 전체 구간으로, 기준선이 약하면 과제 직전 구간을 기준으로 */
+/* 15) 자율신경: 압박 반응이 오차보다 작으면 회복률은 해당 없음, 회복 후반이 약하면 전체 구간으로, 기준선이 약하면 과제 직전 구간을 기준으로 */
 {
   const rec = B.simulate('balanced'); 
   const r = B.run(rec);
@@ -304,9 +304,13 @@ for (const [p, e] of Object.entries(expect)) {
   B.PERSONAS.balanced.hr.stress = 1;
   const small = B.run(B.simulate('balanced'));
   B.PERSONAS.balanced.hr.stress = P0;
-  assert.ok(small.recovery !== null && small.recovery >= 50, `small reaction recovery ${small.recovery}`);   // 반응이 작아도 회복률이 계산된다
+  // core 2.5: 압박 상승이 오차와 구분되지 않으면 회복률은 '해당 없음'(측정 실패가 아님 — 영역 분모에서 빠짐), 회복은 잔여 심박이 판정한다
+  assert.equal(small.recovery, null, `small reaction recovery ${small.recovery}`);
+  assert.equal(small.recoveryNA && small.recoveryNA.reason, 'no-stress-rise');
+  const recInd = small.battery.indicators.find(i => i.key === 'recovery');
+  assert.ok(recInd.notApplicable && recInd.value === null);
   assert.ok(small.recoveryResid !== null && small.battery.domains.autonomic.status !== 'na');
-  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('평소 수준으로 돌아왔는지')));
+  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('회복률은 계산하지 않았어요')));
   /* 회복 후반 신호가 망가져도 회복 구간 전체로 대신 계산 */
   const rec3 = B.simulate('control'), rp = rec3.phases.recovery, mid = (rp.start + rp.end) / 2;
   let sd3 = 9; const rnd3 = () => { sd3 = (sd3 * 16807) % 2147483647; return sd3 / 2147483647 - 0.5; };
@@ -451,4 +455,19 @@ console.log('newbiz-battery tests passed');
   const r = B.run(B.simulate('balanced')).battery.indicators.find(i => i.key === 'sartDprime');
   assert.ok(r.ref && Number.isFinite(r.value), 'reference indicator present');
   console.log('PASS SART signal detection: d′ and criterion');
+}
+
+/* battery 1.6: 빠른 모드 중립 블록(≈14초)에서는 정서 자극 심박 반응을 '해당 없음'으로 두고(영역 분모 제외) 표준 모드에서는 판정한다.
+ * 사카드(방향 판정)는 카메라 15fps 에서도 신뢰도를 깎지 않는다(실측 솎기: 7fps 에서도 방향 판정 97.6% 일치) */
+{
+  const q = B.run(B.simulate('balanced', { mode: 'quick', seed: 11 })).battery, f = B.run(B.simulate('balanced', { mode: 'full', seed: 11 })).battery;
+  const nq = q.indicators.find(i => i.key === 'negHr'), nf = f.indicators.find(i => i.key === 'negHr');
+  assert.ok(nq.notApplicable && nq.notApplicable.reason === 'neutral-block-too-short' && nq.value === null, 'quick negHr n/a');
+  assert.ok(!nf.notApplicable, 'full negHr scored');
+  const rec = B.simulate('balanced', { mode: 'quick', seed: 12 }), sp = rec.phases.saccade;
+  let last = -Infinity;
+  rec.frames = rec.frames.filter(fr => { if (fr.t < sp.start || fr.t > sp.end) return true; if (fr.t - last < 1000 / 16) return false; /* 30fps 합성 → 두 장에 한 장(15fps) */ last = fr.t; return true; });
+  const r = B.run(rec).battery.qc.steps.find(s => s.key === 'saccade').r;
+  assert.ok(r >= 0.95, `saccade r at 15fps ${r}`);
+  console.log('PASS battery 1.6: quick-mode negHr not applicable, saccade direction reliability not penalised at 15fps');
 }

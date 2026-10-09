@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 2.4';   // 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 2.5';   // 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -983,21 +983,28 @@
       : usableHr(hr.baseline) ? { ...hr.baseline, src: 'baseline' } : null;
     const stressDelta = ref && usableHr(hr.stress) ? round(hr.stress.bpm - ref.bpm, 1) : null;
     const negDelta = usableHr(hr.neu) && usableHr(hr.neg) ? round(hr.neg.bpm - hr.neu.bpm, 1) : null;
-    /* 심박 회복률 (항상 계산되도록 재정의):
-     *   회복률 = 1 − (회복 후반 − 기준)⁺ / max(압박 정점 − 기준, 3bpm)
+    /* 심박 회복률 (고전적 정의 — 정점 대비 되돌아온 비율):
+     *   회복률 = 1 − (회복 후반 − 기준)⁺ / (압박 정점 − 기준), 압박 상승이 max(3bpm, 2×SE) 이상일 때만(아래 recoveryNA)
      *   - 압박 정점 = 압박 구간 심박 창들의 상위 25% 값(중앙값보다 반응을 잘 잡는다)
-     *   - 분모 하한 3bpm: 반응이 작아도 비율이 폭주하지 않고, ‘다 돌아왔으면 100%’라는 직관을 지킨다
      *   - 회복 후반 신호가 약하면 회복 구간 전체 심박으로 대신한다 (recoverySrc 에 기록)
-     * 반응이 큰 경우에는 고전적 정의(정점 대비 되돌아온 비율)와 같다 */
+     * core 2.4 까지는 분모 하한 3bpm 으로 '항상' 계산했으나, 압박 반응이 없으면 잔여 심박 잡음이 회복률 판정으로 증폭됐다 */
     let recovery = null, recoveryResid = null, recoverySrc = null;
     const lateHr = usableHr(hr.recoveryLate) ? (recoverySrc = 'late', hr.recoveryLate) : usableHr(hr.recovery) ? (recoverySrc = 'whole', hr.recovery) : null;
     const stressFrom = se - ss > 20000 ? ss + 8000 : ss;
     const stressWins = phaseWindows(ss,se).filter(w=>w.usable&&w.start>=stressFrom-.01&&w.end<=se+.01);
     const peak = stressWins.length >= 2 ? quantile(stressWins.map(w => w.bpm), 0.75) : usableHr(hr.stress) ? hr.stress.bpm : null;
     hr.stressPeak = finite(peak) ? round(peak, 1) : null;
+    /* 회복률은 압박 반응이 측정 오차보다 클 때만 정의된다(core 2.5): 상승 ≥ max(3bpm, 2×SE(기준·압박 차)).
+     * 실측 19세션 중 15세션이 이 기준에 못 미쳤고, 그때 회복률은 잔여 심박(회복 후반 − 기준)을 3bpm 분모로 다시 잰 값이라
+     * 잡음만으로 −95%·‘관리 필요’가 나왔다(압박 때 심박이 오히려 내려간 세션 포함). 이 경우 null + recoveryNA, 평가는 잔여 심박이 맡는다 */
+    const seOf = q => q && finite(q.spreadBpm) ? Math.max(0.5, q.spreadBpm) / Math.sqrt(Math.max(1, (q.effectiveSeconds || 10) / 10)) : 2;
+    let recoveryNA = null;
     if (ref && lateHr) {
       recoveryResid = round(lateHr.bpm - ref.bpm, 1);
-      if (finite(peak)) recovery = round(clamp(1 - Math.max(0, lateHr.bpm - ref.bpm) / Math.max(peak - ref.bpm, 3), -1, 1) * 100, 0);
+      const rise = finite(peak) ? peak - ref.bpm : null, need = Math.max(3, 2 * Math.hypot(seOf(ref), seOf(hr.stress)));
+      if (rise === null) recoveryNA = null;
+      else if (rise < need) recoveryNA = { reason: 'no-stress-rise', riseBpm: round(rise, 1), needBpm: round(need, 1) };
+      else recovery = round(clamp(1 - Math.max(0, lateHr.bpm - ref.bpm) / rise, -1, 1) * 100, 0);
     }
     const recIbis = sig && usableHr(hr.recovery) ? ibis(beats(sig, rs, re, hr.recovery.bpm)) : [];
     const coupling = breathingCoupling(recIbis);
@@ -1043,7 +1050,7 @@
     return {
       version: VERSION, demo: !!rec.demo, measuredAt: rec.measuredAt || null, checkin: rec.checkin || null,
       quality: { skinCoverage: sig ? round(sig.coverage*100,0) : 0, recoveredFraction: sig ? round(sig.recoveredFraction,3) : 0, faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },
-      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),
+      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryNA, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),
       gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate,
         lateNeg: blocks.neg.lateShare, binsNeg: blocks.neg.bins, binsPos: blocks.pos.bins, switches: blocks.neg.switches, latencyNeg: blocks.neg.latencyMs, halfGapNeg: blocks.neg.halfGap,
         revisitsNeg: blocks.neg.revisits, glanceNeg: blocks.neg.glanceMs, glanceNeu: blocks.neu.glanceMs },

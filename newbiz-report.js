@@ -45,7 +45,10 @@
   const stBadge = s => `<span class="st st-${s}">${B.STATUS[s]}</span>`;
   const valText = i => i.value === null ? '—' : `${i.d >= 1 ? i.value.toFixed(i.d) : i.value}${i.unit ? ` <small>${esc(i.unit)}</small>` : ''}${i.count ? ` <small>(${esc(i.count)})</small>` : ''}${i.ci ? `<div class="ci">95% ${fmt(i.ci[0], i.d)}~${fmt(i.ci[1], i.d)}</div>` : ''}`;
   /* 판정 칸: 상태 + NL-QC 표시(경계 · 신뢰도 낮음 · 제외) */
-  const judge = i => i.excluded ? `<span class="st st-na">판정 제외</span><div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>`
+  /* 해당 없음: 측정 실패가 아니라 정의상 계산하지 않은 지표(영역 점수·신뢰도에서 빠짐) */
+  const naWhy = n => n.reason === 'no-stress-rise' ? `압박 상승 ${n.riseBpm}bpm — 오차와 구분되려면 ${n.needBpm}bpm 이상` : n.reason === 'neutral-block-too-short' ? `빠른 모드 중립 구간 ${n.sec}초 — 심박 비교에 짧음` : '';
+  const judge = i => i.notApplicable ? `<span class="st st-na">해당 없음</span><div class="qtag">${esc(naWhy(i.notApplicable))}</div>`
+    : i.excluded ? `<span class="st st-na">판정 제외</span><div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>`
     : `${stBadge(i.status)}${i.borderline ? '<div class="qtag b">경계 · 오차 범위가 기준에 걸침</div>' : ''}${finite(i.r) && i.r < 0.8 ? `<div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>` : ''}${i.next ? `<div class="qtag nx">${esc(i.next.text)}</div>` : ''}`;
 
   function moduleStatus(b, mod) {
@@ -376,7 +379,7 @@
       q.hidden ? `화면이 가려졌던 구간 ${q.hidden.n}회(${q.hidden.sec}초) — 겹친 시행 ${q.hidden.dropped}개를 판정에서 제외` : null,
       q.lightJumps ? `조명 급변 ${q.lightJumps}회 — 그 전후 심박 계산 구간을 제외` : null,
       q.breath && q.breath.clear ? `공명 호흡 순응: 카메라로 잰 호흡 분당 ${q.breath.bpm}회${q.breath.off ? ' → 안내(6회)와 달라 호흡 동조 지표 제외' : ' (안내 6회 따름)'}` : null,
-      Object.entries(q.fps || {}).some(([, v]) => v < 20) ? `카메라 프레임이 낮았던 단계: ${Object.entries(q.fps).filter(([, v]) => v < 20).map(([k, v]) => `${STEP_NAMES[k] || ({ neg: '정서 보기' }[k]) || k} ${v}fps`).join(' · ')} — 시선 지표 신뢰도를 낮춤` : null,
+      Object.entries(q.fps || {}).some(([, v]) => v < 12) ? `카메라 프레임이 낮았던 단계: ${Object.entries(q.fps).filter(([, v]) => v < 12).map(([k, v]) => `${STEP_NAMES[k] || ({ neg: '정서 보기' }[k]) || k} ${v}fps`).join(' · ')} — 시선 지표 신뢰도를 낮춤` : null,
       q.hrRef === 'pre' ? '압박 과제 직전 안정 구간을 심박 비교 기준으로 사용' : null,
       q.calib && q.calib.affine ? `시선 영점 조정 적용: 보정 오차 ${q.calib.before}% → ${q.calib.errPct}% (${esc(q.calib.model)} 모델${q.calib.control ? ` · 시선 이동 ${q.calib.control.hit}/${q.calib.control.n} 성공` : ''})` : null,
       q.borderline.length ? `측정 오차 범위가 판정 경계에 걸친 지표 ${q.borderline.length}개: ${q.borderline.join(' · ')}` : null,
