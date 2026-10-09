@@ -9,7 +9,7 @@ const v3 = F.makeSession({ seed: 11, legacy: false }), v2 = F.makeSession({ seed
 
 test('v3 session decodes: canonical clock, calibration frames before t0, roles/ids from targetsV2, recorded pursuit metadata, labels, snapshot digest', () => {
   const S = A.loadSession(v3);
-  assert.equal(S.schema, 'nl-research-3'); assert.equal(S.core, 2.3); assert.ok(S.frames.length > 200 && S.calibrationFrames.length > 500);
+  assert.equal(S.schema, 'nl-research-3'); assert.equal(S.core, +N.VERSION.match(/core ([\d.]+)/)[1]); /* 픽스처는 현재 엔진으로 만든다 */ assert.ok(S.frames.length > 200 && S.calibrationFrames.length > 500);
   assert.ok(S.calibrationFrames.every(f => f.tc < 0), 'calibration frames precede recording start (negative canonical time)');
   assert.ok(Math.abs(S.frames[0].tc) < 1, 'first recorded frame defines t0');
   assert.ok(S.targets.every(t => t.id && !t.inferredBackfill && t.uncertaintyMs === 0));
@@ -46,7 +46,7 @@ test('pipeline reconstruction is deterministic and agrees with the browser-recor
   const snap = A.modelFromSnapshot(S.snapshot), P1 = A.predictFrames(N, snap, S, S.frames), P2 = A.predictFrames(N, rp.final, S, S.frames);
   const byT = new Map(P2.map(p => [p.tc, p])), d = P1.map(p => { const q = byT.get(p.tc); return q ? Math.hypot(p.bx - q.bx, p.by - q.by) : NaN; }).filter(Number.isFinite).sort((a, b) => a - b);
   assert.ok(d.length > 200); assert.ok(d[Math.floor(d.length / 2)] < 3 && d[Math.floor(d.length * .95)] < 10, `replay vs snapshot: median ${d[Math.floor(d.length / 2)].toFixed(2)}px p95 ${d[Math.floor(d.length * .95)].toFixed(2)}px`);
-  assert.equal(rp.selection.coreVersion, 'In_mind core 2.3');
+  assert.equal(rp.selection.coreVersion, N.VERSION);
 });
 
 test('per-frame baseline predictions carry raw/affine/resid coordinates, drift, allowlisted features and no target data', () => {

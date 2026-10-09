@@ -2278,11 +2278,11 @@ function startAutoAnchor() {
   const col = every(33, () => { if (S.rawG && S.rawG.t > last && now() - S.rawG.t < 250 && !S.rawG.bl) { last = S.rawG.t; buf.push({ t: now(), x: S.rawG.x, y: S.rawG.y }); while (buf.length && buf[0].t < now() - 1000) buf.shift(); } });
   const upd = every(2500, () => {
     if (buf.length < 6) return;
-    const W = stage.clientWidth, H = stage.clientHeight, xs = buf.map(p => p.x), ys = buf.map(p => p.y);
+    const W = stage.clientWidth, H = stage.clientHeight, Lx = Math.max(W, H), xs = buf.map(p => p.x), ys = buf.map(p => p.y);
     const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));
     const mdx = mx - W / 2, mdy = my - H / 2;
     /* 거부한 시도도 기록한다: 받아들인 것만 남기면 학습 라벨이 ‘엔진과 가까운 경우’로 치우친다 */
-    const why = madX > W * 0.03 || madY > H * 0.045 ? 'scattered' : Math.abs(mdx - S.drift.dx) > W * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25 ? 'far-from-current-drift' : null;
+    const why = madX > Lx * 0.03 || madY > H * 0.045 ? 'scattered' : Math.abs(mdx - S.drift.dx) > Lx * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25 ? 'far-from-current-drift' : null;
     if (why) { S.telemetry?.drift.push({ t: now(), key: S.cur, samples: buf.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx: W / 2, ty: H / 2, applied: false, reason: why, source: 'implicit-background-center' }); buf.length = 0; return; }
     const k = 0.15;
     S.drift = { dx: S.drift.dx + k * (mdx - S.drift.dx), dy: S.drift.dy + k * (mdy - S.drift.dy) };
@@ -2292,7 +2292,7 @@ function startAutoAnchor() {
 }
 async function anchorFix(ms, tx, ty) {
   if (S.demo || !S.model) { await wait(ms); return; }
-  const W = stage.clientWidth, H = stage.clientHeight; tx = tx ?? W / 2; ty = ty ?? H / 2;
+  const W = stage.clientWidth, H = stage.clientHeight, Lx = Math.max(W, H); tx = tx ?? W / 2; ty = ty ?? H / 2;
   const xs = [], ys = [], t0 = now();
   let last = -1;
   const stop = every(33, () => { if (now() - t0 > 250 && S.rawG && S.rawG.t > last && now() - S.rawG.t < 250 && !S.rawG.bl) { last = S.rawG.t; xs.push(S.rawG.x); ys.push(S.rawG.y); } });
@@ -2301,7 +2301,7 @@ async function anchorFix(ms, tx, ty) {
   if (xs.length < 4) return;
   const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));
   const mdx = mx - tx, mdy = my - ty;
-  const why = madX > W * 0.035 || madY > H * 0.05 ? 'scattered' : Math.abs(mdx - S.drift.dx) > W * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35 ? 'far-from-current-drift' : null;
+  const why = madX > Lx * 0.035 || madY > H * 0.05 ? 'scattered' : Math.abs(mdx - S.drift.dx) > Lx * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35 ? 'far-from-current-drift' : null;
   if (why) { S.telemetry?.drift.push({ t: now(), t0, key: S.cur, samples: xs.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx, ty, applied: false, reason: why, source: 'implicit-task-fixation' }); return; }
   const k = 0.25;
   S.drift = { dx: S.drift.dx + k * (mdx - S.drift.dx), dy: S.drift.dy + k * (mdy - S.drift.dy) };
@@ -2309,7 +2309,9 @@ async function anchorFix(ms, tx, ty) {
 }
 async function driftCheck() {
   if (S.demo || !S.model) return;
-  const H = stage.clientHeight, W = stage.clientWidth;
+  /* 가로 허용치는 화면 긴 변 기준(core 2.6): 시선 잡음은 기기와 무관하게 CSS px 로 비슷한데, 폭 기준이면 세로로 든 휴대폰(폭 384px)에서만 4배 엄격해
+   * 지시 응시 영점이 모두 거부됐다(실측 NLR-7AB5…: 측정 −126px > 허용 96px → 사카드 내내 −47px 치우침 잔존). 가로 화면은 긴 변 = 폭이라 그대로 */
+  const H = stage.clientHeight, W = stage.clientWidth, Lx = Math.max(W, H);
   body.innerHTML = `<div class="sac-fix" style="width:20px;height:20px;margin:-10px 0 0 -10px"></div><div class="cue">가운데 점을 바라봐 주세요 · 시선 영점 맞추기</div>`;
   await wait(450);
   const xs = [], ys = [];
@@ -2321,9 +2323,9 @@ async function driftCheck() {
   if (xs.length >= 4) {
     const mdx = N.median(xs) - W / 2, mdy = N.median(ys) - H / 2;
     const madX = N.median(xs.map(v => Math.abs(v - N.median(xs)))), madY = N.median(ys.map(v => Math.abs(v - N.median(ys))));
-    const tight = xs.length >= 8 && madX < W * 0.03 && madY < H * 0.04;
+    const tight = xs.length >= 8 && madX < Lx * 0.03 && madY < H * 0.04;
     /* 보통은 화면의 25~30% 안쪽 치우침만 받아들이지만, 표본이 한곳에 촘촘히 모여 있으면(머리 위치가 바뀐 경우) 45%까지 받아들인다 */
-    const applied=(Math.abs(mdx) < W * 0.25 && Math.abs(mdy) < H * 0.3) || (tight && Math.abs(mdx) < W * 0.45 && Math.abs(mdy) < H * 0.45);
+    const applied=(Math.abs(mdx) < Lx * 0.25 && Math.abs(mdy) < H * 0.3) || (tight && Math.abs(mdx) < Lx * 0.45 && Math.abs(mdy) < H * 0.45);
     const k = Math.min(1, 0.35 + xs.length / 30), dx = S.drift.dx + k * (mdx - S.drift.dx), dy = S.drift.dy + k * (mdy - S.drift.dy);
     S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,measuredDx:mdx,measuredDy:mdy,madX,madY,tx:W/2,ty:H/2,windowMs:1200,dx,dy,weight:k,applied,source:'instructed-center-fixation'});
     if (applied) { S.drift = { dx, dy }; S.gaze = null; }
@@ -2615,7 +2617,7 @@ async function calibrate() {
     S.calib = { ...acc, samples: s9.length + sp.length, round: S.calibRound };
     const roundRow = S.calibLog.rounds.at(-1); roundRow.end = now(); roundRow.grade = acc.grade; roundRow.errPct = acc.errPct ?? null;
     if (acc.grade !== 'poor') {
-      const c = await pauseCard('보정 완료', `${info}<p style="margin:12px 0 0">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);
+      const c = await pauseCard('보정 완료', `${info}<p style="margin:12px 0 0">시선 오차 약 <b>${acc.errPct}%</b> (화면 긴 변 대비${acc.px ? ` · 약 ${acc.px}px` : ''}) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);
       if (c === 1) { roundRow.outcome = 'recalibrated'; continue; }
       roundRow.outcome = 'accepted';
       return;
@@ -3305,7 +3307,7 @@ function finishLabels(rec) {
   const G = rec.gazeLabels, s = G ? NLResearch.labelSummary(G) : null, pe = G?.holdout?.proxyError;
   const rows = s ? [['유효 라벨 표적', `${s.valid} / ${s.targets}`], ['학습 · 내부 검증 · 최종 평가', `${s.train} · ${s.internal} · ${s.holdout}`], ['연결된 관측 프레임', String(s.frames)], ['재시도 · 사용자 무효 · 자동 거부', `${s.retries} · ${s.invalidated} · ${s.rejected}`],
     ['평가 블록 중 보정 변경 없음', G.holdout ? (G.holdout.pipelineUnchanged ? '확인됨' : '변경 감지 — 평가 무효') : '평가 블록 없음'],
-    ['기존 엔진의 표적 proxy 오차', pe && pe.targets ? `${pe.errPct}% (화면 폭 대비, 표적 ${pe.targets}개, 중앙값 ${pe.medianPx}px)` : '계산 불가']] : [];
+    ['기존 엔진의 표적 proxy 오차', pe && pe.targets ? `${pe.errPct}% (화면 긴 변 대비, 표적 ${pe.targets}개, 중앙값 ${pe.medianPx}px)` : '계산 불가']] : [];
   $('sReport').innerHTML = `<div class="card"><div class="kicker">Gaze Label · 수집 완료</div><h2>시선 라벨 수집을 마쳤어요</h2>
     <p class="lead">이 모드는 검사 결과나 점수를 만들지 않아요. 아래 수치는 수집 상태이며, ‘표적 proxy 오차’는 표적을 보려 한 기록과 기존 엔진 추정의 차이일 뿐 실제 시선 정확도 검증이 아니에요.</p>
     <table class="btbl" style="margin-top:14px"><tbody>${rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td><b>${esc(b)}</b></td></tr>`).join('')}</tbody></table>

@@ -341,3 +341,12 @@ console.log('newbiz-core tests passed');
   assert.equal(back.held, false); assert.equal(back.confirmed, undefined);
   console.log('PASS gaze stabilizer: confirmed jumps return held sample times, isolated spikes stay held');
 }
+
+/* 보정 오차는 화면 긴 변 대비(core 2.6): 가로 화면은 폭 기준과 같고, 세로로 든 휴대폰은 같은 CSS px 오차가 폭(짧은 변)으로 나눠져 부풀지 않는다 */
+{
+  const pts = (W, H) => [[0.2, 0.2], [0.8, 0.2], [0.5, 0.5], [0.2, 0.8], [0.8, 0.8]].map(([a, b]) => ({ x: a * W, y: b * H, gx: a * W, gy: b * H + 60 }));
+  const land = N.gazeAccuracy(pts(1600, 900), 1600, 900), port = N.gazeAccuracy(pts(384, 800), 384, 800);
+  assert.equal(land.errPct, 3.8); assert.equal(land.px, 60);                 // 60/1600 — 이전(폭 기준)과 같음
+  assert.equal(port.errPct, 7.5); assert.equal(port.grade, 'good');          // 60/800 — 이전 식이면 60/384 = 15.6% 'fair'
+  console.log('PASS gaze accuracy: long-side normalisation (landscape unchanged, portrait phone not inflated)');
+}
