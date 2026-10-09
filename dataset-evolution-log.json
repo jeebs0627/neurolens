@@ -3,6 +3,60 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "2914a6685cef10350c397663bbc0c23c3f76b91d",
+      "parents": [
+        "f785ea58a2449f6baeaaa2a163dbb8869c8f3701"
+      ],
+      "committedAt": "2026-10-09T19:30:39+09:00",
+      "subject": "휴대폰: CPU 얼굴 인식 우선·준비 시간 카운트, 준비 화면·안내 카드 한 화면, 카메라 미리보기 확대",
+      "url": "https://github.com/jeebs0627/neurolens/commit/2914a6685cef10350c397663bbc0c23c3f76b91d",
+      "files": [
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 46,
+          "deletions": 6
+        }
+      ],
+      "domains": [
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex 54690ef..4e02131 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -708,5 +708,37 @@ section[id^=\"r-\"],section[id^=\"dom-\"]{scroll-margin-top:130px}\n   .st-prog{top:0;height:2px}\n   .stage .cue{bottom:3px;width:96%;font-size:11.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n-  .selfcam,.selfcam.on{width:36px;height:auto;left:4px;top:4px;bottom:auto;opacity:.35}\n+  .selfcam,.selfcam.on{width:36px;height:auto;left:auto;right:4px;top:4px;bottom:auto;opacity:.35}   /* 준비 화면: 오른쪽 위 빈 곳 */\n+  html.staging .selfcam,html.staging .selfcam.on{left:4px;right:auto}                                  /* 측정 화면: 왼쪽 위(오른쪽 위는 그만하기 버튼) */\n+  /* 준비 화면·안내 카드를 한 화면에(스크롤 없이 버튼까지): 설명 문단·그림·근거·심박 상자·사이트 머리글/바닥글을 빼고 점검표는 점만 */\n+  body:has(#sSetup:not([hidden])) .nav,body:has(#sSetup:not([hidden])) .site-foot{display:none}\n+  body:has(#sSetup:not([hidden])) main{padding:8px}\n+  #sSetup .flow,#sSetup .lead,#sSetup .setup>div:first-child>p,#sSetup .livehr{display:none}\n+  #sSetup .card{padding:12px;margin:0}\n+  #sSetup .kicker{font-size:10.5px;margin:0}\n+  #sSetup h2{font-size:16px;margin:2px 0 8px;line-height:1.35}\n+  #sSetup .setup{gap:8px}\n+  #sSetup .checks{display:flex;flex-wrap:wrap;gap:2px 12px;margin:0}\n+  #sSetup .checks li{border:0;padding:0;font-size:11.5px}\n+  #sSetup .checks li b{display:none}\n+  #sSetup .status{font-size:12px;margin-top:4px;min-height:0}\n+  #sSetup .btns{margin-top:8px;gap:8px}\n+  .brief{padding:14px 16px;top:calc(50% + 14px);max-height:calc(100vh - 36px)}\n+  .brief:has(.brief-grid) .what,.brief .vis,.brief .orig,.brief .ref,.brief .prev{display:none}\n+  .brief h2{font-size:18px;margin:4px 0 8px}\n+  .brief-grid{display:block}\n+  .brief ol li{font-size:12.5px;padding-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n+  .brief .note{font-size:12px;padding:6px 10px;margin-top:6px}\n+  .brief .go{margin-top:10px}\n+}\n+/* 휴대폰 가로 준비 화면: 카메라(왼쪽, 화면 높이만큼) · 제목·점검·버튼(오른쪽) */\n+@media (max-height:500px) and (orientation:landscape) {\n+  #sSetup .card{display:grid;grid-template-columns:min(calc((100vh - 72px) * 4 / 3),58vw) minmax(0,1fr);column-gap:14px;align-items:start}\n+  #sSetup .setup{display:contents}\n+  #sSetup .setup>div:first-child{grid-column:1;grid-row:1 / span 4}\n+  #sSetup .kicker,#sSetup h2,#sSetup .setup>div:last-child,#sSetup .btns{grid-column:2}\n+  .brief{padding:10px 14px}\n+  .brief h2{font-size:16px;margin:2px 0 6px}\n+  .brief ol li{padding-bottom:3px}\n+  .brief .go{margin-top:6px}\n }\n @media print{.nav,.btns,.no-print,.qa{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid-page}.method{break-inside:avoid}}\n@@ -1575,6 +1607,9 @@ async function loadLandmarker(only) {\n   const make = async d => Object.assign(await FaceLandmarker.createFromOptions(vision, { baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, ...FACE_CONF }), { nlDelegate: d });\n   if (only) return make(only);\n-  try { return await make('GPU'); }\n-  catch (_) { return make('CPU'); }\n+  /* 휴대폰은 CPU 부터: 실측 안드로이드 11세션 중 8세션이 GPU 인식기에서 얼굴을 못 찾아(빈 결과 30회 → 캔버스 입력 30회 → CPU 교체)\n+   * 얼굴 가이드가 수 초 늦게 떴다(capture.recovery 'cpu-delegate'). 같은 기기 CPU 추론 16~43ms 로 GPU 정상 기기(29~31ms)와 차이 없음 */\n+  const order = MOBILE ? ['CPU', 'GPU'] : ['GPU', 'CPU'];\n+  try { return await make(order[0]); }\n+  catch (_) { return make(order[1]); }\n }\n /* 얼굴 인식 모델 미리 준비: 페이지가 열리자마자 내려받기·GPU 준비를 시작하고, 카메라가 켜지면 그 인식기를 한 번 넘겨준다.\n@@ -1591,5 +1626,5 @@ $('camStart').addEventListener('click', async () => {\n   const st = $('setupStatus');\n   st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';\n-  $('camStart').disabled = true; $('camStart').hidden = true;\n+  $('camStart').disabled = true; $('camStart').hidden = true; S.camClickAt = now();\n   let phase = 'camera';\n   try {\n@@ -1789,6 +1824,9 @@ const videoAspect = (video = procVideo) => (video.videoWidth > 0 && video.videoH\n function fitPreview() {\n   const ar = videoAspect(prevVideo), pv = prevVideo.parentElement;\n-  pv.style.aspectRatio = String(ar); pv.style.maxWidth = MOBILE ? `calc(62vh * ${ar.toFixed(3)})` : ''; pv.style.margin = '0 auto';\n+  /* 휴대폰 가로: 화면 높이 전체(카드 여백·거리 막대 72px 제외)를 쓰도록 — 이전 62vh 제한이면 798×339 화면에서 280×210 으로 작았다 */\n+  const land = MOBILE && innerWidth > innerHeight;\n+  pv.style.aspectRatio = String(ar); pv.style.maxWidth = MOBILE ? `calc(${land ? '(100vh - 72px)' : '62vh'} * ${ar.toFixed(3)})` : ''; pv.style.margin = '0 auto';\n }\n+if (MOBILE) addEventListener('resize', () => { if (prevVideo.videoWidth) fitPreview(); });\n function posCheck() {\n   const f = S.feat;\n@@ -1831,5 +1869,7 @@ function setupTicker() {\n     setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';\n     gm.hidden = !S.stream;\n-    gm.textContent = pos ? pos.msg : !S.camT0 ? '얼굴 인식 준비 중 · 먼저 흰 동그라미 두 개에 눈을 맞춰 보세요' : MOBILE ? '얼굴을 찾는 중 · 휴대폰을 눈높이로, 타원 안에 얼굴 전체가 보이게' : '얼굴을 찾는 중 · 타원 안에 얼굴 전체가 보이게 해 주세요';\n+    /* 준비 시간 카운트: 카메라를 켠 뒤 첫 얼굴 인식까지 몇 초째인지 보여 준다(휴대폰은 엔진 준비에 수 초가 걸린다) */\n+    const waitSec = S.camClickAt && !(S.lastFace > S.camClickAt) ? Math.floor((t - S.camClickAt) / 1000) : null;\n+    gm.textContent = waitSec !== null ? `얼굴 인식 준비 중 · ${waitSec}초 — 흰 동그라미 두 개에 눈을 맞춰 두세요` : pos ? pos.msg : !S.camT0 ? '얼굴 인식 준비 중 · 먼저 흰 동그라미 두 개에 눈을 맞춰 보세요' : MOBILE ? '얼굴을 찾는 중 · 휴대폰을 눈높이로, 타원 안에 얼굴 전체가 보이게' : '얼굴을 찾는 중 · 타원 안에 얼굴 전체가 보이게 해 주세요';\n     gm.className = 'guide-msg' + (pos && pos.ok ? ' ok' : '');\n     const lightOk = lum >= 70 && lum <= 215;\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-2914a6685cef-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-2914a6685cef-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 2914a6685cef10350c397663bbc0c23c3f76b91d\n변경 제목: 휴대폰: CPU 얼굴 인식 우선·준비 시간 카운트, 준비 화면·안내 카드 한 화면, 카메라 미리보기 확대\n관련 파일: condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-2914a6685cef-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55975512274",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T10:30:45Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/C41wbGoCCU1qwvhtDLRqAuZ3aKVp",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-09T10:31:08.062059+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "1a791646970014007dc9b8d99af1ec45f1b72b7a",
       "parents": [
         "a16cbffb1f0068995e91d6369c279c7539b8d3b3"
@@ -14972,9 +15026,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "bd2b39759d44636b93f54345251be74e89b87bb4"
+    "sourceHead": "2914a6685cef10350c397663bbc0c23c3f76b91d"
   },
-  "updatedAt": "2026-10-09T08:32:25.691441+00:00",
-  "aiCooldownUntil": "2026-10-09T08:34:18.055032+00:00",
+  "updatedAt": "2026-10-09T10:31:32.231266+00:00",
+  "aiCooldownUntil": "2026-10-09T10:36:30.901185+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
