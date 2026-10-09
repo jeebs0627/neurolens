@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "788514b581ebad3a7b48fe668c3efa781edbf57b",
+      "parents": [
+        "a6db3519806eea7492345c7df9937296be29a548"
+      ],
+      "committedAt": "2026-10-09T17:28:41+09:00",
+      "subject": "메인페이지: 검사 카드 엔진 리본(Mindgaze Engine·In_Mind Neural Engine), 칩·실증 문구, 노무사 사례 추가, 2026 칸 확장",
+      "url": "https://github.com/jeebs0627/neurolens/commit/788514b581ebad3a7b48fe668c3efa781edbf57b",
+      "files": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 4
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55967962094",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T08:28:42Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/6xGHe9kKpFoCjmAmm44mqE456CEU",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "48be717b61ac5a6575acd36da7dc6ad39b744ca6",
       "parents": [
         "6f4812801b0996c591a6774b7de6b39a41cc0ad1"
@@ -475,7 +513,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55958499162",
@@ -507,9 +545,9 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-09T06:11:43.828595+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-09T08:28:58.109475+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
     {
       "sha": "69aa821ff94e3a875b1ea2bbb6375391b6548460",
@@ -14831,9 +14869,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "5e329857a1ee2dac81339fd52bba1b7710b2de9c"
+    "sourceHead": "788514b581ebad3a7b48fe668c3efa781edbf57b"
   },
-  "updatedAt": "2026-10-09T07:49:20.287701+00:00",
-  "aiCooldownUntil": "2026-10-09T07:53:51.391956+00:00",
+  "updatedAt": "2026-10-09T08:29:18.478041+00:00",
+  "aiCooldownUntil": "2026-10-09T08:34:18.055032+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
