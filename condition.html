@@ -1761,10 +1761,14 @@ function drawOverlay() {
   const cv = $('overlay'), ctx = cv.getContext('2d');
   const draw = () => {
     if ($('sSetup').hidden) { requestAnimationFrame(draw); return; }
-    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(3, devicePixelRatio || 1);
+    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
+    /* 카메라 영상을 가이드와 같은 캔버스에 직접 그린다: 일부 휴대폰 인앱 브라우저(실측 카카오톡)는 <video> 를 하드웨어 오버레이로 그리며
+     * CSS 좌우 반전·맞춤을 따르지 않아, 눈동자 점·피부 영역 상자가 실제 얼굴과 거울상으로 어긋났다(사용자 화면 00001~00003).
+     * 같은 캔버스·같은 좌표·같은 반전으로 그리면 브라우저와 무관하게 겹친다. <video> 는 그 아래에 남아 영상이 아직 없을 때만 보인다 */
+    if (procVideo.readyState >= 2 && procVideo.videoWidth) ctx.drawImage(procVideo, 0, 0, W, H);
     /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭).
      * 밝은 배경·작은 휴대폰 화면에서도 보이게 어두운 그림자를 깔고 휴대폰에서는 선을 굵게 */
     const pos = posCheck(), okc = pos && pos.ok, lw = MOBILE ? 1.6 : 1;
