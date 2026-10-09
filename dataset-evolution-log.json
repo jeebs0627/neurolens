@@ -3,6 +3,69 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "1a791646970014007dc9b8d99af1ec45f1b72b7a",
+      "parents": [
+        "a16cbffb1f0068995e91d6369c279c7539b8d3b3"
+      ],
+      "committedAt": "2026-10-09T17:31:14+09:00",
+      "subject": "휴대폰 측정 환경: 보정 점 가림 제거, 얼굴 인식 모델 미리 준비, 전체 화면 방향 고정",
+      "url": "https://github.com/jeebs0627/neurolens/commit/1a791646970014007dc9b8d99af1ec45f1b72b7a",
+      "files": [
+        {
+          "path": "collect-env.test.cjs",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 32,
+          "deletions": 3
+        },
+        {
+          "path": "datacollection.html",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex b29ca52..54690ef 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -697,4 +697,17 @@ section[id^=\"r-\"],section[id^=\"dom-\"]{scroll-margin-top:130px}\n   .brief h2{font-size:21px}\n }\n+/* 휴대폰 크기 측정 화면(짧은 변 ≤ 500px, 세로·가로 모두): 보정 점·과제 자극이 화면 UI 에 가리지 않게 한다.\n+ * 2026-10-09 휴대폰 흉내 스모크: 가로(798×384)는 9점 중 6점이 가림(윗줄 상단 바 61% · 아랫줄 안내문 77% · 셀프캠 47%),\n+ * 세로(384×798)는 아랫줄 3점이 안내문 88~100% 가림 → 실측 가로 보정 22.4% 실패·세로 편차의 원인.\n+ * 상단 바 → 오른쪽 위 버튼만(28px) · 안내문 → 맨 아래 한 줄(3px) · 셀프캠 → 왼쪽 위 36px (분석용 영상 요소라 숨기지 않는다) */\n+@media (max-height:500px), (max-width:500px) {\n+  .st-top{height:28px;padding:0 6px;gap:6px;background:transparent!important;justify-content:flex-end;pointer-events:none}\n+  .st-top .st-brand,.st-top .stepper,#hudFaceT{display:none}\n+  .st-act{pointer-events:auto;gap:4px}\n+  .st-act .sbtn{padding:3px 9px;font-size:11px}\n+  .st-prog{top:0;height:2px}\n+  .stage .cue{bottom:3px;width:96%;font-size:11.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n+  .selfcam,.selfcam.on{width:36px;height:auto;left:4px;top:4px;bottom:auto;opacity:.35}\n+}\n @media print{.nav,.btns,.no-print,.qa{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid-page}.method{break-inside:avoid}}\n /* ================= 2026-10 개편: 첫 화면 · 자기보고 · 통합 리포트 ================= */\n@@ -1565,4 +1578,13 @@ async function loadLandmarker(only) {\n   catch (_) { return make('CPU'); }\n }\n+/* 얼굴 인식 모델 미리 준비: 페이지가 열리자마자 내려받기·GPU 준비를 시작하고, 카메라가 켜지면 그 인식기를 한 번 넘겨준다.\n+ * 이전에는 카메라를 켠 뒤에야 시작해 휴대폰에서 얼굴 가이드(흰·녹색 선)가 10초 넘게 나오지 않았다. 실패하면 그때 새로 만든다 */\n+let warmLandmarker = loadLandmarker();\n+warmLandmarker.catch(() => {});\n+const takeLandmarker = only => {\n+  if (only || !warmLandmarker) return loadLandmarker(only);\n+  const p = warmLandmarker; warmLandmarker = null;\n+  return p.catch(() => loadLandmarker());\n+};\n \n $('camStart').addEventListener('click', async () => {\n@@ -1591,5 +1613,5 @@ $('camStart').addEventListener('click', async () => {\n     phase = 'model';\n     S.camera = new NLCamera(procVideo, {\n-      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n+      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: takeLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },\n       onResult: processResult,\n@@ -1895,5 +1917,11 @@ stage.addEventListener('pointerdown', e => { if (e.target.closest('button')) ret\n $('skip').addEventListener('click', e => { e.currentTarget.blur(); if (S.cur && !S.abort) interrupt(Skip); });\n $('quit').addEventListener('click', () => { S.abort = true; interrupt(Abort); });\n-$('fsBack').addEventListener('click', () => { document.documentElement.requestFullscreen().catch(() => {}); });\n+/* 전체 화면 + (휴대폰) 화면 방향 고정: 시작할 때의 방향(세로·가로)으로 묶어 측정 중 회전으로 보정이 깨지지 않게 한다.\n+ * 방향 고정은 전체 화면에서만 허용되는 API 라 그 뒤에 부르고, 지원하지 않는 브라우저(iOS Safari 등)에서는 조용히 넘어간다 */\n+async function enterFullscreen() {\n+  try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (_) { return; }\n+  if (MOBILE && screen.orientation?.lock) screen.orientation.lock(screen.orientation.type.startsWith('landscape') ? 'landscape' : 'portrait').catch(() => {});\n+}\n+$('fsBack').addEventListener('click', () => { enterFullscreen(); });\n document.addEventListener('fullscreenchange', () => {\n   const off = stage.classList.contains('on') && !document.fullscreenElement && !S.demo;\n@@ -2030,4 +2058,5 @@ function endStage() {\n   S.recording = false; S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null;\n   $('skip').hidden = true; $('fsWarn').classList.remove('on'); taskHide();\n+  try { screen.orientation?.unlock?.(); } catch (_) {}\n   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});\n }\n@@ -2234,5 +2263,5 @@ async function runSession() {\n   plannedMs = plan.reduce((s, [k]) => s + stepEstimateSec(k, d), 0) * 1000;\n   stage.classList.add('on'); document.documentElement.classList.add('staging');\n-  try { await document.documentElement.requestFullscreen(); } catch (_) {}\n+  await enterFullscreen();\n   startHud();\n   startCameraLock();\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-1a7916469700-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-1a7916469700-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 1a791646970014007dc9b8d99af1ec45f1b72b7a\n변경 제목: 휴대폰 측정 환경: 보정 점 가림 제거, 얼굴 인식 모델 미리 준비, 전체 화면 방향 고정\n관련 파일: collect-env.test.cjs, condition.html, datacollection.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-1a7916469700-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "pending",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55968112458",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T08:31:15Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/5yfF6pYyKyLK7ZmhVtyQcQLZdYxG",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "788514b581ebad3a7b48fe668c3efa781edbf57b",
       "parents": [
         "a6db3519806eea7492345c7df9937296be29a548"
@@ -14889,9 +14952,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "c1778a184f4f46cafcd1604856eccaa7d03ce00a"
+    "sourceHead": "1a791646970014007dc9b8d99af1ec45f1b72b7a"
   },
-  "updatedAt": "2026-10-09T08:29:43.865594+00:00",
+  "updatedAt": "2026-10-09T08:31:36.748831+00:00",
   "aiCooldownUntil": "2026-10-09T08:34:18.055032+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
