@@ -327,3 +327,17 @@ console.log('newbiz-core tests passed');
   assert.ok(e.coverage > 0.8 && Math.abs(e.bpm - 80) < 3, `dropped frames: coverage ${e.coverage} bpm ${e.bpm}`);
   console.log('PASS frame drops: short gaps (≤150ms) kept as measured pulse');
 }
+
+/* 시선 안정화: 큰 이동은 다음 표본이 확인할 때까지 보류하되, 확인되면 보류 표본 시각을 돌려준다(분석에서 되살림 — 사카드 잠복기 1프레임 편향 방지).
+ * 확인되지 않은 한 프레임 튐은 계속 보류로 남는다 */
+{
+  const st = N.gazeStabilizer({ W: 1440, H: 900 });
+  [0, 66, 133].forEach(t => st.push({ x: 720, y: 450 }, t));
+  assert.equal(st.push({ x: 1220, y: 450 }, 200).held, true);
+  const r = st.push({ x: 1225, y: 452 }, 266);
+  assert.equal(r.held, false); assert.deepEqual(r.confirmed, [200]); assert.ok(r.x > 1200);
+  assert.equal(st.push({ x: 300, y: 450 }, 333).held, true);           // 고립된 튐
+  const back = st.push({ x: 1222, y: 451 }, 400);
+  assert.equal(back.held, false); assert.equal(back.confirmed, undefined);
+  console.log('PASS gaze stabilizer: confirmed jumps return held sample times, isolated spikes stay held');
+}

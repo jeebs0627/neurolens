@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.4';   // 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
+  const VERSION = 'In_mind battery 1.5';   // 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;

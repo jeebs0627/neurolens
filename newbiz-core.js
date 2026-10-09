@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 2.3';   // 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 2.4';   // 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -711,7 +711,13 @@
           pend = pend.filter(q => t - q.t <= SPAN); pend.push(p);
           const ok = pend.length >= 2 && pend.every(q => dist(q, p) <= CONF);
           if (!ok) return { x: stable.x, y: stable.y, t, held: true };
+          /* confirmed: 보류했다가 진짜 이동으로 확인된 앞 표본 시각 — 기록 측이 분석 제외(bl)를 되돌린다.
+           * 되돌리지 않으면 사카드 착지 첫 표본이 빠져 잠복기가 1프레임 쪽으로 늦게 보간된다(합성 +28~47ms) */
+          const confirmed = pend.slice(0, -1).map(q => q.t);
           win = pend.slice(); pend = [];
+          win = win.filter(q => t - q.t <= SPAN).slice(-N);
+          stable = { x: median(win.map(q => q.x)), y: median(win.map(q => q.y)), t };
+          return { ...stable, held: false, confirmed };
         } else { pend = []; win.push(p); }
         win = win.filter(q => t - q.t <= SPAN).slice(-N);
         stable = { x: median(win.map(q => q.x)), y: median(win.map(q => q.y)), t };
