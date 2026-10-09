@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "69aa821ff94e3a875b1ea2bbb6375391b6548460",
+      "parents": [
+        "8fc05c5aa2b45e7e1f9102cd83c97b4915b7940c"
+      ],
+      "committedAt": "2026-10-09T13:28:09+09:00",
+      "subject": "홈페이지 문구 교정: RIASEC 실증 학교 익명화(고양 H 초등학교), 관계 적합도 '27.1Q, 카피 수정, 2026 NOW 기술백서 발간 추가",
+      "url": "https://github.com/jeebs0627/neurolens/commit/69aa821ff94e3a875b1ea2bbb6375391b6548460",
+      "files": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 6
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-55956674681",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T04:28:10Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/6GTB1DuQ34NFQGm4ekRhnZy7EWE8",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "35e0dee6859105e40d6a1c6a7d9770aa5caa4a78",
       "parents": [
         "5a7369075539e5d9a98b7c11bae919a22d17c483"
@@ -80,7 +118,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55950406067",
@@ -112,7 +150,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-09T01:51:42.148385+00:00",
+      "lastAttemptAt": "2026-10-09T04:28:30.681582+00:00",
       "analysisError": "HTTP_429",
       "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
@@ -14264,9 +14302,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "5414c451c3802777d356478d1e09438ac36b9025"
+    "sourceHead": "69aa821ff94e3a875b1ea2bbb6375391b6548460"
   },
-  "updatedAt": "2026-10-09T01:52:46.364379+00:00",
-  "aiCooldownUntil": "2026-10-09T02:52:16.262177+00:00",
+  "updatedAt": "2026-10-09T04:29:05.760165+00:00",
+  "aiCooldownUntil": "2026-10-09T05:29:04.653160+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
