@@ -7,6 +7,12 @@
 <title>데이터 수집 | NeuroLens</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E1A33'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<!-- 얼굴 인식 엔진·모델 미리 받기: 측정 환경을 적는 동안 캐시에 받아 두어 condition.html 에서 카메라를 켜면 얼굴 가이드가 바로 나오게 한다.
+     주소는 condition.html 의 MP_BASE·MODEL_URL 과 같아야 한다(collect-env.test.cjs 가 확인) -->
+<link rel="prefetch" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs">
+<link rel="prefetch" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm/vision_wasm_internal.js">
+<link rel="prefetch" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm/vision_wasm_internal.wasm">
+<link rel="prefetch" crossorigin="anonymous" href="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <!--
   데이터 수집 (/datacollection) — 전체 컨디션 검사(약 8분) 대신 모듈 하나만 1~3분 실측해 보정 근거·엔진 고도화·학습 자료를 빠르게 모은다.

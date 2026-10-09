@@ -696,6 +696,19 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
   .brief{padding:22px 20px;top:calc(50% + 27px)}
   .brief h2{font-size:21px}
 }
+/* 휴대폰 크기 측정 화면(짧은 변 ≤ 500px, 세로·가로 모두): 보정 점·과제 자극이 화면 UI 에 가리지 않게 한다.
+ * 2026-10-09 휴대폰 흉내 스모크: 가로(798×384)는 9점 중 6점이 가림(윗줄 상단 바 61% · 아랫줄 안내문 77% · 셀프캠 47%),
+ * 세로(384×798)는 아랫줄 3점이 안내문 88~100% 가림 → 실측 가로 보정 22.4% 실패·세로 편차의 원인.
+ * 상단 바 → 오른쪽 위 버튼만(28px) · 안내문 → 맨 아래 한 줄(3px) · 셀프캠 → 왼쪽 위 36px (분석용 영상 요소라 숨기지 않는다) */
+@media (max-height:500px), (max-width:500px) {
+  .st-top{height:28px;padding:0 6px;gap:6px;background:transparent!important;justify-content:flex-end;pointer-events:none}
+  .st-top .st-brand,.st-top .stepper,#hudFaceT{display:none}
+  .st-act{pointer-events:auto;gap:4px}
+  .st-act .sbtn{padding:3px 9px;font-size:11px}
+  .st-prog{top:0;height:2px}
+  .stage .cue{bottom:3px;width:96%;font-size:11.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .selfcam,.selfcam.on{width:36px;height:auto;left:4px;top:4px;bottom:auto;opacity:.35}
+}
 @media print{.nav,.btns,.no-print,.qa{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid-page}.method{break-inside:avoid}}
 /* ================= 2026-10 개편: 첫 화면 · 자기보고 · 통합 리포트 ================= */
 .eyebrow{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-num);font-size:11.5px;font-weight:800;letter-spacing:.12em;color:var(--blue);text-transform:uppercase}
@@ -1564,6 +1577,15 @@ async function loadLandmarker(only) {
   try { return await make('GPU'); }
   catch (_) { return make('CPU'); }
 }
+/* 얼굴 인식 모델 미리 준비: 페이지가 열리자마자 내려받기·GPU 준비를 시작하고, 카메라가 켜지면 그 인식기를 한 번 넘겨준다.
+ * 이전에는 카메라를 켠 뒤에야 시작해 휴대폰에서 얼굴 가이드(흰·녹색 선)가 10초 넘게 나오지 않았다. 실패하면 그때 새로 만든다 */
+let warmLandmarker = loadLandmarker();
+warmLandmarker.catch(() => {});
+const takeLandmarker = only => {
+  if (only || !warmLandmarker) return loadLandmarker(only);
+  const p = warmLandmarker; warmLandmarker = null;
+  return p.catch(() => loadLandmarker());
+};
 
 $('camStart').addEventListener('click', async () => {
   const st = $('setupStatus');
@@ -1590,7 +1612,7 @@ $('camStart').addEventListener('click', async () => {
     if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }
     phase = 'model';
     S.camera = new NLCamera(procVideo, {
-      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
+      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: takeLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },
       onResult: processResult,
       onError(e) {
@@ -1894,7 +1916,13 @@ window.addEventListener('keydown', e => {
 stage.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; if (S.onResp) { recordInput(e); S.onResp(e); } });
 $('skip').addEventListener('click', e => { e.currentTarget.blur(); if (S.cur && !S.abort) interrupt(Skip); });
 $('quit').addEventListener('click', () => { S.abort = true; interrupt(Abort); });
-$('fsBack').addEventListener('click', () => { document.documentElement.requestFullscreen().catch(() => {}); });
+/* 전체 화면 + (휴대폰) 화면 방향 고정: 시작할 때의 방향(세로·가로)으로 묶어 측정 중 회전으로 보정이 깨지지 않게 한다.
+ * 방향 고정은 전체 화면에서만 허용되는 API 라 그 뒤에 부르고, 지원하지 않는 브라우저(iOS Safari 등)에서는 조용히 넘어간다 */
+async function enterFullscreen() {
+  try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (_) { return; }
+  if (MOBILE && screen.orientation?.lock) screen.orientation.lock(screen.orientation.type.startsWith('landscape') ? 'landscape' : 'portrait').catch(() => {});
+}
+$('fsBack').addEventListener('click', () => { enterFullscreen(); });
 document.addEventListener('fullscreenchange', () => {
   const off = stage.classList.contains('on') && !document.fullscreenElement && !S.demo;
   $('fsWarn').classList.toggle('on', off);
@@ -2029,6 +2057,7 @@ function endStage() {
   stage.classList.remove('on'); document.documentElement.classList.remove('staging'); clearInterval(hudTimer);
   S.recording = false; S.curTrial = null; S.onFeature = null; S.onResp = null; S.onKey = null; S.onGo = null;
   $('skip').hidden = true; $('fsWarn').classList.remove('on'); taskHide();
+  try { screen.orientation?.unlock?.(); } catch (_) {}
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 }
 function centerMsg(html) { body.innerHTML = `<div class="center">${html}</div>`; }
@@ -2233,7 +2262,7 @@ async function runSession() {
   S.plan = plan;
   plannedMs = plan.reduce((s, [k]) => s + stepEstimateSec(k, d), 0) * 1000;
   stage.classList.add('on'); document.documentElement.classList.add('staging');
-  try { await document.documentElement.requestFullscreen(); } catch (_) {}
+  await enterFullscreen();
   startHud();
   startCameraLock();
   try {

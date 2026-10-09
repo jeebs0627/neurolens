@@ -25,3 +25,13 @@ const res = B.run({ ...sim, lab: ['recovery'], collect });
 const pulse = D.build({ ...sim, lab: ['recovery'], collect }, res).tests.find(t => t.key === 'recovery').pulse;
 assert.ok(pulse && Number.isFinite(pulse.bpm), 'recovery pulse evidence');
 console.log('PASS collect env validation, protocol.collect propagation, recovery-only analysis');
+
+/* /datacollection 의 얼굴 인식 미리 받기 주소가 condition.html 이 실제로 불러오는 주소와 같아야 캐시가 쓰인다 */
+{
+  const fs = require('fs'), C = fs.readFileSync(__dirname + '/condition.html', 'utf8'), Dc = fs.readFileSync(__dirname + '/datacollection.html', 'utf8');
+  const ver = C.match(/const MP_VER = '([^']+)'/)[1], model = C.match(/const MODEL_URL = '([^']+)'/)[1];
+  const pre = [...Dc.matchAll(/rel="prefetch"[^>]*href="([^"]+)"/g)].map(m => m[1]);
+  const base = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${ver}`;
+  for (const u of [`${base}/vision_bundle.mjs`, `${base}/wasm/vision_wasm_internal.js`, `${base}/wasm/vision_wasm_internal.wasm`, model]) assert.ok(pre.includes(u), 'prefetch ' + u);
+  console.log('PASS datacollection prefetches the exact face-model assets condition.html loads');
+}
