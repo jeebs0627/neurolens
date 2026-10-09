@@ -3,6 +3,173 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "48be717b61ac5a6575acd36da7dc6ad39b744ca6",
+      "parents": [
+        "6f4812801b0996c591a6774b7de6b39a41cc0ad1"
+      ],
+      "committedAt": "2026-10-09T16:47:13+09:00",
+      "subject": "Core 2.6: 세로 휴대폰 시선 보정 — 오차·영점 기준을 화면 긴 변으로 (가로 화면은 이전과 동일)",
+      "url": "https://github.com/jeebs0627/neurolens/commit/48be717b61ac5a6575acd36da7dc6ad39b744ca6",
+      "files": [
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 9
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 6
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "tools/colab/session_adapter.test.cjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        }
+      ],
+      "domains": [
+        "pulse",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex 02455d1..b29ca52 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -2279,9 +2279,9 @@ function startAutoAnchor() {\n   const upd = every(2500, () => {\n     if (buf.length < 6) return;\n-    const W = stage.clientWidth, H = stage.clientHeight, xs = buf.map(p => p.x), ys = buf.map(p => p.y);\n+    const W = stage.clientWidth, H = stage.clientHeight, Lx = Math.max(W, H), xs = buf.map(p => p.x), ys = buf.map(p => p.y);\n     const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));\n     const mdx = mx - W / 2, mdy = my - H / 2;\n     /* 거부한 시도도 기록한다: 받아들인 것만 남기면 학습 라벨이 ‘엔진과 가까운 경우’로 치우친다 */\n-    const why = madX > W * 0.03 || madY > H * 0.045 ? 'scattered' : Math.abs(mdx - S.drift.dx) > W * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25 ? 'far-from-current-drift' : null;\n+    const why = madX > Lx * 0.03 || madY > H * 0.045 ? 'scattered' : Math.abs(mdx - S.drift.dx) > Lx * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25 ? 'far-from-current-drift' : null;\n     if (why) { S.telemetry?.drift.push({ t: now(), key: S.cur, samples: buf.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx: W / 2, ty: H / 2, applied: false, reason: why, source: 'implicit-background-center' }); buf.length = 0; return; }\n     const k = 0.15;\n@@ -2293,5 +2293,5 @@ function startAutoAnchor() {\n async function anchorFix(ms, tx, ty) {\n   if (S.demo || !S.model) { await wait(ms); return; }\n-  const W = stage.clientWidth, H = stage.clientHeight; tx = tx ?? W / 2; ty = ty ?? H / 2;\n+  const W = stage.clientWidth, H = stage.clientHeight, Lx = Math.max(W, H); tx = tx ?? W / 2; ty = ty ?? H / 2;\n   const xs = [], ys = [], t0 = now();\n   let last = -1;\n@@ -2302,5 +2302,5 @@ async function anchorFix(ms, tx, ty) {\n   const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));\n   const mdx = mx - tx, mdy = my - ty;\n-  const why = madX > W * 0.035 || madY > H * 0.05 ? 'scattered' : Math.abs(mdx - S.drift.dx) > W * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35 ? 'far-from-current-drift' : null;\n+  const why = madX > Lx * 0.035 || madY > H * 0.05 ? 'scattered' : Math.abs(mdx - S.drift.dx) > Lx * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35 ? 'far-from-current-drift' : null;\n   if (why) { S.telemetry?.drift.push({ t: now(), t0, key: S.cur, samples: xs.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx, ty, applied: false, reason: why, source: 'implicit-task-fixation' }); return; }\n   const k = 0.25;\n@@ -2310,5 +2310,7 @@ async function anchorFix(ms, tx, ty) {\n async function driftCheck() {\n   if (S.demo || !S.model) return;\n-  const H = stage.clientHeight, W = stage.clientWidth;\n+  /* 가로 허용치는 화면 긴 변 기준(core 2.6): 시선 잡음은 기기와 무관하게 CSS px 로 비슷한데, 폭 기준이면 세로로 든 휴대폰(폭 384px)에서만 4배 엄격해\n+   * 지시 응시 영점이 모두 거부됐다(실측 NLR-7AB5…: 측정 −126px > 허용 96px → 사카드 내내 −47px 치우침 잔존). 가로 화면은 긴 변 = 폭이라 그대로 */\n+  const H = stage.clientHeight, W = stage.clientWidth, Lx = Math.max(W, H);\n   body.innerHTML = `<div class=\"sac-fix\" style=\"width:20px;height:20px;margin:-10px 0 0 -10px\"></div><div class=\"cue\">가운데 점을 바라봐 주세요 · 시선 영점 맞추기</div>`;\n   await wait(450);\n@@ -2322,7 +2324,7 @@ async function driftCheck() {\n     const mdx = N.median(xs) - W / 2, mdy = N.median(ys) - H / 2;\n     const madX = N.median(xs.map(v => Math.abs(v - N.median(xs)))), madY = N.median(ys.map(v => Math.abs(v - N.median(ys))));\n-    const tight = xs.length >= 8 && madX < W * 0.03 && madY < H * 0.04;\n+    const tight = xs.length >= 8 && madX < Lx * 0.03 && madY < H * 0.04;\n     /* 보통은 화면의 25~30% 안쪽 치우침만 받아들이지만, 표본이 한곳에 촘촘히 모여 있으면(머리 위치가 바뀐 경우) 45%까지 받아들인다 */\n-    const applied=(Math.abs(mdx) < W * 0.25 && Math.abs(mdy) < H * 0.3) || (tight && Math.abs(mdx) < W * 0.45 && Math.abs(mdy) < H * 0.45);\n+    const applied=(Math.abs(mdx) < Lx * 0.25 && Math.abs(mdy) < H * 0.3) || (tight && Math.abs(mdx) < Lx * 0.45 && Math.abs(mdy) < H * 0.45);\n     const k = Math.min(1, 0.35 + xs.length / 30), dx = S.drift.dx + k * (mdx - S.drift.dx), dy = S.drift.dy + k * (mdy - S.drift.dy);\n     S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,measuredDx:mdx,measuredDy:mdy,madX,madY,tx:W/2,ty:H/2,windowMs:1200,dx,dy,weight:k,applied,source:'instructed-center-fixation'});\n@@ -2616,5 +2618,5 @@ async function calibrate() {\n     const roundRow = S.calibLog.rounds.at(-1); roundRow.end = now(); roundRow.grade = acc.grade; roundRow.errPct = acc.errPct ?? null;\n     if (acc.grade !== 'poor') {\n-      const c = await pauseCard('보정 완료', `${info}<p style=\"margin:12px 0 0\">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);\n+      const c = await pauseCard('보정 완료', `${info}<p style=\"margin:12px 0 0\">시선 오차 약 <b>${acc.errPct}%</b> (화면 긴 변 대비${acc.px ? ` · 약 ${acc.px}px` : ''}) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);\n       if (c === 1) { roundRow.outcome = 'recalibrated'; continue; }\n       roundRow.outcome = 'accepted';\n@@ -3306,5 +3308,5 @@ function finishLabels(rec) {\n   const rows = s ? [['유효 라벨 표적', `${s.valid} / ${s.targets}`], ['학습 · 내부 검증 · 최종 평가', `${s.train} · ${s.internal} · ${s.holdout}`], ['연결된 관측 프레임', String(s.frames)], ['재시도 · 사용자 무효 · 자동 거부', `${s.retries} · ${s.invalidated} · ${s.rejected}`],\n     ['평가 블록 중 보정 변경 없음', G.holdout ? (G.holdout.pipelineUnchanged ? '확인됨' : '변경 감지 — 평가 무효') : '평가 블록 없음'],\n-    ['기존 엔진의 표적 proxy 오차', pe && pe.targets ? `${pe.errPct}% (화면 폭 대비, 표적 ${pe.targets}개, 중앙값 ${pe.medianPx}px)` : '계산 불가']] : [];\n+    ['기존 엔진의 표적 proxy 오차', pe && pe.targets ? `${pe.errPct}% (화면 긴 변 대비, 표적 ${pe.targets}개, 중앙값 ${pe.medianPx}px)` : '계산 불가']] : [];\n   $('sReport').innerHTML = `<div class=\"card\"><div class=\"kicker\">Gaze Label · 수집 완료</div><h2>시선 라벨 수집을 마쳤어요</h2>\n     <p class=\"lead\">이 모드는 검사 결과나 점수를 만들지 않아요. 아래 수치는 수집 상태이며, ‘표적 proxy 오차’는 표적을 보려 한 기록과 기존 엔진 추정의 차이일 뿐 실제 시선 정확도 검증이 아니에요.</p>\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex 4bb9a45..12e3e1a 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.5';   // 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.6';   // 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -788,12 +788,15 @@\n     return best.acc.errPct <= need ? best : base;\n   }\n-  /* 검증점 오차 → 화면 폭 대비 비율과 등급 */\n-  /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 폭. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도\n-   * 작게 나와(실측 NLR-541B…: 아래쪽 점이 200px 넘게 빗나갔는데 2.8% '양호') 세로를 고치는 보정 후보가 뽑히지 않았다 */\n+  /* 검증점 오차 → 화면 긴 변 대비 비율과 등급 */\n+  /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 긴 변. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도\n+   * 작게 나와(실측 NLR-541B…: 아래쪽 점이 200px 넘게 빗나갔는데 2.8% '양호') 세로를 고치는 보정 후보가 뽑히지 않았다.\n+   * 긴 변(core 2.6): 가로 화면(노트북·태블릿 가로)은 긴 변 = 폭이라 이전과 같다. 세로로 든 휴대폰은 오차 대부분이 긴 세로축에서 나오는데\n+   * 그것을 짧은 폭(384px)으로 나눠 4배 부풀었다 — 실측 재생: 휴대폰 4세션 평균 오차 약 60 CSS px vs 노트북 4세션 약 115~140px 인데\n+   * %W 는 15.6 vs 7.4. CSS px 는 기기 간 시각(각도)이 거의 같게 정의된 단위라 휴대폰 시선 정확도가 낮은 것이 아니었다. px = 평균 오차(CSS px) */\n   function gazeAccuracy(points, W, H) {\n     const P = points.filter(p => finite(p.gx) && finite(p.gy)), errs = P.map(p => Math.hypot(p.gx - p.x, p.gy - p.y));\n     if (!errs.length) return { errPct: null, grade: 'none' };\n-    const e = mean(errs) / W * 100;\n-    return { errPct: round(e, 1), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(P.map(p => Math.abs(p.gx - p.x))) / W * 100, 1),\n+    const L = Math.max(W, finite(H) ? H : 0), e = mean(errs) / L * 100;\n+    return { errPct: round(e, 1), px: Math.round(mean(errs)), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(P.map(p => Math.abs(p.gx - p.x))) / W * 100, 1),\n       ...(finite(H) && H > 0 ? { hy: round(median(P.map(p => Math.abs(p.gy - p.y))) / H * 100, 1) } : {}) };\n   }\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex 85b6a95..0131346 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -342,2 +342,11 @@ console.log('newbiz-core tests passed');\n   console.log('PASS gaze stabilizer: confirmed jumps return held sample times, isolated spikes stay held');\n }\n+\n+/* 보정 오차는 화면 긴 변 대비(core 2.6): 가로 화면은 폭 기준과 같고, 세로로 든 휴대폰은 같은 CSS px 오차가 폭(짧은 변)으로 나눠져 부풀지 않는다 */\n+{\n+  const pts = (W, H) => [[0.2, 0.2], [0.8, 0.2], [0.5, 0.5], [0.2, 0.8], [0.8, 0.8]].map(([a, b]) => ({ x: a * W, y: b * H, gx: a * W, gy: b * H + 60 }));\n+  const land = N.gazeAccuracy(pts(1600, 900), 1600, 900), port = N.gazeAccuracy(pts(384, 800), 384, 800);\n+  assert.equal(land.errPct, 3.8); assert.equal(land.px, 60);                 // 60/1600 — 이전(폭 기준)과 같음\n+  assert.equal(port.errPct, 7.5); assert.equal(port.grade, 'good');          // 60/800 — 이전 식이면 60/384 = 15.6% 'fair'\n+  console.log('PASS gaze accuracy: long-side normalisation (landscape unchanged, portrait phone not inflated)');\n+}\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-48be717b61ac-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "화면 긴 변 기준 시선 영점·보정 오차 산출식 변경에 따른 기기 환경별 수락률 및 잔여 오차 영향 평가",
+          "rationale": "관측된 변경 근거: `condition.html` 및 `newbiz-core.js`에서 시선 영점 보정 및 오차 평가 기준을 기존 화면 폭(`W`)에서 화면 긴 변(`Lx = Math.max(W, H)`)으로 변경함.\n\n가설과 관측의 구분: 주석의 '세로 휴대폰에서 CSS px 오차가 폭(384px)으로 나눠져 4배 부풀었다'는 분석은 연구자 관측 및 가설이며, 기준 센서(Ground Truth) 기반으로 검증된 정확도 개선 성과가 아니다. 단순 기준 완화가 영점 수락률을 높이는 반면 측정 잔여 오차를 늘릴 위험이 있다.\n\n검증 필요성: 일상 웹캠 환경에서 약한 시선 신호의 활용량을 높이면서도 측정 불확실성과 residual error를 정확히 통제해야 한다. 실패 및 거부된 시도를 포함한 전체 시도 횟수를 분모로 삼아, 가로/세로 기기별 활용률 및 CSS px 오차 변화를 회귀 평가해야 한다.",
+          "validationPlan": "1. dataset 연결 및 실측 데이터 구성: dataset 내 수집된 실제 사용자 세션 로그(노트북 가로, 휴대폰 세로 등) 및 디바이스 메타데이터를 연동한다. (실측 수치를 인위적으로 생성하지 않음)\n2. 정량 평가 지표: 전체 영점/보정 시도 횟수 대비 수락 비율(활용률), 수락된 표원의 CSS px 평균 및 중앙값 오차, 긴 변 대비 오차 비율(%Lx), 거부 사유별(scattered, far-from-current-drift) 발생 빈도를 산출한다.\n3. 비교 분리 평가: 참가자 ID, 기기 형태(가로/세로), 측정 날짜별로 분리하여 core 2.5(폭 기준) 대 core 2.6(긴 변 기준)의 수락률-오차 트레이드오프를 평가한다.\n4. 회귀 및 성공 기준: 가로 화면 환경에서 기존 core 2.5 대비 수락률 및 오차가 동일하게 유지(회귀 없음)되어야 하며, 세로 화면 환경에서는 영점 거부율 감소(활용량 증가)와 동시에 평균 잔여 오차가 허용 범위(CSS px 기준) 내에 머무르는지 확인한다.",
+          "prompt": "다음 지시사항에 따라 `condition.html`, `newbiz-core.js`, `newbiz-core.test.js`의 최근 코드 변경 사항을 검증하는 평가 스크립트 및 보고서를 작성하라.\n\n1. 현재 코드 확인:\n- `condition.html` 및 `newbiz-core.js`에서 `Lx = Math.max(W, H)`를 사용하는 영점 보정 및 오차 산출 계산 로직을 확인하라.\n- `gazeAccuracy` 반환 객체의 `px` (CSS px 평균 오차) 및 `errPct` (%Lx) 산출 구조를 파악하라.\n\n2. 분석 및 검증 과제:\n- dataset에 저장된 실제 사용자 측정 로그 및 연구자 메모를 연결하여 분석을 수행하라. 이 데이터셋에 명시되지 않은 실측 성능 수치(정확도, 오차 px 등)를 임의로 지어내거나 인위로 생성하지 말라.\n- 전체 시도 횟수(거부/실패 시도 포함)를 분모로 설정하여 영점 수락률(활용량)과 오차를 동시에 평가하라.\n- 기기 유형(노트북/태블릿 가로 vs 휴대폰 세로), 참가자 ID, 측정 수집 날짜별로 그룹화하여 분리 평가하라.\n- core 2.5 (화면 폭 기준)와 core 2.6 (화면 긴 변 기준) 알고리즘을 동일 세션 로그에 교차 적용하여 활용률 및 오차 변화를 정량 비교하라.\n\n3. 성공 및 회귀 기준:\n- 가로 화면(Landscape): core 2.5 대비 오차 비율(%Lx) 및 수락률의 변화가 없어야 함 (회귀 없음 확인).\n- 세로 화면(Portrait): 기존에 폭 기준 적용으로 인해 과도하게 거부되던 영점 시도들의 수락률 증가 폭과 수락된 신호의 실제 CSS px 잔여 오차 상승 폭을 함께 제시하여, 약한 신호가 정당하게 회복되었는지 검증하라.\n\n4. 결과 보고 양식:\n- 보고서에는 (1) 관측된 코드 변경 요약, (2) dataset 연동 현황, (3) 기기/참가자/날짜별 활용률-오차 비교 표 (분모: 전체 시도 수, 분자: 수락 시도 수, 수락률 %, 평균 CSS px 오차, %Lx 오차), (4) 회귀 및 안정성 평가 결론을 포함하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 48be717b61ac5a6575acd36da7dc6ad39b744ca6\nDataset-Task: evo-48be717b61ac-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-48be717b61ac-pulse",
+          "domain": "pulse",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "맥박 압박 상승량 불확실성 기준(recoveryNA) 및 SNR 구간별 유효 신호 활용률 검증",
+          "rationale": "관측된 변경 근거: `newbiz-core.js` 버전 이력에 기록된 core 2.5의 맥박 회복률 계산 제약조건(`recoveryNA`: 압박 상승이 max(3bpm, 2×SE) 미만일 때 회복률 계산 제외) 및 SNR 등급 기준(`SNR_GOOD`, `SNR_FAIR`).\n\n가설과 관측의 구분: 압박 상승량이 표준오차(SE) 대비 유의하지 않을 때 회복률 계산을 보류하는 것은 노이즈에 의한 잘못된 유의성 판정을 막기 위한 연구 가설 및 신호 처리 임계치 설정이며, 임상 진단 정답 기준 검증이 아니다.\n\n검증 필요성: 일상 웹캠 환경의 약한 맥박 신호에서 노이즈로 인한 신호 왜곡을 방지하면서 불확실성(SE)이 높은 구간을 적절히 제외/표기하고 있는지, 전체 세션 중 유효 분석이 가능한 창의 비율과 제거율을 정량 평가해야 함.",
+          "validationPlan": "1. dataset 연동: dataset 내 맥박(rPPG) 측정 로그 및 시간대별 HR 창(window) 진단 데이터를 연동한다.\n2. 평가 지표: 전체 맥박 측정 창 수락률, SNR 구간별(`SNR_GOOD`, `SNR_FAIR` 이하) 신호 분포, `recoveryNA` 조건 걸림 비율, 세션별 HR 추정 성공률을 산출한다.\n3. 분리 평가: 참가자별, 기기 카메라 프레임 레이트/노출 환경별, 수집 날짜별로 분리하여 SNR 분포와 `recoveryNA` 발생 비율을 평가한다.\n4. 회귀 및 검증 기준: SNR이 낮은 약한 신호 구간을 무조건 버리지 않고 불확실성(SE)과 함께 활용하는지 확인하고, 노이즈 구간에서 유효하지 않은 회복률 수치가 과다 산출되지 않는지 검증한다.",
+          "prompt": "다음 지시사항에 따라 `newbiz-core.js` 내 맥박(pulse) 신호 처리 로직 및 core 2.5 회복률 제약(`recoveryNA`) 기준을 검증하는 평가 체계를 수립하고 보고서를 작성하라.\n\n1. 현재 코드 및 설정 확인:\n- `newbiz-core.js` 내 `HR_BAND`, `SNR_GOOD`, `SNR_FAIR` 상수와 core 2.5 회복률 제약조건(압박 상승 < max(3bpm, 2×SE) 시 recoveryNA)의 적용 방식을 확인하라.\n\n2. 분석 및 검증 과제:\n- dataset에 저장된 맥박 측정이 포함된 세션 로그와 연구자 메모를 연동하라. 존재하지 않는 맥박/심박 성능 수치를 임의로 지어내거나 정답 데이터를 소설적으로 생성하지 말라.\n- 맥박 창(window) 전체 개수(탈락/건너뜀 포함)를 분모로 삼아, SNR 등급별 신호 비율과 `recoveryNA` 판정 비율을 산출하라.\n- 평가 시 참가자 ID, 기기 환경(웹캠 성능/노출 조건), 수집 날짜별로 그룹화하여 분리 평가하라.\n- 약한 맥박 신호 구간에서 신호를 완전 폐기하는 대신 불확실성 평가(SE 산출)를 거쳐 정상적으로 활용/제외되는지 검증하라.\n\n3. 성공 및 회귀 기준:\n- 노이즈 플로어 가깝거나 압박 상승이 유의하지 않은 구간에서 무리하게 회복률을 계산하여 오류를 범하지 않는지(`recoveryNA` 정상 작동 여부) 확인하라.\n- 정상 신호 구간에서 과도한 창 탈락 없이 유효 측정 성공률 및 창 활용률이 유지되는지 검증하라.\n\n4. 결과 보고 양식:\n- 보고서에는 (1) 맥박 평가 로직 및 recoveryNA 조건 확인 결과, (2) dataset 연동 세션 현황, (3) 참가자/기기/날짜별 신호 활용률 및 recoveryNA 비율 표 (전체 창 수, SNR 등급별 비중, recoveryNA 발생률, 최종 유효 측정률), (4) 불확실성 통제 평가 결론을 명시하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 48be717b61ac5a6575acd36da7dc6ad39b744ca6\nDataset-Task: evo-48be717b61ac-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        }
+      ],
+      "analysisState": "generated",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55965590016",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T07:47:15Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/5dztinvJNGHiDvBXEjHVCeSA8HLy",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-09T07:47:35.551005+00:00",
+      "analysis": {
+        "summary": "관측된 변경 사항은 `condition.html` 및 `newbiz-core.js`에서 시선 영점 맞추기(driftCheck, anchorFix, background center) 및 보정 오차 평가(`gazeAccuracy`)의 계산 기준을 화면 폭(`W`)에서 화면 긴 변(`Lx = Math.max(W, H)`)으로 변경한 것이다. `gazeAccuracy` 함수 반환값에 평균 오차(CSS px 단위)를 나타내는 `px` 필드가 추가되었으며, `newbiz-core.test.js`에 세로형 휴대폰 환경(384x800)과 가로형 화면 환경(1600x900)에 대한 오차 정상화 동작 단위 테스트가 추가되었다.\n\n미검증 영향 및 한계: 제출된 커밋(48be717b61ac5a6575acd36da7dc6ad39b744ca6)의 `accuracyValidated` 속성은 `false`이며, 외부 기준 센서(Ground Truth)를 통한 정밀도 검증이나 임상적 진단 정확도 평가가 완료된 상태가 아니다. 커밋 메시지 및 코드 주석에 서술된 '세로 휴대폰에서 %W 기준 오차가 4배 부풀어 오르는 현상 방지' 및 '영점 거부 문제 해결'은 연구자의 가설 및 개별 세션 관측 메모에 기반한 주장에 불과하다. 화면 긴 변 기준 적용으로 세로 모드에서 영점 수락 임계치와 오차 비율(%Lx) 기준 허용폭이 완화됨에 따라, 영점 및 보정 단계의 수락률(활용량)은 증가할 수 있으나 잔여 시선 오차가 커진 상태로 후속 추적이 진행될 가능성이 존재한다. 따라서 거부된 시도를 포함한 분모 전체를 기준으로 가로/세로 화면 및 기기별 수락률과 실측 오차(CSS px)의 변화를 다각도로 평가하는 후속 검증이 필수적이다.",
+        "tasks": [
+          {
+            "id": "evo-48be717b61ac-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "화면 긴 변 기준 시선 영점·보정 오차 산출식 변경에 따른 기기 환경별 수락률 및 잔여 오차 영향 평가",
+            "rationale": "관측된 변경 근거: `condition.html` 및 `newbiz-core.js`에서 시선 영점 보정 및 오차 평가 기준을 기존 화면 폭(`W`)에서 화면 긴 변(`Lx = Math.max(W, H)`)으로 변경함.\n\n가설과 관측의 구분: 주석의 '세로 휴대폰에서 CSS px 오차가 폭(384px)으로 나눠져 4배 부풀었다'는 분석은 연구자 관측 및 가설이며, 기준 센서(Ground Truth) 기반으로 검증된 정확도 개선 성과가 아니다. 단순 기준 완화가 영점 수락률을 높이는 반면 측정 잔여 오차를 늘릴 위험이 있다.\n\n검증 필요성: 일상 웹캠 환경에서 약한 시선 신호의 활용량을 높이면서도 측정 불확실성과 residual error를 정확히 통제해야 한다. 실패 및 거부된 시도를 포함한 전체 시도 횟수를 분모로 삼아, 가로/세로 기기별 활용률 및 CSS px 오차 변화를 회귀 평가해야 한다.",
+            "validationPlan": "1. dataset 연결 및 실측 데이터 구성: dataset 내 수집된 실제 사용자 세션 로그(노트북 가로, 휴대폰 세로 등) 및 디바이스 메타데이터를 연동한다. (실측 수치를 인위적으로 생성하지 않음)\n2. 정량 평가 지표: 전체 영점/보정 시도 횟수 대비 수락 비율(활용률), 수락된 표원의 CSS px 평균 및 중앙값 오차, 긴 변 대비 오차 비율(%Lx), 거부 사유별(scattered, far-from-current-drift) 발생 빈도를 산출한다.\n3. 비교 분리 평가: 참가자 ID, 기기 형태(가로/세로), 측정 날짜별로 분리하여 core 2.5(폭 기준) 대 core 2.6(긴 변 기준)의 수락률-오차 트레이드오프를 평가한다.\n4. 회귀 및 성공 기준: 가로 화면 환경에서 기존 core 2.5 대비 수락률 및 오차가 동일하게 유지(회귀 없음)되어야 하며, 세로 화면 환경에서는 영점 거부율 감소(활용량 증가)와 동시에 평균 잔여 오차가 허용 범위(CSS px 기준) 내에 머무르는지 확인한다.",
+            "prompt": "다음 지시사항에 따라 `condition.html`, `newbiz-core.js`, `newbiz-core.test.js`의 최근 코드 변경 사항을 검증하는 평가 스크립트 및 보고서를 작성하라.\n\n1. 현재 코드 확인:\n- `condition.html` 및 `newbiz-core.js`에서 `Lx = Math.max(W, H)`를 사용하는 영점 보정 및 오차 산출 계산 로직을 확인하라.\n- `gazeAccuracy` 반환 객체의 `px` (CSS px 평균 오차) 및 `errPct` (%Lx) 산출 구조를 파악하라.\n\n2. 분석 및 검증 과제:\n- dataset에 저장된 실제 사용자 측정 로그 및 연구자 메모를 연결하여 분석을 수행하라. 이 데이터셋에 명시되지 않은 실측 성능 수치(정확도, 오차 px 등)를 임의로 지어내거나 인위로 생성하지 말라.\n- 전체 시도 횟수(거부/실패 시도 포함)를 분모로 설정하여 영점 수락률(활용량)과 오차를 동시에 평가하라.\n- 기기 유형(노트북/태블릿 가로 vs 휴대폰 세로), 참가자 ID, 측정 수집 날짜별로 그룹화하여 분리 평가하라.\n- core 2.5 (화면 폭 기준)와 core 2.6 (화면 긴 변 기준) 알고리즘을 동일 세션 로그에 교차 적용하여 활용률 및 오차 변화를 정량 비교하라.\n\n3. 성공 및 회귀 기준:\n- 가로 화면(Landscape): core 2.5 대비 오차 비율(%Lx) 및 수락률의 변화가 없어야 함 (회귀 없음 확인).\n- 세로 화면(Portrait): 기존에 폭 기준 적용으로 인해 과도하게 거부되던 영점 시도들의 수락률 증가 폭과 수락된 신호의 실제 CSS px 잔여 오차 상승 폭을 함께 제시하여, 약한 신호가 정당하게 회복되었는지 검증하라.\n\n4. 결과 보고 양식:\n- 보고서에는 (1) 관측된 코드 변경 요약, (2) dataset 연동 현황, (3) 기기/참가자/날짜별 활용률-오차 비교 표 (분모: 전체 시도 수, 분자: 수락 시도 수, 수락률 %, 평균 CSS px 오차, %Lx 오차), (4) 회귀 및 안정성 평가 결론을 포함하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 48be717b61ac5a6575acd36da7dc6ad39b744ca6\nDataset-Task: evo-48be717b61ac-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-48be717b61ac-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "맥박 압박 상승량 불확실성 기준(recoveryNA) 및 SNR 구간별 유효 신호 활용률 검증",
+            "rationale": "관측된 변경 근거: `newbiz-core.js` 버전 이력에 기록된 core 2.5의 맥박 회복률 계산 제약조건(`recoveryNA`: 압박 상승이 max(3bpm, 2×SE) 미만일 때 회복률 계산 제외) 및 SNR 등급 기준(`SNR_GOOD`, `SNR_FAIR`).\n\n가설과 관측의 구분: 압박 상승량이 표준오차(SE) 대비 유의하지 않을 때 회복률 계산을 보류하는 것은 노이즈에 의한 잘못된 유의성 판정을 막기 위한 연구 가설 및 신호 처리 임계치 설정이며, 임상 진단 정답 기준 검증이 아니다.\n\n검증 필요성: 일상 웹캠 환경의 약한 맥박 신호에서 노이즈로 인한 신호 왜곡을 방지하면서 불확실성(SE)이 높은 구간을 적절히 제외/표기하고 있는지, 전체 세션 중 유효 분석이 가능한 창의 비율과 제거율을 정량 평가해야 함.",
+            "validationPlan": "1. dataset 연동: dataset 내 맥박(rPPG) 측정 로그 및 시간대별 HR 창(window) 진단 데이터를 연동한다.\n2. 평가 지표: 전체 맥박 측정 창 수락률, SNR 구간별(`SNR_GOOD`, `SNR_FAIR` 이하) 신호 분포, `recoveryNA` 조건 걸림 비율, 세션별 HR 추정 성공률을 산출한다.\n3. 분리 평가: 참가자별, 기기 카메라 프레임 레이트/노출 환경별, 수집 날짜별로 분리하여 SNR 분포와 `recoveryNA` 발생 비율을 평가한다.\n4. 회귀 및 검증 기준: SNR이 낮은 약한 신호 구간을 무조건 버리지 않고 불확실성(SE)과 함께 활용하는지 확인하고, 노이즈 구간에서 유효하지 않은 회복률 수치가 과다 산출되지 않는지 검증한다.",
+            "prompt": "다음 지시사항에 따라 `newbiz-core.js` 내 맥박(pulse) 신호 처리 로직 및 core 2.5 회복률 제약(`recoveryNA`) 기준을 검증하는 평가 체계를 수립하고 보고서를 작성하라.\n\n1. 현재 코드 및 설정 확인:\n- `newbiz-core.js` 내 `HR_BAND`, `SNR_GOOD`, `SNR_FAIR` 상수와 core 2.5 회복률 제약조건(압박 상승 < max(3bpm, 2×SE) 시 recoveryNA)의 적용 방식을 확인하라.\n\n2. 분석 및 검증 과제:\n- dataset에 저장된 맥박 측정이 포함된 세션 로그와 연구자 메모를 연동하라. 존재하지 않는 맥박/심박 성능 수치를 임의로 지어내거나 정답 데이터를 소설적으로 생성하지 말라.\n- 맥박 창(window) 전체 개수(탈락/건너뜀 포함)를 분모로 삼아, SNR 등급별 신호 비율과 `recoveryNA` 판정 비율을 산출하라.\n- 평가 시 참가자 ID, 기기 환경(웹캠 성능/노출 조건), 수집 날짜별로 그룹화하여 분리 평가하라.\n- 약한 맥박 신호 구간에서 신호를 완전 폐기하는 대신 불확실성 평가(SE 산출)를 거쳐 정상적으로 활용/제외되는지 검증하라.\n\n3. 성공 및 회귀 기준:\n- 노이즈 플로어 가깝거나 압박 상승이 유의하지 않은 구간에서 무리하게 회복률을 계산하여 오류를 범하지 않는지(`recoveryNA` 정상 작동 여부) 확인하라.\n- 정상 신호 구간에서 과도한 창 탈락 없이 유효 측정 성공률 및 창 활용률이 유지되는지 검증하라.\n\n4. 결과 보고 양식:\n- 보고서에는 (1) 맥박 평가 로직 및 recoveryNA 조건 확인 결과, (2) dataset 연동 세션 현황, (3) 참가자/기기/날짜별 신호 활용률 및 recoveryNA 비율 표 (전체 창 수, SNR 등급별 비중, recoveryNA 발생률, 최종 유효 측정률), (4) 불확실성 통제 평가 결론을 명시하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 48be717b61ac5a6575acd36da7dc6ad39b744ca6\nDataset-Task: evo-48be717b61ac-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "bbeabc6e8797c339820404c012e2b69b53c3d4d00f02b1332c2020b2f452e7f8",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 6614,
+            "candidatesTokenCount": 2657,
+            "totalTokenCount": 12429
+          }
+        },
+        "generatedAt": "2026-10-09T07:48:16.330081+00:00",
+        "sourceSha": "48be717b61ac5a6575acd36da7dc6ad39b744ca6",
+        "sourceEvidence": {
+          "sha": "48be717b61ac5a6575acd36da7dc6ad39b744ca6",
+          "parents": [
+            "6f4812801b0996c591a6774b7de6b39a41cc0ad1"
+          ],
+          "committedAt": "2026-10-09T07:47:13Z",
+          "subject": "Core 2.6: 세로 휴대폰 시선 보정 — 오차·영점 기준을 화면 긴 변으로 (가로 화면은 이전과 동일)",
+          "url": "https://github.com/jeebs0627/neurolens/commit/48be717b61ac5a6575acd36da7dc6ad39b744ca6",
+          "files": [
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 11,
+              "deletions": 9
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 9,
+              "deletions": 6
+            },
+            {
+              "path": "newbiz-core.test.js",
+              "status": "modified",
+              "additions": 9,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/session_adapter.test.cjs",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 2
+            }
+          ],
+          "domains": [
+            "pulse",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -2278,11 +2278,11 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   const col = every(33, () => { if (S.rawG && S.rawG.t > last && now() - S.rawG.t < 250 && !S.rawG.bl) { last = S.rawG.t; buf.push({ t: now(), x: S.rawG.x, y: S.rawG.y }); while (buf.length && buf[0].t < now() - 1000) buf.shift(); } });\n   const upd = every(2500, () => {\n     if (buf.length < 6) return;\n-    const W = stage.clientWidth, H = stage.clientHeight, xs = buf.map(p => p.x), ys = buf.map(p => p.y);\n+    const W = stage.clientWidth, H = stage.clientHeight, Lx = Math.max(W, H), xs = buf.map(p => p.x), ys = buf.map(p => p.y);\n     const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));\n     const mdx = mx - W / 2, mdy = my - H / 2;\n     /* 거부한 시도도 기록한다: 받아들인 것만 남기면 학습 라벨이 ‘엔진과 가까운 경우’로 치우친다 */\n-    const why = madX > W * 0.03 || madY > H * 0.045 ? 'scattered' : Math.abs(mdx - S.drift.dx) > W * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25 ? 'far-from-current-drift' : null;\n+    const why = madX > Lx * 0.03 || madY > H * 0.045 ? 'scattered' : Math.abs(mdx - S.drift.dx) > Lx * 0.2 || Math.abs(mdy - S.drift.dy) > H * 0.25 ? 'far-from-current-drift' : null;\n     if (why) { S.telemetry?.drift.push({ t: now(), key: S.cur, samples: buf.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx: W / 2, ty: H / 2, applied: false, reason: why, source: 'implicit-background-center' }); buf.length = 0; return; }\n     const k = 0.15;\n     S.drift = { dx: S.drift.dx + k * (mdx - S.drift.dx), dy: S.drift.dy + k * (mdy - S.drift.dy) };\n@@ -2292,7 +2292,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n }\n async function anchorFix(ms, tx, ty) {\n   if (S.demo || !S.model) { await wait(ms); return; }\n-  const W = stage.clientWidth, H = stage.clientHeight; tx = tx ?? W / 2; ty = ty ?? H / 2;\n+  const W = stage.clientWidth, H = stage.clientHeight, Lx = Math.max(W, H); tx = tx ?? W / 2; ty = ty ?? H / 2;\n   const xs = [], ys = [], t0 = now();\n   let last = -1;\n   const stop = every(33, () => { if (now() - t0 > 250 && S.rawG && S.rawG.t > last && now() - S.rawG.t < 250 && !S.rawG.bl) { last = S.rawG.t; xs.push(S.rawG.x); ys.push(S.rawG.y); } });\n@@ -2301,15 +2301,17 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   if (xs.length < 4) return;\n   const mx = N.median(xs), my = N.median(ys), madX = N.median(xs.map(v => Math.abs(v - mx))), madY = N.median(ys.map(v => Math.abs(v - my)));\n   const mdx = mx - tx, mdy = my - ty;\n-  const why = madX > W * 0.035 || madY > H * 0.05 ? 'scattered' : Math.abs(mdx - S.drift.dx) > W * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35 ? 'far-from-current-drift' : null;\n+  const why = madX > Lx * 0.035 || madY > H * 0.05 ? 'scattered' : Math.abs(mdx - S.drift.dx) > Lx * 0.3 || Math.abs(mdy - S.drift.dy) > H * 0.35 ? 'far-from-current-drift' : null;\n   if (why) { S.telemetry?.drift.push({ t: now(), t0, key: S.cur, samples: xs.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx, ty, applied: false, reason: why, source: 'implicit-task-fixation' }); return; }\n   const k = 0.25;\n   S.drift = { dx: S.drift.dx + k * (mdx - S.drift.dx), dy: S.drift.dy + k * (mdy - S.drift.dy) };\n   S.telemetry?.drift.push({ t: now(), t0, key: S.cur, samples: xs.length, measuredDx: mdx, measuredDy: mdy, madX, madY, tx, ty, dx: S.drift.dx, dy: S.drift.dy, weight: k, applied: true, source: 'implicit-task-fixation' });\n }\n async function driftCheck() {\n   if (S.demo || !S.model) return;\n-  const H = stage.clientHeight, W = stage.clientWidth;\n+  /* 가로 허용치는 화면 긴 변 기준(core 2.6): 시선 잡음은 기기와 무관하게 CSS px 로 비슷한데, 폭 기준이면 세로로 든 휴대폰(폭 384px)에서만 4배 엄격해\n+   * 지시 응시 영점이 모두 거부됐다(실측 NLR-7AB5…: 측정 −126px > 허용 96px → 사카드 내내 −47px 치우침 잔존). 가로 화면은 긴 변 = 폭이라 그대로 */\n+  const H = stage.clientHeight, W = stage.clientWidth, Lx = Math.max(W, H);\n   body.innerHTML = `<div class=\"sac-fix\" style=\"width:20px;height:20px;margin:-10px 0 0 -10px\"></div><div class=\"cue\">가운데 점을 바라봐 주세요 · 시선 영점 맞추기</div>`;\n   await wait(450);\n   const xs = [], ys = [];\n@@ -2321,9 +2323,9 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   if (xs.length >= 4) {\n     const mdx = N.median(xs) - W / 2, mdy = N.median(ys) - H / 2;\n     const madX = N.median(xs.map(v => Math.abs(v - N.median(xs)))), madY = N.median(ys.map(v => Math.abs(v - N.median(ys))));\n-    const tight = xs.length >= 8 && madX < W * 0.03 && madY < H * 0.04;\n+    const tight = xs.length >= 8 && madX < Lx * 0.03 && madY < H * 0.04;\n     /* 보통은 화면의 25~30% 안쪽 치우침만 받아들이지만, 표본이 한곳에 촘촘히 모여 있으면(머리 위치가 바뀐 경우) 45%까지 받아들인다 */\n-    const applied=(Math.abs(mdx) < W * 0.25 && Math.abs(mdy) < H * 0.3) || (tight && Math.abs(mdx) < W * 0.45 && Math.abs(mdy) < H * 0.45);\n+    const applied=(Math.abs(mdx) < Lx * 0.25 && Math.abs(mdy) < H * 0.3) || (tight && Math.abs(mdx) < Lx * 0.45 && Math.abs(mdy) < H * 0.45);\n     const k = Math.min(1, 0.35 + xs.length / 30), dx = S.drift.dx + k * (mdx - S.drift.dx), dy = S.drift.dy + k * (mdy - S.drift.dy);\n     S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,measuredDx:mdx,measuredDy:mdy,madX,madY,tx:W/2,ty:H/2,windowMs:1200,dx,dy,weight:k,applied,source:'instructed-center-fixation'});\n     if (applied) { S.drift = { dx, dy }; S.gaze = null; }\n@@ -2615,7 +2617,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     S.calib = { ...acc, samples: s9.length + sp.length, round: S.calibRound };\n     const roundRow = S.calibLog.rounds.at(-1); roundRow.end = now(); roundRow.grade = acc.grade; roundRow.errPct = acc.errPct ?? null;\n     if (acc.grade !== 'poor') {\n-      const c = await pauseCard('보정 완료', `${info}<p style=\"margin:12px 0 0\">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);\n+      const c = await pauseCard('보정 완료', `${info}<p style=\"margin:12px 0 0\">시선 오차 약 <b>${acc.errPct}%</b> (화면 긴 변 대비${acc.px ? ` · 약 ${acc.px}px` : ''}) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);\n       if (c === 1) { roundRow.outcome = 'recalibrated'; continue; }\n       roundRow.outcome = 'accepted';\n       return;\n@@ -3305,7 +3307,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   const G = rec.gazeLabels, s = G ? NLResearch.labelSummary(G) : null, pe = G?.holdout?.proxyError;\n   const rows = s ? [['유효 라벨 표적', `${s.valid} / ${s.targets}`], ['학습 · 내부 검증 · 최종 평가', `${s.train} · ${s.internal} · ${s.holdout}`], ['연결된 관측 프레임', String(s.frames)], ['재시도 · 사용자 무효 · 자동 거부', `${s.retries} · ${s.invalidated} · ${s.rejected}`],\n     ['평가 블록 중 보정 변경 없음', G.holdout ? (G.holdout.pipelineUnchanged ? '확인됨' : '변경 감지 — 평가 무효') : '평가 블록 없음'],\n-    ['기존 엔진의 표적 proxy 오차', pe && pe.targets ? `${pe.errPct}% (화면 폭 대비, 표적 ${pe.targets}개, 중앙값 ${pe.medianPx}px)` : '계산 불가']] : [];\n+    ['기존 엔진의 표적 proxy 오차', pe && pe.targets ? `${pe.errPct}% (화면 긴 변 대비, 표적 ${pe.targets}개, 중앙값 ${pe.medianPx}px)` : '계산 불가']] : [];\n   $('sReport').innerHTML = `<div class=\"card\"><div class=\"kicker\">Gaze Label · 수집 완료</div><h2>시선 라벨 수집을 마쳤어요</h2>\n     <p class=\"lead\">이 모드는 검사 결과나 점수를 만들지 않아요. 아래 수치는 수집 상태이며, ‘표적 proxy 오차’는 표적을 보려 한 기록과 기존 엔진 추정의 차이일 뿐 실제 시선 정확도 검증이 아니에요.</p>\n     <table class=\"btbl\" style=\"margin-top:14px\"><tbody>${rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td><b>${esc(b)}</b></td></tr>`).join('')}</tbody></table>\nFILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.5';   // 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.6';   // 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -787,14 +787,17 @@\n     const need = base.acc.errPct - Math.max(margin.abs, margin.rel * base.acc.errPct);\n     return best.acc.errPct <= need ? best : base;\n   }\n-  /* 검증점 오차 → 화면 폭 대비 비율과 등급 */\n-  /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 폭. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도\n-   * 작게 나와(실측 NLR-541B…: 아래쪽 점이 200px 넘게 빗나갔는데 2.8% '양호') 세로를 고치는 보정 후보가 뽑히지 않았다 */\n+  /* 검증점 오차 → 화면 긴 변 대비 비율과 등급 */\n+  /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 긴 변. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도\n+   * 작게 나와(실측 NLR-541B…: 아래쪽 점이 200px 넘게 빗나갔는데 2.8% '양호') 세로를 고치는 보정 후보가 뽑히지 않았다.\n+   * 긴 변(core 2.6): 가로 화면(노트북·태블릿 가로)은 긴 변 = 폭이라 이전과 같다. 세로로 든 휴대폰은 오차 대부분이 긴 세로축에서 나오는데\n+   * 그것을 짧은 폭(384px)으로 나눠 4배 부풀었다 — 실측 재생: 휴대폰 4세션 평균 오차 약 60 CSS px vs 노트북 4세션 약 115~140px 인데\n+   * %W 는 15.6 vs 7.4. CSS px 는 기기 간 시각(각도)이 거의 같게 정의된 단위라 휴대폰 시선 정확도가 낮은 것이 아니었다. px = 평균 오차(CSS px) */\n   function gazeAccuracy(points, W, H) {\n     const P = points.filter(p => finite(p.gx) && finite(p.gy)), errs = P.map(p => Math.hypot(p.gx - p.x, p.gy - p.y));\n     if (!errs.length) return { errPct: null, grade: 'none' };\n-    const e = mean(errs) / W * 100;\n-    return { errPct: round(e, 1), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(P.map(p => Math.abs(p.gx - p.x))) / W * 100, 1),\n+    const L = Math.max(W, finite(H) ? H : 0), e = mean(errs) / L * 100;\n+    return { errPct: round(e, 1), px: Math.round(mean(errs)), grade: e <= 10 ? 'good' : e <= 18 ? 'fair' : 'poor', hx: round(median(P.map(p => Math.abs(p.gx - p.x))) / W * 100, 1),\n       ...(finite(H) && H > 0 ? { hy: round(median(P.map(p => Math.abs(p.gy - p.y))) / H * 100, 1) } : {}) };\n   }\n   function validateGazeEyes(model, points, W, H) {\nFILE newbiz-core.test.js\n@@ -341,3 +341,12 @@ console.log('newbiz-core tests passed');\n   assert.equal(back.held, false); assert.equal(back.confirmed, undefined);\n   console.log('PASS gaze stabilizer: confirmed jumps return held sample times, isolated spikes stay held');\n }\n+\n+/* 보정 오차는 화면 긴 변 대비(core 2.6): 가로 화면은 폭 기준과 같고, 세로로 든 휴대폰은 같은 CSS px 오차가 폭(짧은 변)으로 나눠져 부풀지 않는다 */\n+{\n+  const pts = (W, H) => [[0.2, 0.2], [0.8, 0.2], [0.5, 0.5], [0.2, 0.8], [0.8, 0.8]].map(([a, b]) => ({ x: a * W, y: b * H, gx: a * W, gy: b * H + 60 }));\n+  const land = N.gazeAccuracy(pts(1600, 900), 1600, 900), port = N.gazeAccuracy(pts(384, 800), 384, 800);\n+  assert.equal(land.errPct, 3.8); assert.equal(land.px, 60);                 // 60/1600 — 이전(폭 기준)과 같음\n+  assert.equal(port.errPct, 7.5); assert.equal(port.grade, 'good');          // 60/800 — 이전 식이면 60/384 = 15.6% 'fair'\n+  console.log('PASS gaze accuracy: long-side normalisation (landscape unchanged, portrait phone not inflated)');\n+}",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "37901026504"
+      }
+    },
+    {
       "sha": "53b329f040ed362708a50265e54a8d8eadf86f5f",
       "parents": [
         "730ce087614acfb87c8fbcaf8b45687666be6e84"
@@ -91,8 +258,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55961501736",
@@ -123,7 +290,10 @@
           "url": "https://neurolens-mzkil4ovo-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-09T07:48:16.424588+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
     {
       "sha": "a2603ccc4946ebd123821cd2f34a439bb0f9874d",
@@ -14641,9 +14811,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "f7326ad49a246da5a48c330d535123d41666f49d"
+    "sourceHead": "48be717b61ac5a6575acd36da7dc6ad39b744ca6"
   },
-  "updatedAt": "2026-10-09T06:26:08.775997+00:00",
-  "aiCooldownUntil": "2026-10-09T07:11:59.058927+00:00",
-  "aiCooldownReason": "GEMINI_RATE_LIMIT"
+  "updatedAt": "2026-10-09T07:48:52.156035+00:00",
+  "aiCooldownUntil": "2026-10-09T07:53:51.391956+00:00",
+  "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
