@@ -3,6 +3,100 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "35e0dee6859105e40d6a1c6a7d9770aa5caa4a78",
+      "parents": [
+        "5a7369075539e5d9a98b7c11bae919a22d17c483"
+      ],
+      "committedAt": "2026-10-09T10:51:19+09:00",
+      "subject": "Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자",
+      "url": "https://github.com/jeebs0627/neurolens/commit/35e0dee6859105e40d6a1c6a7d9770aa5caa4a78",
+      "files": [
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 4
+        },
+        {
+          "path": "newbiz-battery.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 1
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse",
+        "gaze",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex ab759fd..f7044f6 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -229,5 +229,5 @@ html.staging,html.staging body{overflow:hidden}\n .sac-tgt{position:absolute;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 7px rgba(201,60,92,.15)}\n .pvt{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center}\n-.pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#B83A49;background:#EFF1F5}\n+.pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#FFFFFF;background:#0B0D12}   /* 검은 바탕·흰 숫자(대비 19:1): 연회색·붉은 숫자(4.9:1)는 개시 인식이 늦어 반응시간에 30~50ms 가 섞일 수 있음 — PVT 원판 기기처럼 어두운 바탕. 상자만 어둡게 해 얼굴 조명(심박·눈꺼풀)은 그대로 */\n .pvt-msg{height:26px;margin-top:14px;font-size:15px;color:#59647D}\n .sart{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-family:var(--font-num);font-weight:700;color:#2C3650;line-height:1;min-width:220px;text-align:center;contain:layout}\n@@ -1675,4 +1675,5 @@ function processResult(fr, packet, context) {\n       const sample = {t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,px:pred.x,py:pred.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag};\n       context.trial.samples.push(sample);\n+      if (st && st.confirmed) { const ss = context.trial.samples; for (let i = ss.length - 2; i >= 0 && ss[i].t >= st.confirmed[0]; i--) if (st.confirmed.includes(ss[i].t)) ss[i].bl = false; }   // 확인된 이동의 보류 표본은 분석에 되살린다\n       const gm = S.gazeModel;\n       if (gm && gm.mode !== 'off' && fr.gazeOk && S.cur !== 'calibration') {\n@@ -1869,6 +1870,7 @@ function every(ms, fn) { const id = setInterval(fn, ms); const stop = () => clea\n // rAF is a pre-paint onset estimate, not a photodiode measurement of physical display latency.\n /* rAF 타임스탬프는 그 프레임의 시작(vsync) 시각이라, 요청보다 앞설 수 있다(2026-10-08 실측: 자극의 26~91% · 최대 92ms 앞섬). 표시는 요청 뒤에만 일어나므로\n- * onset = max(rAF, 요청 시각) 으로 쓰고 원래 rAF 값은 rafTs 로 보존한다(반응시간·사카드 잠복기가 그만큼 부풀지 않게) */\n-const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(rafTs=>{const onset=Math.max(rafTs,requested);S.telemetry?.stimuli.push({key:S.cur,requested,onset,rafTs,clamped:rafTs<requested});r(onset);})); };\n+ * 2026-10-09: onset = rAF 콜백이 실제로 실행된 시각. 그리기는 콜백 뒤에만 일어나므로 이 값은 실제 표시보다 늦을 수 없고 max(rAF, 요청)보다 항상 참값에 가깝다.\n+ * 얼굴 추론이 메인 스레드를 점유하면 콜백이 vsync 보다 최대 한 추론 길이만큼 늦게 돈다(모사 부하 55ms: 반응시간 편향 중앙 15→6ms, 최대 71→16ms). 이전 값은 legacyOnset 으로 보존 */\n+const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(rafTs=>{const onset=now(),legacyOnset=Math.max(rafTs,requested);S.telemetry?.stimuli.push({key:S.cur,requested,onset,legacyOnset,rafTs,clamped:rafTs<requested,cbLagMs:Math.round((onset-legacyOnset)*10)/10});r(onset);})); };\n /* 입력 이벤트: 시각(event.timeStamp, performance.now 와 같은 시계)·dispatch 지연·종류. 포인터 이벤트는 client 좌표를 함께 남긴다 —\n  * 일반 검사 중의 클릭 좌표는 provenance 를 보존한 weak 기록(free_click_weak)일 뿐이며 시선 정답으로 쓰지 않는다 */\n@@ -2039,5 +2041,5 @@ const V = {\n   anti: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><circle cx=\"150\" cy=\"85\" r=\"7\" fill=\"#59647D\"/><circle class=\"a-blink\" cx=\"252\" cy=\"85\" r=\"11\" fill=\"#C93C5C\"/><circle cx=\"48\" cy=\"85\" r=\"11\" fill=\"none\" stroke=\"#1F4FD8\" stroke-width=\"2.5\" stroke-dasharray=\"4 4\"/><path d=\"M138 85 H68\" stroke=\"#1F4FD8\" stroke-width=\"3.5\" marker-end=\"url(#ah2)\"/><defs><marker id=\"ah2\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"5\" markerHeight=\"5\" orient=\"auto\"><path d=\"M0 0L10 5L0 10z\" fill=\"#1F4FD8\"/></marker></defs><text x=\"48\" y=\"122\" text-anchor=\"middle\" font-size=\"13\" fill=\"#1F4FD8\" font-weight=\"700\">반대쪽 보기</text></svg>',\n   fv: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><rect x=\"24\" y=\"44\" width=\"110\" height=\"82\" rx=\"6\" fill=\"#C9CFDA\"/><rect x=\"166\" y=\"44\" width=\"110\" height=\"82\" rx=\"6\" fill=\"#C9CFDA\"/><circle cx=\"79\" cy=\"78\" r=\"16\" fill=\"#AEB6C6\"/><path d=\"M58 112 Q79 96 100 112\" fill=\"#AEB6C6\"/><path d=\"M186 112 L210 82 L232 104 L246 92 L262 112z\" fill=\"#AEB6C6\"/></svg>',\n-  pvt: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><rect x=\"90\" y=\"50\" width=\"120\" height=\"66\" rx=\"12\" fill=\"#EFF1F5\" stroke=\"#A9B2C5\" stroke-width=\"2\"/><text class=\"a-blink\" x=\"150\" y=\"96\" text-anchor=\"middle\" font-size=\"30\" font-weight=\"700\" fill=\"#B83A49\" font-family=\"Sora\">247</text><text x=\"150\" y=\"146\" text-anchor=\"middle\" font-size=\"12\" fill=\"#66728A\">숫자가 보이면 바로 스페이스바</text></svg>',\n+  pvt: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><rect x=\"90\" y=\"50\" width=\"120\" height=\"66\" rx=\"12\" fill=\"#0B0D12\" stroke=\"#A9B2C5\" stroke-width=\"2\"/><text class=\"a-blink\" x=\"150\" y=\"96\" text-anchor=\"middle\" font-size=\"30\" font-weight=\"700\" fill=\"#FFFFFF\" font-family=\"Sora\">247</text><text x=\"150\" y=\"146\" text-anchor=\"middle\" font-size=\"12\" fill=\"#66728A\">숫자가 보이면 바로 스페이스바</text></svg>',\n   sart: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/>' + [['7', 60, 1, 34], ['2', 120, 1, 24], ['3', 180, 0, 40], ['9', 240, 1, 28]].map(([d, x, k, fz]) => `<text x=\"${x}\" y=\"92\" text-anchor=\"middle\" font-size=\"${fz}\" font-weight=\"700\" fill=\"#2C3650\" font-family=\"Sora\">${d}</text><text x=\"${x}\" y=\"128\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"${k ? '#1F4FD8' : '#C93C5C'}\">${k ? '누름' : '멈춤'}</text>`).join('') + '</svg>',\n   math: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><text x=\"150\" y=\"58\" text-anchor=\"middle\" font-size=\"24\" font-weight=\"700\" fill=\"#2C3650\" font-family=\"Sora\">47 − 39 + 1 = ?</text><rect x=\"24\" y=\"72\" width=\"252\" height=\"5\" rx=\"2.5\" fill=\"#D3D9E5\"/><rect class=\"a-shrink\" x=\"24\" y=\"72\" width=\"252\" height=\"5\" rx=\"2.5\" fill=\"#7D879E\"/>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((v, i) => `<rect x=\"${24 + i * 25.4}\" y=\"92\" width=\"21\" height=\"30\" rx=\"6\" fill=\"${v === 1 ? '#DCE1EA' : '#F2F4F8'}\" stroke=\"${v === 1 ? '#5D6E94' : '#C9D0DD'}\"/><text x=\"${34.5 + i * 25.4}\" y=\"113\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"700\" fill=\"#2C3650\" font-family=\"Sora\">${v}</text>`).join('') + '<rect x=\"24\" y=\"138\" width=\"252\" height=\"7\" rx=\"3.5\" fill=\"#D9DEE7\"/><rect x=\"24\" y=\"138\" width=\"150\" height=\"7\" rx=\"3.5\" fill=\"#7D879E\"/><rect x=\"224\" y=\"134\" width=\"2\" height=\"15\" fill=\"#3A4560\"/><text x=\"225\" y=\"160\" text-anchor=\"middle\" font-size=\"10\" fill=\"#3A4560\" font-weight=\"700\">목표 80%</text></svg>',\ndiff --git a/newbiz-battery.js b/newbiz-battery.js\nindex eff513e..2cf46f2 100644\n--- a/newbiz-battery.js\n+++ b/newbiz-battery.js\n@@ -20,5 +20,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind battery 1.4';   // 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n+  const VERSION = 'In_mind battery 1.5';   // 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n   const finite = v => typeof v === 'number' && Number.isFinite(v);\n   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex 0aa8340..ce17e29 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.3';   // 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.4';   // 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -712,5 +712,11 @@\n           const ok = pend.length >= 2 && pend.every(q => dist(q, p) <= CONF);\n           if (!ok) return { x: stable.x, y: stable.y, t, held: true };\n+          /* confirmed: 보류했다가 진짜 이동으로 확인된 앞 표본 시각 — 기록 측이 분석 제외(bl)를 되돌린다.\n+           * 되돌리지 않으면 사카드 착지 첫 표본이 빠져 잠복기가 1프레임 쪽으로 늦게 보간된다(합성 +28~47ms) */\n+          const confirmed = pend.slice(0, -1).map(q => q.t);\n           win = pend.slice(); pend = [];\n+          win = win.filter(q => t - q.t <= SPAN).slice(-N);\n+          stable = { x: median(win.map(q => q.x)), y: median(win.map(q => q.y)), t };\n+          return { ...stable, held: false, confirmed };\n         } else { pend = []; win.push(p); }\n         win = win.filter(q => t - q.t <= SPAN).slice(-N);\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex b74596d..85b6a95 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -328,2 +328,16 @@ console.log('newbiz-core tests passed');\n   console.log('PASS frame drops: short gaps (≤150ms) kept as measured pulse');\n }\n+\n+/* 시선 안정화: 큰 이동은 다음 표본이 확인할 때까지 보류하되, 확인되면 보류 표본 시각을 돌려준다(분석에서 되살림 — 사카드 잠복기 1프레임 편향 방지).\n+ * 확인되지 않은 한 프레임 튐은 계속 보류로 남는다 */\n+{\n+  const st = N.gazeStabilizer({ W: 1440, H: 900 });\n+  [0, 66, 133].forEach(t => st.push({ x: 720, y: 450 }, t));\n+  assert.equal(st.push({ x: 1220, y: 450 }, 200).held, true);\n+  const r = st.push({ x: 1225, y: 452 }, 266);\n+  assert.equal(r.held, false); assert.deepEqual(r.confirmed, [200]); assert.ok(r.x > 1200);\n+  assert.equal(st.push({ x: 300, y: 450 }, 333).held, true);           // 고립된 튐\n+  const back = st.push({ x: 1222, y: 451 }, 400);\n+  assert.equal(back.held, false); assert.equal(back.confirmed, undefined);\n+  console.log('PASS gaze stabilizer: confirmed jumps return held sample times, isolated spikes stay held');\n+}\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-35e0dee68591-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-35e0dee68591-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\n변경 제목: Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자\n관련 파일: condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-35e0dee68591-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-35e0dee68591-gaze",
+          "domain": "gaze",
+          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-35e0dee68591-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\n변경 제목: Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자\n관련 파일: condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-35e0dee68591-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-35e0dee68591-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-35e0dee68591-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\n변경 제목: Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자\n관련 파일: condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-35e0dee68591-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-55950406067",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-09T01:51:21Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/HwS4oeYY1GFAJ9pk9PtMD96ExNUj",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-09T01:51:42.148385+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+    },
+    {
       "sha": "3a580aafd197f0635e06e0e9b613572b8046a58c",
       "parents": [
         "540272911d25b8e59a06cc52da6791a3e5c5095a"
@@ -14150,9 +14244,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "df51c17199c6ec84aae64c91868086ff8584031d"
+    "sourceHead": "35e0dee6859105e40d6a1c6a7d9770aa5caa4a78"
   },
-  "updatedAt": "2026-10-08T23:59:34.225501+00:00",
-  "aiCooldownUntil": "2026-10-09T00:04:33.649816+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-09T01:52:17.428220+00:00",
+  "aiCooldownUntil": "2026-10-09T02:52:16.262177+00:00",
+  "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
