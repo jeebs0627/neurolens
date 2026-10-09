@@ -241,6 +241,9 @@ nav .cta{white-space:nowrap}
 .dcard2 .dgo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .dcard2 .dsm{font-size:13.5px;font-weight:700;color:var(--dc);text-decoration:none}
 .dcard2 .dsm:hover{text-decoration:underline}
+.drib{position:absolute;top:0;right:0;width:150px;height:150px;overflow:hidden;border-top-right-radius:21px;pointer-events:none}
+.drib span{position:absolute;top:49px;right:-80px;width:280px;transform:rotate(45deg);text-align:center;font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--dc-grad);padding:5px 0;box-shadow:0 4px 10px var(--dc-sh)}
+@media(max-width:560px){.drib{width:124px;height:124px}.drib span{top:41px;right:-72px;width:240px;font-size:9px;letter-spacing:.03em;padding:4px 0}.dcard2 h3{font-size:18px}}
 .dcard2 .dnew{position:absolute;top:18px;right:18px;font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#fff;background:var(--dc-grad);border-radius:999px;padding:3px 9px}
 .dc-trait{--dc:#1E5AF0;--dc-soft:var(--blue-soft);--dc-line:var(--blue-line);--dc-grad:var(--grad-blue);--dc-sh:rgba(30,90,240,.28)}
 .dc-cond{--dc:#5B3FD6;--dc-soft:var(--violet-soft);--dc-line:#D7CCFA;--dc-grad:linear-gradient(135deg,#6C4CE0,#13A58A);--dc-sh:rgba(108,76,224,.28)}
@@ -547,7 +550,7 @@ p.lead.lead-1l{max-width:none}
 .mile-card{margin-top:26px;background:#fff;border:1px solid var(--line);border-radius:calc(var(--radius) + 6px);padding:34px 34px 30px;box-shadow:var(--shadow-sm)}
 .mile-card h3{font-size:19px;font-weight:900;margin-bottom:4px}
 .mile-card .sub{font-size:13px;color:var(--gray);margin-bottom:24px}
-.mile{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.mile{display:grid;grid-template-columns:1fr 1fr 1.35fr;gap:18px}
 @media(max-width:820px){.mile{grid-template-columns:1fr}}
 .mile .yr{border:1px solid var(--line);border-radius:16px;padding:22px 20px;transition:box-shadow .25s,transform .25s}
 .mile .yr:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
@@ -726,14 +729,15 @@ footer p{font-size:12.5px;color:var(--gray)}
 
     <div class="duo" id="duo">
       <div class="dcard2 dc-trait">
+        <div class="drib" aria-hidden="true"><span>Mindgaze Engine</span></div>
         <div class="dh"><div class="dic"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div><div><div class="dk">GAZE TRAIT TEST</div><h3>시선추적 AI 성향검사</h3></div></div>
         <p class="dq">“나는 어떤 사람일까?”</p>
-        <div class="dchips"><span>Big5</span><span>MBTI</span><span>직업흥미</span><span>직무 적합도</span></div>
+        <div class="dchips"><span>Big5</span><span>MBTI</span><span>직업흥미유형</span><span>직무 적합도</span><span>자아탄력성</span></div>
         <div class="dmeta"><span>⏱ <b>약 5분</b></span><span>시선 + 설문</span><span>결과 즉시</span></div>
         <div class="dact"><button id="startBtn" class="dgo" type="button"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>성향검사 시작</button><a class="dsm" href="resultadmin.html?sample=1" target="_blank" rel="noopener">샘플 리포트</a></div>
       </div>
       <div class="dcard2 dc-cond">
-        <span class="dnew">NEW · In_mind</span>
+        <div class="drib" aria-hidden="true"><span>In_Mind Neural Engine</span></div>
         <div class="dh"><div class="dic"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div><div><div class="dk">MIND CONDITION TEST</div><h3>마인드 AI 컨디션 검사</h3></div></div>
         <p class="dq">“나는 지금 괜찮을까?”</p>
         <div class="dchips"><span>또렷함</span><span>집중 조절</span><span>마음의 시선</span><span>몸의 회복력</span></div>
@@ -759,7 +763,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <div class="proof">
       <div class="p"><div class="num"><b>9,200</b>명+@</div><div class="lb">AI 학습 데이터</div></div>
       <div class="p"><div class="num"><b>19</b>개 지표</div><div class="lb">In_mind · 시선·심박·생체반응 동시 측정</div></div>
-      <div class="p"><div class="num"><b>1,600</b>명</div><div class="lb">경기도 8개교 현장 실증</div></div>
+      <div class="p"><div class="num"><b>1,600</b>명</div><div class="lb">경기도 8개교 현직 교사단 현장 실증</div></div>
       <div class="p"><div class="num">AUC <b>0.83~0.84</b></div><div class="lb">PHQ-9 우울위험 선별 · 엄격한 검증</div></div>
       <div class="p im"><div class="num"><b>엔진·기술백서</b></div><div class="lb">In_mind Core 신경망 엔진 · 기술백서 출판</div></div>
       <div class="p im"><div class="num"><b>IRB</b> 준비</div><div class="lb">컨디션 AI · 동의 기반 연구 데이터로 규준 수립</div></div>
@@ -827,6 +831,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="warn"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4M12 17.5h.01"/></svg></div>
       <div>
         <h3>그리고 선별된 뒤에도 — 결과지를 받은 아이에게 <em>'내일 무엇을 어떻게 해야 하는지'</em> 알려주는 사람, 후속 조처가 없었습니다.</h3>
+        <h3 style="margin-top:10px">산재사망을 증빙하는 과정에서 평소 혼자 고단했을 고인의 단서를 찾기 어려워 무력하다는 노무사의 하소연도 있었습니다.</h3>
         <p>발견 이후의 '케어 단절'이, 가능했던 회복의 시간을 놓치게 합니다. NeuroLens는 측정에서 케어까지 이어지는 AI Agent 폐루프를 만듭니다.</p>
       </div>
     </div>
