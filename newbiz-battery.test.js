@@ -471,3 +471,17 @@ console.log('newbiz-battery tests passed');
   assert.ok(r >= 0.95, `saccade r at 15fps ${r}`);
   console.log('PASS battery 1.6: quick-mode negHr not applicable, saccade direction reliability not penalised at 15fps');
 }
+
+/* battery 1.7: 정서 보기 반분 안정성은 시행 수로 기대되는 우연 차이를 넘을 때만 신뢰도를 낮춘다 */
+{
+  const r0 = B.simulate('balanced', { mode: 'full', seed: 21 }), W = r0.screenW || 1440;   /* 부정 시행 24개 — 4개(빠른 모드)로는 완전한 교대도 우연과 구분되지 않는다 */
+  const fv = rec => B.run(rec).battery.qc.steps.find(s => s.key === 'freeview').r;
+  const normal = fv(r0);
+  /* 홀수 시행은 내내 부정 사진, 짝수 시행은 내내 반대쪽만 본다 → 반분 차이 1.0 (우연으로 설명 안 됨) */
+  let k = 0;
+  const split = { ...r0, trials: r0.trials.map(t => { if (t.kind !== 'neg') return t; const emo = k++ % 2 === 0; const x = (t.emoSide === 'L') === emo ? W * 0.25 : W * 0.75; return { ...t, samples: t.samples.map(p => ({ ...p, x, rx: x })) }; }) };
+  const unstable = fv(split);
+  assert.ok(normal >= 0.85, `normal freeview r ${normal}`);
+  assert.ok(unstable < normal - 0.1, `unstable freeview r ${unstable} vs ${normal}`);
+  console.log(`PASS battery 1.7: split-half penalty only beyond chance (normal ${normal}, unstable ${unstable})`);
+}

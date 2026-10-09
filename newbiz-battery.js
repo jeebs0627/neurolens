@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.6';   // 1.6 (2026-10-10): 사카드 신뢰도 fps 기준 24→12(방향 판정, 실측 솎기 검증) · 압박 상승이 오차보다 작으면 회복률 ‘해당 없음’(분모 제외) · 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
+  const VERSION = 'In_mind battery 1.7';   // 1.7 (2026-10-10): 정서 보기 반분 안정성 감점을 우연 기대(z>2) 초과일 때만 · 1.6 (2026-10-10): 사카드 신뢰도 fps 기준 24→12(방향 판정, 실측 솎기 검증) · 압박 상승이 오차보다 작으면 회복률 ‘해당 없음’(분모 제외) · 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -974,6 +974,15 @@
     /* NL-QC 8) 공명 호흡 순응: 카메라로 잰 호흡 리듬이 뚜렷한데 분당 6회(0.1Hz)에서 벗어나 있으면 호흡 동조 지표를 판정하지 않는다
      * (따라 하지 않은 사람의 ‘동조 약함’을 조절력 부족으로 오해하지 않기 위해) */
     const resp = base.resp, breathOff = !!(resp && resp.clear && Math.abs(resp.hz - 0.1) > 0.03);
+    /* 반분 안정성(홀·짝 시행 부정 응시 비율 차): 시행 수로 기대되는 우연 차이(SD_D = 시행 SD × √(4/n))의 2배를 넘을 때만 신뢰도를 낮춘다.
+     * battery 1.7: 이전 고정 기준(0.08 초과부터 감점)은 실측 17세션 중 10세션을 깎았는데, 관측 차이는 순수 우연 기대와 같았다
+     * (z 평균 0.67 · 우연만으로 ≈0.80 · z>2 는 1세션). 표본 불확실성은 이미 오차 띠(SE·95% 구간)로 표시되므로 신뢰도에서 다시 깎지 않는다 */
+    const halfF = () => {
+      const g = base.gaze.halfGapNeg, v = negSt.map(x => x.emoShare).filter(finite);
+      if (!finite(g) || v.length < 4) return 1;
+      const sdD = Math.max(0.05, std(v) * Math.sqrt(4 / v.length));
+      return clamp(1 - (g / sdD - 2) / 2, 0.5, 1);
+    };
     const rOf = {
       pvt: () => pvt && !pvt.invalid ? clamp(pvt.valid / 30, 0, 1) : 0,
       eye: () => eye ? clamp((eye.coverage - 0.4) / 0.4, 0, 1) : 0,
@@ -982,7 +991,7 @@
       pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.3) / 0.4, 0.25, 1) * fpsF('pursuit') : 0,
       circle: () => circle && circle.ok ? clamp(circle.coverage / 0.8, 0, 1) * clamp((Math.min(circle.rx, circle.ry + 0.25) - 0.3) / 0.4, 0.25, 1) * fpsF('pursuit') : 0,
       motion: () => clamp((sartFrames - 0.4) / 0.4, 0, 1),
-      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) * fpsF('neg') * (finite(base.gaze.halfGapNeg) ? clamp(1 - Math.max(0, base.gaze.halfGapNeg - 0.08) / 0.2, 0.5, 1) : 1) : 0,
+      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) * fpsF('neg') * halfF() : 0,
       gazePos: () => a.gazeOk && posN ? clamp(posSt.length / posN / 0.8, 0, 1) * fpsF('pos') : 0,
     };
     const REL = {

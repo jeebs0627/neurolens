@@ -4,7 +4,8 @@
  *   newbiz_research_sessions.meta · summary->calibration · summary->checkin · summary->dataset->tests(status) 를 _meta.json 으로.
  *   재현 확인(2026-10-10): NLR-9A27… 재생 결과가 저장된 리포트와 지표 25개·검사 신뢰도·종합 76% 까지 일치
  * 사용: const R = require('./tools/condition_replay.cjs'); const rec = R.load(code); const res = R.run(rec[, B])
- * 실행: node tools/condition_replay.cjs [이전 커밋]  — 세션별 검사 신뢰도(현재 엔진 vs 이전 커밋) 표 */
+ * 실행: node tools/condition_replay.cjs [이전 커밋]  — 세션별 검사 신뢰도(현재 엔진 vs 이전 커밋) 표
+ *       node tools/condition_replay.cjs --promote  — 참고 지표 판정 격상 기준 점검(아래 PROMOTE) */
 const fs = require('fs'), path = require('path');
 const RAW = path.join(__dirname, '..', 'training', 'raw');
 
@@ -73,6 +74,23 @@ const codes = () => fs.readdirSync(RAW).filter(f => /^NLR-.*\.json$/.test(f)).ma
 const run = (rec, B = require('../newbiz-battery.js')) => B.run(rec);
 module.exports = { load, codes, run, toRec, unpackFrames, unpackSamples, meta: () => META };
 
+/* 참고 지표 → 판정 지표 격상 기준(2026-10-10): ① 꾸준함 — 측정된 세션의 80% 이상에서 신뢰도 r ≥ 0.8
+ * ② 새 정보 — 이미 판정에 쓰는 지표와 |상관| < 0.7(중복이면 같은 것을 두 번 센다) ③ 타당성 — 값의 90% 이상이 생리적으로 가능한 범위.
+ * 셋 다 통과해야 격상 후보. 범위는 문헌·과제 정의에서: d′ 0~4.65(오경보·적중 1/(2n) 보정 상한), 방향 전환 지연 80~500ms, 속도 유지율 0.2~1.05(빠를수록 이득이 오르지 않음) */
+const PROMOTE = { sartDprime: v => v >= 0 && v <= 4.65, pursuitLatency: v => v >= 80 && v <= 500, pursuitSpeed: v => v > 0.2 && v <= 1.05 };
+function promotionReport(B = require('../newbiz-battery.js')) {
+  const corr = (a, b) => { const p = a.map((v, i) => [v, b[i]]).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y)); if (p.length < 5) return NaN; const n = p.length, mx = p.reduce((s, v) => s + v[0], 0) / n, my = p.reduce((s, v) => s + v[1], 0) / n; let sxy = 0, sxx = 0, syy = 0; p.forEach(([x, y]) => { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; }); return sxy / Math.sqrt(sxx * syy); };
+  const V = {};
+  for (const code of codes()) { let rec; try { rec = load(code); } catch (e) { continue; } if (!rec.sart) continue; for (const i of run(rec, B).battery.indicators) (V[i.key] = V[i.key] || []).push({ v: i.value, r: i.r, ref: i.ref }); }
+  return Object.entries(PROMOTE).map(([k, plaus]) => {
+    const all = V[k] || [], m = all.filter(x => Number.isFinite(x.v)), steady = m.filter(x => x.r >= 0.8).length / (m.length || 1), valid = m.filter(x => plaus(x.v)).length / (m.length || 1);
+    const scored = Object.keys(V).filter(o => !PROMOTE[o] && V[o].some(x => !x.ref)), overlap = scored.map(o => [o, corr(all.map(x => x.v), V[o].map(x => x.v))]).filter(x => Number.isFinite(x[1])).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0] || ['—', 0];
+    return { key: k, measured: `${m.length}/${all.length}`, steady: Math.round(steady * 100), valid: Math.round(valid * 100), overlap: `${overlap[0]} ${overlap[1].toFixed(2)}`, promote: steady >= 0.8 && valid >= 0.9 && Math.abs(overlap[1]) < 0.7 };
+  });
+}
+module.exports.promotionReport = promotionReport;
+
+if (require.main === module && process.argv.includes('--promote')) { console.table(promotionReport()); process.exit(0); }
 if (require.main === module) {
   const ref = process.argv[2];
   let OLD = null;
