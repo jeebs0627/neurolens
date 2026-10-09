@@ -707,7 +707,39 @@ section[id^="r-"],section[id^="dom-"]{scroll-margin-top:130px}
   .st-act .sbtn{padding:3px 9px;font-size:11px}
   .st-prog{top:0;height:2px}
   .stage .cue{bottom:3px;width:96%;font-size:11.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .selfcam,.selfcam.on{width:36px;height:auto;left:4px;top:4px;bottom:auto;opacity:.35}
+  .selfcam,.selfcam.on{width:36px;height:auto;left:auto;right:4px;top:4px;bottom:auto;opacity:.35}   /* 준비 화면: 오른쪽 위 빈 곳 */
+  html.staging .selfcam,html.staging .selfcam.on{left:4px;right:auto}                                  /* 측정 화면: 왼쪽 위(오른쪽 위는 그만하기 버튼) */
+  /* 준비 화면·안내 카드를 한 화면에(스크롤 없이 버튼까지): 설명 문단·그림·근거·심박 상자·사이트 머리글/바닥글을 빼고 점검표는 점만 */
+  body:has(#sSetup:not([hidden])) .nav,body:has(#sSetup:not([hidden])) .site-foot{display:none}
+  body:has(#sSetup:not([hidden])) main{padding:8px}
+  #sSetup .flow,#sSetup .lead,#sSetup .setup>div:first-child>p,#sSetup .livehr{display:none}
+  #sSetup .card{padding:12px;margin:0}
+  #sSetup .kicker{font-size:10.5px;margin:0}
+  #sSetup h2{font-size:16px;margin:2px 0 8px;line-height:1.35}
+  #sSetup .setup{gap:8px}
+  #sSetup .checks{display:flex;flex-wrap:wrap;gap:2px 12px;margin:0}
+  #sSetup .checks li{border:0;padding:0;font-size:11.5px}
+  #sSetup .checks li b{display:none}
+  #sSetup .status{font-size:12px;margin-top:4px;min-height:0}
+  #sSetup .btns{margin-top:8px;gap:8px}
+  .brief{padding:14px 16px;top:calc(50% + 14px);max-height:calc(100vh - 36px)}
+  .brief:has(.brief-grid) .what,.brief .vis,.brief .orig,.brief .ref,.brief .prev{display:none}
+  .brief h2{font-size:18px;margin:4px 0 8px}
+  .brief-grid{display:block}
+  .brief ol li{font-size:12.5px;padding-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brief .note{font-size:12px;padding:6px 10px;margin-top:6px}
+  .brief .go{margin-top:10px}
+}
+/* 휴대폰 가로 준비 화면: 카메라(왼쪽, 화면 높이만큼) · 제목·점검·버튼(오른쪽) */
+@media (max-height:500px) and (orientation:landscape) {
+  #sSetup .card{display:grid;grid-template-columns:min(calc((100vh - 72px) * 4 / 3),58vw) minmax(0,1fr);column-gap:14px;align-items:start}
+  #sSetup .setup{display:contents}
+  #sSetup .setup>div:first-child{grid-column:1;grid-row:1 / span 4}
+  #sSetup .kicker,#sSetup h2,#sSetup .setup>div:last-child,#sSetup .btns{grid-column:2}
+  .brief{padding:10px 14px}
+  .brief h2{font-size:16px;margin:2px 0 6px}
+  .brief ol li{padding-bottom:3px}
+  .brief .go{margin-top:6px}
 }
 @media print{.nav,.btns,.no-print,.qa{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid-page}.method{break-inside:avoid}}
 /* ================= 2026-10 개편: 첫 화면 · 자기보고 · 통합 리포트 ================= */
@@ -1574,8 +1606,11 @@ async function loadLandmarker(only) {
   const vision = await FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
   const make = async d => Object.assign(await FaceLandmarker.createFromOptions(vision, { baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, ...FACE_CONF }), { nlDelegate: d });
   if (only) return make(only);
-  try { return await make('GPU'); }
-  catch (_) { return make('CPU'); }
+  /* 휴대폰은 CPU 부터: 실측 안드로이드 11세션 중 8세션이 GPU 인식기에서 얼굴을 못 찾아(빈 결과 30회 → 캔버스 입력 30회 → CPU 교체)
+   * 얼굴 가이드가 수 초 늦게 떴다(capture.recovery 'cpu-delegate'). 같은 기기 CPU 추론 16~43ms 로 GPU 정상 기기(29~31ms)와 차이 없음 */
+  const order = MOBILE ? ['CPU', 'GPU'] : ['GPU', 'CPU'];
+  try { return await make(order[0]); }
+  catch (_) { return make(order[1]); }
 }
 /* 얼굴 인식 모델 미리 준비: 페이지가 열리자마자 내려받기·GPU 준비를 시작하고, 카메라가 켜지면 그 인식기를 한 번 넘겨준다.
  * 이전에는 카메라를 켠 뒤에야 시작해 휴대폰에서 얼굴 가이드(흰·녹색 선)가 10초 넘게 나오지 않았다. 실패하면 그때 새로 만든다 */
@@ -1590,7 +1625,7 @@ const takeLandmarker = only => {
 $('camStart').addEventListener('click', async () => {
   const st = $('setupStatus');
   st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';
-  $('camStart').disabled = true; $('camStart').hidden = true;
+  $('camStart').disabled = true; $('camStart').hidden = true; S.camClickAt = now();
   let phase = 'camera';
   try {
     S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); S.stream = null;
@@ -1788,8 +1823,11 @@ const videoAspect = (video = procVideo) => (video.videoWidth > 0 && video.videoH
 /* 미리보기 칸을 실제 영상 비율에 맞춘다: 잘림(object-fit:cover)이 없어야 기준선·홍채·피부 영역이 얼굴 위에 정확히 겹친다 */
 function fitPreview() {
   const ar = videoAspect(prevVideo), pv = prevVideo.parentElement;
-  pv.style.aspectRatio = String(ar); pv.style.maxWidth = MOBILE ? `calc(62vh * ${ar.toFixed(3)})` : ''; pv.style.margin = '0 auto';
+  /* 휴대폰 가로: 화면 높이 전체(카드 여백·거리 막대 72px 제외)를 쓰도록 — 이전 62vh 제한이면 798×339 화면에서 280×210 으로 작았다 */
+  const land = MOBILE && innerWidth > innerHeight;
+  pv.style.aspectRatio = String(ar); pv.style.maxWidth = MOBILE ? `calc(${land ? '(100vh - 72px)' : '62vh'} * ${ar.toFixed(3)})` : ''; pv.style.margin = '0 auto';
 }
+if (MOBILE) addEventListener('resize', () => { if (prevVideo.videoWidth) fitPreview(); });
 function posCheck() {
   const f = S.feat;
   if (!f || now() - S.lastFace > 500) return null;
@@ -1830,7 +1868,9 @@ function setupTicker() {
     const pos = posCheck(), gm = $('guideMsg');
     setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';
     gm.hidden = !S.stream;
-    gm.textContent = pos ? pos.msg : !S.camT0 ? '얼굴 인식 준비 중 · 먼저 흰 동그라미 두 개에 눈을 맞춰 보세요' : MOBILE ? '얼굴을 찾는 중 · 휴대폰을 눈높이로, 타원 안에 얼굴 전체가 보이게' : '얼굴을 찾는 중 · 타원 안에 얼굴 전체가 보이게 해 주세요';
+    /* 준비 시간 카운트: 카메라를 켠 뒤 첫 얼굴 인식까지 몇 초째인지 보여 준다(휴대폰은 엔진 준비에 수 초가 걸린다) */
+    const waitSec = S.camClickAt && !(S.lastFace > S.camClickAt) ? Math.floor((t - S.camClickAt) / 1000) : null;
+    gm.textContent = waitSec !== null ? `얼굴 인식 준비 중 · ${waitSec}초 — 흰 동그라미 두 개에 눈을 맞춰 두세요` : pos ? pos.msg : !S.camT0 ? '얼굴 인식 준비 중 · 먼저 흰 동그라미 두 개에 눈을 맞춰 보세요' : MOBILE ? '얼굴을 찾는 중 · 휴대폰을 눈높이로, 타원 안에 얼굴 전체가 보이게' : '얼굴을 찾는 중 · 타원 안에 얼굴 전체가 보이게 해 주세요';
     gm.className = 'guide-msg' + (pos && pos.ok ? ' ok' : '');
     const lightOk = lum >= 70 && lum <= 215;
     setDot('dLight', !Number.isFinite(lum) ? '' : lightOk ? 'ok' : 'warn');
