@@ -77,7 +77,7 @@ module.exports = { load, codes, run, toRec, unpackFrames, unpackSamples, meta: (
 /* 참고 지표 → 판정 지표 격상 기준(2026-10-10): ① 꾸준함 — 측정된 세션의 80% 이상에서 신뢰도 r ≥ 0.8
  * ② 새 정보 — 이미 판정에 쓰는 지표와 |상관| < 0.7(중복이면 같은 것을 두 번 센다) ③ 타당성 — 값의 90% 이상이 생리적으로 가능한 범위.
  * 셋 다 통과해야 격상 후보. 범위는 문헌·과제 정의에서: d′ 0~4.65(오경보·적중 1/(2n) 보정 상한), 방향 전환 지연 80~500ms, 속도 유지율 0.2~1.05(빠를수록 이득이 오르지 않음) */
-const PROMOTE = { sartDprime: v => v >= 0 && v <= 4.65, pursuitLatency: v => v >= 80 && v <= 500, pursuitSpeed: v => v > 0.2 && v <= 1.05 };
+const PROMOTE = { sartDprime: v => v >= 0 && v <= 4.65, ...require('../newbiz-battery.js').ADMIT.plausible };   // 세션별 자격 심사(battery 1.8 ADMIT)와 같은 범위
 function promotionReport(B = require('../newbiz-battery.js')) {
   const corr = (a, b) => { const p = a.map((v, i) => [v, b[i]]).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y)); if (p.length < 5) return NaN; const n = p.length, mx = p.reduce((s, v) => s + v[0], 0) / n, my = p.reduce((s, v) => s + v[1], 0) / n; let sxy = 0, sxx = 0, syy = 0; p.forEach(([x, y]) => { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; }); return sxy / Math.sqrt(sxx * syy); };
   const V = {};

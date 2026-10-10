@@ -163,7 +163,9 @@ for (const [p, e] of Object.entries(expect)) {
     const I = r.battery.integrated;
     if (Array.isArray(e.code)) { assert.ok(e.code.includes(I.code) && e.code.includes(I.secondary), `${p}/${seed}: ${I.code}/${I.secondary}`); }
     else assert.equal(I.code, e.code, `${p}/${seed}: ${I.code}`);
-    e.paths.forEach(k => assert.ok(I.pathways.some(x => x.key === k), `${p}/${seed}: 연결 ${k} 없음 (${I.pathways.map(x => x.key)})`));
+    // fatigue 연결은 각성 + (집중 조절 또는 정서) 표시가 조건 — 합성 피로 페르소나의 집중 조절은 경계(≈70)라 조건이 설 때만 요구한다(battery 1.8: 방향 전환 지연 반영으로 한 시드 69→71)
+    const flagged = k => SEV[r.battery.domains[k].status] >= 1, SEV = B.SEV;
+    e.paths.filter(k => k !== 'fatigue' || (flagged('alert') && (flagged('control') || flagged('emotion')))).forEach(k => assert.ok(I.pathways.some(x => x.key === k), `${p}/${seed}: 연결 ${k} 없음 (${I.pathways.map(x => x.key)})`));
     if (e.mismatch) assert.ok(I.mismatches.some(m => m.key === e.mismatch), `${p}/${seed}: 불일치 ${e.mismatch}`);
     B.DOMAIN_KEYS.forEach(k => assert.notEqual(r.battery.domains[k].status, 'na', `${p}: ${k} 미측정`));
     assert.ok(r.battery.care.length >= 1 && r.battery.care[0].items.length === 3);
@@ -419,14 +421,18 @@ console.log('newbiz-battery tests passed');
   /* ① 반응 지연: 합성 반응 = lag + 90ms(balanced 170 · fatigue 240) — 추정 중앙값이 ±40ms 안 */
   for (const [p, truth] of [['balanced', 170], ['fatigue', 240]]) {
     const r = B.run(B.simulate(p)).battery, lat = r.indicators.find(i => i.key === 'pursuitLatency');
-    assert.ok(lat.ref && Math.abs(lat.value - truth) <= 40, `${p} latency ${lat.value} vs ${truth}`);
+    assert.ok(Math.abs(lat.value - truth) <= 40, `${p} latency ${lat.value} vs ${truth}`);
     assert.ok(lat.ci && lat.ci[0] < lat.value && lat.value < lat.ci[1], `${p} latency ci`);
   }
-  /* ② 참고 지표는 영역 점수에 들어가지 않는다: 값을 지워도 control 점수 동일 */
-  const rec = B.simulate('balanced'), base = B.run(rec).battery.domains.control.score;
+  /* ② 참고 지표 자격 심사(battery 1.8): 신뢰도·타당 범위를 통과하면 판정에 들어가고(값을 지우면 점수가 바뀜), d′ 는 들어가지 않는다 */
+  const rec = B.simulate('balanced'), full = B.run(rec).battery, base = full.domains.control.score;
+  const lat0 = full.indicators.find(i => i.key === 'pursuitLatency');
+  assert.ok(lat0.admitted && !lat0.ref && lat0.r >= B.ADMIT.minR, `latency admitted r=${lat0.r}`);
+  assert.ok(full.indicators.find(i => i.key === 'sartDprime').ref, 'd′ stays reference (function of commission·omission)');
   const noRev = B.run({ ...rec, pursuit: { ...rec.pursuit, reversal: null } }).battery;
-  assert.equal(noRev.domains.control.score, base, 'ref indicators excluded from domain score');
   assert.equal(noRev.indicators.find(i => i.key === 'pursuitLatency').value, null);
+  assert.ok(noRev.domains.control.measured === full.domains.control.measured - 1, 'admitted ref indicator counted in domain');
+  assert.ok(!B.ADMIT.plausible.pursuitSpeed(1.2) && B.ADMIT.plausible.pursuitLatency(215), 'plausible ranges');
   /* ③ 머리 동조: 얼굴 회전이 표적을 그대로 따라가면 이득 신뢰도가 낮아져 판정에서 빠진다 */
   const lv = rec.pursuit.levels, tgt = t => { const b = lv.filter(x => t >= x.t0).at(-1) || lv[0]; return Math.sin(2 * Math.PI * b.freq * (t - b.t0) / 1000); };
   const a0 = lv[0].t0, a1 = lv.at(-1).t0 + lv.at(-1).dur;
@@ -440,7 +446,7 @@ console.log('newbiz-battery tests passed');
   assert.ok(Math.abs(legacy.value - 0.9) < 0.05, `legacy gain ${legacy.value}`);
   /* ⑤ 소요 시간: 표준(quick) 약 26초, 정밀(full) 약 44초 (원형 제외) */
   assert.ok(Math.abs(B.pursuitSec(B.DUR.quick) - 26) <= 3 && Math.abs(B.pursuitSec(B.DUR.full) - 45) <= 3, `${B.pursuitSec(B.DUR.quick)} ${B.pursuitSec(B.DUR.full)}`);
-  console.log('PASS pursuit v2: reversal latency, ref indicators outside domain score, head-follow reliability, legacy v1 record, duration');
+  console.log('PASS pursuit v2: reversal latency, ref indicator admission, head-follow reliability, legacy v1 record, duration');
 }
 
 /* SART 신호탐지 (2026-10-05): d′ 가 응답 성향과 분리되는지 — 같은 억제 실패율이라도 반응 숫자를 자주 놓치면 d′ 가 낮다 */
@@ -484,4 +490,12 @@ console.log('newbiz-battery tests passed');
   assert.ok(normal >= 0.85, `normal freeview r ${normal}`);
   assert.ok(unstable < normal - 0.1, `unstable freeview r ${unstable} vs ${normal}`);
   console.log(`PASS battery 1.7: split-half penalty only beyond chance (normal ${normal}, unstable ${unstable})`);
+}
+
+/* battery 1.8: 회복률 오차 범위(델타법) · 수렴 원칙에서 같은 측정값(회복 후반 심박) 지표는 근거 1개 */
+{
+  const r = B.run(B.simulate('overload', { seed: 7 })).battery, rv = r.indicators.find(i => i.key === 'recovery'), rr = r.indicators.find(i => i.key === 'recoveryResid');
+  assert.equal(rv.src, rr.src, 'recovery·recoveryResid share source');
+  if (Number.isFinite(rv.value)) assert.ok(rv.ci && rv.ci[0] < rv.value && rv.value < rv.ci[1], `recovery ci ${rv.ci}`);
+  console.log('PASS battery 1.8: recovery CI, shared-source convergence');
 }

@@ -49,7 +49,7 @@
   const naWhy = n => n.reason === 'no-stress-rise' ? `압박 상승 ${n.riseBpm}bpm — 오차와 구분되려면 ${n.needBpm}bpm 이상` : n.reason === 'neutral-block-too-short' ? `빠른 모드 중립 구간 ${n.sec}초 — 심박 비교에 짧음` : '';
   const judge = i => i.notApplicable ? `<span class="st st-na">해당 없음</span><div class="qtag">${esc(naWhy(i.notApplicable))}</div>`
     : i.excluded ? `<span class="st st-na">판정 제외</span><div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>`
-    : `${stBadge(i.status)}${i.borderline ? '<div class="qtag b">경계 · 오차 범위가 기준에 걸침</div>' : ''}${finite(i.r) && i.r < 0.8 ? `<div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>` : ''}${i.next ? `<div class="qtag nx">${esc(i.next.text)}</div>` : ''}`;
+    : `${stBadge(i.status)}${i.admitted ? '<div class="qtag">참고 지표 · 이번 측정은 신뢰도·범위 기준을 넘어 판정에 반영</div>' : i.ref ? '<div class="qtag">참고 지표 · 판정에 쓰지 않음</div>' : ''}${i.borderline ? '<div class="qtag b">경계 · 오차 범위가 기준에 걸침</div>' : ''}${finite(i.r) && i.r < 0.8 ? `<div class="qtag">신뢰도 ${Math.round(i.r * 100)}%</div>` : ''}${i.next ? `<div class="qtag nx">${esc(i.next.text)}</div>` : ''}`;
 
   function moduleStatus(b, mod) {
     const st = MODULE_STEPS[mod].map(k => (b.steps[k] && b.steps[k].status) || 'off');

@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.7';   // 1.7 (2026-10-10): 정서 보기 반분 안정성 감점을 우연 기대(z>2) 초과일 때만 · 1.6 (2026-10-10): 사카드 신뢰도 fps 기준 24→12(방향 판정, 실측 솎기 검증) · 압박 상승이 오차보다 작으면 회복률 ‘해당 없음’(분모 제외) · 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
+  const VERSION = 'In_mind battery 1.8';   // 1.8 (2026-10-10): 참고 지표 세션별 자격 심사(ADMIT — 신뢰도·타당 범위를 통과한 세션만 판정 반영), 방향 전환 지연 신뢰도 유효/프로토콜 횟수, 속도 유지율 머리 동조 감점, 회복률·PVT 조기 반응 오차 범위, 수렴 원칙에서 같은 측정값 지표는 1개로 · 1.7 (2026-10-10): 정서 보기 반분 안정성 감점을 우연 기대(z>2) 초과일 때만 · 1.6 (2026-10-10): 사카드 신뢰도 fps 기준 24→12(방향 판정, 실측 솎기 검증) · 압박 상승이 오차보다 작으면 회복률 ‘해당 없음’(분모 제외) · 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -126,6 +126,11 @@
    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다
    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */
   /* minR: 이 신뢰도 아래만 판정에서 뺀다. 0.3 → 0.2로 낮춰, 약하지만 근거가 있는 지표는 버리지 않고 낮은 가중으로 반영한다(점수 기여 = 가중 × 신뢰도) */
+  /* 참고 지표(ref) 세션별 자격 심사: 전체 세션 기준 격상(tools/condition_replay.cjs --promote)은 못 넘었어도, 이 세션에서
+   * 신뢰도 r ≥ minR 이고 값이 생리적으로 가능한 범위 안이면 보조 지표(가중 1)로 판정에 넣는다. 범위가 없는 지표는 넣지 않는다:
+   * d′ 는 억제 실패·누락 두 판정 지표의 함수라(빠른 모드 실측 21세션에서 억제 실패와 1:1) 넣으면 같은 정보를 두 번 센다.
+   * 범위 근거: 방향 전환 지연 80~500ms(Lencer), 속도 유지율 0.2~1.05(빠를수록 이득은 오르지 않는다 — >1 은 느린 단계 머리 동조의 흔적) */
+  const ADMIT = { minR: 0.6, plausible: { pursuitLatency: v => v >= 80 && v <= 500, pursuitSpeed: v => v > 0.2 && v <= 1.05 } };
   const QC = { version: 'In_mind QC 2.0', minR: 0.2, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0.25, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };
   const DUR = {
     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */
@@ -203,7 +208,7 @@
       desc: '표적 움직임 대비 시선 움직임의 크기 (1.0 = 정확한 추적)', get: a => a.pursuit && a.pursuit.ok ? a.pursuit.gain : null },
     { key: 'pursuitErr', domain: 'control', w: 1, label: '추적 동기화 오차', unit: '%', d: 1, band: BAND('low', 3, 8, 14, 30), refs: ['maruta'],
       desc: '추적 중 시선-표적 오차의 흔들림(SD, 화면 폭 대비). 주의 동기화 지표', get: a => a.pursuit && a.pursuit.ok ? a.pursuit.errPct : null },
-    /* 원활 추적 2판 참고 지표(ref): 웹캠 규준이 없어 영역 점수·해석에는 넣지 않고 값·오차 범위만 보여 준다 */
+    /* 원활 추적 2판 참고 지표(ref): 웹캠 규준이 없어 기본은 값·오차 범위만 보여 주고, 세션별 자격 심사(ADMIT)를 넘으면 보조 지표로 판정에 넣는다 */
     { key: 'pursuitLatency', domain: 'control', w: 1, ref: true, label: '방향 전환 반응 지연', unit: 'ms', d: 0, band: BAND('low', 180, 280, 360, 600), refs: ['lencer'],
       desc: '예고 없이 방향을 바꾼 점을 시선이 따라 꺾기까지 걸린 시간(반전 여러 번의 중앙값). 예측이 아닌 반응적 추적의 순발력 — 참고 지표', get: a => a.reversal && a.reversal.ok ? a.reversal.latencyMs : null,
       count: a => a.reversal ? `${a.reversal.valid}/${a.reversal.n}회` : null },
@@ -227,9 +232,9 @@
 
     { key: 'stressDelta', domain: 'autonomic', w: 2, label: '압박 심박 반응', unit: 'bpm', d: 1, band: BAND('low', 2, 6, 12, 25), refs: ['dedovic'],
       desc: '제한 시간 암산 − 기준선 심박. 과도한 반응 여부만 판정한다', get: a => a.stressDelta },
-    { key: 'recovery', domain: 'autonomic', w: 2, label: '심박 회복률', unit: '%', d: 0, band: BAND('high', 100, 50, 20, -20), refs: ['thayer'],
+    { key: 'recovery', domain: 'autonomic', w: 2, src: 'recoveryLate', label: '심박 회복률', unit: '%', d: 0, band: BAND('high', 100, 50, 20, -20), refs: ['thayer'],
       desc: '압박으로 오른 심박이 호흡 후 되돌아온 비율. 1 − (회복 후반 − 기준) ÷ (압박 정점 − 기준). 압박 상승이 측정 오차(max 3bpm, 2×SE)보다 작으면 정의되지 않아 계산하지 않는다', get: a => a.recovery },
-    { key: 'recoveryResid', domain: 'autonomic', w: 1, label: '회복 후 잔여 심박', unit: 'bpm', d: 1, band: BAND('low', 0, 3, 7, 15), refs: ['thayer'],
+    { key: 'recoveryResid', domain: 'autonomic', w: 1, src: 'recoveryLate', label: '회복 후 잔여 심박', unit: 'bpm', d: 1, band: BAND('low', 0, 3, 7, 15), refs: ['thayer'],
       desc: '호흡 구간 후반 심박 − 기준 심박. 압박 반응이 작아 회복률을 계산할 수 없을 때도 회복을 판정한다', get: a => a.recoveryResid },
     { key: 'coupling', domain: 'autonomic', w: 1, label: '공명 호흡 심박 동조', unit: 'bpm', d: 1, band: BAND('high', 8, 3, 1.5, 0), refs: ['lehrer'],
       desc: '분당 6회 호흡에 맞춰 심박이 출렁인 폭. 미주신경성 조절의 대리 지표', get: a => a.coupling },
@@ -896,7 +901,7 @@
     const firm = i => !i.borderline && i.r >= 0.8;
     if (status === 'ok' && mp.some(i => i.status === 'concern' && firm(i))) { status = 'watch'; d.notes.push('핵심 지표 하나가 ‘관리 필요’여서 평균이 양호해도 ‘주의’로 표시했어요'); }
     if (status === 'concern') {
-      const support = m.filter(i => SEV[i.status] >= 1).length;
+      const support = new Set(m.filter(i => SEV[i.status] >= 1).map(i => i.src || i.key)).size;   // 같은 측정값에서 나온 지표(회복률·잔여 심박)는 근거 1개
       if (support < 2 && !mp.some(i => i.status === 'concern' && firm(i))) { status = 'watch'; d.notes.push('저하를 가리키는 지표가 하나뿐이라 수렴 원칙에 따라 ‘주의’로 낮췄어요'); }
     }
     const tentative = d.confidence < QC.tentative;
@@ -994,12 +999,14 @@
       gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) * fpsF('neg') * halfF() : 0,
       gazePos: () => a.gazeOk && posN ? clamp(posSt.length / posN / 0.8, 0, 1) * fpsF('pos') : 0,
     };
+    /* 머리 동조 감점: 이득과 속도 유지율(느린 단계에서 머리가 더 따라 돌아 >1 이 됨)에 같이 쓴다 */
+    const headF = () => pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1;
     const REL = {
       pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,
       antiError: rOf.anti, sartCommission: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, sartCv: rOf.sart,   // 억제 실패는 거부 시행(3) 수로 신뢰도를 정한다: 빠른 모드 6회면 1회가 17%p sartOmission: () => sart ? clamp(sart.n / 54, 0, 1) : 0,
       /* 이득은 머리가 표적을 따라 돌수록(머리 동조 |r| 0.3→0.7) 신뢰도를 낮춘다 — 눈 대신 머리가 움직이면 시선 폭이 작게 잡힌다 */
-      pursuitGain: () => rOf.pursuit() * (pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
-      pursuitSpeed: rOf.pursuit, sartDprime: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / 12, 0, 1) * fpsF('pursuit') : 0,
+      pursuitGain: () => rOf.pursuit() * headF(), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
+      pursuitSpeed: () => rOf.pursuit() * headF(), sartDprime: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / Math.max(10, reversal.n), 0, 1) * fpsF('pursuit') : 0,   // 프로토콜 10회 기준(이전 /12 는 10/10 이어도 0.83)
       bias: rOf.gaze, lateNeg: rOf.gaze, firstNeg: rOf.gaze, posBias: rOf.gazePos, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)) * infF(base.hr.neu, base.hr.neg),
       stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)) * infF(refHr, base.hr.stress), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)) * infF(base.hr.stress, base.hr.recoveryLate),   // 압박 반응이 오차보다 작으면 회복률 자체를 계산하지 않는다(core recoveryNA)
       recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)) * infF(refHr, base.hr.recoveryLate), coupling: () => (breathOff ? 0 : hq(base.hr.recovery) * (base.coupling && base.coupling.ratio < 0.3 ? 0.3 : 1)),   // 0.1Hz 대역 비율이 낮으면 진폭은 박동 시각 잡음일 가능성이 커 판정에서 사실상 뺀다(minR 아래)
@@ -1009,6 +1016,11 @@
     const binSe = (p, n) => { if (!(n > 0) || !finite(p)) return null; const q = (p * n + 2) / (n + 4); return Math.sqrt(q * (1 - q) / (n + 4)) * 100; };   // Agresti–Coull
     const SE = {
       pvtLapses: () => pvt ? Math.sqrt(Math.max(1, pvt.lapses)) * 3 / Math.max(0.5, pvt.durationMin) : null,
+      pvtFalse: () => pvt ? Math.sqrt(Math.max(1, pvt.falseStarts)) * 3 / Math.max(0.5, pvt.durationMin) : null,   // 빠른 모드 90초: 1건 차이가 3분 환산 2회
+      /* 회복률 = 1 − (L − B)/(P − B) 의 델타법 오차(L 회복 후반·B 기준·P 압박 정점, 각각 구간 심박 SE) */
+      recovery: () => { const L = base.recoverySrc === 'whole' ? base.hr.recovery : base.hr.recoveryLate, P = base.hr.stressPeak, sL = hrSe(L), sB = hrSe(refHr), sP = hrSe(base.hr.stress);
+        if (![sL, sB, sP, P].every(finite) || !refHr) return null; const rise = P - refHr.bpm; if (!(rise > 0)) return null;
+        return 100 * Math.hypot(sL / rise, (L.bpm - P) / rise ** 2 * sB, (L.bpm - refHr.bpm) / rise ** 2 * sP); },
       antiError: () => saccade && saccade.ok ? binSe(saccade.anti.errorRate, saccade.anti.valid) : null,
       sartCommission: () => sart ? binSe(sart.commission, sart.nogo) : null,
       /* 심박 차이 지표의 오차: 구간별 창 간 퍼짐(spreadBpm) ÷ √(독립 10초 창 수). 신뢰도가 낮아 판정에서 빠져도 값과 범위는 함께 남긴다 */
@@ -1034,7 +1046,8 @@
       const borderline = !!ci && cuts.some(cut => ci[0] < cut && cut < ci[1]);
       const excluded = has && r < QC.minR;
       const notApplicable = !!NA[ind.key];
-      return { key: ind.key, domain: ind.domain, ref: !!ind.ref, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
+      const admitted = !!ind.ref && has && !excluded && r >= ADMIT.minR && !!ADMIT.plausible[ind.key] && ADMIT.plausible[ind.key](v);
+      return { key: ind.key, domain: ind.domain, ref: !!ind.ref && !admitted, ...(ind.ref ? { admitted } : {}), src: ind.src || ind.key, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,
         value: v, count: has && ind.count ? ind.count(a) : null, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded, ...(notApplicable ? { notApplicable: NA[ind.key] } : {}),
         next: has && !excluded ? nextBand(ind, v) : null };
     });
@@ -1324,7 +1337,7 @@
   }
 
   return {
-    VERSION, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
+    VERSION, ADMIT, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
     QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, mistStart, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, pursuitSec, ladderStats, reversalStats, sartCount, sartSequence, sartStats, integrate, run, simulate,
   };
 });
