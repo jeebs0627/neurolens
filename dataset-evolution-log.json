@@ -3,6 +3,257 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "2dca687950aba2e34c916ad89469dc5138c675e7",
+      "parents": [
+        "248f33c03fca036778678ecad91e9b1a86a722db"
+      ],
+      "committedAt": "2026-10-10T22:44:58+09:00",
+      "subject": "시선 그림자 모델: 엔진 버전 대신 특징 버전으로 호환 판정, 같은 model.onnx 로 shadow 재패키지(-r2)",
+      "url": "https://github.com/jeebs0627/neurolens/commit/2dca687950aba2e34c916ad89469dc5138c675e7",
+      "files": [
+        {
+          "path": "condition-gaze-model.js",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 1
+        },
+        {
+          "path": "condition-gaze-model.test.cjs",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "model-registry.json",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 8
+        },
+        {
+          "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2/MODEL_CARD.md",
+          "status": "modified",
+          "additions": 151,
+          "deletions": 0
+        },
+        {
+          "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2/manifest.json",
+          "status": "modified",
+          "additions": 1423,
+          "deletions": 0
+        },
+        {
+          "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2/model.onnx",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 1
+        },
+        {
+          "path": "tools/colab/nlcolab/release.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tools/colab/nlcolab/schema.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "tools/colab/tests/test_pipeline.py",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex 7e5ed12..cf182ba 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -2303,5 +2303,5 @@ async function runSession() {\n   S.calibRound=0;S.calibDigests=null;S.gazeLabels=null;\n   /* 전역 시선 모델은 검사 시작 시점에 고정한다(세션 중 교체 없음). 로드 실패·호환 불가면 기존 엔진만 쓴다 */\n-  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});\n+  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,features:N.GAZE_FEATURES,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});\n   clockSegment('session-start',{gazeModel:S.gazeModel?.mode||'off'});\n   if(S.researchConsent){referenceCollector.start();datasetCheckpoint().catch(console.warn);S.datasetTimer=setInterval(()=>datasetCheckpoint().catch(console.warn),20000);}\ndiff --git a/newbiz-core.js b/newbiz-core.js\nindex 7284d84..21d5436 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -15,4 +15,7 @@\n \n   const VERSION = 'In_mind core 2.6';   // 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  /* 시선 모델 입력 특징 버전: faceFeatures(u·v 눈꼬리 기준 등)·predictGaze·fitAffine 기본값이 baseX…eyeMode 의 뜻을 바꿀 때만 올린다.\n+   * 학습 모델 manifest.supports.features 와 비교한다 — 엔진 버전(VERSION)은 심박·판정 변경에도 올라가 모델이 이유 없이 꺼졌다(core 2.4~2.6). 2.3: 홍채 세로 기준 눈꼬리 축 */\n+  const GAZE_FEATURES = 'gaze-features-2.3';\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n@@ -1136,5 +1139,5 @@\n \n   const api = {\n-    VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,\n+    VERSION, GAZE_FEATURES, THRESH, LM, PROFILES, CARE, Signal, chrom,\n     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,\n     buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-2dca687950ab-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 특징 버전(GAZE_FEATURES) 분리에 따른 시선 모델 호환성 및 실측 데이터 세션별 활용률·잔차 평가",
+          "rationale": "엔진 버전(VERSION) 상승에 따른 시선 모델 비활성화 문제를 해결하기 위해 GAZE_FEATURES('gaze-features-2.3')가 신설되었습니다. 가설상 특징 버전 분리로 시선 모델 가동 안정성이 향상될 것으로 기대되나, 가용성 향상이 실제 시선 잔차 오차나 프레임 유효성 악화로 이어지지 않는지 관측 데이터 및 세션 로그를 통한 검증이 필요합니다. 커밋 제목이나 주석 내용은 검증된 정확도가 아니므로 실측 수치를 인위적으로 생성하지 않고 데이터셋 레퍼런스와 연동하여 평가해야 합니다.",
+          "validationPlan": "1. dataset 백로그 내 기기/참가자/날짜별 세션 레코드 수집 및 분리 (최소 N개 분모 구성, 실패/탈락 시도 포함).\n2. 기존 VERSION 기반 호환성 판정 방식과 신규 GAZE_FEATURES 기반 방식을 동일 데이터셋에 대조 적용하여 시선 그림자(shadow) 모델 활성화 프레임 비중(활용률) 비교.\n3. 활성화된 프레임 영역에서 수집된 시선 추정 잔차(오차 범위) 및 화면 외곽/보정 오차 추이 산출.\n4. 정상값 임의 생성 없이, 관측 거부/제외 기준에 해당하는 프레임 비율 및 불확실성 지표 기록.",
+          "prompt": "[작업 지시: 시선 특징 버전 분리 검증 및 세션 활용률·오차 평가]\n\n1. 현재 코드 확인:\n   - `newbiz-core.js` 내 `GAZE_FEATURES` 정의 및 API 내보내기, `condition.html`의 `NLGazeModel.freeze` 전달 인자를 확인하십시오.\n   - `models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2` 패키징 사양 및 `model-registry.json` 매핑 구성을 점검하십시오.\n\n2. 후속 개발 및 검증 과제:\n   - 엔진 버전 변화와 시선 모델 로드 여부의 독립성을 확인하는 회귀 테스트 코드를 작성하십시오.\n   - dataset에 보관된 사용자 세션 기록(참가자, 웹캠 모델, 촬영 환경별 분리)을 연결하여 `GAZE_FEATURES` 호환 검사를 수행하십시오.\n   - 부분적으로 유효한 약한 시선 신호 프레임의 활용량(전체 분모 대비 활성화 비율)과 이때 발생하는 추정 오차/불확실성을 동시에 측정하십시오.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 심박/판정 로직 수정으로 인한 core VERSION 상승 시에도 `GAZE_FEATURES`가 동일한 경우 시선 그림자 모델이 정상 차출되어 평가 프레임 활용률이 저하되지 않아야 함.\n   - 회귀 기준: `GAZE_FEATURES` 판정 오작동으로 인한 모델 로드 실패, 또는 약한 신호의 과도한 포함으로 인한 편향/오차 폭증 발생 시 회귀로 판단.\n\n4. 결과 보고 양식:\n   - 참가자/기기/날짜별 분모(전체 프레임 수 및 시도 수), 실패 시도 포함 건수\n   - 조건별 활용률(%)-오차(px 또는 화면 비율 기준, 허용 오차 명시)\n   - 데이터셋 메모 연동 결과 (실측 수치 임의 작성 금지, 데이터셋 연동 관측 사실과 연구자 가설 구별 명시)\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 2dca687950aba2e34c916ad89469dc5138c675e7\nDataset-Task: evo-2dca687950ab-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-2dca687950ab-pulse",
+          "domain": "pulse",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "엔진 버전 분리 환경에서의 심박(BVP) 신호 추출 파이프라인 및 약한 신호 회복률 검증",
+          "rationale": "`newbiz-core.js` 주석에 명시된 심박 관련 로직 변경(2.5 버전 압박 상승 recoveryNA 판정, 2.1~2.2 고조파 피크 선택, 1.9 BVP 창 탈락 진단 등)은 시선 모델 분리와 별개로 심박 측정 파이프라인의 정확도 및 활용률에 직접적인 영향을 미칩니다. 시선 특징 버전 분리로 인해 심박 측정 로직 수정 시 시선 모델에 미치는 부작용은 차단되었으나, 심박 신호 추출 시 약한 BVP 신호 회복 알고리즘이 신호 대 잡음비(SNR) 조건별로 정밀하게 동작하는지 독립적 검증이 필요합니다.",
+          "validationPlan": "1. dataset 내 다양한 조명 및 움직임 조건의 심박 측정 세션 수집 (참가자/기기/촬영 환경 분리).\n2. HR_BAND([0.7, 3.0] Hz) 및 SNR 품질 기준(SNR_GOOD=3, SNR_FAIR=-2) 적용 시 약한 신호 구간의 BVP 창 탈락/보간 비율 및 recoveryNA 발생 빈도 측정.\n3. 기준 센서가 없는 환경임을 명시하고, 자체 신호 파형 연속성, 고조파 피크 명확도, 세션 내 심박 추세 안정성 지표를 통해 활용률과 측정 불확실성을 함께 산출.\n4. 임의의 심박 정답값(bpm)을 생성하거나 정상값으로 채우지 않고 관측 사실과 품질 미달 제외 기준 데이터를 투명하게 수집.",
+          "prompt": "[작업 지시: 심박 파이프라인 약한 신호 회복 및 BVP 품질 평가]\n\n1. 현재 코드 확인:\n   - `newbiz-core.js` 내 심박 관련 상수 (`HR_BAND`, `SNR_GOOD`, `SNR_FAIR`, `THRESH`) 및 BVP Window 처리 함수(`hrWindows`, `phaseHr`, `repairPhase`, `measureEvidence` 등)를 확인하십시오.\n   - 주석에 기재된 recoveryNA 조건 및 BVP 창 보간/탈락 판정부의 정밀성을 점검하십시오.\n\n2. 후속 개발 및 검증 과제:\n   - 웹캠 기반 노이즈 환경에서 BVP 약한 신호를 회복하는 알고리즘의 유효성을 평가하는 파이프라인을 구축하십시오.\n   - dataset의 심박 측정 세션 기록과 연동하여 SNR 수준별(GOOD, FAIR, POOR) BVP 창 활용률과 심박 계산 성공률/불확실성 범위를 산출하십시오.\n   - 약한 신호 회복 시도 시 발생하는 오탐(False Positive) 파형 및 recoveryNA 처리 건수를 분류하십시오.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 노이즈 구간에서 신호 완전 폐기를 줄이고 유효 약한 신호의 활용량을 유지하면서, 신뢰할 수 없는 구간은 recoveryNA 또는 탈락 진단으로 올바르게 격리함.\n   - 회귀 기준: 신호 회복 로직이 허용 오차를 초과하는 비정상 고조파 피크를 유도하거나, SNR 기준 미달 프레임을 정상 신호로 오판하는 비율 증가.\n\n4. 결과 보고 양식:\n   - 검증 세션 분모 (참가자 수, 기기 종류, 측정 환경, 전체 프레임/창 개수)\n   - SNR 조건별 신호 활용률(%) 및 품질 미달 제외 비율\n   - dataset 연동 관측 사실, 회복률 지표, 불확실성 평가 결과 (독립 정답이나 임의 수치 조작 금지)\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 2dca687950aba2e34c916ad89469dc5138c675e7\nDataset-Task: evo-2dca687950ab-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        }
+      ],
+      "analysisState": "generated",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-56051200759",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-10T13:45:01Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/Hna5rZstHBYRftb13CmQBjLjc2pT",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-10T13:45:22.892070+00:00",
+      "analysis": {
+        "summary": "[관측된 변경 사항]\n1. `newbiz-core.js`: 시선 모델 입력 특징 버전 식별자 `GAZE_FEATURES = 'gaze-features-2.3'` 정수가 추가되고 API 수출 대상에 포함되었습니다. 주석에 따르면 이전 엔진 버전(`VERSION`, 2.4~2.6)이 심박/판정 로직 변경으로 상승할 때 시선 모델이 예기치 않게 비활성화되는 현상을 막기 위해, 입력 특징 구조 변동 시에만 신규 부여되는 `GAZE_FEATURES`를 도입했습니다.\n2. `condition.html`: 세션 시작 시 시선 모델 동결 함수 `NLGazeModel.freeze` 호출 시 `features: N.GAZE_FEATURES` 속성을 함께 전달하도록 변경되었습니다.\n3. 모델 및 테스팅 자원: `models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2` 경로에 모델 카드, 매니페스트(`manifest.json`), ONNX 파일이 새로 추가되었으며, `model-registry.json`, `condition-gaze-model.js`, `condition-gaze-model.test.cjs`, Colab 파이프라인 스크립트(`tools/colab/...`)가 함께 수정되었습니다.\n4. 패치 생략 사항: 제공된 연구 자료 diff 스니펫은 `condition.html` 및 `newbiz-core.js` 일부 파일에 한정되어 있으며, 테스트 코드 및 Colab 관련 파이프라인 변경의 상세 패치는 생략(Diff Excerpt)되어 있습니다.\n\n[미검증 영향 및 평가]\n1. accuracyValidated가 false로 명시되어 있어, 본 커밋의 변경 내용(특징 버전 분리 및 shadow-r2 재패키징)이 실제 시선 추적 및 심박 측정 정확도나 성능 향상을 보장하지 않습니다. 커밋 메시지의 주석이나 요약을 입증된 성과로 간주할 수 없습니다.\n2. 엔진 버전 상향에 의한 시선 모델 오작동은 차단되었으나, `gaze-features-2.3` 기반의 입력 데이터 패치(u·v 눈꼬리 축 기준 등)가 이전 세션 레코드나 미지의 기기 환경에서 호환성 오류 또는 계산 잔차 확대를 유발하지 않는지 실측 dataset 기반 검증이 필요합니다.\n3. 일상 웹캠 환경에서의 약한 신호 회복 및 품질 판정 로직이 기기/참가자/환경 조건별로 어떠한 활용률-오차 트레이드오프를 형성하는지 별도 평가가 요구됩니다.",
+        "tasks": [
+          {
+            "id": "evo-2dca687950ab-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 특징 버전(GAZE_FEATURES) 분리에 따른 시선 모델 호환성 및 실측 데이터 세션별 활용률·잔차 평가",
+            "rationale": "엔진 버전(VERSION) 상승에 따른 시선 모델 비활성화 문제를 해결하기 위해 GAZE_FEATURES('gaze-features-2.3')가 신설되었습니다. 가설상 특징 버전 분리로 시선 모델 가동 안정성이 향상될 것으로 기대되나, 가용성 향상이 실제 시선 잔차 오차나 프레임 유효성 악화로 이어지지 않는지 관측 데이터 및 세션 로그를 통한 검증이 필요합니다. 커밋 제목이나 주석 내용은 검증된 정확도가 아니므로 실측 수치를 인위적으로 생성하지 않고 데이터셋 레퍼런스와 연동하여 평가해야 합니다.",
+            "validationPlan": "1. dataset 백로그 내 기기/참가자/날짜별 세션 레코드 수집 및 분리 (최소 N개 분모 구성, 실패/탈락 시도 포함).\n2. 기존 VERSION 기반 호환성 판정 방식과 신규 GAZE_FEATURES 기반 방식을 동일 데이터셋에 대조 적용하여 시선 그림자(shadow) 모델 활성화 프레임 비중(활용률) 비교.\n3. 활성화된 프레임 영역에서 수집된 시선 추정 잔차(오차 범위) 및 화면 외곽/보정 오차 추이 산출.\n4. 정상값 임의 생성 없이, 관측 거부/제외 기준에 해당하는 프레임 비율 및 불확실성 지표 기록.",
+            "prompt": "[작업 지시: 시선 특징 버전 분리 검증 및 세션 활용률·오차 평가]\n\n1. 현재 코드 확인:\n   - `newbiz-core.js` 내 `GAZE_FEATURES` 정의 및 API 내보내기, `condition.html`의 `NLGazeModel.freeze` 전달 인자를 확인하십시오.\n   - `models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2` 패키징 사양 및 `model-registry.json` 매핑 구성을 점검하십시오.\n\n2. 후속 개발 및 검증 과제:\n   - 엔진 버전 변화와 시선 모델 로드 여부의 독립성을 확인하는 회귀 테스트 코드를 작성하십시오.\n   - dataset에 보관된 사용자 세션 기록(참가자, 웹캠 모델, 촬영 환경별 분리)을 연결하여 `GAZE_FEATURES` 호환 검사를 수행하십시오.\n   - 부분적으로 유효한 약한 시선 신호 프레임의 활용량(전체 분모 대비 활성화 비율)과 이때 발생하는 추정 오차/불확실성을 동시에 측정하십시오.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 심박/판정 로직 수정으로 인한 core VERSION 상승 시에도 `GAZE_FEATURES`가 동일한 경우 시선 그림자 모델이 정상 차출되어 평가 프레임 활용률이 저하되지 않아야 함.\n   - 회귀 기준: `GAZE_FEATURES` 판정 오작동으로 인한 모델 로드 실패, 또는 약한 신호의 과도한 포함으로 인한 편향/오차 폭증 발생 시 회귀로 판단.\n\n4. 결과 보고 양식:\n   - 참가자/기기/날짜별 분모(전체 프레임 수 및 시도 수), 실패 시도 포함 건수\n   - 조건별 활용률(%)-오차(px 또는 화면 비율 기준, 허용 오차 명시)\n   - 데이터셋 메모 연동 결과 (실측 수치 임의 작성 금지, 데이터셋 연동 관측 사실과 연구자 가설 구별 명시)\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 2dca687950aba2e34c916ad89469dc5138c675e7\nDataset-Task: evo-2dca687950ab-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-2dca687950ab-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "엔진 버전 분리 환경에서의 심박(BVP) 신호 추출 파이프라인 및 약한 신호 회복률 검증",
+            "rationale": "`newbiz-core.js` 주석에 명시된 심박 관련 로직 변경(2.5 버전 압박 상승 recoveryNA 판정, 2.1~2.2 고조파 피크 선택, 1.9 BVP 창 탈락 진단 등)은 시선 모델 분리와 별개로 심박 측정 파이프라인의 정확도 및 활용률에 직접적인 영향을 미칩니다. 시선 특징 버전 분리로 인해 심박 측정 로직 수정 시 시선 모델에 미치는 부작용은 차단되었으나, 심박 신호 추출 시 약한 BVP 신호 회복 알고리즘이 신호 대 잡음비(SNR) 조건별로 정밀하게 동작하는지 독립적 검증이 필요합니다.",
+            "validationPlan": "1. dataset 내 다양한 조명 및 움직임 조건의 심박 측정 세션 수집 (참가자/기기/촬영 환경 분리).\n2. HR_BAND([0.7, 3.0] Hz) 및 SNR 품질 기준(SNR_GOOD=3, SNR_FAIR=-2) 적용 시 약한 신호 구간의 BVP 창 탈락/보간 비율 및 recoveryNA 발생 빈도 측정.\n3. 기준 센서가 없는 환경임을 명시하고, 자체 신호 파형 연속성, 고조파 피크 명확도, 세션 내 심박 추세 안정성 지표를 통해 활용률과 측정 불확실성을 함께 산출.\n4. 임의의 심박 정답값(bpm)을 생성하거나 정상값으로 채우지 않고 관측 사실과 품질 미달 제외 기준 데이터를 투명하게 수집.",
+            "prompt": "[작업 지시: 심박 파이프라인 약한 신호 회복 및 BVP 품질 평가]\n\n1. 현재 코드 확인:\n   - `newbiz-core.js` 내 심박 관련 상수 (`HR_BAND`, `SNR_GOOD`, `SNR_FAIR`, `THRESH`) 및 BVP Window 처리 함수(`hrWindows`, `phaseHr`, `repairPhase`, `measureEvidence` 등)를 확인하십시오.\n   - 주석에 기재된 recoveryNA 조건 및 BVP 창 보간/탈락 판정부의 정밀성을 점검하십시오.\n\n2. 후속 개발 및 검증 과제:\n   - 웹캠 기반 노이즈 환경에서 BVP 약한 신호를 회복하는 알고리즘의 유효성을 평가하는 파이프라인을 구축하십시오.\n   - dataset의 심박 측정 세션 기록과 연동하여 SNR 수준별(GOOD, FAIR, POOR) BVP 창 활용률과 심박 계산 성공률/불확실성 범위를 산출하십시오.\n   - 약한 신호 회복 시도 시 발생하는 오탐(False Positive) 파형 및 recoveryNA 처리 건수를 분류하십시오.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 노이즈 구간에서 신호 완전 폐기를 줄이고 유효 약한 신호의 활용량을 유지하면서, 신뢰할 수 없는 구간은 recoveryNA 또는 탈락 진단으로 올바르게 격리함.\n   - 회귀 기준: 신호 회복 로직이 허용 오차를 초과하는 비정상 고조파 피크를 유도하거나, SNR 기준 미달 프레임을 정상 신호로 오판하는 비율 증가.\n\n4. 결과 보고 양식:\n   - 검증 세션 분모 (참가자 수, 기기 종류, 측정 환경, 전체 프레임/창 개수)\n   - SNR 조건별 신호 활용률(%) 및 품질 미달 제외 비율\n   - dataset 연동 관측 사실, 회복률 지표, 불확실성 평가 결과 (독립 정답이나 임의 수치 조작 금지)\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 2dca687950aba2e34c916ad89469dc5138c675e7\nDataset-Task: evo-2dca687950ab-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "6b728d543bec89fddc396f2706632000045d2d30fa1c916346022759d7bba2d9",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 2463,
+            "candidatesTokenCount": 2294,
+            "totalTokenCount": 6984
+          }
+        },
+        "generatedAt": "2026-10-10T13:45:53.826718+00:00",
+        "sourceSha": "2dca687950aba2e34c916ad89469dc5138c675e7",
+        "sourceEvidence": {
+          "sha": "2dca687950aba2e34c916ad89469dc5138c675e7",
+          "parents": [
+            "248f33c03fca036778678ecad91e9b1a86a722db"
+          ],
+          "committedAt": "2026-10-10T13:44:58Z",
+          "subject": "시선 그림자 모델: 엔진 버전 대신 특징 버전으로 호환 판정, 같은 model.onnx 로 shadow 재패키지(-r2)",
+          "url": "https://github.com/jeebs0627/neurolens/commit/2dca687950aba2e34c916ad89469dc5138c675e7",
+          "files": [
+            {
+              "path": "condition-gaze-model.js",
+              "status": "modified",
+              "additions": 4,
+              "deletions": 1
+            },
+            {
+              "path": "condition-gaze-model.test.cjs",
+              "status": "modified",
+              "additions": 12,
+              "deletions": 0
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "model-registry.json",
+              "status": "modified",
+              "additions": 18,
+              "deletions": 8
+            },
+            {
+              "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2/MODEL_CARD.md",
+              "status": "added",
+              "additions": 151,
+              "deletions": 0
+            },
+            {
+              "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2/manifest.json",
+              "status": "added",
+              "additions": 1423,
+              "deletions": 0
+            },
+            {
+              "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2/model.onnx",
+              "status": "added",
+              "additions": 0,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 4,
+              "deletions": 1
+            },
+            {
+              "path": "tools/colab/nlcolab/release.py",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "tools/colab/nlcolab/schema.py",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/tests/test_pipeline.py",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -2302,7 +2302,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   S.telemetry={clock:{...NLLabels.clockInfo(window),start:S.startedAt,onset:'requestAnimationFrame-before-paint',segments:[]},steps:{},stimuli:[],inputs:[],drift:[],layout:[],calibrationFrames:[]};\n   S.calibRound=0;S.calibDigests=null;S.gazeLabels=null;\n   /* 전역 시선 모델은 검사 시작 시점에 고정한다(세션 중 교체 없음). 로드 실패·호환 불가면 기존 엔진만 쓴다 */\n-  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});\n+  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,features:N.GAZE_FEATURES,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});\n   clockSegment('session-start',{gazeModel:S.gazeModel?.mode||'off'});\n   if(S.researchConsent){referenceCollector.start();datasetCheckpoint().catch(console.warn);S.datasetTimer=setInterval(()=>datasetCheckpoint().catch(console.warn),20000);}\n   chooseForm(S.mode);\nFILE newbiz-core.js\n@@ -14,6 +14,9 @@\n   'use strict';\n \n   const VERSION = 'In_mind core 2.6';   // 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  /* 시선 모델 입력 특징 버전: faceFeatures(u·v 눈꼬리 기준 등)·predictGaze·fitAffine 기본값이 baseX…eyeMode 의 뜻을 바꿀 때만 올린다.\n+   * 학습 모델 manifest.supports.features 와 비교한다 — 엔진 버전(VERSION)은 심박·판정 변경에도 올라가 모델이 이유 없이 꺼졌다(core 2.4~2.6). 2.3: 홍채 세로 기준 눈꼬리 축 */\n+  const GAZE_FEATURES = 'gaze-features-2.3';\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -1135,7 +1138,7 @@\n   }\n \n   const api = {\n-    VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,\n+    VERSION, GAZE_FEATURES, THRESH, LM, PROFILES, CARE, Signal, chrom,\n     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,\n     buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,\n     faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38056916190"
+      }
+    },
+    {
       "sha": "bf0bed1b913e6172152db568e90f0778a88636b1",
       "parents": [
         "7b417a5ba9336e4799e063b330fc88c7abadcbcd"
@@ -405,7 +656,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-56039764805",
@@ -437,7 +688,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-10T09:04:32.313918+00:00",
+      "lastAttemptAt": "2026-10-10T13:45:53.868900+00:00",
       "analysisError": "HTTP_503",
       "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
@@ -15894,9 +16145,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "92322ad7c9b6a35b36ac28dd704cbada55877d89"
+    "sourceHead": "2dca687950aba2e34c916ad89469dc5138c675e7"
   },
-  "updatedAt": "2026-10-10T13:30:28.130100+00:00",
-  "aiCooldownUntil": "2026-10-10T13:34:50.308969+00:00",
+  "updatedAt": "2026-10-10T13:46:05.067918+00:00",
+  "aiCooldownUntil": "2026-10-10T13:51:03.694903+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
