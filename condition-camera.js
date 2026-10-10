@@ -6,7 +6,11 @@
     constructor(video,opt){
       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;
       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});
-      this.info={version:'condition-camera-6',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
+      /* canvasInput(휴대폰): 얼굴 인식에도 피부색 표본과 같은 캔버스 프레임을 넣는다. 영상 요소를 그대로 넣으면 브라우저가 그 영상을
+       * 그리는 방식(회전·잘림)과 인식기가 읽는 프레임이 어긋날 수 있다. 화면 미리보기도 이 캔버스(frame)를 그리므로
+       * 인식·피부 영역·미리보기가 한 프레임, 한 좌표계를 공유한다 (세로·가로 방향과 무관) */
+      this.forceCanvas=!!opt.canvasInput;this.frame=this.canvas;
+      this.info={version:'condition-camera-7',backend:'initializing',input:this.forceCanvas?'canvas':'video',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};
     }
     async init(){
       /* 기본은 주 스레드 GPU 추론(동영상 프레임마다 직접 추론). 워커 경로는 기기에 따라 초당 7회 수준까지 떨어져
@@ -83,7 +87,7 @@
       /* 피부색(심박) 표본은 카메라 원래 해상도(최대 640)에서 잰다: 320으로 줄여 그리면 4화소 평균이 다시 8비트로 반올림되어
        * 맥파(밝기 0.2~0.5 단계)에 양자화 잡음이 더해지고, 피부·비피부 경계 화소도 섞인다. 읽는 것은 피부 영역 상자뿐이라 비용은 작다 */
       const w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
-      if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}
+      if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;this.info.frame={w,h};}
       this.ctx.drawImage(this.video,0,0,w,h);
       const age=this.geometry?t-this.geometry.t:Infinity;
       /* 얼굴 위치(랜드마크)가 조금 묵어도(≤600ms) 피부 영역은 거의 그대로이므로 버리지 않고 나이만큼 품질을 낮춘다 */
@@ -100,7 +104,7 @@
       if(this.worker){
         this.busy=true;this.pending={fr,context};
         this.watchdog=setTimeout(()=>this.fallback('inference-timeout'),this.info.inferred ? 2500 : 10000);
-        createImageBitmap(this.video).then(bitmap=>{
+        createImageBitmap(this.forceCanvas?this.canvas:this.video).then(bitmap=>{
           if(!this.worker||this.stopped||this.pending?.fr!==fr){bitmap.close();return;}
           this.worker.postMessage({type:'frame',t,bitmap},[bitmap]);
         }).catch(e=>this.fallback(String(e.message||e)));
@@ -119,11 +123,11 @@
         try{
           const g0=NLSignal.exposureGain(this.ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20;
           let result;
-          if(gain>1.05||this.forceCanvas){
-            const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);
+          if(gain>1.05){
+            const c=this.inferCanvas,ctx=this.inferCtx,w=this.canvas.width,h=this.canvas.height;
             if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
-            ctx.drawImage(this.video,0,0,w,h);NLSignal.enhance(ctx,gain);result=this.detector.detectForVideo(c,t);
-          } else result=this.detector.detectForVideo(this.video,t);
+            ctx.drawImage(this.canvas,0,0);NLSignal.enhance(ctx,gain);result=this.detector.detectForVideo(c,t);
+          } else result=this.detector.detectForVideo(this.forceCanvas?this.canvas:this.video,t);   // 캔버스 입력: 방금 그린 표본 프레임 그대로(복사 추가 없음)
           const lm=result.faceLandmarks?.[0];
           if(lm)this.noFace=0;else if(this.opt.autoRecover&&(this.noFace=(this.noFace||0)+1)>=30)this.recover();
           const eyes=lm?{left:NLSignal.eyeQuality(this.ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(this.ctx,lm,[33,133,159,145])}:null;

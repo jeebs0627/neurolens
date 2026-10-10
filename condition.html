@@ -138,8 +138,7 @@ h3{font-size:16px;margin:0 0 8px}
 /* 카메라 준비 */
 .setup{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:start}
 .preview{position:relative;border-radius:16px;overflow:hidden;background:#0E1A33;aspect-ratio:4/3}
-.preview video,.preview canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-.preview canvas{z-index:1}   /* iOS Safari: 재생 중인 video 레이어가 뒤 형제(기준선 캔버스)를 덮지 않게 */
+.preview canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}   /* 영상과 기준선을 한 캔버스에 그린다(거울 보기) */
 .checks{list-style:none;padding:0;margin:0 0 6px}
 .checks li{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}
 .checks li b{font-family:var(--font-num);font-weight:600}
@@ -1200,7 +1199,7 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
     <p class="lead">다섯 가지 항목이 모두 초록색이 되면 측정 품질이 가장 좋아요. 측정은 전체 화면으로 진행되며, 단계마다 안내를 읽고 직접 시작합니다.</p>
     <div class="setup">
       <div>
-        <div class="preview"><video id="camPreview" playsinline muted></video><canvas id="overlay"></canvas><div class="guide-msg" id="guideMsg" hidden></div></div>
+        <div class="preview"><canvas id="overlay"></canvas><div class="guide-msg" id="guideMsg" hidden></div></div>
         <div class="dist" id="distBox" hidden aria-hidden="true"><span>멀리</span><div class="dist-bar"><i></i><b id="distMark"></b></div><span>가까이</span></div>
         <p class="small muted" style="margin:8px 2px 0">초록 점(내 눈동자)을 <b>흰 동그라미 두 개</b>에 맞추면 위치와 거리가 함께 맞아요 · 점선 타원 안에 얼굴 전체 · 분홍 상자: 심박을 읽는 피부 영역</p>
       </div>
@@ -1586,7 +1585,7 @@ $('goSetup').addEventListener('click', () => {
 });
 
 /* ---------- 카메라 + MediaPipe ---------- */
-const procVideo = $('camProc'), prevVideo = $('camPreview');
+const procVideo = $('camProc');
 const cameraOrientation = matchMedia('(orientation: portrait)');
 function cameraSize() {
   const portrait = MOBILE && cameraOrientation.matches;
@@ -1638,16 +1637,15 @@ $('camStart').addEventListener('click', async () => {
       S.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
     }
     phase = 'video';
-    procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;
+    procVideo.srcObject = S.stream;
     procVideo.classList.add('on');
-    await Promise.all([procVideo.play(), prevVideo.play()]);
-    fitPreview(); prevVideo.onresize = fitPreview;   // 휴대폰 회전 시 영상 비율이 바뀐다
+    await procVideo.play();
     /* 기준선·눈동자 목표·거리 안내는 영상이 나오자마자 그린다. 얼굴 인식 모델(휴대폰에서 10초 이상)을 기다리면
      * 그동안 안내 없는 카메라 화면만 보여 거리·자세를 잡을 수 없었다 */
     if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }
     phase = 'model';
     S.camera = new NLCamera(procVideo, {
-      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: takeLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
+      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, canvasInput: MOBILE, loadFallback: takeLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',
       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },
       onResult: processResult,
       onError(e) {
@@ -1655,7 +1653,7 @@ $('camStart').addEventListener('click', async () => {
         if (S.camera?.info.backend === 'unavailable') { $('camStart').disabled = false; $('camStart').hidden = false; }
       }
     });
-    await S.camera.init(); S.camT0 = now(); S.featMiss = 0; clockSegment('camera-init', { backend: S.camera.info.backend });
+    await S.camera.init(); S.camT0 = now(); S.featMiss = 0; clockSegment('camera-init', { backend: S.camera.info.backend, input: S.camera.info.input });
     st.textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';
     startLoop();
   } catch (e) {
@@ -1757,18 +1755,36 @@ function pushFrame(fr) {
 function startLoop() { S.camera.start(); }
 window.addEventListener('pagehide', () => { if(S.datasetTimer)datasetCheckpoint().catch(()=>{});referenceCollector.disconnect();S.supportWorker?.terminate(); S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });
 
+/* 준비 화면 미리보기: 얼굴 인식·피부색 표본이 실제로 읽은 그 프레임(S.camera.frame)을 캔버스에 직접 그리고, 같은 변환으로
+ * 랜드마크·홍채·피부 영역을 겹친다. ① 일부 휴대폰 인앱 브라우저(실측 카카오톡)는 <video> 를 하드웨어 오버레이로 그리며 CSS 좌우 반전·맞춤을
+ * 따르지 않아 점·상자가 거울상으로 어긋났다(사용자 화면 00001~00003). ② 휴대폰 세로 모드에서는 브라우저가 영상을 그리는 방향·비율과
+ * 인식기가 받는 프레임이 달라 점·상자가 얼굴에서 비켜났다(실측: 세로로 들어도 영상은 640×480). 휴대폰은 인식기에도 이 프레임을
+ * 넣으므로(canvasInput) 인식·피부 영역·미리보기가 한 프레임·한 좌표계를 공유해 세로·가로 어느 방향이든 정의상 일치한다 */
+function previewFrame() {
+  const c = S.camera?.frame;
+  if (c && c.width > 0 && S.camera.info.captured > 0) return { src: c, w: c.width, h: c.height };
+  return procVideo.readyState >= 2 && procVideo.videoWidth > 0 ? { src: procVideo, w: procVideo.videoWidth, h: procVideo.videoHeight } : null;   // 인식기 준비 전: 같은 스트림
+}
+/* 프레임을 W×H 칸에 비율을 지켜 채운다(가운데 기준 cover — 찌그러뜨리지 않는다). 칸은 fitPreview 가 프레임 비율에 맞추므로 보통 잘림이 없다 */
+function frameBox(fw, fh, W, H) {
+  const s = Math.max(W / fw, H / fh), w = fw * s, h = fh * s;
+  return { x: (W - w) / 2, y: (H - h) / 2, w, h };
+}
 function drawOverlay() {
   const cv = $('overlay'), ctx = cv.getContext('2d');
+  let fitAr = 0;
   const draw = () => {
     if ($('sSetup').hidden) { requestAnimationFrame(draw); return; }
-    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
-    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    const fr = previewFrame();
+    if (fr && Math.abs(fr.w / fr.h - fitAr) > 1e-3) { fitAr = fr.w / fr.h; fitPreview(fitAr); }   // 휴대폰 회전 시 영상 비율이 바뀐다
+    const cw = cv.clientWidth, chh = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
+    if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(chh * dpr)) { cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    /* 카메라 영상을 가이드와 같은 캔버스에 직접 그린다: 일부 휴대폰 인앱 브라우저(실측 카카오톡)는 <video> 를 하드웨어 오버레이로 그리며
-     * CSS 좌우 반전·맞춤을 따르지 않아, 눈동자 점·피부 영역 상자가 실제 얼굴과 거울상으로 어긋났다(사용자 화면 00001~00003).
-     * 같은 캔버스·같은 좌표·같은 반전으로 그리면 브라우저와 무관하게 겹친다. <video> 는 그 아래에 남아 영상이 아직 없을 때만 보인다 */
-    if (procVideo.readyState >= 2 && procVideo.videoWidth) ctx.drawImage(procVideo, 0, 0, W, H);
+    ctx.clearRect(0, 0, cw, chh);
+    /* 아래 그리기는 모두 프레임 좌표: (0,0)~(W,H) = 프레임 상자 b */
+    const b = fr ? frameBox(fr.w, fr.h, cw, chh) : { x: 0, y: 0, w: cw, h: chh }, W = b.w, H = b.h;
+    ctx.translate(b.x, b.y);
+    if (fr) ctx.drawImage(fr.src, 0, 0, W, H);
     /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭).
      * 밝은 배경·작은 휴대폰 화면에서도 보이게 어두운 그림자를 깔고 휴대폰에서는 선을 굵게 */
     const pos = posCheck(), okc = pos && pos.ok, lw = MOBILE ? 1.6 : 1;
@@ -1824,14 +1840,14 @@ const POS = { cy: 0.48, rx: 0.17, ry: 0.32, tol: 0.08, fwMin: 0.17, fwMax: 0.38 
 /* 눈동자 목표용 얼굴 비율(얼굴 폭 대비): 두 눈동자 간격, 얼굴 중심에서 눈 높이까지(위가 −). 인식된 얼굴로 갱신 */
 const EYE = { sep: 0.45, dy: -0.15 };
 const videoAspect = (video = procVideo) => (video.videoWidth > 0 && video.videoHeight > 0) ? video.videoWidth / video.videoHeight : 4 / 3;
-/* 미리보기 칸을 실제 영상 비율에 맞춘다: 잘림(object-fit:cover)이 없어야 기준선·홍채·피부 영역이 얼굴 위에 정확히 겹친다 */
-function fitPreview() {
-  const ar = videoAspect(prevVideo), pv = prevVideo.parentElement;
+/* 미리보기 칸을 프레임 비율에 맞춘다: 잘림 없이 프레임 전체가 보이게 (정렬 자체는 frameBox 가 칸 비율과 무관하게 보장) */
+function fitPreview(ar) {
+  const pv = $('overlay').parentElement;
   /* 휴대폰 가로: 화면 높이 전체(카드 여백·거리 막대 72px 제외)를 쓰도록 — 이전 62vh 제한이면 798×339 화면에서 280×210 으로 작았다 */
   const land = MOBILE && innerWidth > innerHeight;
   pv.style.aspectRatio = String(ar); pv.style.maxWidth = MOBILE ? `calc(${land ? '(100vh - 72px)' : '62vh'} * ${ar.toFixed(3)})` : ''; pv.style.margin = '0 auto';
 }
-if (MOBILE) addEventListener('resize', () => { if (prevVideo.videoWidth) fitPreview(); });
+if (MOBILE) addEventListener('resize', () => { const fr = previewFrame(); if (fr) fitPreview(fr.w / fr.h); });
 function posCheck() {
   const f = S.feat;
   if (!f || now() - S.lastFace > 500) return null;
