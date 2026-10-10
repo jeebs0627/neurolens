@@ -2302,7 +2302,11 @@ async function runSession() {
   S.telemetry={clock:{...NLLabels.clockInfo(window),start:S.startedAt,onset:'requestAnimationFrame-before-paint',segments:[]},steps:{},stimuli:[],inputs:[],drift:[],layout:[],calibrationFrames:[]};
   S.calibRound=0;S.calibDigests=null;S.gazeLabels=null;
   /* 전역 시선 모델은 검사 시작 시점에 고정한다(세션 중 교체 없음). 로드 실패·호환 불가면 기존 엔진만 쓴다 */
-  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,features:N.GAZE_FEATURES,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});
+  /* 그림자 모델 로드(ONNX 런타임 내려받기 포함)는 실측 4초 이상 걸려 검사 시작을 붙잡았다. 1.5초 안에 끝나면 그대로 쓰고, 늦으면 검사를 먼저 시작하고
+   * 그림자(기록만 함)일 때만 도착 즉시 붙인다. 늦게 온 active 는 세션 중 측정 좌표가 바뀌므로 붙이지 않는다(fail-closed) */
+  const gmP=NLGazeModel.freeze({core:N.VERSION,features:N.GAZE_FEATURES,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});
+  S.gazeModel=await Promise.race([gmP,new Promise(r=>setTimeout(()=>r(null),1500))])||{mode:'off',reason:'loading'};
+  if(S.gazeModel.reason==='loading'){const attempt=S.attemptId;gmP.then(gm=>{if(S.attemptId!==attempt)return;S.gazeModel=gm.mode==='shadow'?gm:{...gm,mode:'off',reason:gm.mode==='active'?'active-loaded-after-start':gm.reason};clockSegment('gaze-model-ready',{gazeModel:S.gazeModel.mode});});}
   clockSegment('session-start',{gazeModel:S.gazeModel?.mode||'off'});
   if(S.researchConsent){referenceCollector.start();datasetCheckpoint().catch(console.warn);S.datasetTimer=setInterval(()=>datasetCheckpoint().catch(console.warn),20000);}
   chooseForm(S.mode);
