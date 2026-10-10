@@ -31,16 +31,16 @@
         {
           "id": "evo-5960bf9216e4-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-5960bf9216e4-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 5960bf9216e43f76b66d64c2f563cf4ef95c3242\n변경 제목: 시선 그림자 모델 로드가 검사 시작을 붙잡지 않게: 1.5초 넘으면 먼저 시작하고 그림자만 도착 시 연결\n관련 파일: condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-5960bf9216e4-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 모델 비동기 로딩 타임아웃 및 지연 바인딩의 신호 활용률과 오차 영향 검증",
+          "rationale": "관측된 변경은 condition.html에서 NLGazeModel.freeze() 호출에 1.5초 타임아웃을 적용하고, shadow 모델의 지연 수집 및 late-loaded active 모델의 fail-closed 전환을 도입한 것이다. 이는 모델 로드 지연으로 인한 검사 진입 블로킹을 줄이려는 연구자의 가설에 기반하나, 1.5초 경과 후 검사가 시작됨에 따라 세션 초기 프레임의 telemetry 신호 유실, shadow 데이터 결합 완전성, 비동기 attemptId 불일치에 따른 영향은 검증이 필요하다. 또한 실제 수집 신호의 오차 및 측정 성공률에 대한 실측 근거가 제시되지 않았으므로 후속 검증이 필수적이다.",
+          "validationPlan": "1. 회귀 검증: attemptId 검사를 통해 이전 세션의 지연 로드 Promise가 신규 세션 상태를 오염시키지 않는지 비동기 경동(Race Condition) 단위 테스트를 수행한다.\n2. 실측 dataset 연동: 제공된 자료에 없는 실측 성능 수치를 임의 작성하지 않고, dataset 내 연구 메모 및 관측 레코드를 연결하여 참가자(participant), 기기(device), 날짜(date) 조건별로 분리 평가한다.\n3. 분모 및 활용률 평가: 전체 검사 시도 건수(분모) 대비 1.5초 이내 로드 성공, shadow 지연 연결, active-loaded-after-start에 의한 off 전환, 완전 로드 실패 비율을 집계하고, 검사 초반부 약한 신호(weak signal)의 유실량과 회복 수율을 측정한다.\n4. 오차 및 불확실성 평가: 타임아웃 적용 전후 및 지연 연결 세션에서의 측정 좌표 오차 분포와 불확실성을 측정하되, 자체 테스트 결과이므로 임상 진단 정확도나 독립 정답으로 표현하지 않는다.",
+          "prompt": "당신은 NeuroLens 측정 알고리즘 연구 개발 AI이다. 최근 condition.html에서 시선 모델 로딩 시 1.5초 타임아웃(Promise.race)을 두고, 지연 로드된 shadow 모델만 조건부 후속 바인딩하며 late active 모델은 fail-closed(off) 처리하는 코드 변경이 반영되었다.\n\n[현재 코드 및 환경 확인]\n1. condition.html 내 Promise.race, attemptId 비교 가드, clockSegment('gaze-model-ready') 처리 로직을 점검하라.\n2. 타임아웃 발생 시 S.gazeModel이 {mode:'off', reason:'loading'}으로 시작되는 흐름 및 shadow 모델 도착 시의 후속 업데이트 구성을 확인하라.\n\n[개발 및 검증 과제]\n1. 비동기 처리 안정성 보강:\n   - attemptId 불일치 상태에서 지연 로드 완료 시 메모리 누수나 전역 상태 오염이 없는지 점검하고, fail-closed(active-loaded-after-start) 전환 시 telemetry 기록을 명확히 하라.\n2. 부분 유효 신호 활용량 및 오차 평가:\n   - 검사 시작 후 shadow 모델이 뒤늦게 연결되는 동안 발생한 초반 약한 신호(weak signal)의 유실 비율을 평가하고, 유효 신호 수집량을 최대화하는 방안을 검토하라.\n   - 타임아웃 미발생 세션과 지연 바인딩 세션 간의 측정 성공률, 신호 활용률, 추정 오차(불확실성)를 비교 평가하라.\n\n[성공 및 회귀 기준]\n- 회귀 기준: 세션 재시도(attemptId 변경) 발생 시 이전 세션의 지연 로드 객체가 신규 세션의 S.gazeModel을 덮어쓰는 현상이 0건이어야 한다.\n- 성공 기준: 모델 다운로드 지연 시에도 검사 진입이 차단되지 않아야 하며, 지연 연결된 shadow 레코드의 세션 매핑 정확도가 100%여야 한다. active 모델 지연 시 active-loaded-after-start 사유로 정밀 차단되어야 한다.\n\n[실측 dataset 연결 및 평가 요구사항]\n- 본 지시문이나 커밋 변경사항에는 실측 수치가 존재하지 않는다. dataset의 메모와 관측 기록을 연결하여 판단하고, 없는 성능 수치를 지어내지 마라.\n- 참가자(participant), 기기(device), 날짜(date)별로 분리하여 총 시도 수(분모), 타임아웃 발생률, 미수집 신호 비율, 측정 오차를 집계하라.\n- 자체/합성 테스트 결과를 임상 진단 정확도나 독립적인 정답으로 표현하지 마라.\n\n[결과 보고 양식]\n1. 코드 변경점 및 비동기 안전성 분석\n2. dataset 연동 평가 (참가자/기기/날짜별 분모, 타임아웃 비율, 신호 활용률, 오차 및 불확실성)\n3. 회귀 및 성공 기준 달성 여부\n4. 후속 개선 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 5960bf9216e43f76b66d64c2f563cf4ef95c3242\nDataset-Task: evo-5960bf9216e4-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "generated",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-56051310935",
@@ -50,8 +50,86 @@
           "at": "2026-10-10T13:49:09Z",
           "url": "https://vercel.com/ax-open-lab/neurolens/Da1yT4keNhkUvCNwGUn4eRJ5edGf",
           "source": "github-commit-status"
+        },
+        {
+          "key": "check-56051369065",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-10T13:51:19Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/Da1yT4keNhkUvCNwGUn4eRJ5edGf",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-6981792986-19567356315",
+          "type": "deployment",
+          "deploymentId": 6981792986,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-10T13:51:20Z",
+          "url": "https://neurolens-pae1apuos-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-10T13:51:45.958559+00:00",
+      "analysis": {
+        "summary": "condition.html 파일에서 NLGazeModel.freeze() 모델 로딩 로직에 Promise.race를 이용한 1.5초 타임아웃이 추가된 변경사항이 관측되었다. 1.5초 내 로딩이 완료되지 않으면 {mode:'off', reason:'loading'} 상태로 검사를 먼저 시작하고, 지연 완료 시 shadow 모드 모델에 한해 후속 연결하며, active 모드 모델이 뒤늦게 완료된 경우 세션 중간 좌표 변동을 막기 위해 mode:'off', reason:'active-loaded-after-start'로 fail-closed 처리한다. 연구자 주장에 따르면 ONNX 런타임 다운로드 등에 4초 이상 소요되어 검사 시작이 지연되는 문제를 해결하고자 하나, 실제 타임아웃 발생 비율, 초반 원시 신호 유실 여부, 측정 오차 및 세션 성공률 변화에 대한 검증 데이터는 포함되어 있지 않다.",
+        "tasks": [
+          {
+            "id": "evo-5960bf9216e4-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 모델 비동기 로딩 타임아웃 및 지연 바인딩의 신호 활용률과 오차 영향 검증",
+            "rationale": "관측된 변경은 condition.html에서 NLGazeModel.freeze() 호출에 1.5초 타임아웃을 적용하고, shadow 모델의 지연 수집 및 late-loaded active 모델의 fail-closed 전환을 도입한 것이다. 이는 모델 로드 지연으로 인한 검사 진입 블로킹을 줄이려는 연구자의 가설에 기반하나, 1.5초 경과 후 검사가 시작됨에 따라 세션 초기 프레임의 telemetry 신호 유실, shadow 데이터 결합 완전성, 비동기 attemptId 불일치에 따른 영향은 검증이 필요하다. 또한 실제 수집 신호의 오차 및 측정 성공률에 대한 실측 근거가 제시되지 않았으므로 후속 검증이 필수적이다.",
+            "validationPlan": "1. 회귀 검증: attemptId 검사를 통해 이전 세션의 지연 로드 Promise가 신규 세션 상태를 오염시키지 않는지 비동기 경동(Race Condition) 단위 테스트를 수행한다.\n2. 실측 dataset 연동: 제공된 자료에 없는 실측 성능 수치를 임의 작성하지 않고, dataset 내 연구 메모 및 관측 레코드를 연결하여 참가자(participant), 기기(device), 날짜(date) 조건별로 분리 평가한다.\n3. 분모 및 활용률 평가: 전체 검사 시도 건수(분모) 대비 1.5초 이내 로드 성공, shadow 지연 연결, active-loaded-after-start에 의한 off 전환, 완전 로드 실패 비율을 집계하고, 검사 초반부 약한 신호(weak signal)의 유실량과 회복 수율을 측정한다.\n4. 오차 및 불확실성 평가: 타임아웃 적용 전후 및 지연 연결 세션에서의 측정 좌표 오차 분포와 불확실성을 측정하되, 자체 테스트 결과이므로 임상 진단 정확도나 독립 정답으로 표현하지 않는다.",
+            "prompt": "당신은 NeuroLens 측정 알고리즘 연구 개발 AI이다. 최근 condition.html에서 시선 모델 로딩 시 1.5초 타임아웃(Promise.race)을 두고, 지연 로드된 shadow 모델만 조건부 후속 바인딩하며 late active 모델은 fail-closed(off) 처리하는 코드 변경이 반영되었다.\n\n[현재 코드 및 환경 확인]\n1. condition.html 내 Promise.race, attemptId 비교 가드, clockSegment('gaze-model-ready') 처리 로직을 점검하라.\n2. 타임아웃 발생 시 S.gazeModel이 {mode:'off', reason:'loading'}으로 시작되는 흐름 및 shadow 모델 도착 시의 후속 업데이트 구성을 확인하라.\n\n[개발 및 검증 과제]\n1. 비동기 처리 안정성 보강:\n   - attemptId 불일치 상태에서 지연 로드 완료 시 메모리 누수나 전역 상태 오염이 없는지 점검하고, fail-closed(active-loaded-after-start) 전환 시 telemetry 기록을 명확히 하라.\n2. 부분 유효 신호 활용량 및 오차 평가:\n   - 검사 시작 후 shadow 모델이 뒤늦게 연결되는 동안 발생한 초반 약한 신호(weak signal)의 유실 비율을 평가하고, 유효 신호 수집량을 최대화하는 방안을 검토하라.\n   - 타임아웃 미발생 세션과 지연 바인딩 세션 간의 측정 성공률, 신호 활용률, 추정 오차(불확실성)를 비교 평가하라.\n\n[성공 및 회귀 기준]\n- 회귀 기준: 세션 재시도(attemptId 변경) 발생 시 이전 세션의 지연 로드 객체가 신규 세션의 S.gazeModel을 덮어쓰는 현상이 0건이어야 한다.\n- 성공 기준: 모델 다운로드 지연 시에도 검사 진입이 차단되지 않아야 하며, 지연 연결된 shadow 레코드의 세션 매핑 정확도가 100%여야 한다. active 모델 지연 시 active-loaded-after-start 사유로 정밀 차단되어야 한다.\n\n[실측 dataset 연결 및 평가 요구사항]\n- 본 지시문이나 커밋 변경사항에는 실측 수치가 존재하지 않는다. dataset의 메모와 관측 기록을 연결하여 판단하고, 없는 성능 수치를 지어내지 마라.\n- 참가자(participant), 기기(device), 날짜(date)별로 분리하여 총 시도 수(분모), 타임아웃 발생률, 미수집 신호 비율, 측정 오차를 집계하라.\n- 자체/합성 테스트 결과를 임상 진단 정확도나 독립적인 정답으로 표현하지 마라.\n\n[결과 보고 양식]\n1. 코드 변경점 및 비동기 안전성 분석\n2. dataset 연동 평가 (참가자/기기/날짜별 분모, 타임아웃 비율, 신호 활용률, 오차 및 불확실성)\n3. 회귀 및 성공 기준 달성 여부\n4. 후속 개선 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 5960bf9216e43f76b66d64c2f563cf4ef95c3242\nDataset-Task: evo-5960bf9216e4-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "3fa2d254952f82595b5952e50cab674488d5fb05d629a82d60a2cac4b6fe3c2a",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 1455,
+            "candidatesTokenCount": 1422,
+            "totalTokenCount": 5343
+          }
+        },
+        "generatedAt": "2026-10-10T13:52:14.783349+00:00",
+        "sourceSha": "5960bf9216e43f76b66d64c2f563cf4ef95c3242",
+        "sourceEvidence": {
+          "sha": "5960bf9216e43f76b66d64c2f563cf4ef95c3242",
+          "parents": [
+            "7034ee3382a12cefcdc226b7dda88f992bc3f564"
+          ],
+          "committedAt": "2026-10-10T13:49:06Z",
+          "subject": "시선 그림자 모델 로드가 검사 시작을 붙잡지 않게: 1.5초 넘으면 먼저 시작하고 그림자만 도착 시 연결",
+          "url": "https://github.com/jeebs0627/neurolens/commit/5960bf9216e43f76b66d64c2f563cf4ef95c3242",
+          "files": [
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 1
+            }
+          ],
+          "domains": [
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -2302,7 +2302,11 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   S.telemetry={clock:{...NLLabels.clockInfo(window),start:S.startedAt,onset:'requestAnimationFrame-before-paint',segments:[]},steps:{},stimuli:[],inputs:[],drift:[],layout:[],calibrationFrames:[]};\n   S.calibRound=0;S.calibDigests=null;S.gazeLabels=null;\n   /* 전역 시선 모델은 검사 시작 시점에 고정한다(세션 중 교체 없음). 로드 실패·호환 불가면 기존 엔진만 쓴다 */\n-  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,features:N.GAZE_FEATURES,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});\n+  /* 그림자 모델 로드(ONNX 런타임 내려받기 포함)는 실측 4초 이상 걸려 검사 시작을 붙잡았다. 1.5초 안에 끝나면 그대로 쓰고, 늦으면 검사를 먼저 시작하고\n+   * 그림자(기록만 함)일 때만 도착 즉시 붙인다. 늦게 온 active 는 세션 중 측정 좌표가 바뀌므로 붙이지 않는다(fail-closed) */\n+  const gmP=NLGazeModel.freeze({core:N.VERSION,features:N.GAZE_FEATURES,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});\n+  S.gazeModel=await Promise.race([gmP,new Promise(r=>setTimeout(()=>r(null),1500))])||{mode:'off',reason:'loading'};\n+  if(S.gazeModel.reason==='loading'){const attempt=S.attemptId;gmP.then(gm=>{if(S.attemptId!==attempt)return;S.gazeModel=gm.mode==='shadow'?gm:{...gm,mode:'off',reason:gm.mode==='active'?'active-loaded-after-start':gm.reason};clockSegment('gaze-model-ready',{gazeModel:S.gazeModel.mode});});}\n   clockSegment('session-start',{gazeModel:S.gazeModel?.mode||'off'});\n   if(S.researchConsent){referenceCollector.start();datasetCheckpoint().catch(console.warn);S.datasetTimer=setInterval(()=>datasetCheckpoint().catch(console.warn),20000);}\n   chooseForm(S.mode);",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38057332040"
+      }
     },
     {
       "sha": "2dca687950aba2e34c916ad89469dc5138c675e7",
@@ -830,7 +908,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 4,
+      "analysisAttempts": 5,
       "deploymentEvents": [
         {
           "key": "check-55986288907",
@@ -862,9 +940,9 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-10T02:26:00.421703+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-10T13:52:14.825255+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
     {
       "sha": "443931cb4d23b9d337b2c387fefb1f36ceac50d8",
@@ -16216,9 +16294,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "5960bf9216e43f76b66d64c2f563cf4ef95c3242"
+    "sourceHead": "968a2d771bc8e04b0de8d2cf494bbf8c074d1256"
   },
-  "updatedAt": "2026-10-10T13:49:28.633399+00:00",
-  "aiCooldownUntil": "2026-10-10T13:51:03.694903+00:00",
+  "updatedAt": "2026-10-10T13:52:49.372290+00:00",
+  "aiCooldownUntil": "2026-10-10T13:57:48.066925+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
