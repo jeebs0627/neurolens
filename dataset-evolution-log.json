@@ -67,6 +67,26 @@
       "accuracyValidated": false,
       "tasks": [
         {
+          "id": "evo-3dbff99ec16f-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 보정 자세 이탈(Pose Guard) 감지 및 표본 필터링의 시선 추적 오차·활용률 영향 평가",
+          "rationale": "소스 코드(condition.html) 변경으로 머리 회전(|yaw| >= 0.3, |pitch| >= 0.4) 및 위치 변위(POSE_TOL) 발생 시 표본 수집을 멈추고 대기하는 Pose Guard가 도입되었다. 커밋 주석은 자세 변위가 오차를 3배 증가시킨다고 주장하나 accuracyValidated: false 상태이므로 이는 검증이 필요한 가설이다. 이 필터링이 약한 신호를 과도하게 버려 보정 실패율을 높이지 않는지, 실측 데이터셋과 연결하여 유효 신호 활용률과 시선 오차(%W) 간 상충 관계를 정량 평가해야 한다.",
+          "validationPlan": "1. 기존 수집된 웹캠/모바일 세션 데이터셋을 연결하여 Pose Guard 적용 전후의 표본 활용률(전체 프레임 대비 수집 프레임 비율)과 보정 완주율(분모: 전체 시도 세션 수)을 비교한다.\n2. POSE_TOL 임계값 적용 시 약한 신호의 복원/활용량 변화와 검증점 오차(%W 및 px)를 참가자별·기기 유형별(PC vs Mobile)로 분리하여 평가한다.\n3. poseHold 대기 시간(최대 10초) 동안 발생하는 세션 지연이 사용자 이탈이나 수집 중단에 미치는 영향을 condition-pose.browser.test.cjs 기반 회귀 테스트로 검증한다. 임의의 실측 수치 창출 없이 연결된 데이터셋 파이프라인 결과만 활용한다.",
+          "prompt": "당신은 NeuroLens 측정 알고리즘 개발 AI이다. condition.html 및 newbiz-core.js에 반영된 Pose Guard(자세 이탈 감지 및 표본 수집 일시중단) 로직을 검증하고 개선 과제를 수행하라.\n\n1. 현재 코드 및 변경사항 확인:\n - condition.html 내 poseOk, POSE_TOL, poseTrack, poseHold, featSampler 구현부를 분석하라.\n - gazeValid 판정 시 poseOk 필터링 및 S.poseGuard?.off 시 표본 제외 로직의 작용 방식을 점검하라.\n\n2. 부분 유효 신호 활용량과 오차 평가 검증 과제:\n - 이 자료에는 실측 수치가 포함되어 있지 않으므로, 임의의 성과 수치를 만들어내지 마라. 연결된 데이터셋과 세션 메모를 바탕으로 평가를 수행하라.\n - 자세 이탈 조건이 가동될 때 유효 프레임 활용률(수집된 표본 수 / 전체 프레임 수)과 시선 추적 오차(%W) 간의 교환 관계(Trade-off)를 측정하라.\n - 약한 신호(예: 일부 경사 자세)를 무조건 폐기하지 않고 partial gaze signal로 활용할 수 있는 임계값 미세조정 방안을 검토하라.\n\n3. 성공 및 회귀 기준:\n - 전체 분모(전체 시도 세션 수) 대비 보정 성공 세션 비율이 감소하지 않아야 한다.\n - PC 및 모바일 기기별, 참가자/날짜별로 분리 평가하여 특정 환경에서 시선 오차가 악화되는 회귀가 없어야 한다.\n - accuracyValidated: false 상태를 해제하기 위한 정량적 회귀 평가 파이프라인을 구축하라.\n\n4. 결과 보고 양식:\n - [코드 분석 요약]\n - [데이터셋 연결 평가 계획 및 분모/분자 정의]\n - [기기별(PC/Mobile) 활용률 vs 오차 평가 결과]\n - [회귀 테스트 결과 및 향후 과제]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3dbff99ec16f47c0964ee003bf60878373456937\nDataset-Task: evo-3dbff99ec16f-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-3dbff99ec16f-research",
+          "domain": "research",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 보정 자세 메타데이터 연구 로그 스키마 정합성 및 오프라인 벤치 재현성 검증",
+          "rationale": "소스 코드(newbiz-research.js, tools/colab/engine_bench.cjs, session_adapter.cjs) 변경을 통해 targetsV2에 poseHeldMs가 추가되고 rounds에 pose 이탈 이벤트 및 기준 자세(ref)가 수집되도록 수정되었다. 연구 데이터 파이프라인에서 새로 기록된 자세 이탈 메타데이터가 손실 없이 추출되는지, newbiz-core.js의 opt.axisRidge 수축 옵션과 연동하여 오프라인 벤치 및 재현 환경에서 동일하게 모델을 복원할 수 있는지 검증이 필요하다.",
+          "validationPlan": "1. newbiz-research.js의 로그 내보내기 기능이 poseHeldMs 및 round.pose 객체를 누락 없이 직렬화하는지 단위 테스트를 수행한다.\n2. tools/colab/session_adapter.cjs 및 engine_bench.cjs를 통해 수집 세션 데이터를 재현할 때 newbiz-core의 axisRidge 수축 매개변수가 올바르게 적용되는지 회귀 검증한다.\n3. 단일 세션으로 일반화하지 않고, 참가자/날짜/기기 조건별로 분리된 수집 데이터셋 파이프라인을 통해 오프라인 재현 오차와 온라인 계산 결과 간 일치성을 확인한다.",
+          "prompt": "당신은 NeuroLens 연구 데이터 파이프라인 개발 AI이다. newbiz-research.js, tools/colab/session_adapter.cjs, tools/colab/engine_bench.cjs에 반영된 연구 로그 스키마 변경사항을 검증하고 오프라인 재현 과제를 수행하라.\n\n1. 현재 코드 확인:\n - newbiz-research.js의 targetsV2 (poseHeldMs) 및 rounds (pose, pursuit) 로그 구조를 점검하라.\n - newbiz-core.js의 opt.axisRidge 옵션이 fit('x'), fit('y') 수축 계산 시 적용되는 방식을 확인하라.\n\n2. 변경 및 검증 과제:\n - 이 자료에는 실측 성능 수치가 없으므로 수치를 지어내지 말고, 데이터셋 로그 연결을 통해 검증하라.\n - 자세 이탈 메타데이터(pose)가 포함된 세션 로그를 읽어 오프라인 재현 엔진(engine_bench.cjs)에서 정확히 동일한 시선 보정 모델이 복원되는지 평가하라.\n - opt.axisRidge 적용 시 축별(x, y) ridge 수축 배율이 오차 오버피팅을 방지하는지 partial signal 활용량과 오차를 함께 평가하라.\n\n3. 성공 및 회귀 기준:\n - 연구 로그 내보내기 시 기존 v1/v2 파서와의 하위 호환성이 유지되어야 한다.\n - 세션 어댑터를 통한 오프라인 재현 오차와 클라이언트 실측 오차 간 차이가 허용 범위 내에 있어야 한다.\n - 실패 시도를 포함한 전체 데이터 세션을 분모로 삼아 평가 결과를 제시해야 한다.\n\n4. 결과 보고 양식:\n - [연구 로그 스키마 검증 결과]\n - [오프라인 벤치 재현성 평가 (분모 및 성공률)]\n - [opt.axisRidge 수축 영향 평가]\n - [향후 연구 데이터 파이프라인 개선안]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3dbff99ec16f47c0964ee003bf60878373456937\nDataset-Task: evo-3dbff99ec16f-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
           "id": "evo-3dbff99ec16f-pulse",
           "domain": "pulse",
           "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
@@ -75,30 +95,10 @@
           "prompt": "NeuroLens 알고리즘 후속 과제 evo-3dbff99ec16f-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3dbff99ec16f47c0964ee003bf60878373456937\n변경 제목: 시선 보정: 휴대폰 세로 모드 영점 실패 원인(보정 중 기기–얼굴 위치 변화) 분석 → 보정 자세 지키기 추가\n관련 파일: NEWBIZ_CALIBRATION.md, condition-pose.browser.test.cjs, condition.html, newbiz-core.js, newbiz-research.js, tools/colab/engine_bench.cjs, tools/colab/session_adapter.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3dbff99ec16f-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
           "generator": "rule",
           "state": "proposed"
-        },
-        {
-          "id": "evo-3dbff99ec16f-measurement",
-          "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-3dbff99ec16f-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3dbff99ec16f47c0964ee003bf60878373456937\n변경 제목: 시선 보정: 휴대폰 세로 모드 영점 실패 원인(보정 중 기기–얼굴 위치 변화) 분석 → 보정 자세 지키기 추가\n관련 파일: NEWBIZ_CALIBRATION.md, condition-pose.browser.test.cjs, condition.html, newbiz-core.js, newbiz-research.js, tools/colab/engine_bench.cjs, tools/colab/session_adapter.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3dbff99ec16f-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
-          "id": "evo-3dbff99ec16f-research",
-          "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-3dbff99ec16f-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3dbff99ec16f47c0964ee003bf60878373456937\n변경 제목: 시선 보정: 휴대폰 세로 모드 영점 실패 원인(보정 중 기기–얼굴 위치 변화) 분석 → 보정 자세 지키기 추가\n관련 파일: NEWBIZ_CALIBRATION.md, condition-pose.browser.test.cjs, condition.html, newbiz-core.js, newbiz-research.js, tools/colab/engine_bench.cjs, tools/colab/session_adapter.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3dbff99ec16f-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "generated",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-56040882695",
@@ -129,7 +129,123 @@
           "url": "https://neurolens-i4qroh9mn-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-10T09:03:54.314454+00:00",
+      "analysis": {
+        "summary": "2026년 10월 10일 커밋(3dbff99ec16f47c0964ee003bf60878373456937)의 소스 코드 변경 사항(diff 전체 제공됨, 생략 없음)에 대한 분석 및 후속 과제 정의이다.\n\n[관측된 소스 코드 변경 Fact]\n1. condition.html:\n - gazeValid 판정에 |yaw| < 0.3 및 |pitch| < 0.4 조건을 나타내는 poseOk 변수 추가 및 poseTrack() 호출 연결.\n - POSE_TOL 객체({dcx: 0.10, dcy: 0.15, dyaw: 0.06, dfw: 0.10}) 기반의 poseGuardStart, poseGuardStop, poseRef, poseTrack, poseHold 제어 함수 및 안내 UI(.posewarn, #poseWarn) 추가.\n - featSampler 함수에서 S.poseGuard?.off 상태일 때 표본 수집을 제외하도록 변경.\n - cal9 및 점 기반 보정 함수(calPursuit 제외 점 추적 구간)에서 표본 수 부족 시 poseHold()로 대기하고, poseHeldMs 및 회차별 roundRow.pose(ref, refFrom, tol, events) 이력 저장 로직 추가.\n - window.__nl 디버그 객체에 Pose Guard 관련 제어 함수 노출.\n2. newbiz-core.js:\n - fit(key) 계산 내 opt.axisRidge 가중치 수축 옵션 지원 추가 (names 배열에 squared terms u2, v2, uv 포함).\n3. newbiz-research.js:\n - 연구 로그 내보내기 시 targetsV2에 poseHeldMs 추가 및 rounds에 r.pose 및 r.pursuit.t0 상대 시점 변환 추가.\n4. tools/colab/engine_bench.cjs 및 session_adapter.cjs, condition-pose.browser.test.cjs:\n - 오프라인 벤치 및 모바일 세션 어댑터, 브라우저 테스트 코드 업데이트.\n\n[미검증 영향 및 가설/주장 구분]\n- 커밋 메시지 및 주석에 언급된 '자세 이탈 시 가로 오차 23.7%W vs 준수 시 7.6%W' 등의 수치는 작성자의 관측 주장 및 가설이며, 제공된 메타데이터 상 accuracyValidated는 false이다.\n- 머리 자세 및 위치 이탈 프레임을 일시 중단 및 필터링하는 조건이 유효 신호의 과도한 폐기로 이어지거나 보정 완료율을 떨어뜨릴 위험이 존재하며, 실측 데이터셋 평가를 통한 영향 검증이 필요하다. 본 자료에는 실측 수치가 포함되어 있지 않다.",
+        "tasks": [
+          {
+            "id": "evo-3dbff99ec16f-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 보정 자세 이탈(Pose Guard) 감지 및 표본 필터링의 시선 추적 오차·활용률 영향 평가",
+            "rationale": "소스 코드(condition.html) 변경으로 머리 회전(|yaw| >= 0.3, |pitch| >= 0.4) 및 위치 변위(POSE_TOL) 발생 시 표본 수집을 멈추고 대기하는 Pose Guard가 도입되었다. 커밋 주석은 자세 변위가 오차를 3배 증가시킨다고 주장하나 accuracyValidated: false 상태이므로 이는 검증이 필요한 가설이다. 이 필터링이 약한 신호를 과도하게 버려 보정 실패율을 높이지 않는지, 실측 데이터셋과 연결하여 유효 신호 활용률과 시선 오차(%W) 간 상충 관계를 정량 평가해야 한다.",
+            "validationPlan": "1. 기존 수집된 웹캠/모바일 세션 데이터셋을 연결하여 Pose Guard 적용 전후의 표본 활용률(전체 프레임 대비 수집 프레임 비율)과 보정 완주율(분모: 전체 시도 세션 수)을 비교한다.\n2. POSE_TOL 임계값 적용 시 약한 신호의 복원/활용량 변화와 검증점 오차(%W 및 px)를 참가자별·기기 유형별(PC vs Mobile)로 분리하여 평가한다.\n3. poseHold 대기 시간(최대 10초) 동안 발생하는 세션 지연이 사용자 이탈이나 수집 중단에 미치는 영향을 condition-pose.browser.test.cjs 기반 회귀 테스트로 검증한다. 임의의 실측 수치 창출 없이 연결된 데이터셋 파이프라인 결과만 활용한다.",
+            "prompt": "당신은 NeuroLens 측정 알고리즘 개발 AI이다. condition.html 및 newbiz-core.js에 반영된 Pose Guard(자세 이탈 감지 및 표본 수집 일시중단) 로직을 검증하고 개선 과제를 수행하라.\n\n1. 현재 코드 및 변경사항 확인:\n - condition.html 내 poseOk, POSE_TOL, poseTrack, poseHold, featSampler 구현부를 분석하라.\n - gazeValid 판정 시 poseOk 필터링 및 S.poseGuard?.off 시 표본 제외 로직의 작용 방식을 점검하라.\n\n2. 부분 유효 신호 활용량과 오차 평가 검증 과제:\n - 이 자료에는 실측 수치가 포함되어 있지 않으므로, 임의의 성과 수치를 만들어내지 마라. 연결된 데이터셋과 세션 메모를 바탕으로 평가를 수행하라.\n - 자세 이탈 조건이 가동될 때 유효 프레임 활용률(수집된 표본 수 / 전체 프레임 수)과 시선 추적 오차(%W) 간의 교환 관계(Trade-off)를 측정하라.\n - 약한 신호(예: 일부 경사 자세)를 무조건 폐기하지 않고 partial gaze signal로 활용할 수 있는 임계값 미세조정 방안을 검토하라.\n\n3. 성공 및 회귀 기준:\n - 전체 분모(전체 시도 세션 수) 대비 보정 성공 세션 비율이 감소하지 않아야 한다.\n - PC 및 모바일 기기별, 참가자/날짜별로 분리 평가하여 특정 환경에서 시선 오차가 악화되는 회귀가 없어야 한다.\n - accuracyValidated: false 상태를 해제하기 위한 정량적 회귀 평가 파이프라인을 구축하라.\n\n4. 결과 보고 양식:\n - [코드 분석 요약]\n - [데이터셋 연결 평가 계획 및 분모/분자 정의]\n - [기기별(PC/Mobile) 활용률 vs 오차 평가 결과]\n - [회귀 테스트 결과 및 향후 과제]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3dbff99ec16f47c0964ee003bf60878373456937\nDataset-Task: evo-3dbff99ec16f-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-3dbff99ec16f-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 보정 자세 메타데이터 연구 로그 스키마 정합성 및 오프라인 벤치 재현성 검증",
+            "rationale": "소스 코드(newbiz-research.js, tools/colab/engine_bench.cjs, session_adapter.cjs) 변경을 통해 targetsV2에 poseHeldMs가 추가되고 rounds에 pose 이탈 이벤트 및 기준 자세(ref)가 수집되도록 수정되었다. 연구 데이터 파이프라인에서 새로 기록된 자세 이탈 메타데이터가 손실 없이 추출되는지, newbiz-core.js의 opt.axisRidge 수축 옵션과 연동하여 오프라인 벤치 및 재현 환경에서 동일하게 모델을 복원할 수 있는지 검증이 필요하다.",
+            "validationPlan": "1. newbiz-research.js의 로그 내보내기 기능이 poseHeldMs 및 round.pose 객체를 누락 없이 직렬화하는지 단위 테스트를 수행한다.\n2. tools/colab/session_adapter.cjs 및 engine_bench.cjs를 통해 수집 세션 데이터를 재현할 때 newbiz-core의 axisRidge 수축 매개변수가 올바르게 적용되는지 회귀 검증한다.\n3. 단일 세션으로 일반화하지 않고, 참가자/날짜/기기 조건별로 분리된 수집 데이터셋 파이프라인을 통해 오프라인 재현 오차와 온라인 계산 결과 간 일치성을 확인한다.",
+            "prompt": "당신은 NeuroLens 연구 데이터 파이프라인 개발 AI이다. newbiz-research.js, tools/colab/session_adapter.cjs, tools/colab/engine_bench.cjs에 반영된 연구 로그 스키마 변경사항을 검증하고 오프라인 재현 과제를 수행하라.\n\n1. 현재 코드 확인:\n - newbiz-research.js의 targetsV2 (poseHeldMs) 및 rounds (pose, pursuit) 로그 구조를 점검하라.\n - newbiz-core.js의 opt.axisRidge 옵션이 fit('x'), fit('y') 수축 계산 시 적용되는 방식을 확인하라.\n\n2. 변경 및 검증 과제:\n - 이 자료에는 실측 성능 수치가 없으므로 수치를 지어내지 말고, 데이터셋 로그 연결을 통해 검증하라.\n - 자세 이탈 메타데이터(pose)가 포함된 세션 로그를 읽어 오프라인 재현 엔진(engine_bench.cjs)에서 정확히 동일한 시선 보정 모델이 복원되는지 평가하라.\n - opt.axisRidge 적용 시 축별(x, y) ridge 수축 배율이 오차 오버피팅을 방지하는지 partial signal 활용량과 오차를 함께 평가하라.\n\n3. 성공 및 회귀 기준:\n - 연구 로그 내보내기 시 기존 v1/v2 파서와의 하위 호환성이 유지되어야 한다.\n - 세션 어댑터를 통한 오프라인 재현 오차와 클라이언트 실측 오차 간 차이가 허용 범위 내에 있어야 한다.\n - 실패 시도를 포함한 전체 데이터 세션을 분모로 삼아 평가 결과를 제시해야 한다.\n\n4. 결과 보고 양식:\n - [연구 로그 스키마 검증 결과]\n - [오프라인 벤치 재현성 평가 (분모 및 성공률)]\n - [opt.axisRidge 수축 영향 평가]\n - [향후 연구 데이터 파이프라인 개선안]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3dbff99ec16f47c0964ee003bf60878373456937\nDataset-Task: evo-3dbff99ec16f-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-3dbff99ec16f-pulse",
+            "domain": "pulse",
+            "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+            "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+            "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+            "prompt": "NeuroLens 알고리즘 후속 과제 evo-3dbff99ec16f-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3dbff99ec16f47c0964ee003bf60878373456937\n변경 제목: 시선 보정: 휴대폰 세로 모드 영점 실패 원인(보정 중 기기–얼굴 위치 변화) 분석 → 보정 자세 지키기 추가\n관련 파일: NEWBIZ_CALIBRATION.md, condition-pose.browser.test.cjs, condition.html, newbiz-core.js, newbiz-research.js, tools/colab/engine_bench.cjs, tools/colab/session_adapter.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3dbff99ec16f-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+            "generator": "rule",
+            "state": "proposed"
+          }
+        ],
+        "evidenceHash": "6e3081b621f44831763dfe3a231736a298961cfa45422ad8d4613f22d1a353f3",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 9700,
+            "candidatesTokenCount": 2265,
+            "totalTokenCount": 16475
+          }
+        },
+        "generatedAt": "2026-10-10T09:04:32.212156+00:00",
+        "sourceSha": "3dbff99ec16f47c0964ee003bf60878373456937",
+        "sourceEvidence": {
+          "sha": "3dbff99ec16f47c0964ee003bf60878373456937",
+          "parents": [
+            "81e1bafc8bb98746e1aa51f697d93e6a5b0f7d22"
+          ],
+          "committedAt": "2026-10-10T06:43:00Z",
+          "subject": "시선 보정: 휴대폰 세로 모드 영점 실패 원인(보정 중 기기–얼굴 위치 변화) 분석 → 보정 자세 지키기 추가",
+          "url": "https://github.com/jeebs0627/neurolens/commit/3dbff99ec16f47c0964ee003bf60878373456937",
+          "files": [
+            {
+              "path": "NEWBIZ_CALIBRATION.md",
+              "status": "modified",
+              "additions": 21,
+              "deletions": 0
+            },
+            {
+              "path": "condition-pose.browser.test.cjs",
+              "status": "added",
+              "additions": 61,
+              "deletions": 0
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 70,
+              "deletions": 10
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 4,
+              "deletions": 2
+            },
+            {
+              "path": "newbiz-research.js",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 2
+            },
+            {
+              "path": "tools/colab/engine_bench.cjs",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/session_adapter.cjs",
+              "status": "modified",
+              "additions": 25,
+              "deletions": 13
+            }
+          ],
+          "domains": [
+            "pulse",
+            "measurement",
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -172,6 +172,7 @@\n .st-prog i{display:block;height:100%;width:100%;background:#7C88A2;transform:scaleX(0);transform-origin:left;transition:transform .35s linear;will-change:transform}\n .facewarn{position:absolute;left:50%;top:72px;transform:translateX(-50%);background:var(--rose-soft);color:#8C2440;border-radius:10px;padding:7px 14px;font-size:13.5px;display:none;z-index:4}\n .facewarn.on{display:block}\n+.posewarn{background:#FFF1D6;color:#7A4A00;font-weight:700;text-align:center;max-width:92%}\n .fswarn{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;border:1px solid var(--line-2);border-radius:12px;padding:8px 10px 8px 14px;font-size:13px;display:none;gap:10px;align-items:center;z-index:4}\n .fswarn.on{display:flex}\n /* 단계 안내 카드 */\n@@ -1251,6 +1252,7 @@ <h2>결과를 정리하고 있어요</h2>\n   </div>\n   <div class=\"st-prog\"><i id=\"hudBar\"></i></div>\n   <div class=\"facewarn\" id=\"faceWarn\">얼굴이 보이지 않아요. 화면 정면을 봐 주세요.</div>\n+  <div class=\"facewarn posewarn\" id=\"poseWarn\"></div>\n   <div id=\"stageBody\"></div>\n   <div class=\"taskbar\" id=\"taskbar\" hidden><span id=\"taskName\"></span><span class=\"tb\"><i id=\"taskBar\"></i></span><b id=\"taskLeft\"></b></div>\n   <div class=\"fswarn\" id=\"hideWarn\" style=\"bottom:64px\">다른 창을 보던 구간은 판정에서 빼고 계산해요. 화면을 계속 봐 주세요.</div>\n@@ -1696,7 +1698,11 @@ <h2>결과를 정리하고 있어요</h2>\n   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - lidR);\n   const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = (lidL + lidR) / 2;\n   /* 시선 유효: 적어도 한 눈이 또렷하고(품질 0.15 이상) 깜빡이는 중이 아닐 때만. 반쯤 감긴 눈의 홍채 위치는 크게 튄다 */\n-  const gazeValid = eyeQ >= 0.15 && blinkAvg < 0.45;\n+  /* 얼굴 모양이 깨진 프레임(손·화면 밖으로 얼굴 일부가 가려 코·턱 위치가 뒤집힘)은 시선에 쓰지 않는다. 정상 범위: 전체 실측 13.6만 프레임의\n+   * |yaw| 99% 0.11 · |pitch| 99% 0.10. 실측 NLR-7B64…(누워서 손에 든 휴대폰) 재보정 중 yaw 0.68·pitch −5.1 같은 프레임이 보정 표본으로 들어갔다 */\n+  const poseOk = Math.abs(f.yaw) < 0.3 && Math.abs(f.pitch) < 0.4;\n+  const gazeValid = eyeQ >= 0.15 && blinkAvg < 0.45 && poseOk;\n+  if (poseOk) poseTrack(t, f);\n   Object.assign(fr, roi, {\n     ok: roi.n >= 12, ppgOk: roi.n >= 12, skinOk: roi.n >= 12, faceOk: true,\n     eyeOk: Math.max(eyes?.left ?? 1,eyes?.right ?? 1) > .035, gazeOk: gazeValid, skinQ: roi.q, eyeQ, qLeft: f.eyes.left.q, qRight: f.eyes.right.q,\n@@ -2020,6 +2026,7 @@ <h2>결과를 정리하고 있어요</h2>\n     const faceOk = S.demo || now() - S.lastFace < 1500;\n     setDot('hudFace', faceOk ? 'ok' : 'bad'); $('hudFaceT').textContent = S.demo ? '데모' : faceOk ? '얼굴 인식' : '얼굴 없음';\n     $('faceWarn').classList.toggle('on', !faceOk && S.recording);\n+    if (!faceOk) $('poseWarn').classList.remove('on');\n   }, 300);\n }\n /* 과제 진행 막대: 시간 기반(task(label, ms)) 또는 시행 기반(taskSet(i, n)) */\n@@ -2425,8 +2432,49 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n \n /* 시선 보정: ① 9점 응시 → ② 움직이는 점 따라가기(추적 보정, Pfeuffer et al., 2013) → ③ 4점 검증으로 더 정확한 모델 선택\n  *          → ④ 5개 영역 영점 조정(축별 1차 보정) → ⑤ 시선 커서로 영역 맞히기(실제로 시선을 움직여 좌표를 옮길 수 있는지 확인) */\n+/* 보정 자세 지키기: 웹캠 시선은 ‘보정할 때의 기기–얼굴 위치’를 전제로 한다. 보정 뒤 휴대폰이나 머리가 옮겨지면 같은 점을 봐도 눈동자 위치가 달라져\n+ * 시선 전체가 한쪽으로 밀린다. 실측 NLR-7B64…(세로 휴대폰·누워서 손에 듦): 9점 응시 뒤 얼굴이 카메라 화면에서 얼굴 폭의 15~42% 옮겨가자\n+ * 정밀 보정 8점이 모두 왼쪽으로 51~173px 치우쳐(화면 폭 384px) 보정이 실패했다. 전체 실측 42세션 609개 보정점에서도 자세가 아래 허용치를 넘은 점의\n+ * 가로 오차는 23.7%W 로, 넘지 않은 점(7.6%W)의 3배였다(휴대폰 34.1 대 12.7%W). PC 보정점의 95%는 허용치 안(얼굴 위치 0.04·고개 0.05).\n+ * 보정 시작 1초의 자세를 기준으로 잡고(9점 응시가 끝나면 그 표본의 중앙값으로 다시 잡는다), 최근 0.5초 중앙값이 허용치를 넘으면\n+ * 표본 수집을 멈추고 돌아갈 방향을 안내한다. 돌아오면(허용치의 70% 안) 이어서 받는다 */\n+const POSE_TOL = { dcx: 0.10, dcy: 0.15, dyaw: 0.06, dfw: 0.10 };\n+function poseGuardStart() { S.poseGuard = { ref: null, seed: [], hist: [], off: false, d: null, events: [], tol: POSE_TOL }; $('poseWarn').classList.remove('on'); }\n+function poseGuardStop() { const G = S.poseGuard; if (G && G.off && G.events.length) G.events.at(-1).end = now(); S.poseGuard = null; $('poseWarn').classList.remove('on'); return G; }\n+function poseRef(rows) { const m = k => N.median(rows.map(r => r[k]).filter(Number.isFinite)); return { cx: m('cx'), cy: m('cy'), fw: m('fw'), yaw: m('yaw') }; }\n+function poseTrack(t, f) {\n+  const G = S.poseGuard;\n+  if (!G || ![f.cx, f.cy, f.fw, f.yaw].every(Number.isFinite)) return;\n+  const row = { t, cx: f.cx, cy: f.cy, fw: f.fw, yaw: f.yaw };\n+  if (!G.ref) { G.seed.push(row); if (G.seed.length >= 8 && t - G.seed[0].t >= 1000) { G.ref = poseRef(G.seed); G.refFrom = 'start'; } return; }\n+  G.hist.push(row); while (G.hist.length && G.hist[0].t < t - 500) G.hist.shift();\n+  if (G.hist.length < 3) return;\n+  const c = poseRef(G.hist), r = G.ref, d = { dcx: (c.cx - r.cx) / r.fw, dcy: (c.cy - r.cy) / r.fw, dyaw: c.yaw - r.yaw, dfw: c.fw / r.fw - 1 };\n+  const over = k => Math.abs(d[k]) > G.tol[k] * (G.off ? 0.7 : 1);   // 돌아올 때는 허용치의 70% 안으로(경계에서 깜빡이지 않게)\n+  const off = Object.keys(G.tol).some(over);\n+  G.d = d;\n+  if (off !== G.off) {\n+    G.off = off;\n+    if (off) G.events.push({ start: t, end: null, d: {} });\n+    else if (G.events.length) G.events.at(-1).end = t;\n+  }\n+  if (off) { const e = G.events.at(-1); for (const k in d) if (!(Math.abs(e.d[k]) >= Math.abs(d[k]))) e.d[k] = Math.round(d[k] * 1000) / 1000; }   // 이탈 구간의 최대 이탈량\n+  const w = $('poseWarn');\n+  if (off) {\n+    /* 안내 방향은 준비 화면과 같은 거울 기준: 원 영상에서 얼굴이 오른쪽(cx 증가)으로 갔으면 화면(거울)에서는 왼쪽 → ‘오른쪽으로’ */\n+    const k = Object.keys(G.tol).sort((a, b) => Math.abs(d[b]) / G.tol[b] - Math.abs(d[a]) / G.tol[a])[0];\n+    const msg = k === 'dcx' ? (d.dcx > 0 ? '얼굴을 조금 오른쪽으로 (또는 휴대폰을 왼쪽으로) →' : '← 얼굴을 조금 왼쪽으로 (또는 휴대폰을 오른쪽으로)')\n+      : k === 'dcy' ? (d.dcy > 0 ? '↑ 얼굴을 조금 위로 (또는 화면을 아래로)' : '↓ 얼굴을 조금 아래로 (또는 화면을 위로)')\n+      : k === 'dfw' ? (d.dfw > 0 ? (MOBILE ? '휴대폰을 처음처럼 조금 멀리' : '처음처럼 조금 뒤로') : (MOBILE ? '휴대폰을 처음처럼 조금 가까이' : '처음처럼 조금 앞으로'))\n+      : '고개를 돌리지 말고 처음처럼 정면을 봐 주세요';\n+    w.textContent = `보정할 때와 자세가 달라졌어요 · ${msg} — 맞추면 이어서 진행해요`;\n+  }\n+  w.classList.toggle('on', off);\n+}\n+/* 자세가 돌아올 때까지 기다린다(최대 ms). 기다린 시간을 돌려준다 */\n+async function poseHold(ms = 10000) { const t0 = now(); while (S.poseGuard && S.poseGuard.off && now() - t0 < ms) await wait(200); return Math.round(now() - t0); }\n function featSampler(t0, from, to, target, out, w = 1) {\n-  return (t, f) => { const dt = t - t0; if (dt > from && dt < to) { const tg = target(t); out.push({ x: tg.x, y: tg.y, f, w }); } };\n+  return (t, f) => { const dt = t - t0; if (dt > from && dt < to && !S.poseGuard?.off) { const tg = target(t); out.push({ x: tg.x, y: tg.y, f, w }); } };\n }\n async function cal9(W, H) {\n   const pts = [], samples = [];\n@@ -2438,16 +2486,19 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     const tg = calTarget(x, y, 'fix9'), t0 = now();\n     const pt = [];\n     /* 표본이 6개 미만이면(아래쪽처럼 눈이 덜 보이는 위치) 최대 1.2초 더 받는다 — 점마다 고르게 표본이 있어야 화면 전체를 맞춘다 */\n-    S.onFeature = featSampler(t0, 650, 2900, () => ({ x, y }), pt);\n+    S.onFeature = featSampler(t0, 650, 2900 + 10000, () => ({ x, y }), pt);   // 자세 대기(최대 10초)가 있으면 그만큼 늦게까지 받는다\n     await wait(1700);\n+    const held = pt.length < 6 ? await poseHold() : 0;   // 자세가 벗어나 표본이 모자라면 돌아올 때까지 기다렸다가 이어서 받는다\n     for (let k = 0; k < 4 && pt.length < 6; k++) await wait(300);\n     S.onFeature = null;\n     const keep = new Set(N.robustFeatures(pt.map(s => s.f)));\n     const kept = pt.filter(s => keep.has(s.f));\n-    if (tg) Object.assign(tg, { offset: now(), sampleStart: t0 + 650, sampleEnd: now(), samples: pt.length, kept: kept.length });\n+    if (tg) Object.assign(tg, { offset: now(), sampleStart: t0 + 650, sampleEnd: now(), samples: pt.length, kept: kept.length, ...(held ? { poseHeldMs: held } : {}) });\n     samples.push(...kept);\n   }\n   S.onFeature = null;\n+  /* 기준 자세를 9점 응시 표본 전체의 중앙값으로 다시 잡는다(시작 1초보다 보정 모델이 본 자세를 더 잘 대표) */\n+  if (S.poseGuard && samples.length >= 20) { S.poseGuard.ref = poseRef(samples.map(s => s.f)); S.poseGuard.refFrom = 'fix9'; }\n   return samples;\n }\n /* 추적 보정: 리사주 경로(가로 3주기 · 세로 2주기, 18초에 한 바퀴)로 움직이는 점. 시선은 표적보다 약 120ms 늦으므로 그만큼 앞선 표적 위치와 짝짓는다.\n@@ -2478,7 +2529,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   const settle = glide(dot, pos, t0, sec * 1000);\n   S.onFeature = featSampler(t0, 1000, sec * 1000, t => pos(t - t0 - LAG), out, 0.5);\n   /* v3: 주파수·진폭·지연·표본 구간·가중치를 명시 기록 — 재생 도구가 하드코딩 대신 이 값을 읽는다 */\n-  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, fx: FX, fy: FY, ax: 0.38, ay: 0.34, phaseY: Math.PI / 2, lagMs: LAG, sampleFrom: 1000, sampleTo: sec * 1000, weight: 0.5, round: S.calibRound || 1, path: `x=W*(0.5+0.38*sin(2pi*${FX.toFixed(4)}*t)), y=H*(0.5+0.34*sin(2pi*${FY.toFixed(4)}*t+pi/2)), t in s from t0` };\n+  if (S.calibLog) S.calibLog.rounds.at(-1).pursuit = S.calibLog.pursuit = { t0, sec, W, H, fx: FX, fy: FY, ax: 0.38, ay: 0.34, phaseY: Math.PI / 2, lagMs: LAG, sampleFrom: 1000, sampleTo: sec * 1000, weight: 0.5, round: S.calibRound || 1, path: `x=W*(0.5+0.38*sin(2pi*${FX.toFixed(4)}*t)), y=H*(0.5+0.34*sin(2pi*${FY.toFixed(4)}*t+pi/2)), t in s from t0` };\n   const stopT = task('추적 보정', sec * 1000);\n   await wait(sec * 1000);\n   stopT(); settle(); S.onFeature = null;\n@@ -2492,13 +2543,14 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     dot.style.left = p.x + 'px'; dot.style.top = p.y + 'px';\n     const tg = calTarget(p.x, p.y, label.includes('영점') ? 'zone' : label.includes('정밀') ? 'fine' : 'val');\n     const fs = [];\n-    S.onFeature = (t, f) => fs.push(f);\n+    S.onFeature = (t, f) => { if (!S.poseGuard?.off) fs.push(f); };\n     await wait(500); fs.length = 0; const sampleStart = now();\n     await wait(800);\n+    const held = fs.length < 6 ? await poseHold() : 0;\n     for (let k = 0; k < 4 && fs.length < 6; k++) await wait(300);   // 표본이 적은 점은 최대 1.2초 더\n     S.onFeature = null;\n     const kept = N.robustFeatures(fs.slice());\n-    if (tg) Object.assign(tg, { offset: now(), sampleStart, sampleEnd: now(), samples: fs.length, kept: kept.length });\n+    if (tg) Object.assign(tg, { offset: now(), sampleStart, sampleEnd: now(), samples: fs.length, kept: kept.length, ...(held ? { poseHeldMs: held } : {}) });\n     out.push({ ...p, fs: kept, targetId: tg ? tg.id : null });\n   }\n   return out;\n@@ -2539,7 +2591,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     const t0 = now();\n     let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0, disp = null, lastTick = null;\n     const held = [];\n-    S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; if (inside && inSince !== null && t - inSince > 150) held.push({ x: g.x, y: g.y }); };\n+    S.onGaze = (g, t) => { if (S.poseGuard?.off) return; cur = gc.step(g, t, z); cur.t = t; if (inside && inSince !== null && t - inSince > 150) held.push({ x: g.x, y: g.y }); };   // 자세가 벗어난 동안의 시선은 커서·치우침 학습에 쓰지 않는다(치우친 커서를 머리로 쫓는 악순환 차단)\n     await new Promise((res2, rej) => {\n       const w = { rej, cleanup: () => { cancelAnimationFrame(raf); S.onGaze = null; } };\n       waiters.add(w);\n@@ -2581,6 +2633,9 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   return { n: res.length, hit: res.filter(r => r.ok).length, pairs: res.filter(r => r.pair).map(r => r.pair), meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };\n }\n async function calibrate() {\n+  try { return await calibrateRounds(); } finally { poseGuardStop(); }   // 건너뛰기·그만하기에도 자세 안내를 끈다\n+}\n+async function calibrateRounds() {\n   await brief('calibration');\n   const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })));\n   while (true) {\n@@ -2593,6 +2648,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     const prevRounds = S.calibLog ? S.calibLog.rounds : [], prevTargets = S.calibLog ? S.calibLog.targets : [];\n     if (prevRounds.length) prevRounds.at(-1).outcome = prevRounds.at(-1).outcome || 'recalibrated';\n     S.calibLog = { screen: { w: W, h: H }, viewport: NLLabels.viewportState(window), targets: prevTargets, rounds: [...prevRounds, { round: S.calibRound, start: now(), end: null, outcome: null }] };\n+    poseGuardStart();\n     const s9 = await cal9(W, H);\n     const sp = await calPursuit(W, H);\n     const vpts = [[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));\n@@ -2705,13 +2761,17 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     }\n     S.calib = { ...acc, samples: s9.length + sp.length, round: S.calibRound };\n     const roundRow = S.calibLog.rounds.at(-1); roundRow.end = now(); roundRow.grade = acc.grade; roundRow.errPct = acc.errPct ?? null;\n+    /* 자세 이탈 기록(회차별): 기준 자세·허용치·이탈 구간. 보정 중 기기·얼굴 위치가 바뀌었는지 사후에 확인할 수 있게 */\n+    const G = S.poseGuard, round3 = o => o && Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Number.isFinite(v) ? Math.round(v * 1000) / 1000 : v]));\n+    if (G) { roundRow.pose = { ref: round3(G.ref), refFrom: G.refFrom || null, tol: G.tol, events: G.events.map(e => ({ start: Math.round(e.start), end: e.end === null ? null : Math.round(e.end), d: e.d })) }; }\n+    const poseMoved = !!(G && G.events.length);\n     if (acc.grade !== 'poor') {\n       const c = await pauseCard('보정 완료', `${info}<p style=\"margin:12px 0 0\">시선 오차 약 <b>${acc.errPct}%</b> (화면 긴 변 대비${acc.px ? ` · 약 ${acc.px}px` : ''}) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);\n       if (c === 1) { roundRow.outcome = 'recalibrated'; continue; }\n       roundRow.outcome = 'accepted';\n       return;\n     }\n-    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style=\"margin:12px 0 0\">${acc.missing === 'lower' ? '화면 <b>아래쪽</b> 점을 볼 때 눈이 잘 보이지 않았어요. 노트북을 책 등으로 조금 높이거나 의자를 낮춰, 화면 아래쪽을 볼 때 눈을 크게 내리깔지 않아도 되게 맞춰 주세요. 눈은 평소처럼 편하게 뜨면 돼요.' : `오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.`}</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);\n+    const c = await pauseCard('시선 보정이 불안정해요', `${info}<p style=\"margin:12px 0 0\">${acc.missing === 'lower' ? '화면 <b>아래쪽</b> 점을 볼 때 눈이 잘 보이지 않았어요. 노트북을 책 등으로 조금 높이거나 의자를 낮춰, 화면 아래쪽을 볼 때 눈을 크게 내리깔지 않아도 되게 맞춰 주세요. 눈은 평소처럼 편하게 뜨면 돼요.' : poseMoved ? `오차 ${acc.errPct ?? '—'}% · 보정하는 동안 ${MOBILE ? '휴대폰과 얼굴 사이의 위치' : '얼굴 위치'}가 바뀌었어요. 시선은 보정할 때의 자세를 기준으로 계산돼서, 위치가 바뀌면 한쪽으로 치우쳐요. ${MOBILE ? '휴대폰을 책·거치대에 기대 세워 두거나, 팔꿈치를 고정해' : '의자에 기대어 머리를 고정하고'} 처음 자세를 끝까지 유지해 주세요.` : `오차 ${acc.errPct ?? '—'}% · 조명을 밝게 하고, 머리를 고정한 채 눈으로만 점을 봐 주세요.`}</p>`, '다시 보정', ['이대로 진행 (시선 지표 제외)']);\n     if (c === 1) { roundRow.outcome = 'proceed-without-gaze'; S.model = null; S.affine = null; return; }\n     roundRow.outcome = 'recalibrated';\n   }\n@@ -3685,7 +3745,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n \n \n /* 검증용: ?debug=1 이면 내부 상태와 일부 단계 함수를 노출 (E2E 테스트용) */\n-if (new URLSearchParams(location.search).get('debug') === '1') window.__nl = { S, cursorTask, calPursuit, stage, resetEuro, phaseGazeLabel, labelRingPush, liveRecord, researchPackage, finishLabels, runStep, now };\n+if (new URLSearchParams(location.search).get('debug') === '1') window.__nl = { S, cursorTask, calPursuit, stage, resetEuro, phaseGazeLabel, labelRingPush, liveRecord, researchPackage, finishLabels, runStep, now, poseGuardStart, poseGuardStop, poseTrack, poseHold, featSampler, calibrate };\n \n if (new URLSearchParams(location.search).get('qa') === '1') $('qaBox').hidden = false;\n { const rid = new URLSearchParams(location.search).get('rid'); if (rid) openSaved(rid); }\nFILE newbiz-core.js\n@@ -531,16 +531,18 @@\n     const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));\n     const zr = quad ? { lo: [0, 1].map(j => Math.min(...X.map(r => r[1 + j]))), hi: [0, 1].map(j => Math.max(...X.map(r => r[1 + j]))) } : null;\n     const wsum = W.reduce((a, b) => a + b, 0);\n+    /* opt.axisRidge: 축별·특징별 수축 배율 {x:{v:..}, y:{u:..}} — 제곱항 이름은 u2·v2·uv. 기본 없음 = 기존과 동일 */\n+    const names = [...keys, ...(quad ? ['u2', 'v2', 'uv'] : [])];\n     const fit = key => {\n-      const XtX = Array.from({ length: d }, () => new Array(d).fill(0)), Xty = new Array(d).fill(0);\n+      const XtX = Array.from({ length: d }, () => new Array(d).fill(0)), Xty = new Array(d).fill(0), ar = opt.axisRidge && opt.axisRidge[key];\n       X.forEach((row, i) => {\n         const w = W[i];\n         for (let a = 0; a < d; a++) { Xty[a] += w * row[a] * S[i][key]; for (let b = 0; b < d; b++) XtX[a][b] += w * row[a] * row[b]; }\n       });\n       // 제곱항은 더 강하게 수축. 머리 자세(yaw·pitch·cx·cy)는 보정 중 시선을 따라 함께 움직인 상관을 배우지 않도록 100배 수축\n       // (2026-10-04 실측 재현: 보정 밖 검증점 오차 21% → 16%, 과제 중 세로 좌표가 화면 밖 +2,000px → 화면 안)\n       /* opt.keyRidge: 특징별 수축 배율(기본 없음 = 기존과 동일). 실측 벤치(tools/colab/engine_bench.cjs)에서만 비교한다 */\n-      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 * (opt.quadRidge ?? 1) : HEAD_SD_MIN[keys[a - 1]] ? HEAD_RIDGE : 1) * (a <= keys.length && opt.keyRidge && finite(opt.keyRidge[keys[a - 1]]) ? opt.keyRidge[keys[a - 1]] : 1);\n+      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 * (opt.quadRidge ?? 1) : HEAD_SD_MIN[keys[a - 1]] ? HEAD_RIDGE : 1) * (a <= keys.length && opt.keyRidge && finite(opt.keyRidge[keys[a - 1]]) ? opt.keyRidge[keys[a - 1]] : 1) * (ar && finite(ar[names[a - 1]]) ? ar[names[a - 1]] : 1);\n       return solve(XtX, Xty);\n     };\n     const wx = fit('x'), wy = fit('y');\nFILE newbiz-research.js\n@@ -101,8 +101,11 @@\n       calibration: rec.calibLog ? {\n         screen: rec.calibLog.screen, viewport: rec.calibLog.viewport || null, targets: (rec.calibLog.targets || []).map(x => [rel(x.t, t0), q(x.x, 1), q(x.y, 1), x.kind]),\n         /* v3: 표적 ID·round·표시 시작/종료·역할. v1/v2 의 [t,x,y,kind] 는 그대로 둔다 */\n-        targetsV2: (rec.calibLog.targets || []).map((x, i) => ({ id: x.id || ('C' + String(i + 1).padStart(2, '0')), round: x.round ?? null, kind: x.kind, role: x.role || calibRole(x.kind), x: q(x.x, 1), y: q(x.y, 1), onset: rel(x.t, t0), offset: rel(x.offset, t0), sampleStart: rel(x.sampleStart, t0), sampleEnd: rel(x.sampleEnd, t0), samples: x.samples ?? null, kept: x.kept ?? null })),\n-        rounds: (rec.calibLog.rounds || []).map(r => ({ ...r, start: rel(r.start, t0), end: rel(r.end, t0) })),\n+        targetsV2: (rec.calibLog.targets || []).map((x, i) => ({ id: x.id || ('C' + String(i + 1).padStart(2, '0')), round: x.round ?? null, kind: x.kind, role: x.role || calibRole(x.kind), x: q(x.x, 1), y: q(x.y, 1), onset: rel(x.t, t0), offset: rel(x.offset, t0), sampleStart: rel(x.sampleStart, t0), sampleEnd: rel(x.sampleEnd, t0), samples: x.samples ?? null, kept: x.kept ?? null, ...(finite(x.poseHeldMs) ? { poseHeldMs: Math.round(x.poseHeldMs) } : {}) })),\n+        /* 회차별 추적 보정 메타·자세 이탈 구간도 같은 시계(payload.t0 기준)로 */\n+        rounds: (rec.calibLog.rounds || []).map(r => ({ ...r, start: rel(r.start, t0), end: rel(r.end, t0),\n+          ...(r.pursuit ? { pursuit: { ...r.pursuit, t0: rel(r.pursuit.t0, t0) } } : {}),\n+          ...(r.pose ? { pose: { ...r.pose, events: (r.pose.events || []).map(e => ({ ...e, start: rel(e.start, t0), end: rel(e.end, t0) })) } } : {}) })),\n         pursuit: rec.calibLog.pursuit ? { ...rec.calibLog.pursuit, t0: rel(rec.calibLog.pursuit.t0, t0) } : null,\n         model: rec.calibLog.model || null, affine: rec.calibLog.affine || null, resid: rec.calibLog.resid || null, cursor: rec.calibLog.cursor || null, evaluation:rec.calibLog.evaluation||null,\n         snapshot: rec.calibLog.snapshot || null, digests: rec.calibLog.digests || null, fine: rec.calibLog.fine || null,",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38040042203"
+      }
     },
     {
       "sha": "db405534e3366c93c646c1f0b4db6be62aee5d26",
@@ -186,7 +302,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-56039764805",
@@ -218,9 +334,9 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-10T05:58:27.688248+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-10T09:04:32.313918+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
     {
       "sha": "289d7fc580a74fb8943a5175d85454fd456c8e33",
@@ -15675,9 +15791,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "ee4abf53bd3bac2bdfe9d166dd1ab95cde26c4ac"
+    "sourceHead": "ef91da37e8245a090143493caa7f0f19a41735b0"
   },
-  "updatedAt": "2026-10-10T06:44:28.326362+00:00",
-  "aiCooldownUntil": "2026-10-10T06:58:47.127722+00:00",
-  "aiCooldownReason": "GEMINI_RATE_LIMIT"
+  "updatedAt": "2026-10-10T09:05:07.672288+00:00",
+  "aiCooldownUntil": "2026-10-10T09:10:06.515144+00:00",
+  "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
