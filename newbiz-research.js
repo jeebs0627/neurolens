@@ -101,8 +101,11 @@
       calibration: rec.calibLog ? {
         screen: rec.calibLog.screen, viewport: rec.calibLog.viewport || null, targets: (rec.calibLog.targets || []).map(x => [rel(x.t, t0), q(x.x, 1), q(x.y, 1), x.kind]),
         /* v3: 표적 ID·round·표시 시작/종료·역할. v1/v2 의 [t,x,y,kind] 는 그대로 둔다 */
-        targetsV2: (rec.calibLog.targets || []).map((x, i) => ({ id: x.id || ('C' + String(i + 1).padStart(2, '0')), round: x.round ?? null, kind: x.kind, role: x.role || calibRole(x.kind), x: q(x.x, 1), y: q(x.y, 1), onset: rel(x.t, t0), offset: rel(x.offset, t0), sampleStart: rel(x.sampleStart, t0), sampleEnd: rel(x.sampleEnd, t0), samples: x.samples ?? null, kept: x.kept ?? null })),
-        rounds: (rec.calibLog.rounds || []).map(r => ({ ...r, start: rel(r.start, t0), end: rel(r.end, t0) })),
+        targetsV2: (rec.calibLog.targets || []).map((x, i) => ({ id: x.id || ('C' + String(i + 1).padStart(2, '0')), round: x.round ?? null, kind: x.kind, role: x.role || calibRole(x.kind), x: q(x.x, 1), y: q(x.y, 1), onset: rel(x.t, t0), offset: rel(x.offset, t0), sampleStart: rel(x.sampleStart, t0), sampleEnd: rel(x.sampleEnd, t0), samples: x.samples ?? null, kept: x.kept ?? null, ...(finite(x.poseHeldMs) ? { poseHeldMs: Math.round(x.poseHeldMs) } : {}) })),
+        /* 회차별 추적 보정 메타·자세 이탈 구간도 같은 시계(payload.t0 기준)로 */
+        rounds: (rec.calibLog.rounds || []).map(r => ({ ...r, start: rel(r.start, t0), end: rel(r.end, t0),
+          ...(r.pursuit ? { pursuit: { ...r.pursuit, t0: rel(r.pursuit.t0, t0) } } : {}),
+          ...(r.pose ? { pose: { ...r.pose, events: (r.pose.events || []).map(e => ({ ...e, start: rel(e.start, t0), end: rel(e.end, t0) })) } } : {}) })),
         pursuit: rec.calibLog.pursuit ? { ...rec.calibLog.pursuit, t0: rel(rec.calibLog.pursuit.t0, t0) } : null,
         model: rec.calibLog.model || null, affine: rec.calibLog.affine || null, resid: rec.calibLog.resid || null, cursor: rec.calibLog.cursor || null, evaluation:rec.calibLog.evaluation||null,
         snapshot: rec.calibLog.snapshot || null, digests: rec.calibLog.digests || null, fine: rec.calibLog.fine || null,

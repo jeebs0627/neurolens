@@ -531,8 +531,10 @@
     const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));
     const zr = quad ? { lo: [0, 1].map(j => Math.min(...X.map(r => r[1 + j]))), hi: [0, 1].map(j => Math.max(...X.map(r => r[1 + j]))) } : null;
     const wsum = W.reduce((a, b) => a + b, 0);
+    /* opt.axisRidge: 축별·특징별 수축 배율 {x:{v:..}, y:{u:..}} — 제곱항 이름은 u2·v2·uv. 기본 없음 = 기존과 동일 */
+    const names = [...keys, ...(quad ? ['u2', 'v2', 'uv'] : [])];
     const fit = key => {
-      const XtX = Array.from({ length: d }, () => new Array(d).fill(0)), Xty = new Array(d).fill(0);
+      const XtX = Array.from({ length: d }, () => new Array(d).fill(0)), Xty = new Array(d).fill(0), ar = opt.axisRidge && opt.axisRidge[key];
       X.forEach((row, i) => {
         const w = W[i];
         for (let a = 0; a < d; a++) { Xty[a] += w * row[a] * S[i][key]; for (let b = 0; b < d; b++) XtX[a][b] += w * row[a] * row[b]; }
@@ -540,7 +542,7 @@
       // 제곱항은 더 강하게 수축. 머리 자세(yaw·pitch·cx·cy)는 보정 중 시선을 따라 함께 움직인 상관을 배우지 않도록 100배 수축
       // (2026-10-04 실측 재현: 보정 밖 검증점 오차 21% → 16%, 과제 중 세로 좌표가 화면 밖 +2,000px → 화면 안)
       /* opt.keyRidge: 특징별 수축 배율(기본 없음 = 기존과 동일). 실측 벤치(tools/colab/engine_bench.cjs)에서만 비교한다 */
-      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 * (opt.quadRidge ?? 1) : HEAD_SD_MIN[keys[a - 1]] ? HEAD_RIDGE : 1) * (a <= keys.length && opt.keyRidge && finite(opt.keyRidge[keys[a - 1]]) ? opt.keyRidge[keys[a - 1]] : 1);
+      for (let a = 1; a < d; a++) XtX[a][a] += lambda * wsum / 50 * (a > keys.length ? 4 * (opt.quadRidge ?? 1) : HEAD_SD_MIN[keys[a - 1]] ? HEAD_RIDGE : 1) * (a <= keys.length && opt.keyRidge && finite(opt.keyRidge[keys[a - 1]]) ? opt.keyRidge[keys[a - 1]] : 1) * (ar && finite(ar[names[a - 1]]) ? ar[names[a - 1]] : 1);
       return solve(XtX, Xty);
     };
     const wx = fit('x'), wy = fit('y');

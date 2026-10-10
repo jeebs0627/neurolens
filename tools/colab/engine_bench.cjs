@@ -32,6 +32,11 @@ const VARIANTS = {
   aggregate: variant({}, {}, { aggregate: true }),
   aggregate_cap6: variant({}, {}, { aggregate: true, aggregateCap: 6 }),
   aggregate_bin400: variant({}, {}, { aggregate: true, pursuitBinMs: 400 }),
+  /* 축 교차 수축: 가로 모델의 세로 특징(v·open·v²·uv), 세로 모델의 가로 특징(u·u²·uv)을 더 강하게 수축 */
+  cross_10: variant({ axisRidge: { x: { v: 10, open: 10, v2: 10, uv: 10 }, y: { u: 10, u2: 10, uv: 10 } } }),
+  cross_100: variant({ axisRidge: { x: { v: 100, open: 100, v2: 100, uv: 100 }, y: { u: 100, u2: 100, uv: 100 } } }),
+  crossX_10: variant({ axisRidge: { x: { v: 10, open: 10, v2: 10, uv: 10 } } }),
+  crossX_100: variant({ axisRidge: { x: { v: 100, open: 100, v2: 100, uv: 100 } } }),
 };
 const ONLY = (process.argv.find(a => a.startsWith('--variants=')) || '').slice(11).split(',').filter(Boolean);
 if (ONLY.length) for (const k of Object.keys(VARIANTS)) if (k !== 'base' && !ONLY.includes(k)) delete VARIANTS[k];

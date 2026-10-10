@@ -107,25 +107,31 @@ function loadSession(obj, opt = {}) {
     }
   }
   /* 추적 보정 메타: v3 는 fx/fy/lagMs 기록. 그 전은 path 문자열에서 주파수를 읽고, 그마저 없으면 버전별 legacy 표를 쓴다(unknown 표시) */
-  let pursuit = null;
-  if (c?.pursuit) {
-    const pu = c.pursuit, legacy = core !== null && core >= 2.3 ? LEGACY_PURSUIT.v23 : LEGACY_PURSUIT.pre23;
+  /* 회차별 추적 보정(2026-10-10~): calibration.rounds[i].pursuit. 그 전에는 마지막 회차의 calibration.pursuit 하나만 남아,
+   * 재보정이 도중에 끊긴 세션은 앞 회차의 추적 표본을 재생할 수 없었다(실측 NLR-7B64…) */
+  const pursuits = {};
+  for (const r of c?.rounds || []) if (r && r.pursuit) pursuits[r.round] = normPursuit(r.pursuit);
+  const pursuit = c?.pursuit ? normPursuit(c.pursuit) : null;
+  if (pursuit && pursuit.round != null && !pursuits[pursuit.round]) pursuits[pursuit.round] = pursuit;
+  function normPursuit(pu) {
+    const legacy = core !== null && core >= 2.3 ? LEGACY_PURSUIT.v23 : LEGACY_PURSUIT.pre23;
     const fromPath = s => { const m = /sin\(2pi\*([0-9.]+)\*t\)\)/.exec(String(s || '')), n = /sin\(2pi\*([0-9.]+)\*t\+pi\/2\)/.exec(String(s || '')); return { fx: m ? parseFloat(m[1]) : null, fy: n ? parseFloat(n[1]) : null }; };
     const parsed = fromPath(pu.path);
     const fx = finite(pu.fx) ? pu.fx : parsed.fx ?? legacy.fx, fy = finite(pu.fy) ? pu.fy : parsed.fy ?? legacy.fy;
     const src = finite(pu.fx) ? 'recorded' : parsed.fx !== null ? 'parsed-from-path' : (core === null ? 'unknown-core-assumed-legacy' : 'legacy-table');
-    pursuit = { t0: pu.t0, sec: finite(pu.sec) ? pu.sec : legacy.sec, W: pu.W, H: pu.H, fx, fy, ax: finite(pu.ax) ? pu.ax : legacy.ax, ay: finite(pu.ay) ? pu.ay : legacy.ay, phaseY: finite(pu.phaseY) ? pu.phaseY : Math.PI / 2,
+    const out = { t0: pu.t0, sec: finite(pu.sec) ? pu.sec : legacy.sec, W: pu.W, H: pu.H, fx, fy, ax: finite(pu.ax) ? pu.ax : legacy.ax, ay: finite(pu.ay) ? pu.ay : legacy.ay, phaseY: finite(pu.phaseY) ? pu.phaseY : Math.PI / 2,
       lagMs: finite(pu.lagMs) ? pu.lagMs : legacy.lagMs, sampleFrom: finite(pu.sampleFrom) ? pu.sampleFrom : 1000, sampleTo: finite(pu.sampleTo) ? pu.sampleTo : (finite(pu.sec) ? pu.sec : legacy.sec) * 1000, weight: finite(pu.weight) ? pu.weight : 0.5,
       sources: { frequency: src, lag: finite(pu.lagMs) ? 'recorded' : 'legacy-assumed-120ms', amplitude: finite(pu.ax) ? 'recorded' : 'legacy-constant' }, round: pu.round ?? null };
-    if (src !== 'recorded') flags.push('pursuit-frequency-' + src);
-    if (!finite(pu.lagMs)) flags.push('pursuit-lag-assumed');
+    if (src !== 'recorded' && !flags.includes('pursuit-frequency-' + src)) flags.push('pursuit-frequency-' + src);
+    if (!finite(pu.lagMs) && !flags.includes('pursuit-lag-assumed')) flags.push('pursuit-lag-assumed');
+    return out;
   }
   /* 기준 심박: payload.reference(BLE) + annotations(kind=reference) 중 마지막 유효 연결. 이력은 보존 */
   const refNotes = (full.annotations || []).filter(n => n.kind === 'reference' && n.body?.reference?.samples).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
   const reference = refNotes.length ? { ...refNotes.at(-1).body.reference, source: refNotes.at(-1).body.reference.source || 'annotation-csv', annotationId: refNotes.at(-1).id, history: refNotes.map(n => ({ id: n.id, at: n.created_at, status: n.body.comparison?.status || null })) } : p.reference ? { ...p.reference, source: p.reference.source || 'ble-heart-rate', annotationId: null, history: [] } : null;
   const labels = p.gazeLabels || null;
   const snapshot = c?.snapshot || null;
-  return { code: full.code || meta.attemptId || null, schema, core, meta, W, H, t0: p.t0, frames, calibrationFrames, lmap, feat, featureSource, targets, rounds, pursuit, reference, labels, calibration: c, snapshot, digests: c?.digests || null, hidden: p.hidden || [], telemetry: p.telemetry || null, flags, warnings, payload: p };
+  return { code: full.code || meta.attemptId || null, schema, core, meta, W, H, t0: p.t0, frames, calibrationFrames, lmap, feat, featureSource, targets, rounds, pursuit, pursuits, reference, labels, calibration: c, snapshot, digests: c?.digests || null, hidden: p.hidden || [], telemetry: p.telemetry || null, flags, warnings, payload: p };
 }
 
 /* ---------- 파이프라인 재구성 ---------- */
@@ -134,7 +140,8 @@ function modelFromSnapshot(snap) {
   const m = { ...snap.model }; if (m.eyes) { m.eyes = {}; for (const side of ['left', 'right']) if (snap.model.eyes[side]) m.eyes[side] = { ...snap.model.eyes[side] }; }
   return { model: m, affine: snap.affine || null, resid: snap.resid || null, drift: snap.drift || { dx: 0, dy: 0 }, coreVersion: snap.coreVersion || null, gazeModel: snap.gazeModel || null };
 }
-const within = (S, a, b) => S.calibrationFrames.filter(f => f.gazeOk && f.tc >= a && f.tc < b).map(S.feat).filter(Boolean);
+/* off: 브라우저가 표본을 받지 않은 자세 이탈 구간(rounds[i].pose.events, 2026-10-10~) — 재생도 같은 프레임을 뺀다 */
+const within = (S, a, b, off = null) => S.calibrationFrames.filter(f => f.gazeOk && f.tc >= a && f.tc < b && !(off && off.some(e => f.tc >= e.start && f.tc < (e.end ?? Infinity)))).map(S.feat).filter(Boolean);
 /* 표적별 특징 집계(opt.aggregate): 한 표적을 보는 동안의 프레임 특징을 중앙값으로 모아 회귀 입력 잡음을 줄인다(회귀 희석 완화).
  * 행 수(가중)는 원래 프레임 수만큼(최대 cap) 복제해 기존 표본 수 조건(quad≥120)과 표적 간 비중을 유지한다 */
 function medianFeature(fs) {
@@ -150,17 +157,22 @@ const mean0 = a => a.reduce((s, x) => s + x, 0) / a.length;
 /* condition.html calibrate() 순서(커서 과제 제외)로 보정 표본을 다시 만들어 ‘선택용(selection)’과 ‘최종 refit(final)’ 모델을 모두 돌려준다 */
 function reconstructPipeline(N, S, opt = {}) {
   const { W, H } = S; if (!finite(W) || !finite(H) || !S.targets.length) return null;
-  const LAM = opt.lambda ?? 0.5, round = opt.round ?? Math.max(...S.targets.map(t => t.round || 1));
+  /* 기본 회차: 9점 응시를 끝까지 마친 마지막 회차(도중에 중단된 재보정 회차는 재생할 수 없다 — 실측 NLR-7B64…: 2회차 4점에서 중단) */
+  const complete = [...new Set(S.targets.map(t => t.round || 1))].filter(r => S.targets.filter(t => (t.round || 1) === r && t.kind === 'fix9').length >= 9);
+  const LAM = opt.lambda ?? 0.5, round = opt.round ?? (complete.length ? Math.max(...complete) : Math.max(...S.targets.map(t => t.round || 1)));
   const T = S.targets.filter(t => (t.round || 1) === round);
-  const pt = t => ({ x: t.x, y: t.y, fs: within(S, t.sampleStart ?? t.onset + 500, t.sampleEnd ?? t.offset ?? t.onset + 2500) });
+  const off = (S.rounds || []).find(r => r.round === round)?.pose?.events?.filter(e => finite(e.start)) || null;
+  const pt = t => ({ x: t.x, y: t.y, fs: within(S, t.sampleStart ?? t.onset + 500, t.sampleEnd ?? t.offset ?? t.onset + 2500, off) });
   const fix9 = T.filter(t => t.kind === 'fix9').map(pt), val = T.filter(t => t.role === 'internal' && t.kind !== 'zone').map(pt), zc = T.filter(t => t.kind === 'zone').map(pt), fp = T.filter(t => t.kind === 'fine').map(pt);
   const flat = l => l.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f }))), robust = l => l.map(p => ({ ...p, fs: N.robustFeatures(p.fs) }));
   const agg = !!opt.aggregate, flatT = l => (agg ? aggregateTargets(l, opt.aggregateCap ?? 12) : flat(l));
   const s9 = flatT(robust(fix9));
   let sp = [];
-  if (S.pursuit && opt.pursuit !== false) {
-    const pu = S.pursuit, t0 = pu.t0, pos = tt => ({ x: W * (0.5 + pu.ax * Math.sin(2 * Math.PI * pu.fx * tt / 1000)), y: H * (0.5 + pu.ay * Math.sin(2 * Math.PI * pu.fy * tt / 1000 + pu.phaseY)) });
-    sp = within(S, t0 + pu.sampleFrom, t0 + pu.sampleTo).map(f => ({ ...pos(f.tc - t0 - pu.lagMs), f, w: pu.weight }));
+  /* 이 회차의 추적 보정: 회차별 기록 → 없으면 회차 표시가 없거나 같은 회차인 단일 기록 */
+  const puR = (S.pursuits && S.pursuits[round]) || (S.pursuit && (S.pursuit.round == null || S.pursuit.round === round) ? S.pursuit : null);
+  if (puR && opt.pursuit !== false) {
+    const pu = puR, t0 = pu.t0, pos = tt => ({ x: W * (0.5 + pu.ax * Math.sin(2 * Math.PI * pu.fx * tt / 1000)), y: H * (0.5 + pu.ay * Math.sin(2 * Math.PI * pu.fy * tt / 1000 + pu.phaseY)) });
+    sp = within(S, t0 + pu.sampleFrom, t0 + pu.sampleTo, off).map(f => ({ ...pos(f.tc - t0 - pu.lagMs), f, w: pu.weight }));
     if (agg) sp = aggregatePursuit(sp, opt.pursuitBinMs ?? 200);
   }
   const at = (m, A, R, p) => { const g = p.fs.map(f => N.applyResidual(R, N.applyAffine(A, N.predictGaze(m, f)))).filter(q => q && finite(q.x) && finite(q.y)); return g.length >= 4 ? { x: p.x, y: p.y, gx: N.median(g.map(q => q.x)), gy: N.median(g.map(q => q.y)) } : { x: p.x, y: p.y, gx: null, gy: null }; };
