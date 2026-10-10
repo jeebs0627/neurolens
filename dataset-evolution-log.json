@@ -3,6 +3,77 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "db405534e3366c93c646c1f0b4db6be62aee5d26",
+      "parents": [
+        "05ee0f80c46d78fdc840c19dc66f0d6717c50377"
+      ],
+      "committedAt": "2026-10-10T14:58:06+09:00",
+      "subject": "카메라 준비 화면: 휴대폰 세로 모드에서 눈동자 점·심박 피부 영역이 얼굴과 어긋나던 문제 수정",
+      "url": "https://github.com/jeebs0627/neurolens/commit/db405534e3366c93c646c1f0b4db6be62aee5d26",
+      "files": [
+        {
+          "path": "condition-camera.js",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 7
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 36,
+          "deletions": 20
+        }
+      ],
+      "domains": [
+        "gaze",
+        "measurement"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition-camera.js b/condition-camera.js\nindex 4b4f306..045ed22 100644\n--- a/condition-camera.js\n+++ b/condition-camera.js\n@@ -7,5 +7,9 @@\n       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;\n       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});\n-      this.info={version:'condition-camera-6',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n+      /* canvasInput(휴대폰): 얼굴 인식에도 피부색 표본과 같은 캔버스 프레임을 넣는다. 영상 요소를 그대로 넣으면 브라우저가 그 영상을\n+       * 그리는 방식(회전·잘림)과 인식기가 읽는 프레임이 어긋날 수 있다. 화면 미리보기도 이 캔버스(frame)를 그리므로\n+       * 인식·피부 영역·미리보기가 한 프레임, 한 좌표계를 공유한다 (세로·가로 방향과 무관) */\n+      this.forceCanvas=!!opt.canvasInput;this.frame=this.canvas;\n+      this.info={version:'condition-camera-7',backend:'initializing',input:this.forceCanvas?'canvas':'video',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n     }\n     async init(){\n@@ -84,5 +88,5 @@\n        * 맥파(밝기 0.2~0.5 단계)에 양자화 잡음이 더해지고, 피부·비피부 경계 화소도 섞인다. 읽는 것은 피부 영역 상자뿐이라 비용은 작다 */\n       const w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n-      if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}\n+      if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;this.info.frame={w,h};}\n       this.ctx.drawImage(this.video,0,0,w,h);\n       const age=this.geometry?t-this.geometry.t:Infinity;\n@@ -101,5 +105,5 @@\n         this.busy=true;this.pending={fr,context};\n         this.watchdog=setTimeout(()=>this.fallback('inference-timeout'),this.info.inferred ? 2500 : 10000);\n-        createImageBitmap(this.video).then(bitmap=>{\n+        createImageBitmap(this.forceCanvas?this.canvas:this.video).then(bitmap=>{\n           if(!this.worker||this.stopped||this.pending?.fr!==fr){bitmap.close();return;}\n           this.worker.postMessage({type:'frame',t,bitmap},[bitmap]);\n@@ -120,9 +124,9 @@\n           const g0=NLSignal.exposureGain(this.ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20;\n           let result;\n-          if(gain>1.05||this.forceCanvas){\n-            const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n+          if(gain>1.05){\n+            const c=this.inferCanvas,ctx=this.inferCtx,w=this.canvas.width,h=this.canvas.height;\n             if(c.width!==w||c.height!==h){c.width=w;c.height=h;}\n-            ctx.drawImage(this.video,0,0,w,h);NLSignal.enhance(ctx,gain);result=this.detector.detectForVideo(c,t);\n-          } else result=this.detector.detectForVideo(this.video,t);\n+            ctx.drawImage(this.canvas,0,0);NLSignal.enhance(ctx,gain);result=this.detector.detectForVideo(c,t);\n+          } else result=this.detector.detectForVideo(this.forceCanvas?this.canvas:this.video,t);   // 캔버스 입력: 방금 그린 표본 프레임 그대로(복사 추가 없음)\n           const lm=result.faceLandmarks?.[0];\n           if(lm)this.noFace=0;else if(this.opt.autoRecover&&(this.noFace=(this.noFace||0)+1)>=30)this.recover();\ndiff --git a/condition.html b/condition.html\nindex cdfd487..d100c3c 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -139,6 +139,5 @@ h3{font-size:16px;margin:0 0 8px}\n .setup{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:start}\n .preview{position:relative;border-radius:16px;overflow:hidden;background:#0E1A33;aspect-ratio:4/3}\n-.preview video,.preview canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}\n-.preview canvas{z-index:1}   /* iOS Safari: 재생 중인 video 레이어가 뒤 형제(기준선 캔버스)를 덮지 않게 */\n+.preview canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}   /* 영상과 기준선을 한 캔버스에 그린다(거울 보기) */\n .checks{list-style:none;padding:0;margin:0 0 6px}\n .checks li{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}\n@@ -1201,5 +1200,5 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word\n     <div class=\"setup\">\n       <div>\n-        <div class=\"preview\"><video id=\"camPreview\" playsinline muted></video><canvas id=\"overlay\"></canvas><div class=\"guide-msg\" id=\"guideMsg\" hidden></div></div>\n+        <div class=\"preview\"><canvas id=\"overlay\"></canvas><div class=\"guide-msg\" id=\"guideMsg\" hidden></div></div>\n         <div class=\"dist\" id=\"distBox\" hidden aria-hidden=\"true\"><span>멀리</span><div class=\"dist-bar\"><i></i><b id=\"distMark\"></b></div><span>가까이</span></div>\n         <p class=\"small muted\" style=\"margin:8px 2px 0\">초록 점(내 눈동자)을 <b>흰 동그라미 두 개</b>에 맞추면 위치와 거리가 함께 맞아요 · 점선 타원 안에 얼굴 전체 · 분홍 상자: 심박을 읽는 피부 영역</p>\n@@ -1587,5 +1586,5 @@ $('goSetup').addEventListener('click', () => {\n \n /* ---------- 카메라 + MediaPipe ---------- */\n-const procVideo = $('camProc'), prevVideo = $('camPreview');\n+const procVideo = $('camProc');\n const cameraOrientation = matchMedia('(orientation: portrait)');\n function cameraSize() {\n@@ -1639,8 +1638,7 @@ $('camStart').addEventListener('click', async () => {\n     }\n     phase = 'video';\n-    procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;\n+    procVideo.srcObject = S.stream;\n     procVideo.classList.add('on');\n-    await Promise.all([procVideo.play(), prevVideo.play()]);\n-    fitPreview(); prevVideo.onresize = fitPreview;   // 휴대폰 회전 시 영상 비율이 바뀐다\n+    await procVideo.play();\n     /* 기준선·눈동자 목표·거리 안내는 영상이 나오자마자 그린다. 얼굴 인식 모델(휴대폰에서 10초 이상)을 기다리면\n      * 그동안 안내 없는 카메라 화면만 보여 거리·자세를 잡을 수 없었다 */\n@@ -1648,5 +1646,5 @@ $('camStart').addEventListener('click', async () => {\n     phase = 'model';\n     S.camera = new NLCamera(procVideo, {\n-      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: takeLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n+      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, canvasInput: MOBILE, loadFallback: takeLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },\n       onResult: processResult,\n@@ -1656,5 +1654,5 @@ $('camStart').addEventListener('click', async () => {\n       }\n     });\n-    await S.camera.init(); S.camT0 = now(); S.featMiss = 0; clockSegment('camera-init', { backend: S.camera.info.backend });\n+    await S.camera.init(); S.camT0 = now(); S.featMiss = 0; clockSegment('camera-init', { backend: S.camera.info.backend, input: S.camera.info.input });\n     st.textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';\n     startLoop();\n@@ -1758,16 +1756,34 @@ function startLoop() { S.camera.start(); }\n window.addEventListener('pagehide', () => { if(S.datasetTimer)datasetCheckpoint().catch(()=>{});referenceCollector.disconnect();S.supportWorker?.terminate(); S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });\n \n+/* 준비 화면 미리보기: 얼굴 인식·피부색 표본이 실제로 읽은 그 프레임(S.camera.frame)을 캔버스에 직접 그리고, 같은 변환으로\n+ * 랜드마크·홍채·피부 영역을 겹친다. ① 일부 휴대폰 인앱 브라우저(실측 카카오톡)는 <video> 를 하드웨어 오버레이로 그리며 CSS 좌우 반전·맞춤을\n+ * 따르지 않아 점·상자가 거울상으로 어긋났다(사용자 화면 00001~00003). ② 휴대폰 세로 모드에서는 브라우저가 영상을 그리는 방향·비율과\n+ * 인식기가 받는 프레임이 달라 점·상자가 얼굴에서 비켜났다(실측: 세로로 들어도 영상은 640×480). 휴대폰은 인식기에도 이 프레임을\n+ * 넣으므로(canvasInput) 인식·피부 영역·미리보기가 한 프레임·한 좌표계를 공유해 세로·가로 어느 방향이든 정의상 일치한다 */\n+function previewFrame() {\n+  const c = S.camera?.frame;\n+  if (c && c.width > 0 && S.camera.info.captured > 0) return { src: c, w: c.width, h: c.height };\n+  return procVideo.readyState >= 2 && procVideo.videoWidth > 0 ? { src: procVideo, w: procVideo.videoWidth, h: procVideo.videoHeight } : null;   // 인식기 준비 전: 같은 스트림\n+}\n+/* 프레임을 W×H 칸에 비율을 지켜 채운다(가운데 기준 cover — 찌그러뜨리지 않는다). 칸은 fitPreview 가 프레임 비율에 맞추므로 보통 잘림이 없다 */\n+function frameBox(fw, fh, W, H) {\n+  const s = Math.max(W / fw, H / fh), w = fw * s, h = fh * s;\n+  return { x: (W - w) / 2, y: (H - h) / 2, w, h };\n+}\n function drawOverlay() {\n   const cv = $('overlay'), ctx = cv.getContext('2d');\n+  let fitAr = 0;\n   const draw = () => {\n     if ($('sSetup').hidden) { requestAnimationFrame(draw); return; }\n-    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);\n-    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }\n+    const fr = previewFrame();\n+    if (fr && Math.abs(fr.w / fr.h - fitAr) > 1e-3) { fitAr = fr.w / fr.h; fitPreview(fitAr); }   // 휴대폰 회전 시 영상 비율이 바뀐다\n+    const cw = cv.clientWidth, chh = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);\n+    if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(chh * dpr)) { cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); }\n     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);\n-    ctx.clearRect(0, 0, W, H);\n-    /* 카메라 영상을 가이드와 같은 캔버스에 직접 그린다: 일부 휴대폰 인앱 브라우저(실측 카카오톡)는 <video> 를 하드웨어 오버레이로 그리며\n-     * CSS 좌우 반전·맞춤을 따르지 않아, 눈동자 점·피부 영역 상자가 실제 얼굴과 거울상으로 어긋났다(사용자 화면 00001~00003).\n-     * 같은 캔버스·같은 좌표·같은 반전으로 그리면 브라우저와 무관하게 겹친다. <video> 는 그 아래에 남아 영상이 아직 없을 때만 보인다 */\n-    if (procVideo.readyState >= 2 && procVideo.videoWidth) ctx.drawImage(procVideo, 0, 0, W, H);\n+    ctx.clearRect(0, 0, cw, chh);\n+    /* 아래 그리기는 모두 프레임 좌표: (0,0)~(W,H) = 프레임 상자 b */\n+    const b = fr ? frameBox(fr.w, fr.h, cw, chh) : { x: 0, y: 0, w: cw, h: chh }, W = b.w, H = b.h;\n+    ctx.translate(b.x, b.y);\n+    if (fr) ctx.drawImage(fr.src, 0, 0, W, H);\n     /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭).\n      * 밝은 배경·작은 휴대폰 화면에서도 보이게 어두운 그림자를 깔고 휴대폰에서는 선을 굵게 */\n@@ -1825,12 +1841,12 @@ const POS = { cy: 0.48, rx: 0.17, ry: 0.32, tol: 0.08, fwMin: 0.17, fwMax: 0.38\n const EYE = { sep: 0.45, dy: -0.15 };\n const videoAspect = (video = procVideo) => (video.videoWidth > 0 && video.videoHeight > 0) ? video.videoWidth / video.videoHeight : 4 / 3;\n-/* 미리보기 칸을 실제 영상 비율에 맞춘다: 잘림(object-fit:cover)이 없어야 기준선·홍채·피부 영역이 얼굴 위에 정확히 겹친다 */\n-function fitPreview() {\n-  const ar = videoAspect(prevVideo), pv = prevVideo.parentElement;\n+/* 미리보기 칸을 프레임 비율에 맞춘다: 잘림 없이 프레임 전체가 보이게 (정렬 자체는 frameBox 가 칸 비율과 무관하게 보장) */\n+function fitPreview(ar) {\n+  const pv = $('overlay').parentElement;\n   /* 휴대폰 가로: 화면 높이 전체(카드 여백·거리 막대 72px 제외)를 쓰도록 — 이전 62vh 제한이면 798×339 화면에서 280×210 으로 작았다 */\n   const land = MOBILE && innerWidth > innerHeight;\n   pv.style.aspectRatio = String(ar); pv.style.maxWidth = MOBILE ? `calc(${land ? '(100vh - 72px)' : '62vh'} * ${ar.toFixed(3)})` : ''; pv.style.margin = '0 auto';\n }\n-if (MOBILE) addEventListener('resize', () => { if (prevVideo.videoWidth) fitPreview(); });\n+if (MOBILE) addEventListener('resize', () => { const fr = previewFrame(); if (fr) fitPreview(fr.w / fr.h); });\n function posCheck() {\n   const f = S.feat;\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-db405534e336-gaze",
+          "domain": "gaze",
+          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-db405534e336-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: db405534e3366c93c646c1f0b4db6be62aee5d26\n변경 제목: 카메라 준비 화면: 휴대폰 세로 모드에서 눈동자 점·심박 피부 영역이 얼굴과 어긋나던 문제 수정\n관련 파일: condition-camera.js, condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-db405534e336-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-db405534e336-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-db405534e336-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: db405534e3366c93c646c1f0b4db6be62aee5d26\n변경 제목: 카메라 준비 화면: 휴대폰 세로 모드에서 눈동자 점·심박 피부 영역이 얼굴과 어긋나던 문제 수정\n관련 파일: condition-camera.js, condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-db405534e336-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-56039764805",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-10T05:58:14Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/8QNWUdihsRjrYBs9F4EZZ6nT8f3K",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-10T05:58:27.688248+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+    },
+    {
       "sha": "289d7fc580a74fb8943a5175d85454fd456c8e33",
       "parents": [
         "e3ea6331adb37f1196678d747288cf73cd7dac20"
@@ -15455,9 +15526,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "8d18888cd97a271d4dc444b1397fc18bd05e2459"
+    "sourceHead": "db405534e3366c93c646c1f0b4db6be62aee5d26"
   },
-  "updatedAt": "2026-10-10T02:26:11.190925+00:00",
-  "aiCooldownUntil": "2026-10-10T03:26:09.886903+00:00",
+  "updatedAt": "2026-10-10T05:58:47.575189+00:00",
+  "aiCooldownUntil": "2026-10-10T06:58:47.127722+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
