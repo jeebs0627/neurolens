@@ -2302,7 +2302,7 @@ async function runSession() {
   S.telemetry={clock:{...NLLabels.clockInfo(window),start:S.startedAt,onset:'requestAnimationFrame-before-paint',segments:[]},steps:{},stimuli:[],inputs:[],drift:[],layout:[],calibrationFrames:[]};
   S.calibRound=0;S.calibDigests=null;S.gazeLabels=null;
   /* 전역 시선 모델은 검사 시작 시점에 고정한다(세션 중 교체 없음). 로드 실패·호환 불가면 기존 엔진만 쓴다 */
-  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});
+  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,features:N.GAZE_FEATURES,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});
   clockSegment('session-start',{gazeModel:S.gazeModel?.mode||'off'});
   if(S.researchConsent){referenceCollector.start();datasetCheckpoint().catch(console.warn);S.datasetTimer=setInterval(()=>datasetCheckpoint().catch(console.warn),20000);}
   chooseForm(S.mode);

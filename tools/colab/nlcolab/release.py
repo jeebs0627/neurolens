@@ -74,7 +74,7 @@ def build_manifest(*, model_id: str, version: str, onnx_path: Path, pre: dict, c
     man = {"schema": SCH.MANIFEST_SCHEMA, "kind": kind, "id": model_id, "version": version, "parent": parent, "createdAt": datetime.now(timezone.utc).isoformat(), "sha256": sha, "bytes": onnx_path.stat().st_size, "contract": contract,
            "features": pre["features"], "preprocessing": {"version": pre.get("version", "gaze-pp-1"), "mean": pre["mean"], "std": pre["std"], "mask": bool(pre.get("mask", True)), "clip": pre.get("clip", 6.0), "missing": "0 after standardisation + mask bit"},
            "input": {"name": "x", "shape": [1, dim], "dtype": "float32"}, "output": {"name": "delta", "shape": [1, 2], "dtype": "float32", "units": "viewport-fraction", "apply": "g_corrected = g_base + delta * (viewportW, viewportH); then existing drift subtraction"},
-           "opset": opset, "runtime": {"export": "torch.onnx / onnx helper", "browser": "onnxruntime-web (wasm default)"}, "supports": {"core": core_versions, "labelsVersion": "gaze-label-1", "eyeModes": ["both", "left", "right", "weighted"], "browsers": ["chromium-desktop (tested)", "others: unverified"], "maxOpset": 17},
+           "opset": opset, "runtime": {"export": "torch.onnx / onnx helper", "browser": "onnxruntime-web (wasm default)"}, "supports": {"features": SCH.GAZE_FEATURES, "core": core_versions, "labelsVersion": "gaze-label-1", "eyeModes": ["both", "left", "right", "weighted"], "browsers": ["chromium-desktop (tested)", "others: unverified"], "maxOpset": 17},
            "guard": policy["gaze_residual"]["guard"], "tolerance": policy["gaze_residual"]["parityTolerance"], "testVectors": test_vectors, "training": {"commit": git_head(), "exporterCommit": git_head(), "datasetSnapshot": snapshot_hash, "splitManifest": split_hash, "environment": environment(), "policyVersion": policy["version"]},
            "evaluation": metrics, "limitations": limitations, "release": {"state": "candidate", "approvedBy": None, "approvedAt": None, "previousActive": None, "rollbackTo": "baseline-engine"},
            "signing": {"status": "unsigned", "note": "SHA-256 verifies transport integrity only; no signing key exists in this project — document the trusted deployment path or add an approved signing step before active use"}}
@@ -87,7 +87,7 @@ def model_card(man: dict, run: dict) -> str:
     lines = [f"# Model card · {man['id']} v{man['version']}", "", f"- 종류: {man['kind']} · 계약: `{man['contract']}` · 출력 단위: {man['output']['units']}", f"- SHA-256: `{man['sha256']}` · 크기 {man['bytes']} bytes · opset {man['opset']}",
              f"- 학습 commit: `{man['training']['commit']}` · 데이터셋 snapshot: `{man['training']['datasetSnapshot']}` · split: `{man['training']['splitManifest']}`", f"- 상태: **{man['release']['state']}** (trained ≠ active · 승인 전)", "",
              "## 평가 (표적 proxy 오차 · 외부 시선 추적기 정확도가 아님)", "```json", json.dumps(ev, ensure_ascii=False, indent=2)[:4000], "```", "", "## 한계", *[f"- {l}" for l in man.get("limitations", [])], "",
-             "## 지원 범위", f"- core: {man['supports']['core']} · 브라우저: {man['supports']['browsers']}", "", f"_정책 {man['training']['policyVersion']} · 생성 {man['createdAt']}_"]
+             "## 지원 범위", f"- 특징: {man['supports'].get('features', '—')} · core: {man['supports']['core']} · 브라우저: {man['supports']['browsers']}", "", f"_정책 {man['training']['policyVersion']} · 생성 {man['createdAt']}_"]
     return "\n".join(lines) + "\n"
 
 

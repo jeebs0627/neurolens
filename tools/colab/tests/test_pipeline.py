@@ -158,6 +158,11 @@ class PipelineTests(unittest.TestCase):
         patched = registry_patch(reg_path, man, "REPORT.md", "candidate")
         self.assertIsNone(patched["active"]); self.assertIsNone(patched["shadow"]); self.assertEqual(patched["candidates"][0]["state"], "candidate")
 
+    def test_feature_version_matches_engine(self):
+        # manifest.supports.features must name the browser engine's gaze feature contract, or models silently stop loading
+        js = subprocess.check_output(["node", "-e", "process.stdout.write(require('./newbiz-core.js').GAZE_FEATURES)"], cwd=ROOT, text=True)
+        self.assertEqual(js, SCH.GAZE_FEATURES)
+
     def test_ledger_entry_is_public_aggregates_only(self):
         from nlcolab.ledger import build_entry, publish, FORBIDDEN_KEYS
         work = TMP / "work-b"

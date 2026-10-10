@@ -1,19 +1,19 @@
 {
   "schema": "nl-model-registry-1",
-  "updatedAt": "2026-10-08T02:45:22.332629+00:00",
+  "updatedAt": "2026-10-10T13:42:36.256698+00:00",
   "note": "Immutable artifacts live under models/<kind>/<id>/ (model.onnx + manifest.json). The browser pins one entry per session at start; changing 'active' only affects sessions that start after the deployment. 'trained' or 'candidate' never means 'active'. Promotion requires the release policy checks in release_policy.json plus a recorded approver; the git history of this file is the append-only promotion ledger.",
   "policy": "release_policy.json",
   "active": null,
   "shadow": {
-    "id": "gaze-residual-a05c5d16-mlp-shadowx",
+    "id": "gaze-residual-a05c5d16-mlp-shadowx-r2",
     "kind": "gaze-residual",
-    "version": "2026.10.08",
-    "url": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/model.onnx",
-    "manifestUrl": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/manifest.json",
+    "version": "2026.10.10",
+    "url": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2/model.onnx",
+    "manifestUrl": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx-r2/manifest.json",
     "sha256": "2d434f626cb34808de95f08c2aa22bfc60c7149867ba1181314562c40ab4c141",
     "state": "shadow-exception",
     "maxState": "shadow",
-    "createdAt": "2026-10-08T02:44:41.861805+00:00",
+    "createdAt": "2026-10-10T13:42:36.256698+00:00",
     "report": "..\\..\\training\\work\\gaze\\REPORT.md",
     "approvedBy": "research-admin (registered dataset reviewer; identity kept in the private reviewer table, not in public files)",
     "exception": {
@@ -26,7 +26,8 @@
       ],
       "note": "Human-approved deviation from release_policy. This model regressed on locked/temporal tests; it must never be promoted to active without a passing prospective evaluation."
     },
-    "approvedAt": "2026-10-08T02:45:22.332629+00:00"
+    "approvedAt": "2026-10-10T13:42:36.256698+00:00",
+    "parent": "gaze-residual-a05c5d16-mlp-shadowx"
   },
   "candidates": [],
   "history": [
@@ -49,6 +50,15 @@
         "temporal-test-no-regression"
       ],
       "note": "Policy exception approved by the research admin. SHADOW ONLY: outputs (sx,sy) are recorded in research sessions and never applied to measurement or display. Promotion to active requires a passing prospective evaluation with subject-linked sessions. Rollback = set shadow to null in a reviewed commit."
+    },
+    {
+      "at": "2026-10-10T13:42:36.256698+00:00",
+      "event": "shadow-repackaged",
+      "id": "gaze-residual-a05c5d16-mlp-shadowx-r2",
+      "from": "gaze-residual-a05c5d16-mlp-shadowx",
+      "state": "shadow-exception",
+      "actor": "research-admin",
+      "reason": "same model.onnx (sha256 unchanged); supports.features=gaze-features-2.3 so the shadow keeps loading across engine versions that do not change gaze features; core 2.4–2.6 had failed closed with unsupported-core"
     }
   ]
 }

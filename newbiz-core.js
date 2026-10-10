@@ -14,6 +14,9 @@
   'use strict';
 
   const VERSION = 'In_mind core 2.6';   // 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  /* 시선 모델 입력 특징 버전: faceFeatures(u·v 눈꼬리 기준 등)·predictGaze·fitAffine 기본값이 baseX…eyeMode 의 뜻을 바꿀 때만 올린다.
+   * 학습 모델 manifest.supports.features 와 비교한다 — 엔진 버전(VERSION)은 심박·판정 변경에도 올라가 모델이 이유 없이 꺼졌다(core 2.4~2.6). 2.3: 홍채 세로 기준 눈꼬리 축 */
+  const GAZE_FEATURES = 'gaze-features-2.3';
   const HR_BAND = [0.7, 3.0];            // 42~180 bpm
   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준
   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)
@@ -1135,7 +1138,7 @@
   }
 
   const api = {
-    VERSION, THRESH, LM, PROFILES, CARE, Signal, chrom,
+    VERSION, GAZE_FEATURES, THRESH, LM, PROFILES, CARE, Signal, chrom,
     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,
     buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,
     faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,

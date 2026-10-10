@@ -8,6 +8,8 @@ TRAINING_SCHEMA = "nl-training-record-1"
 RESEARCH_SCHEMAS = ("nl-research-1", "nl-research-2", "nl-research-3")
 LABEL_SCHEMA = "nl-gaze-label-1"
 MANIFEST_SCHEMA = "nl-gaze-residual-manifest-1"
+# Gaze input-feature contract version; must equal newbiz-core.js GAZE_FEATURES (checked by tests/test_pipeline.py). Written to manifest.supports.features.
+GAZE_FEATURES = "gaze-features-2.3"
 RPPG_MANIFEST_SCHEMA = "nl-rppg-quality-manifest-1"
 REGISTRY_SCHEMA = "nl-model-registry-1"
 SNAPSHOT_SCHEMA = "nl-dataset-snapshot-1"

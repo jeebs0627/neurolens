@@ -57,7 +57,10 @@
     if (!m || !m.input || !Array.isArray(m.input.shape) || m.input.shape[1] !== D) errors.push('input-shape');
     if (!m || !m.output || !Array.isArray(m.output.shape) || m.output.shape[1] !== 2) errors.push('output-shape');
     if (!m || !Array.isArray(m.testVectors) || !m.testVectors.length) errors.push('test-vectors');
-    if (m && Array.isArray(m.supports?.core) && env.core && !m.supports.core.includes(env.core)) errors.push('unsupported-core:' + env.core);
+    /* 특징 버전(supports.features)이 있으면 그것만 비교한다 — 엔진 버전은 시선 특징과 무관한 변경에도 올라간다. 없는 옛 manifest 는 엔진 버전 목록으로 */
+    const fv = m && typeof m.supports?.features === 'string' ? m.supports.features : null;
+    if (fv && env.features) { if (env.features !== fv) errors.push('unsupported-features:' + env.features); }
+    else if (m && Array.isArray(m.supports?.core) && env.core && !m.supports.core.includes(env.core)) errors.push('unsupported-core:' + env.core);
     if (m && m.supports?.labelsVersion && L.VERSION !== m.supports.labelsVersion) errors.push('unsupported-labels-version');
     if (m && finite(m.supports?.maxOpset) && finite(m.opset) && m.opset > m.supports.maxOpset) errors.push('opset');
     return { ok: errors.length === 0, errors };

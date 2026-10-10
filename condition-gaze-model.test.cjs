@@ -90,6 +90,18 @@ const registry = (over = {}) => ({ schema: M.REGISTRY_SCHEMA, updatedAt: '2026-1
     assert.equal(M.sameOriginPath('models/gaze/x/../../secret.onnx'), false);
   });
 
+  await test('feature version: a manifest with supports.features loads on any engine version with the same features and refuses other features', async () => {
+    const fm = () => ({ ...manifest(), supports: { ...manifest().supports, features: 'gaze-features-2.3' } });
+    assert.deepEqual(M.validateManifest(fm(), { core: 'In_mind core 2.9', features: 'gaze-features-2.3' }), { ok: true, errors: [] });
+    assert.ok(M.validateManifest(fm(), { core: 'In_mind core 2.3', features: 'gaze-features-2.4' }).errors.includes('unsupported-features:gaze-features-2.4'));
+    assert.ok(M.validateManifest(manifest(), { core: 'In_mind core 2.6', features: 'gaze-features-2.3' }).errors.includes('unsupported-core:In_mind core 2.6'), 'legacy manifest keeps the core list');
+    env(registry({ shadow: entry() }), fm()); const gm = await M.freeze({ core: 'In_mind core 2.6', features: 'gaze-features-2.3' }); assert.equal(gm.mode, 'shadow');
+    assert.equal(require('./newbiz-core.js').GAZE_FEATURES, 'gaze-features-2.3');
+    /* 운영 registry 의 shadow manifest 는 지금 엔진의 특징 버전과 맞아야 한다(맞지 않으면 그림자 자료가 조용히 끊긴다) */
+    const reg = JSON.parse(require('fs').readFileSync('model-registry.json', 'utf8'));
+    if (reg.shadow) { const man = JSON.parse(require('fs').readFileSync(reg.shadow.manifestUrl, 'utf8')); assert.ok(M.validateManifest(man, { core: require('./newbiz-core.js').VERSION, features: require('./newbiz-core.js').GAZE_FEATURES }).ok, 'registry shadow manifest supports current engine'); }
+  });
+
   await test('gaze-label sessions request shadow only: an active registry entry is frozen in shadow mode and never applied', async () => {
     env(registry({ active: entry() }));
     const gm = await M.freeze({ core: 'In_mind core 2.3', mode: 'shadow' }); assert.equal(gm.mode, 'shadow');
