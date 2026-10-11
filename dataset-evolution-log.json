@@ -4851,26 +4851,26 @@
         {
           "id": "evo-d6a6a4c26f43-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-d6a6a4c26f43-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67\n변경 제목: Condition: Colab 학습 엔진 — v3 연구 패키지, 시선 라벨 수집 모드, 고정·fail-closed 모델 클라이언트, nlcolab 파이프라인\n관련 파일: .gitignore, .vercelignore, COLAB_TRAINING_RUNBOOK.md, DATASET_RUNBOOK.md, NEWBIZ_RESEARCH_DATA.md, TRAINING_SCHEMA.md, condition-gaze-model.js, condition-gaze-model.test.cjs, condition-labels.browser.test.cjs, condition-labels.js, condition-labels.test.cjs, condition.html, dataset-engine-log.json, dataset-training.js, dataset-workspace.js, dataset.html, dataset.js, model-registry.json, newbiz-research.js, notebooks/01_dataset_audit.ipynb, notebooks/02_train_gaze_residual.ipynb, notebooks/03_train_rppg_quality.ipynb, notebooks/04_release_candidate.ipynb, release_policy.json, tools/colab/baseline_predict.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-d6a6a4c26f43-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "클라이언트 비동기 시선 잔차 모델 추론 모듈의 약한 신호 활용량 및 통합 오차 회귀 검증",
+          "rationale": "관측 사실: `condition.html` 패치에서 `S.gazeModel` 고정 후 `NLGazeModel.infer`를 비동기 호출하여 `sample.sx`, `sample.sy` 형태의 잔차 예측 좌표를 기록하는 구조가 도입됨. 제공된 patchExcerpt는 잘려진 상태(`patchTruncated: true`)임.\n연구자 주장 및 가설: 전역 잔차 모델을 적용하면 머리 움직임이나 눈 빛 반사 등 약한 신호 구간에서 영점 보정 좌표의 누적 표류(drift)를 보완하고 유효 신호 활용량을 높일 수 있다는 가설이 명시됨.\n구분 필요성: 커밋 제목에 명시된 'fail-closed 모델 클라이언트' 성과는 코드 구조적 의도일 뿐, 실제 모바일/웹캠 환경에서 추론 지연이나 좌표 튐 현상이 억제되었음을 입증하는 검증된 증거는 아님. 합성 데이터나 자체 시뮬레이션 결과를 사람 대상 임상 진단 정확도로 오인하지 않고 실측 데이터셋과 연계하여 불확실성을 평가해야 함.",
+          "validationPlan": "1. 데이터셋 연결 검증: dataset 내 참가자, 기기, 수집 날짜 정보가 분리된 웹캠 세션 관측 기록을 연결하여 평가 분모(실패/이탈 세션 포함)를 설정함.\n2. 신호 활용률 vs 오차 트레이드오프 평가: 기존 영점/축 보정 모델 대비, 잔차 추론 좌표 적용 시 무효화 처리되던 약한 신호 구간의 '방치/제외 프레임 수 대비 오차 분포(Px)'를 함께 산출함.\n3. 회귀 및 텔레메트리 평가: `lag`, `featMiss`, `bl`(튐 차단) 지표를 기기 성능군별로 분리하고, 비동기 추론 콜백 지연이 프레임 드롭률을 증가시키는지 회귀 테스트 시행.\n4. 절대 기준선 미보장 명시: 외부 아이트래커 기준 센서가 없는 자체 웹캠 관측이므로 수치를 임상 진단 오차로 일반화하지 않고, '조건별 상대 오차 변화율'과 '미검증 불확실성 범위'를 명시함.",
+          "prompt": "다음 현행 코드를 확인하고 비동기 시선 모델 추론 모듈(`condition-gaze-model.js` 및 `condition.html`)의 유효 신호 활용량 및 오차 회귀 검증 과제를 수행하라.\n\n1. 코드 분석 및 현황 점검:\n   - `condition.html` 패치Excerpt 및 관련 JS 파일에서 `NLGazeModel.infer` 연동부와 `S.gazeModel` 초기화 로직 확인.\n   - `patchTruncated: true`로 패치가 일부만 제공되었으므로, 전체 코드 구조 및 미반영 파일 참조 상태를 파악할 것.\n\n2. 변경 및 검증 과제 내용:\n   - 약한 신호(눈 깜빡임 직후, 비대면 조명 변동, 미세 머리 이동) 관측 시 프레임을 폐기하지 않고 부분 활용할 때의 활용 비율 증가량과 오차(픽셀 단위 거리)를 동시 측정하는 평가 스크립트 작성.\n   - 참가자(participant), 기기(device), 수집 날짜(date)를 완전히 분리하여 그룹별 오차 분포를 산출할 것.\n   - 세션 실패, 측정 중단 시도까지 분모에 포함하여 전체 측정 성공률과 신호 활용률을 계산할 것.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 기존 모델 대비 약한 신호 구간 활용 프레임 비율이 증가하면서, 전체 프레임 중 큰 좌표 튐(outlier) 발생률이 늘어나지 않고, 비동기 추론 콜백 지연(`lag`)이 프레임 간격을 33ms 이상 지연시키지 않을 것.\n   - 회귀 기준: 추론 중 연산 실패/오류 시 fail-closed 로직이 작동하지 않아 기존 `g0` 좌표까지 오염시키거나, 특정 기기군에서 프레임 드롭률이 5% 이상 상승하는 경우.\n\n4. 결과 보고 양식:\n   - 실측 성능 수치를 임의로 만들어내지 말고, `dataset-training.js` 및 `notebooks/` 파이프라인에서 실제 연결할 수 있는 평가 메트릭 구조를 작성하라.\n   - 결과 표 보고 양식: [기기군 / 참가자 구분 / 분모(전체 세션) / 신호 활용률(%) / 평균 오차(px) / P95 오차(px) / 비동기 지연(ms) / 불확실성 메모]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67\nDataset-Task: evo-d6a6a4c26f43-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-d6a6a4c26f43-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-d6a6a4c26f43-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67\n변경 제목: Condition: Colab 학습 엔진 — v3 연구 패키지, 시선 라벨 수집 모드, 고정·fail-closed 모델 클라이언트, nlcolab 파이프라인\n관련 파일: .gitignore, .vercelignore, COLAB_TRAINING_RUNBOOK.md, DATASET_RUNBOOK.md, NEWBIZ_RESEARCH_DATA.md, TRAINING_SCHEMA.md, condition-gaze-model.js, condition-gaze-model.test.cjs, condition-labels.browser.test.cjs, condition-labels.js, condition-labels.test.cjs, condition.html, dataset-engine-log.json, dataset-training.js, dataset-workspace.js, dataset.html, dataset.js, model-registry.json, newbiz-research.js, notebooks/01_dataset_audit.ipynb, notebooks/02_train_gaze_residual.ipynb, notebooks/03_train_rppg_quality.ipynb, notebooks/04_release_candidate.ipynb, release_policy.json, tools/colab/baseline_predict.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-d6a6a4c26f43-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "Gaze Label 전용 수집 모드 및 Colab 파이프라인의 수집 무결성 및 라벨 정렬 검증",
+          "rationale": "관측 사실: `condition.html`에 `?mode=gaze-label` 모드, `labelRingPush` 링버퍼, `free_click_weak` 포인터 이벤트 기록, 및 Python 패키지(`tools/colab/nlcolab/`) 및 수집 루틴 파일들이 추가됨. 패치 텍스트는 일부 생략됨(`patchTruncated: true`).\n연구자 주장 및 가설: 사용자가 화면 표적을 바라보면서 클릭/터치할 때, 직전 0.3초간의 눈 관측 데이터를 proxy 정답 라벨로 활용하여 시선 추적 모델 학습용 데이터셋을 구축할 수 있다는 가설.\n구분 필요성: 커밋 메시지와 코드 내 주석은 '상호작용 기반 보정 연구 패키지'를 수립했다고 설명하나, 이는 수집 도구의 구현일 뿐 라벨의 정확성이나 모델 정답지로서의 유효성이 검증된 것은 아님. 클릭 동작 중 발생하는 시선 이탈(button-seeking gaze) 위험과 지연 시간이 검증되어야 함.",
+          "validationPlan": "1. 데이터셋 연결 평가: 실제 수집된 데이터셋 메모 및 텔레메트리(`inputs`, `clock.segments`, `layout`)를 연계하여 라벨 신뢰도를 평가함.\n2. 라벨 오염 요인 분리: `free_click_weak` 표본 중 클릭 순간 반응 지연, 창 크기 변경(`visualViewport`), 탭 전환(`resume`) 구간이 라벨 데이터셋에 오입력되는 비율을 산출함.\n3. 파이프라인 입출력 회귀 테스트: `tools/colab/nlcolab/gaze_dataset.py` 및 `adapter.py`가 스키마 미준수 라벨이나 얼굴 손실 프레임을 정상적으로 fail-closed 제외하는지 검증함.\n4. 한계 명시: 해당 라벨은 외부 정밀 아이트래커 정답이 아닌 상호작용 기반 proxy 라벨임을 기록 문서에 명시하고 임상 독립 정답으로 주장하지 않음.",
+          "prompt": "다음 현행 코드를 확인하고 `?mode=gaze-label` 및 `nlcolab` 파이프라인의 수집 데이터 무결성 검증 과제를 수행하라.\n\n1. 현행 코드 확인:\n   - `condition.html` 내 `LABEL_MODE`, `labelRingPush`, `recordInput`, `clockSegment` 연동 구조 점검.\n   - `tools/colab/nlcolab/` 디렉터리의 `gaze_dataset.py`, `canonical.py`, `adapter.py` 데이터 변환 로직 확인.\n   - 제공된 patchExcerpt에 생략(`patchTruncated: true`)이 존재함을 감안하여 관련 파일 모듈 간 인터페이스 일치 여부 확인.\n\n2. 개발 및 검증 과제:\n   - 클릭/터치 시점 직전 링버퍼 프레임 추출 시, 반응 지연으로 인한 시선 이탈 프레임이 제거되는지 검증하는 파이프라인 모듈 작성.\n   - `isTrusted`가 false이거나, `faceMissing`이 true인 프레임, 레이아웃 변경(`resize`, `scroll`) 직후 500ms 이내 프레임이 학습 데이터셋에서 무조건 제외(fail-closed)되는지 검사.\n   - 수집된 세션을 참가자/기기/수집일자별로 그룹화하여, 전체 시도 세션 대비 유효 라벨 생성 비율(활용률)과 라벨 포함 지연 시간 분포를 평가.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 스키마 결함이나 손실된 관측 프레임이 파이프라인 통과 시 100% 걸러지며, 노이즈가 포함된 약한 신호 라벨에 대해 정답 증빙 여부가 provenance 속성으로 구별 지정될 것.\n   - 회귀 기준: 유효하지 않은 포인터 클릭 좌표가 정답 라벨로 오인 저장되거나, Python 파이프라인 처리 중 예외가 발생하여 수집 세션 전체가 유실되는 현상.\n\n4. 결과 보고 양식:\n   - 임의의 실측 수치를 조작해 넣지 말고, dataset과의 연결 고리를 정의한 검증 보고서를 작성하라.\n   - 보고서 양식: [수집 세션 ID / 참가자-기기-날짜 / 총 클릭 시도 / 유효 라벨 추출 수 / 정제 제외 사유별 건수(얼굴손실, 지연, 레이아웃변동) / 라벨 유효 활용률(%) / 무결성 검증 결과]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67\nDataset-Task: evo-d6a6a4c26f43-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisState": "generated",
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-55851850510",
@@ -4902,9 +4902,387 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-11T19:45:05.932763+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-11T23:12:41.711199+00:00",
+      "analysis": {
+        "summary": "2026년 10월 8일 커밋(d6a6a4c2)에서 `condition.html`, `condition-labels.js`, `condition-gaze-model.js`, 및 Colab 파이프라인 패키지(`tools/colab/nlcolab/` 이하)의 다수 파일이 추가/수정되었습니다. 제공된 패치(patchExcerpt)는 일부 범위만 남은 생략 형태(`patchTruncated: true`)입니다. 커밋 제목에서는 'Colab 학습 엔진 — v3 연구 패키지, 시선 라벨 수집 모드, 고정·fail-closed 모델 클라이언트' 등의 성과를 주장하고 있으나, 이는 개발자의 변경 의도 설명일 뿐 독립적인 실측 검증 데이터나 정답 성능 지표가 포함된 증거는 아닙니다.\n\n주요 관측 변경사항은 다음과 같습니다:\n1. `condition.html` 내 전용 시선 라벨 수집 모드(`?mode=gaze-label`) 및 라벨용 링버퍼(`labelRingPush`) 도입: 표적 응시Intent를 proxy 라벨로 수집하며 검사 결과를 별도 생성하지 않음.\n2. 전역 시선 모델 추론 연동: `NLGazeModel.infer`를 비동기 호출하여 `shadow` 모드 또는 `replace-residual` 컨트랙트로 좌표를 확장 기록.\n3. 입력 텔레메트리 및 환경 로그 강화: 포인터 이벤트의 좌표(`free_click_weak`), 시계 구간(`clockSegment`), 레이아웃 변경(`visualViewport`, `scroll`) 등을 분리 수집.\n4. Python 및 Colab 도구 체계화: `nlcolab` 패키지(adapter, canonical, evaluate, train_gaze 등) 및 노트북 추가.\n\n미검증 영향 요약:\n- 비동기 추론(`NLGazeModel.infer`) 도입에 따른 브라우저 주파수 지연(lag) 및 프레임 드롭 위험 미검증.\n- `free_click_weak` 및 proxy 라벨이 실제 눈 시선과 정렬되는지 여부는 참가자/기기/날짜별 실측 데이터셋 결합 평가 필요.\n- 잔차 모델 적용 시 부분 유효 신호의 활용량 증가가 전반적인 추정 오차를 악화시키지 않는지 검증 미완료.",
+        "tasks": [
+          {
+            "id": "evo-d6a6a4c26f43-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "클라이언트 비동기 시선 잔차 모델 추론 모듈의 약한 신호 활용량 및 통합 오차 회귀 검증",
+            "rationale": "관측 사실: `condition.html` 패치에서 `S.gazeModel` 고정 후 `NLGazeModel.infer`를 비동기 호출하여 `sample.sx`, `sample.sy` 형태의 잔차 예측 좌표를 기록하는 구조가 도입됨. 제공된 patchExcerpt는 잘려진 상태(`patchTruncated: true`)임.\n연구자 주장 및 가설: 전역 잔차 모델을 적용하면 머리 움직임이나 눈 빛 반사 등 약한 신호 구간에서 영점 보정 좌표의 누적 표류(drift)를 보완하고 유효 신호 활용량을 높일 수 있다는 가설이 명시됨.\n구분 필요성: 커밋 제목에 명시된 'fail-closed 모델 클라이언트' 성과는 코드 구조적 의도일 뿐, 실제 모바일/웹캠 환경에서 추론 지연이나 좌표 튐 현상이 억제되었음을 입증하는 검증된 증거는 아님. 합성 데이터나 자체 시뮬레이션 결과를 사람 대상 임상 진단 정확도로 오인하지 않고 실측 데이터셋과 연계하여 불확실성을 평가해야 함.",
+            "validationPlan": "1. 데이터셋 연결 검증: dataset 내 참가자, 기기, 수집 날짜 정보가 분리된 웹캠 세션 관측 기록을 연결하여 평가 분모(실패/이탈 세션 포함)를 설정함.\n2. 신호 활용률 vs 오차 트레이드오프 평가: 기존 영점/축 보정 모델 대비, 잔차 추론 좌표 적용 시 무효화 처리되던 약한 신호 구간의 '방치/제외 프레임 수 대비 오차 분포(Px)'를 함께 산출함.\n3. 회귀 및 텔레메트리 평가: `lag`, `featMiss`, `bl`(튐 차단) 지표를 기기 성능군별로 분리하고, 비동기 추론 콜백 지연이 프레임 드롭률을 증가시키는지 회귀 테스트 시행.\n4. 절대 기준선 미보장 명시: 외부 아이트래커 기준 센서가 없는 자체 웹캠 관측이므로 수치를 임상 진단 오차로 일반화하지 않고, '조건별 상대 오차 변화율'과 '미검증 불확실성 범위'를 명시함.",
+            "prompt": "다음 현행 코드를 확인하고 비동기 시선 모델 추론 모듈(`condition-gaze-model.js` 및 `condition.html`)의 유효 신호 활용량 및 오차 회귀 검증 과제를 수행하라.\n\n1. 코드 분석 및 현황 점검:\n   - `condition.html` 패치Excerpt 및 관련 JS 파일에서 `NLGazeModel.infer` 연동부와 `S.gazeModel` 초기화 로직 확인.\n   - `patchTruncated: true`로 패치가 일부만 제공되었으므로, 전체 코드 구조 및 미반영 파일 참조 상태를 파악할 것.\n\n2. 변경 및 검증 과제 내용:\n   - 약한 신호(눈 깜빡임 직후, 비대면 조명 변동, 미세 머리 이동) 관측 시 프레임을 폐기하지 않고 부분 활용할 때의 활용 비율 증가량과 오차(픽셀 단위 거리)를 동시 측정하는 평가 스크립트 작성.\n   - 참가자(participant), 기기(device), 수집 날짜(date)를 완전히 분리하여 그룹별 오차 분포를 산출할 것.\n   - 세션 실패, 측정 중단 시도까지 분모에 포함하여 전체 측정 성공률과 신호 활용률을 계산할 것.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 기존 모델 대비 약한 신호 구간 활용 프레임 비율이 증가하면서, 전체 프레임 중 큰 좌표 튐(outlier) 발생률이 늘어나지 않고, 비동기 추론 콜백 지연(`lag`)이 프레임 간격을 33ms 이상 지연시키지 않을 것.\n   - 회귀 기준: 추론 중 연산 실패/오류 시 fail-closed 로직이 작동하지 않아 기존 `g0` 좌표까지 오염시키거나, 특정 기기군에서 프레임 드롭률이 5% 이상 상승하는 경우.\n\n4. 결과 보고 양식:\n   - 실측 성능 수치를 임의로 만들어내지 말고, `dataset-training.js` 및 `notebooks/` 파이프라인에서 실제 연결할 수 있는 평가 메트릭 구조를 작성하라.\n   - 결과 표 보고 양식: [기기군 / 참가자 구분 / 분모(전체 세션) / 신호 활용률(%) / 평균 오차(px) / P95 오차(px) / 비동기 지연(ms) / 불확실성 메모]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67\nDataset-Task: evo-d6a6a4c26f43-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-d6a6a4c26f43-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "Gaze Label 전용 수집 모드 및 Colab 파이프라인의 수집 무결성 및 라벨 정렬 검증",
+            "rationale": "관측 사실: `condition.html`에 `?mode=gaze-label` 모드, `labelRingPush` 링버퍼, `free_click_weak` 포인터 이벤트 기록, 및 Python 패키지(`tools/colab/nlcolab/`) 및 수집 루틴 파일들이 추가됨. 패치 텍스트는 일부 생략됨(`patchTruncated: true`).\n연구자 주장 및 가설: 사용자가 화면 표적을 바라보면서 클릭/터치할 때, 직전 0.3초간의 눈 관측 데이터를 proxy 정답 라벨로 활용하여 시선 추적 모델 학습용 데이터셋을 구축할 수 있다는 가설.\n구분 필요성: 커밋 메시지와 코드 내 주석은 '상호작용 기반 보정 연구 패키지'를 수립했다고 설명하나, 이는 수집 도구의 구현일 뿐 라벨의 정확성이나 모델 정답지로서의 유효성이 검증된 것은 아님. 클릭 동작 중 발생하는 시선 이탈(button-seeking gaze) 위험과 지연 시간이 검증되어야 함.",
+            "validationPlan": "1. 데이터셋 연결 평가: 실제 수집된 데이터셋 메모 및 텔레메트리(`inputs`, `clock.segments`, `layout`)를 연계하여 라벨 신뢰도를 평가함.\n2. 라벨 오염 요인 분리: `free_click_weak` 표본 중 클릭 순간 반응 지연, 창 크기 변경(`visualViewport`), 탭 전환(`resume`) 구간이 라벨 데이터셋에 오입력되는 비율을 산출함.\n3. 파이프라인 입출력 회귀 테스트: `tools/colab/nlcolab/gaze_dataset.py` 및 `adapter.py`가 스키마 미준수 라벨이나 얼굴 손실 프레임을 정상적으로 fail-closed 제외하는지 검증함.\n4. 한계 명시: 해당 라벨은 외부 정밀 아이트래커 정답이 아닌 상호작용 기반 proxy 라벨임을 기록 문서에 명시하고 임상 독립 정답으로 주장하지 않음.",
+            "prompt": "다음 현행 코드를 확인하고 `?mode=gaze-label` 및 `nlcolab` 파이프라인의 수집 데이터 무결성 검증 과제를 수행하라.\n\n1. 현행 코드 확인:\n   - `condition.html` 내 `LABEL_MODE`, `labelRingPush`, `recordInput`, `clockSegment` 연동 구조 점검.\n   - `tools/colab/nlcolab/` 디렉터리의 `gaze_dataset.py`, `canonical.py`, `adapter.py` 데이터 변환 로직 확인.\n   - 제공된 patchExcerpt에 생략(`patchTruncated: true`)이 존재함을 감안하여 관련 파일 모듈 간 인터페이스 일치 여부 확인.\n\n2. 개발 및 검증 과제:\n   - 클릭/터치 시점 직전 링버퍼 프레임 추출 시, 반응 지연으로 인한 시선 이탈 프레임이 제거되는지 검증하는 파이프라인 모듈 작성.\n   - `isTrusted`가 false이거나, `faceMissing`이 true인 프레임, 레이아웃 변경(`resize`, `scroll`) 직후 500ms 이내 프레임이 학습 데이터셋에서 무조건 제외(fail-closed)되는지 검사.\n   - 수집된 세션을 참가자/기기/수집일자별로 그룹화하여, 전체 시도 세션 대비 유효 라벨 생성 비율(활용률)과 라벨 포함 지연 시간 분포를 평가.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 스키마 결함이나 손실된 관측 프레임이 파이프라인 통과 시 100% 걸러지며, 노이즈가 포함된 약한 신호 라벨에 대해 정답 증빙 여부가 provenance 속성으로 구별 지정될 것.\n   - 회귀 기준: 유효하지 않은 포인터 클릭 좌표가 정답 라벨로 오인 저장되거나, Python 파이프라인 처리 중 예외가 발생하여 수집 세션 전체가 유실되는 현상.\n\n4. 결과 보고 양식:\n   - 임의의 실측 수치를 조작해 넣지 말고, dataset과의 연결 고리를 정의한 검증 보고서를 작성하라.\n   - 보고서 양식: [수집 세션 ID / 참가자-기기-날짜 / 총 클릭 시도 / 유효 라벨 추출 수 / 정제 제외 사유별 건수(얼굴손실, 지연, 레이아웃변동) / 라벨 유효 활용률(%) / 무결성 검증 결과]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67\nDataset-Task: evo-d6a6a4c26f43-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "ef5989b18600107941064712f815b8433b4849d5904905fab29b10476e8d088a",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 12364,
+            "candidatesTokenCount": 2810,
+            "totalTokenCount": 16699
+          }
+        },
+        "generatedAt": "2026-10-11T23:13:10.095176+00:00",
+        "sourceSha": "d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67",
+        "sourceEvidence": {
+          "sha": "d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67",
+          "parents": [
+            "2be449afa04fd9181926160d6cbdd363b6cea607"
+          ],
+          "committedAt": "2026-10-08T01:11:27Z",
+          "subject": "Condition: Colab 학습 엔진 — v3 연구 패키지, 시선 라벨 수집 모드, 고정·fail-closed 모델 클라이언트, nlcolab 파이프라인",
+          "url": "https://github.com/jeebs0627/neurolens/commit/d6a6a4c26f4394f5497f7fd292d82b0c0f1efb67",
+          "files": [
+            {
+              "path": ".gitignore",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 0
+            },
+            {
+              "path": ".vercelignore",
+              "status": "modified",
+              "additions": 6,
+              "deletions": 0
+            },
+            {
+              "path": "COLAB_TRAINING_RUNBOOK.md",
+              "status": "added",
+              "additions": 112,
+              "deletions": 0
+            },
+            {
+              "path": "DATASET_RUNBOOK.md",
+              "status": "modified",
+              "additions": 6,
+              "deletions": 0
+            },
+            {
+              "path": "NEWBIZ_RESEARCH_DATA.md",
+              "status": "modified",
+              "additions": 11,
+              "deletions": 1
+            },
+            {
+              "path": "TRAINING_SCHEMA.md",
+              "status": "added",
+              "additions": 56,
+              "deletions": 0
+            },
+            {
+              "path": "condition-gaze-model.js",
+              "status": "added",
+              "additions": 184,
+              "deletions": 0
+            },
+            {
+              "path": "condition-gaze-model.test.cjs",
+              "status": "added",
+              "additions": 101,
+              "deletions": 0
+            },
+            {
+              "path": "condition-labels.browser.test.cjs",
+              "status": "added",
+              "additions": 127,
+              "deletions": 0
+            },
+            {
+              "path": "condition-labels.js",
+              "status": "added",
+              "additions": 280,
+              "deletions": 0
+            },
+            {
+              "path": "condition-labels.test.cjs",
+              "status": "added",
+              "additions": 93,
+              "deletions": 0
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 257,
+              "deletions": 33
+            },
+            {
+              "path": "dataset-engine-log.json",
+              "status": "modified",
+              "additions": 9,
+              "deletions": 1
+            },
+            {
+              "path": "dataset-training.js",
+              "status": "added",
+              "additions": 90,
+              "deletions": 0
+            },
+            {
+              "path": "dataset-workspace.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "dataset.html",
+              "status": "modified",
+              "additions": 9,
+              "deletions": 2
+            },
+            {
+              "path": "dataset.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "model-registry.json",
+              "status": "added",
+              "additions": 18,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-research.js",
+              "status": "modified",
+              "additions": 54,
+              "deletions": 11
+            },
+            {
+              "path": "notebooks/01_dataset_audit.ipynb",
+              "status": "added",
+              "additions": 74,
+              "deletions": 0
+            },
+            {
+              "path": "notebooks/02_train_gaze_residual.ipynb",
+              "status": "added",
+              "additions": 54,
+              "deletions": 0
+            },
+            {
+              "path": "notebooks/03_train_rppg_quality.ipynb",
+              "status": "added",
+              "additions": 43,
+              "deletions": 0
+            },
+            {
+              "path": "notebooks/04_release_candidate.ipynb",
+              "status": "added",
+              "additions": 58,
+              "deletions": 0
+            },
+            {
+              "path": "release_policy.json",
+              "status": "added",
+              "additions": 37,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/baseline_predict.cjs",
+              "status": "added",
+              "additions": 53,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/fixtures.cjs",
+              "status": "added",
+              "additions": 156,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/__init__.py",
+              "status": "added",
+              "additions": 7,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/__main__.py",
+              "status": "added",
+              "additions": 3,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/adapter.py",
+              "status": "added",
+              "additions": 285,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/baseline.py",
+              "status": "added",
+              "additions": 49,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/canonical.py",
+              "status": "added",
+              "additions": 80,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/cli.py",
+              "status": "added",
+              "additions": 76,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/evaluate.py",
+              "status": "added",
+              "additions": 91,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/export.py",
+              "status": "added",
+              "additions": 175,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/gaze_dataset.py",
+              "status": "added",
+              "additions": 172,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/inventory.py",
+              "status": "added",
+              "additions": 161,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/pipeline.py",
+              "status": "added",
+              "additions": 225,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/release.py",
+              "status": "added",
+              "additions": 104,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/rppg_dataset.py",
+              "status": "added",
+              "additions": 147,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/safe_io.py",
+              "status": "added",
+              "additions": 102,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/schema.py",
+              "status": "added",
+              "additions": 39,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/snapshot.py",
+              "status": "added",
+              "additions": 70,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/splits.py",
+              "status": "added",
+              "additions": 71,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/train_gaze.py",
+              "status": "added",
+              "additions": 288,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/train_rppg.py",
+              "status": "added",
+              "additions": 147,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/requirements-colab.txt",
+              "status": "added",
+              "additions": 8,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/session_adapter.cjs",
+              "status": "added",
+              "additions": 200,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/session_adapter.test.cjs",
+              "status": "added",
+              "additions": 75,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/tests/test_canonical.py",
+              "status": "added",
+              "additions": 58,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/tests/test_pipeline.py",
+              "status": "added",
+              "additions": 173,
+              "deletions": 0
+            },
+            {
+              "path": "tools/gaze_replay.cjs",
+              "status": "modified",
+              "additions": 32,
+              "deletions": 144
+            },
+            {
+              "path": "tools/newbiz_research_export.py",
+              "status": "modified",
+              "additions": 70,
+              "deletions": 29
+            },
+            {
+              "path": "tools/newbiz_research_export_test.py",
+              "status": "modified",
+              "additions": 20,
+              "deletions": 2
+            }
+          ],
+          "domains": [
+            "measurement",
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -1034,6 +1034,14 @@ <h2 style=\"margin-bottom:4px\">실측할 검사 단계를 고르세요</h2>\n     <div class=\"est\" id=\"labEst\"></div>\n     <div class=\"btns\"><button class=\"btn\" id=\"labGo\" disabled>선택한 단계 실측 시작</button></div>\n   </div>\n+  <!-- 전용 시선 라벨 수집 모드 (?mode=gaze-label): 표적을 실제로 응시하고 확인하는 별도 경로. 검사 결과·임상 점수를 만들지 않는다 -->\n+  <div class=\"card\" id=\"labelCard\" hidden style=\"margin-top:22px;border:2px solid #1F4FD8\">\n+    <div class=\"kicker\">Gaze Label · 시선 라벨 수집 모드</div>\n+    <h2 style=\"margin-bottom:4px\">점을 바라보고 확인하는 학습용 수집</h2>\n+    <p class=\"small muted\" style=\"margin:6px 0 12px\">시선 보정을 마친 뒤 화면 곳곳의 점을 하나씩 보여 드려요. <b>점의 가운데를 바라본 채</b> 화면 아무 곳이나 클릭·터치하거나 스페이스바를 누르면 그 직전의 눈 관측이 ‘이 점을 보려 했다’는 라벨로 기록돼요. 버튼을 찾느라 다른 곳을 볼 필요가 없어요. 이 모드는 검사 결과나 점수를 만들지 않으며, 마지막 몇 개 점은 평가 전용이라 학습에 쓰지 않아요. 아래 ‘연구 데이터 제공에 동의’가 켜져 있어야 저장돼요.</p>\n+    <div class=\"est\" id=\"labelEst\"></div>\n+    <div class=\"btns\"><button class=\"btn\" id=\"labelGo\">시선 라벨 수집 시작</button></div>\n+  </div>\n   <div class=\"card\" id=\"setupCard\" style=\"margin-top:22px\">\n     <div class=\"kicker\">Before you start</div>\n     <h2 style=\"margin-bottom:4px\">시작하기 전에</h2>\n@@ -1217,6 +1225,8 @@ <h2>결과를 정리하고 있어요</h2>\n <script src=\"condition-dataset.js\"></script>\n <script src=\"condition-reference.js\"></script>\n <script src=\"condition-research-store.js\"></script>\n+<script src=\"condition-labels.js\"></script>\n+<script src=\"condition-gaze-model.js\"></script>\n <script type=\"module\">\n const N = window.NLNewbiz, B = window.NLBattery, R = window.NLReport;\n const MP_VER = '0.10.14';\n@@ -1248,13 +1258,22 @@ <h2>결과를 정리하고 있어요</h2>\n   onFeature: null, onResp: null, onKey: null, onGo: null, abort: false, mouse: { x: 0, y: 0 }, calib: null, screenW: 0, resized: false,\n   stim: null, stimAll: null, stimMeta: null, stimMode: 'schematic',\n   hidden: [], hideStart: null, lmRec: false, landmarks: null, calibLog: null, onGaze: null, research: null,\n+  sessionKind: 'condition', gazeLabels: null, gazeModel: null, calibRound: 0, calibDigests: null,\n };\n const referenceCollector=new NLReference.Collector(message=>{$('refStatus').textContent=message;});\n $('refConnect').onclick=async()=>{if(!$('rsOpt').checked){$('refStatus').textContent='연구 데이터 제공 동의 후 연결할 수 있어요.';return;}try{await referenceCollector.connect();}catch(e){$('refStatus').textContent=e.message;}};\n $('refDisconnect').onclick=()=>{referenceCollector.disconnect();$('refStatus').textContent='연결 해제됨';};\n window.addEventListener('online',()=>NLResearchStore.flush().catch(()=>{}));\n NLResearchStore.flush().catch(()=>{});\n const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];\n+/* ---------- 전용 시선 라벨 수집 모드 (?mode=gaze-label[&labels=train,internal,holdout][&seed=n]) ---------- */\n+const LABEL_MODE = new URLSearchParams(location.search).get('mode') === 'gaze-label';\n+function labelCounts() {\n+  const q = (new URLSearchParams(location.search).get('labels') || '').split(',').map(Number), d = NLLabels.DEFAULT_CONFIG.counts;\n+  const ok = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;\n+  return { train: ok(q[0], 4, 60) ? q[0] : d.train, internal: ok(q[1], 2, 20) ? q[1] : d.internal, holdout: ok(q[2], 3, 12) ? q[2] : d.holdout };\n+}\n+\n /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */\n const resetEuro = () => { const c = (S.gazeNoise || 0) > 0.025 ? 0.35 : 0.5; S.euro = { x: N.oneEuro({ minCutoff: c, beta: 0.004 }), y: N.oneEuro({ minCutoff: c, beta: 0.004 }) }; S.view = null; S.gstab = null; };\n resetEuro();\n@@ -1333,6 +1352,7 @@ <h2>결과를 정리하고 있어요</h2>\n     calibration: 60, baseline: d.baseline + 3, pursuit: B.pursuitSec(d) + (d.circle || 0) + 8, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,\n     freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 2, pvt: d.pvt + d.pvtPractice * 3.5 + 6, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 6,\n     stress: d.stress + 3, recovery: d.recovery + 3,\n+    gazeLabel: LABEL_MODE ? (labelCounts().train + labelCounts().internal + labelCounts().holdout) * 3.6 : 0,\n   }[key] || 0;\n }\n const MOD_STEPS = { alert: ['pvt'], oculo: ['pursuit', 'saccade'], sustain: ['sart'], core: ['freeview', 'stress', 'recovery'] };\n@@ -1358,7 +1378,18 @@ <h2>결과를 정리하고 있어요</h2>\n $('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));\n $('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full', { seed: 7, all: true }); });\n $('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) { $('rsPhq').checked = false; referenceCollector.disconnect(); $('refStatus').textContent='연결 해제됨'; } });\n-$('goCheckin').addEventListener('click', () => { S.demo = false; S.lab = null; S.mode = modeVal(); show('sCheckin'); });\n+$('goCheckin').addEventListener('click', () => { S.demo = false; S.lab = null; S.sessionKind = 'condition'; S.mode = modeVal(); show('sCheckin'); });\n+if (LABEL_MODE) {\n+  const c = labelCounts(), total = c.train + c.internal + c.holdout;\n+  $('labelCard').hidden = false;\n+  $('labelEst').innerHTML = `표적 <b>${total}개</b> (학습 ${c.train} · 내부 검증 ${c.internal} · 최종 평가 ${c.holdout}) · 시선 보정 포함 약 <b>${Math.max(2, Math.round((60 + total * 3.6) / 60))}분</b>`;\n+  $('labelGo').addEventListener('click', () => {\n+    if (!$('rsOpt').checked) { $('labelEst').innerHTML += '<br><span style=\"color:var(--rose)\">연구 데이터 제공에 동의해야 라벨이 저장돼요.</span>'; return; }\n+    Object.assign(S, { demo: false, lab: null, sessionKind: 'gaze-label', mode: modeVal(), mods: { alert: false, oculo: false, sustain: false, core: false }, checkin: {} });\n+    show('sSetup');\n+    if (!S.stream && !$('camStart').disabled) $('camStart').click();\n+  });\n+}\n /* ---------- 연구 실측 모드 ---------- */\n const LAB_LABEL = { calibration: '시선 보정만', baseline: '안정 기준선 (심박)', pursuit: '원활 추적', saccade: '사카드', freeview: '정서 보기', pvt: 'PVT 각성', sart: 'SART 지속 주의', stress: '압박 과제 (심박)', recovery: '회복 호흡 (심박)' };\n const LAB_Q = new URLSearchParams(location.search).get('lab');\n@@ -1376,7 +1407,7 @@ <h2>결과를 정리하고 있어요</h2>\n   document.querySelectorAll('[data-lab], input[name=mode]').forEach(el => el.addEventListener('change', labRefresh));\n   labRefresh();\n   $('labGo').addEventListener('click', () => {\n-    Object.assign(S, { demo: false, lab: labPicked(), mode: modeVal(), mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {} });\n+    Object.assign(S, { demo: false, lab: labPicked(), sessionKind: 'condition', mode: modeVal(), mods: { alert: true, oculo: true, sustain: true, core: true }, checkin: {} });\n     show('sSetup');\n     if (!S.stream && !$('camStart').disabled) $('camStart').click();\n   });\n@@ -1532,7 +1563,7 @@ <h2>결과를 정리하고 있어요</h2>\n         if (S.camera?.info.backend === 'unavailable') { $('camStart').disabled = false; $('camStart').hidden = false; }\n       }\n     });\n-    await S.camera.init(); S.camT0 = now(); S.featMiss = 0;\n+    await S.camera.init(); S.camT0 = now(); S.featMiss = 0; clockSegment('camera-init', { backend: S.camera.info.backend });\n     st.textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';\n     startLoop(); if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }\n   } catch (e) {\n@@ -1557,9 +1588,9 @@ <h2>결과를 정리하고 있어요</h2>\n   const { result: res, skin: roi, eyes, gain } = packet, t = fr.t;\n   const lm = res.faceLandmarks && res.faceLandmarks[0];\n   S.lastLm = lm || null;\n-  if (!lm) { Object.assign(fr, { ok: false, ppgOk: false, skinOk: false, reason: 'face-missing' }); return; }\n+  if (!lm) { Object.assign(fr, { ok: false, ppgOk: false, skinOk: false, reason: 'face-missing' }); if (S.labelRing) labelRingPush({ t, fr, faceMissing: true }); return; }\n   const f = N.faceFeatures(lm);\n-  if (!f) { S.featMiss = (S.featMiss || 0) + 1; return; }\n+  if (!f) { S.featMiss = (S.featMiss || 0) + 1; if (S.labelRing) labelRingPush({ t, fr, faceMissing: true }); return; }\n   const bs = blendMap(res);\n   /* 세로 시선 점수(기록·그림자 비교용): MediaPipe 눈 블렌드셰이프 위로 보기 − 아래로 보기, 두 눈 평균(−1~1). 측정 모델에는 아직 쓰지 않는다 */\n   if ('eyeLookUpLeft' in bs) {\n@@ -1589,9 +1620,12 @@ <h2>결과를 정리하고 있어요</h2>\n   S.rois = roi.rois; S.feat = f; S.lastFace = t;\n   if (S.lmRec && S.landmarks) { const row = [t]; for (const i of LM_IDX) row.push(Math.round(lm[i].x * 1e4), Math.round(lm[i].y * 1e4)); S.landmarks.rows.push(row); }\n   if (fr.gazeOk && context.feature && context.feature === S.onFeature) S.onFeature(t, f);\n+  if (!S.model && S.labelRing) labelRingPush({ t, fr, f });\n   if (S.model) {\n-    const pred = N.predictGaze(S.model, f), g0 = N.applyResidual(S.resid, N.applyAffine(S.affine, pred));\n-    if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) return;\n+    const pred = N.predictGaze(S.model, f), gA = N.applyAffine(S.affine, pred), g0 = N.applyResidual(S.resid, gA);\n+    if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) { if (S.labelRing) labelRingPush({ t, fr, f, pred: pred || null }); return; }\n+    /* 라벨 수집용 ring: 관측 시각·프레임 품질·특징·엔진 예측(engine_prediction — 정답이 아님). 표적 좌표는 넣지 않는다 */\n+    if (S.labelRing) labelRingPush({ t, fr, f, pred: { x: pred.x, y: pred.y, mode: pred.mode || 'both' }, affine: { x: gA.x, y: gA.y }, base: { x: g0.x, y: g0.y }, drift: { dx: S.drift.dx, dy: S.drift.dy }, lag: fr.lag });\n     const gr = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy }, g = N.softBound(gr, stage.clientWidth || innerWidth, stage.clientHeight || innerHeight);   // 화면 밖 가속 억제\n     /* 안정화: 화면 밖 제한 → 확인되지 않은 큰 점프 차단 → 5표본 중앙값. 차단된 튐은 분석에서도 뺀다(bl) */\n     if (!S.gstab) { const noisy = (S.gazeNoise || 0) > 0.025; S.gstab = N.gazeStabilizer({ W: stage.clientWidth || innerWidth, H: stage.clientHeight || innerHeight, n: noisy ? 7 : 5, span: noisy ? 260 : 200 }); }\n@@ -1603,10 +1637,21 @@ <h2>결과를 정리하고 있어요</h2>\n     if (st) S.gaze = { x: st.x, y: st.y };\n     if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };\n     if (!bl && S.onGaze) S.onGaze({ x: st.x, y: st.y, rx: g.x, ry: g.y }, t);\n-    /* 좌표 분리 저장: px,py = 시선 모델 원출력(보정 전 raw) · rx,ry = 영점·축별 보정 후(calibrated) · x,y = 화면 안정화 후 */\n-    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,px:pred.x,py:pred.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});\n+    /* 좌표 분리 저장: px,py = 시선 모델 원출력(보정 전 raw) · rx,ry = 영점·축별·잔차 보정 후(calibrated) · x,y = 화면 안정화 후\n+     * sx,sy = 전역 잔차 모델 출력(shadow: 기록만 · active: 분석 좌표에 적용, 화면 표시는 그대로). 추론은 비동기라 결과가 오면 같은 표본 객체에 붙인다 */\n+    if (context.trial && context.trial === S.curTrial) {\n+      const sample = {t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,px:pred.x,py:pred.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag};\n+      context.trial.samples.push(sample);\n+      const gm = S.gazeModel;\n+      if (gm && gm.mode !== 'off' && fr.gazeOk && S.cur !== 'calibration') {\n+        const W = stage.clientWidth || innerWidth, H = stage.clientHeight || innerHeight, base = gm.contract === 'replace-residual' ? gA : g0;\n+        NLGazeModel.infer(gm, { ...f, blink: fr.blink, eyeQ, lag: fr.lag }, { x: base.x, y: base.y, mode: pred.mode || 'both' }, W, H, r => { sample.sx = base.x + r.dx - S.drift.dx; sample.sy = base.y + r.dy - S.drift.dy; if (r.reason) sample.sr = r.reason; });\n+      }\n+    }\n   }\n }\n+/* 라벨 수집 ring buffer: 최근 6초의 추론 프레임만 유지(표적 하나의 확인 직전 창을 고르기에 충분) */\n+function labelRingPush(row) { const R = S.labelRing; R.push(row); while (R.length && R[0].t < row.t - 6000) R.shift(); }\n function pushFrame(fr) {\n   if(S.cur==='calibration'&&S.telemetry)S.telemetry.calibrationFrames.push(fr);\n   S.buf.push(fr);\n@@ -1767,7 +1812,13 @@ <h2>결과를 정리하고 있어요</h2>\n function every(ms, fn) { const id = setInterval(fn, ms); const stop = () => clearInterval(id); S.cleanup.push(stop); return stop; }\n // rAF is a pre-paint onset estimate, not a photodiode measurement of physical display latency.\n const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(onset=>{S.telemetry?.stimuli.push({key:S.cur,requested,onset});r(onset);})); };\n-function recordInput(e){const t=e.timeStamp,dispatch=now()-t;S.telemetry?.inputs.push({key:S.cur,t,dispatchMs:dispatch>=0&&dispatch<60000?dispatch:null,type:e.type});}\n+/* 입력 이벤트: 시각(event.timeStamp, performance.now 와 같은 시계)·dispatch 지연·종류. 포인터 이벤트는 client 좌표를 함께 남긴다 —\n+ * 일반 검사 중의 클릭 좌표는 provenance 를 보존한 weak 기록(free_click_weak)일 뿐이며 시선 정답으로 쓰지 않는다 */\n+function recordInput(e){const t=e.timeStamp,dispatch=now()-t;const row={key:S.cur,t,dispatchMs:dispatch>=0&&dispatch<60000?dispatch:null,type:e.type};\n+  if(Number.isFinite(e.clientX)&&Number.isFinite(e.clientY)){Object.assign(row,{x:e.clientX,y:e.clientY,pointerType:e.pointerType||null,isTrusted:!!e.isTrusted,labelSource:'free_click_weak',coordinateSpace:'css-client'});}\n+  S.telemetry?.inputs.push(row);}\n+/* 시계 구간: 탭 재개·카메라 재연결·전체 화면 변경은 새 clock segment 로 기록한다 (performance.now 자체는 단조지만 관측 공백·레이아웃 변화를 분리하기 위해) */\n+function clockSegment(kind,extra={}){S.telemetry?.clock?.segments?.push({t:now(),kind,...extra});}\n function mark(name, edge) { (S.phases[name] = S.phases[name] || {})[edge] = now(); if (edge === 'start') S.stepPhases.push(name); }\n const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };\n \n@@ -1792,16 +1843,18 @@ <h2>결과를 정리하고 있어요</h2>\n   if (S.hideStart === null) return;\n   const h = { start: S.hideStart, end: now() };\n   S.hideStart = null;\n-  if (h.end - h.start >= 200) { S.hidden.push(h); $('hideWarn').classList.add('on'); setTimeout(() => $('hideWarn').classList.remove('on'), 4000); }\n+  if (h.end - h.start >= 200) { S.hidden.push(h); $('hideWarn').classList.add('on'); setTimeout(() => $('hideWarn').classList.remove('on'), 4000); clockSegment('resume', { hiddenMs: Math.round(h.end - h.start) }); }\n }\n document.addEventListener('visibilitychange', () => (document.hidden ? hideBegin() : hideEnd()));\n window.addEventListener('blur', hideBegin);\n window.addEventListener('focus', hideEnd);\n window.addEventListener('mousemove', e => { S.mouse = { x: e.clientX, y: e.clientY }; });\n-window.addEventListener('resize', () => { if (S.recording && S.model) S.resized = true; });\n+window.addEventListener('resize', () => { if (S.recording && S.model) S.resized = true; S.telemetry?.layout?.push({ t: now(), kind: 'resize', vw: innerWidth, vh: innerHeight, dpr: devicePixelRatio }); });\n+window.visualViewport?.addEventListener('resize', () => { S.telemetry?.layout?.push({ t: now(), kind: 'visual-viewport', w: visualViewport.width, h: visualViewport.height, scale: visualViewport.scale }); });\n+window.addEventListener('scroll', () => { if (stage.classList.contains('on')) S.telemetry?.layout?.push({ t: now(), kind: 'scroll', x: scrollX, y: scrollY }); }, { passive: true });\n \n /* ---------- 상단 단계 표시 · 진행 막대 ---------- */\n-const STEP_SHORT = { calibration: '시선 보정', baseline: '기준선', pursuit: '원활 추적', saccade: '사카드', freeview: '정서 보기', pvt: 'PVT', sart: 'SART', stress: '압박 과제', recovery: '회복 호흡' };\n+const STEP_SHORT = { calibration: '시선 보정', baseline: '기준선', pursuit: '원활 추적', saccade: '사카드', freeview: '정서 보기', pvt: 'PVT', sart: 'SART', stress: '압박 과제', recovery: '회복 호흡', gazeLabel: '시선 라벨' };\n function renderStepper() {\n   $('stepper').innerHTML = S.plan.map(([k], i) => {\n     const st = S.steps[k] && S.steps[k].status, cls = k === S.cur ? 'cur' : st === 'skipped' || st === 'nogaze' ? 'skip' : st && st !== 'running' ? 'done' : '';\n@@ -1916,7 +1969,7 @@ <h2>결과를 정리하고 있어요</h2>\n const demoCue = text => S.demo ? `<div class=\"cue\">데모 모드 · ${text}</div>` : '';\n \n /* ---------- 단계 안내 카드: 충분히 읽고 직접 시작 ---------- */\n-const DCOL = { calibration: '#7C88A2', baseline: '#7C88A2', pvt: '#3C6FE0', pursuit: '#6A4FD8', saccade: '#6A4FD8', sart: '#6A4FD8', freeview: '#C9577A', stress: '#1E8A7A', recovery: '#1E8A7A' };\n+const DCOL = { calibration: '#7C88A2', baseline: '#7C88A2', pvt: '#3C6FE0', pursuit: '#6A4FD8', saccade: '#6A4FD8', sart: '#6A4FD8', freeview: '#C9577A', stress: '#1E8A7A', recovery: '#1E8A7A', gazeLabel: '#1F4FD8' };\n const V = {\n   cal: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/>' + [0, 1, 2].map(r => [0, 1, 2].map(c => `<circle cx=\"${30 + c * 120}\" cy=\"${26 + r * 59}\" r=\"7\" fill=\"${r === 1 && c === 1 ? '#C93C5C' : '#B7BFCD'}\"/>`).join('')).join('') + '</svg>',\n   fix: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><text x=\"150\" y=\"102\" text-anchor=\"middle\" font-size=\"48\" fill=\"#59647D\" font-family=\"Sora\">+</text></svg>',\n@@ -1968,6 +2021,11 @@ <h2>결과를 정리하고 있어요</h2>\n       how: ['난이도 1~5의 <b>덧셈·뺄셈</b> 문제가 무작위로 나와요 · 답은 항상 <b>0~9 한 자리</b>', '키보드 숫자 키 또는 화면의 숫자 버튼으로 답해요', '먼저 <b>연습 4문제</b>(시간 제한 없음)로 내 속도를 재고, <b>30초</b> 편히 쉰 뒤 본 과제를 시작해요', '맞히면 제한 시간이 줄고 틀리면 늘어나, 누구나 <b>절반쯤 틀리는</b> 속도로 맞춰져요 — 일부러 어렵게 만든 과제이니 틀려도 괜찮아요'],\n       orig: '<b>원판 구성</b> 몬트리올 영상 스트레스 과제(MIST)처럼 난이도 무작위 혼합(한 자리 2항 → 두 자리 3항), 적응형 제한 시간, 목표 대비 성적 막대를 씁니다. 곱셈·나눗셈은 빼서 계산 실력보다 시간 압박이 반응을 만들게 했어요. 원판의 ‘가짜 평균 비교’ 대신 실제 목표 정답률 80%를 보여 줘요. 압박 반응을 비교하려면 과제 종류를 고정하는 것이 표준이라 다른 과제는 섞지 않았어요.',\n       ref: 'Dedovic et al., 2005 · MIST' },\n+    gazeLabel: { tag: 'Research · 시선 라벨 수집', title: '점을 보고 확인하기', vis: V.cal, time: `약 ${Math.max(1, Math.round((labelCounts().train + labelCounts().internal + labelCounts().holdout) * 3.6 / 60))}분`, resp: '클릭 · 터치 · 스페이스바', trials: `표적 ${labelCounts().train + labelCounts().internal + labelCounts().holdout}개`,\n+      what: '화면 곳곳의 점을 하나씩 보여 드려요. 점의 <b>가운데를 바라본 채</b> 화면 아무 곳이나 클릭·터치하거나 스페이스바를 누르면, 그 직전 약 0.3초의 눈 관측이 ‘이 점을 보려 했다’는 학습용 라벨로 기록돼요. 검사 결과나 점수는 만들지 않아요.',\n+      how: ['점이 나타나면 <b>머리는 고정하고 눈으로</b> 점의 가운데를 바라봐요 (최소 1초)', '바라본 채로 <b>아무 곳이나 클릭·터치</b>하거나 <b>스페이스바</b>를 눌러요 — 버튼을 찾느라 시선을 옮기지 않아도 돼요', '잘못 눌렀으면 바로 <b>Backspace</b> 또는 ‘잘못 눌렀어요’를 눌러 다시 할 수 있어요', '마지막 몇 개 점은 <b>평가 전용</b>이에요. 같은 방법으로 바라보고 확인하면 돼요'],\n+      orig: '이 라벨은 ‘표적을 보려 했다’는 <b>의도의 기록</b>이에요. 눈이 실제로 그 좌표에 있었는지 재는 외부 시선 추적기 측정이 아니라서, 학습·평가 보고서에서는 proxy 라벨로 구분해요. 눈 깜빡임·얼굴 손실·화면 이탈·창 크기 변경 구간은 자동으로 제외돼요.',\n+      ref: 'Sugano et al., 2015 · Huang et al., 2016 (상호작용 기반 보정 자료)', cta: '준비됐어요 · 시작' },\n     recovery: { tag: 'Domain 4 · 자율신경 조절', title: '공명 호흡 회복', vis: V.breath, time: `${d.recovery}초`, resp: '호흡 따라 하기',\n       what: '분당 6회 호흡을 따라 하는 동안, 압박으로 오른 심박이 얼마나 되돌아오고 호흡에 맞춰 출렁이는지로 회복력과 자율신경 조절을 봅니다.',\n       how: ['원이 커지고 바깥 띠가 차오를 때 <b>5초 들이쉬고</b>, 작아질 때 <b>5초 내쉬어요</b>', '코로 천천히, 편안한 깊이로 — 억지로 깊게 쉬지 않아도 돼요', '아래 파형의 점이 올라가면 들숨, 내려가면 날숨이에요'],\n@@ -2052,7 +2110,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   const st = S.steps[key] = { status: 'running' };\n   if(S.telemetry)S.telemetry.steps[key]={start:now()};\n   S.cur = key; S.stepPhases = [];\n-  S.lmRec = !S.demo && (key === 'calibration' || GAZE_STEPS.includes(key));\n+  S.lmRec = !S.demo && (key === 'calibration' || key === 'gazeLabel' || GAZE_STEPS.includes(key));\n   /* 심박 단계는 얼굴 추론을 줄여 카메라 프레임·피부색 표본을 최대로: 기준선 15Hz(눈 깜빡임 기준값 유지), 압박·회복 10Hz.\n    * 피부 영역은 묵은 랜드마크(≤0.6초)도 품질만 낮춰 쓰므로 위치 추적에는 충분하다 */\n   if (S.camera) S.camera.minGap = { baseline: 66, stress: 100, recovery: 100 }[key] || 25;\n@@ -2079,7 +2137,11 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 }, gazeOut: { n: 0, off: 0 } });\n   S.attemptId=crypto.randomUUID();S.startedAt=now();S.endedAt=null;S.outcome='recording';S.errorCode=null;\n   S.researchConsent=!S.demo&&$('rsOpt').checked?{version:NLResearch.CONSENT_VERSION,research:true,phq:$('rsPhq').checked,at:new Date().toISOString()}:null;\n-  S.telemetry={clock:{timeOrigin:performance.timeOrigin,start:S.startedAt,onset:'requestAnimationFrame-before-paint'},steps:{},stimuli:[],inputs:[],drift:[],calibrationFrames:[]};\n+  S.telemetry={clock:{...NLLabels.clockInfo(window),start:S.startedAt,onset:'requestAnimationFrame-before-paint',segments:[]},steps:{},stimuli:[],inputs:[],drift:[],layout:[],calibrationFrames:[]};\n+  S.calibRound=0;S.calibDigests=null;S.gazeLabels=null;\n+  /* 전역 시선 모델은 검사 시작 시점에 고정한다(세션 중 교체 없음). 로드 실패·호환 불가면 기존 엔진만 쓴다 */\n+  S.gazeModel=await NLGazeModel.freeze({core:N.VERSION,camera:S.camera?.info?.version||null,mode:S.sessionKind==='gaze-label'?'shadow':undefined});\n+  clockSegment('session-start',{gazeModel:S.gazeModel?.mode||'off'});\n   if(S.researchConsent){referenceCollector.start();datasetCheckpoint().catch(console.warn);S.datasetTimer=setInterval(()=>datasetCheckpoint().catch(console.warn),20000);}\n   chooseForm(S.mode);\n   S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';\n@@ -2093,8 +2155,10 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   if (m.alert) plan.push(['pvt', () => phasePvt(d)]);\n   if (m.sustain) plan.push(['sart', () => phaseSart(d)]);\n   if (m.core) plan.push(['stress', () => phaseStress(d.stress)], ['recovery', () => phaseRecovery(d.recovery)]);\n+  /* 전용 시선 라벨 수집: 시선 보정 → 라벨 수집만. 검사 단계·분석·점수 없음 */\n+  if (S.sessionKind === 'gaze-label') { plan.length = 0; plan.push(['calibration', () => calibrate()], ['gazeLabel', () => phaseGazeLabel()]); S.steps.baseline = { status: 'off' }; }\n   /* 연구 실측: 고른 단계만 남긴다. 시선 과제가 있으면 시선 보정을 앞에 둔다 */\n-  if (S.lab) {\n+  else if (S.lab) {\n     const keep = new Set([...S.lab, ...(S.lab.some(k => GAZE_STEPS.includes(k)) ? ['calibration'] : [])]);\n     for (let i = plan.length - 1; i >= 0; i--) if (!keep.has(plan[i][0])) plan.splice(i, 1);\n     if (!keep.has('baseline')) S.steps.baseline = { status: 'off' };\n@@ -2112,7 +2176,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     for (let i = 0; i < plan.length; i++) {\n       const [key, fn] = plan[i];\n       S.stepIdx = i + 1; S.stepTotal = plan.length;\n-      if (GAZE_STEPS.includes(key) && !S.demo && !S.model) { S.steps[key] = { status: 'nogaze' }; renderStepper(); continue; }\n+      if ((GAZE_STEPS.includes(key) || key === 'gazeLabel') && !S.demo && !S.model) { S.steps[key] = { status: 'nogaze' }; renderStepper(); continue; }\n       if (key !== 'calibration') S.recording = true;   // 기록은 보정 뒤 첫 단계부터(전체 검사에서는 기준선, 연구 실측에서는 고른 첫 단계)\n       await runStep(key, fn);\n     }\n@@ -2211,15 +2275,17 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   const dot = $('calDot');\n   for (const [x, y] of pts) {\n     dot.style.left = x + 'px'; dot.style.top = y + 'px';\n-    if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });\n+    const tg = calTarget(x, y, 'fix9'), t0 = now();\n     const pt = [];\n     /* 표본이 6개 미만이면(아래쪽처럼 눈이 덜 보이는 위치) 최대 1.2초 더 받는다 — 점마다 고르게 표본이 있어야 화면 전체를 맞춘다 */\n-    S.onFeature = featSampler(now(), 650, 2900, () => ({ x, y }), pt);\n+    S.onFeature = featSampler(t0, 650, 2900, () => ({ x, y }), pt);\n     await wait(1700);\n     for (let k = 0; k < 4 && pt.length < 6; k++) await wait(300);\n     S.onFeature = null;\n     const keep = new Set(N.robustFeatures(pt.map(s => s.f)));\n-    samples.push(...pt.filter(s => keep.has(s.f)));\n+    const kept = pt.filter(s => keep.has(s.f));\n+    if (tg) Object.assign(tg, { offset: now(), sampleStart: t0 + 650, sampleEnd: now(), samples: pt.length, kept: kept.length });\n+    samples.push(...kept);\n   }\n   S.onFeature = null;\n   return samples;\n@@ -2251,7 +2317,8 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   const t0 = await nextFrame();\n   const settle = glide(dot, pos, t0, sec * 1000);\n   S.onFeature = featSampler(t0, 1000, sec * 1000, t => pos(t - t0 - LAG), out, 0.5);\n-  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, fx: FX, fy: FY, path: `x=W*(0.5+0.38*sin(2pi*${FX.toFixed(4)}*t)), y=H*(0.5+0.34*sin(2pi*${FY.toFixed(4)}*t+pi/2)), t in s from t0` };\n+  /* v3: 주파수·진폭·지연·표본 구간·가중치를 명시 기록 — 재생 도구가 하드코딩 대신 이 값을 읽는다 */\n+  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, fx: FX, fy: FY, ax: 0.38, ay: 0.34, phaseY: Math.PI / 2, lagMs: LAG, sampleFrom: 1000, sampleTo: sec * 1000, weight: 0.5, round: S.calibRound || 1, path: `x=W*(0.5+0.38*sin(2pi*${FX.toFixed(4)}*t)), y=H*(0.5+0.34*sin(2pi*${FY.toFixed(4)}*t+pi/2)), t in s from t0` };\n   const stopT = task('추적 보정'",
+          "patchTruncated": true,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38183400362"
+      }
     },
     {
       "sha": "70c7e66414d5268a4977a0f399e9fe1662476ef1",
@@ -4958,32 +5336,122 @@
       "accuracyValidated": false,
       "tasks": [
         {
-          "id": "evo-70c7e66414d5-pulse",
-          "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-70c7e66414d5-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 70c7e66414d5268a4977a0f399e9fe1662476ef1\n변경 제목: Core 2.3: corner-referenced vertical iris position, balanced pursuit path, calibration steps pruned\n관련 파일: NEWBIZ_CALIBRATION.md, condition.html, newbiz-core.js, newbiz-core.test.js, tools/gaze_replay.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-70c7e66414d5-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
           "id": "evo-70c7e66414d5-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-70c7e66414d5-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 70c7e66414d5268a4977a0f399e9fe1662476ef1\n변경 제목: Core 2.3: corner-referenced vertical iris position, balanced pursuit path, calibration steps pruned\n관련 파일: NEWBIZ_CALIBRATION.md, condition.html, newbiz-core.js, newbiz-core.test.js, tools/gaze_replay.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-70c7e66414d5-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "눈꼬리 축 기준 세로 시선 계산 및 보정 간소화 구조의 오차·활용률 실측 검증",
+          "rationale": "[관측된 사실] `newbiz-core.js` 및 `condition.html`에서 홍채 세로 좌표 기준점이 눈꼬리 축 중점으로 변경되었고, 클릭 보정 및 국소 잔차 보정이 삭제되었습니다.\n[연구자 가설 및 개발 보고] 눈꺼풀-시선 연동으로 인한 세로 신호 압축을 눈꼬리 축 기준으로 해제하여 오차를 줄였고, 불필요한 보정 단계를 줄였다고 주장합니다.\n[구분 및 검증 필요성] accuracyValidated=false 상태이므로, 코드 내 주석 수치를 정답으로 취급하지 않고 데이터셋의 실측 레코딩을 통해 약한 세로 신호의 활용량과 보정 오차 변화를 직접 검증해야 합니다.",
+          "validationPlan": "1. 조건 분리 평가: 참가자 ID, 기기 종(웹캠 해상도/화각), 조도 환경, 수집 날짜별로 데이터셋을 분리하여 평가합니다.\n2. 전체 분모 설정: 중도 탈락 및 보정 실패 시도를 포함한 전체 시도 건수를 분모로 지정하고, 측정 성공률과 신호 활용률을 산출합니다.\n3. 비교 평가: 기존 눈꺼풀 중점 방식 대비 눈꼬리 축 방식 적용 시 화면 위치별(상단, 중앙, 하단 모서리) 시선 추정 오차(화면 폭 %) 및 잔차 분포 변화를 측정합니다.\n4. 회귀 검증: 클릭 보정과 국소 잔차 삭제로 인해 모서리 영역 오차나 극단적 시선 환경에서의 품질 저하(회귀)가 발생하는지 데이터셋 메모 및 레코딩을 연동하여 판단합니다. 임의의 수치를 조작하지 않습니다.",
+          "prompt": "현재 코드 `newbiz-core.js` 및 `condition.html`의 눈꼬리 축 기준 세로 시선 계산(`midX`, `midY` 및 `v`)과 추적 보정 경로(18초 리사주 경로) 변경 내역을 확인하라. 데이터셋 내 실제 수집된 레코딩 및 메모를 연결하여, 약한 세로 시선 신호의 활용량과 오차를 동시에 평가하는 검증 과제를 수행하라.\n\n[개발 및 검증 요구사항]\n1. 기존 눈꺼풀 중점 기준 대비 눈꼬리 축 기준 적용 시의 영역별 오차(화면 상단/중앙/하단)와 약한 신호 버림 비율 변화를 집계하라.\n2. 실패 시도를 포함한 전체 시도 수를 분모로 하여, 참가자/기기/날짜별 측정 성공률과 활용률-오차 트레이드오프를 계산하라.\n3. 임의의 정답 수치를 생성하지 말고 dataset 내 실제 실측 기록 및 메모를 연결하여 평가하라.\n4. 성공/회귀 기준: 기존 대비 화면 하단 영역 시선 오차 감소 및 표본 버림 비율 감소 시 성공, 특정 기기나 착용 환경에서 전체 측정 성공률 저하 시 회귀로 판정하라.\n5. 결과 보고 양식:\n- 검증 분모 및 참가자/기기 분리 수치\n- 약한 신호 활용량 및 영역별 오차 평가표\n- 성공/회귀 여부 및 불확실성 평가\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 70c7e66414d5268a4977a0f399e9fe1662476ef1\nDataset-Task: evo-70c7e66414d5-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-70c7e66414d5-pulse",
+          "domain": "pulse",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 보정 경로 및 측정 시간 개편에 따른 맥박 신호 추출 파이프라인 영향 검증",
+          "rationale": "[관측된 사실] `condition.html` 내 보정 단계별 소요 시간(추적 보정 12.5초→18초) 및 단계 구성 변경이 반영되었고, `newbiz-core.js` 버전이 Core 2.3으로 전환되었습니다.\n[연구자 가설 및 개발 보고] 보정 구간의 움직임 변화가 생체 신호 수집 프레임 유지에 영향을 주지 않고 맥박 스펙트럼 피크 선택 파이프라인과 안정적으로 병행 가능하다고 가정합니다.\n[구분 및 검증 필요성] accuracyValidated=false이며 프레임 레이트 및 노출 변화가 생체 신호(pulse) 스펙트럼 품질에 미치는 간섭 여부를 실측 데이터셋 기반으로 점검해야 합니다.",
+          "validationPlan": "1. 프레임 파이프라인 검증: 18초 추적 보정 및 변경된 단계 진행 동안의 프레임 공백(150ms 초과 여부) 및 얼굴 ROI 이탈 비율을 집계합니다.\n2. 맥박 품질 평가: 수집된 약한 rPPG 신호 구간에서 신호 대 잡음비(SNR, SNR_GOOD/SNR_FAIR 기준) 및 스펙트럼 고조파 합 피크의 검출 유효율을 산출합니다.\n3. 조건별 분리: 참가자 움직임 수준, 조도, 기기 프레임레이트별로 분목/분자를 분리하여 측정 성공률과 오차 범위를 평가합니다.\n4. 회귀 판단: 시선 개편 전후 동일 참가자 세션 데이터셋 비교를 통해 pulse 창 탈락률 증가 여부를 확인하고 결과를 보고합니다.",
+          "prompt": "현재 코드 `newbiz-core.js`의 Core 2.3 버전 변경 사항과 `condition.html`의 측정 단계별 시간 재배치 내역을 확인하라. 맥박 신호(pulse) 추출 파이프라인과의 연동 상태를 점검하고, 약한 신호 구간의 활용량 및 품질 지표 오차를 평가하는 검증 과제를 수행하라.\n\n[개발 및 검증 요구사항]\n1. 보정 단계 개편(18초 추적 보정 등)에 따른 얼굴 프레임 수집 안정성 및 맥박 창(window) 처리 상태를 점검하라.\n2. 약한 맥박 신호 구간에 대해 신호 대 잡음비(SNR) 및 스펙트럼 피크 검출 성공률을 계산하고, 미달 프레임 제외 기준과 불확실성을 함께 평가하라.\n3. 데이터셋 내 실제 측정 메모 및 정답 레이블을 연결하여 분석하며, 존재하지 않는 실측 성능 수치를 임의로 만들지 말 것.\n4. 성공/회귀 기준: pulse 신호 SNR 품질 기준(SNR_GOOD, SNR_FAIR) 충족 창의 비율 유지/상승 시 성공, 프레임 공백이나 움직임으로 인한 창 탈락 증가 시 회귀로 판정하라.\n5. 결과 보고 양식:\n- 조건별(기기, 참가자, 조도) 분모 및 맥박 측정 성공률\n- 약한 신호 활용량 및 SNR/오차 분포 평가표\n- 회귀 여부 및 미검증 항목 요약\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 70c7e66414d5268a4977a0f399e9fe1662476ef1\nDataset-Task: evo-70c7e66414d5-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 3,
+      "analysisState": "generated",
+      "analysisAttempts": 4,
       "deploymentEvents": [],
-      "lastAttemptAt": "2026-10-08T00:13:13.942798+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-11T23:13:10.209141+00:00",
+      "analysis": {
+        "summary": "공개 GitHub 커밋(70c7e66414d5268a4977a0f399e9fe1662476ef1, committedAt: 2026-10-07T14:22:43Z)의 소스 변경 내용을 관측한 결과, 주요 변경점은 다음과 같습니다.\n\n1. 관측된 변경 사실:\n- `newbiz-core.js`: 홍채 세로 위치(`v`, `eyeUV`) 계산 시 세로 기준점을 기존 '눈꺼풀 상하 중점(`top`, `bot`)'에서 '눈꼬리-눈머리 축 중점(`ax`, `bx`, `ay`, `by`)'으로 변경하였습니다. `fitAffine`에서 기울기 상한을 넓히던 연산(기존 최대 2.2 허용)을 제거하고 0.75~1.35 고정 범위로 복귀시켰습니다. 국소 잔차 보정 함수(`fitLocalResidual`) 및 적용 로직을 삭제하였습니다.\n- `condition.html`: 시선 보정 UI 및 절차에서 5단계 클릭 보정(`calClick`), 세로 시선 특징 점수 후보(`lookV`, `lookUp`, `lookDown`), 국소 잔차 보정을 전면 삭제하고 절차를 간소화하였습니다. 추적 보정(`calPursuit`) 시간을 12.5초에서 18초로 연장하고, 리사주 경로 주파수를 화면 3×3 영역을 균등하게 지나는 비율(3주기/2주기)로 조정하였습니다.\n- 기타: 테스트 파일(`newbiz-core.test.js`), 보정 문서(`NEWBIZ_CALIBRATION.md`), 시선 재현 도구(`tools/gaze_replay.cjs`)가 추가 또는 수정되었습니다. 패치 추출 내용에는 일부 생략이 존재합니다(`patchTruncated: true`).\n\n2. 미검증 영향 및 가설/주장 구분:\n- 주석상 연구자 주장: 소스 코드 주석에는 13개 세션 실측 재생(`tools/gaze_replay.cjs`) 결과 정밀 보정 held-out 오차가 10.8%에서 9.5%로 감소하고, 원형 추적 세로 오차가 13.3%에서 8.9%H로 개선되었다고 명시되어 있습니다.\n- 검증 상태: 제공된 관측 자료의 `accuracyValidated` 속성은 `false`이며, 외부 정답 센서나 독립적인 임상 진단을 통한 검증이 완료된 상태가 아닙니다. 클릭 보정 및 국소 잔차 제거로 인해 다양성 높은 사용자 환경(안경 착용, 조도 불균일, 극단적 시선 위치)에서 약한 신호 수용률 및 잔차 보정 능력이 실제로 저하되지 않는지 참가자/기기/날짜별 분리 평가가 필수적입니다. 맥박(pulse) 측정 파이프라인과의 모듈 간 프레임 시간 영향도 함께 검증해야 합니다.",
+        "tasks": [
+          {
+            "id": "evo-70c7e66414d5-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "눈꼬리 축 기준 세로 시선 계산 및 보정 간소화 구조의 오차·활용률 실측 검증",
+            "rationale": "[관측된 사실] `newbiz-core.js` 및 `condition.html`에서 홍채 세로 좌표 기준점이 눈꼬리 축 중점으로 변경되었고, 클릭 보정 및 국소 잔차 보정이 삭제되었습니다.\n[연구자 가설 및 개발 보고] 눈꺼풀-시선 연동으로 인한 세로 신호 압축을 눈꼬리 축 기준으로 해제하여 오차를 줄였고, 불필요한 보정 단계를 줄였다고 주장합니다.\n[구분 및 검증 필요성] accuracyValidated=false 상태이므로, 코드 내 주석 수치를 정답으로 취급하지 않고 데이터셋의 실측 레코딩을 통해 약한 세로 신호의 활용량과 보정 오차 변화를 직접 검증해야 합니다.",
+            "validationPlan": "1. 조건 분리 평가: 참가자 ID, 기기 종(웹캠 해상도/화각), 조도 환경, 수집 날짜별로 데이터셋을 분리하여 평가합니다.\n2. 전체 분모 설정: 중도 탈락 및 보정 실패 시도를 포함한 전체 시도 건수를 분모로 지정하고, 측정 성공률과 신호 활용률을 산출합니다.\n3. 비교 평가: 기존 눈꺼풀 중점 방식 대비 눈꼬리 축 방식 적용 시 화면 위치별(상단, 중앙, 하단 모서리) 시선 추정 오차(화면 폭 %) 및 잔차 분포 변화를 측정합니다.\n4. 회귀 검증: 클릭 보정과 국소 잔차 삭제로 인해 모서리 영역 오차나 극단적 시선 환경에서의 품질 저하(회귀)가 발생하는지 데이터셋 메모 및 레코딩을 연동하여 판단합니다. 임의의 수치를 조작하지 않습니다.",
+            "prompt": "현재 코드 `newbiz-core.js` 및 `condition.html`의 눈꼬리 축 기준 세로 시선 계산(`midX`, `midY` 및 `v`)과 추적 보정 경로(18초 리사주 경로) 변경 내역을 확인하라. 데이터셋 내 실제 수집된 레코딩 및 메모를 연결하여, 약한 세로 시선 신호의 활용량과 오차를 동시에 평가하는 검증 과제를 수행하라.\n\n[개발 및 검증 요구사항]\n1. 기존 눈꺼풀 중점 기준 대비 눈꼬리 축 기준 적용 시의 영역별 오차(화면 상단/중앙/하단)와 약한 신호 버림 비율 변화를 집계하라.\n2. 실패 시도를 포함한 전체 시도 수를 분모로 하여, 참가자/기기/날짜별 측정 성공률과 활용률-오차 트레이드오프를 계산하라.\n3. 임의의 정답 수치를 생성하지 말고 dataset 내 실제 실측 기록 및 메모를 연결하여 평가하라.\n4. 성공/회귀 기준: 기존 대비 화면 하단 영역 시선 오차 감소 및 표본 버림 비율 감소 시 성공, 특정 기기나 착용 환경에서 전체 측정 성공률 저하 시 회귀로 판정하라.\n5. 결과 보고 양식:\n- 검증 분모 및 참가자/기기 분리 수치\n- 약한 신호 활용량 및 영역별 오차 평가표\n- 성공/회귀 여부 및 불확실성 평가\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 70c7e66414d5268a4977a0f399e9fe1662476ef1\nDataset-Task: evo-70c7e66414d5-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-70c7e66414d5-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 보정 경로 및 측정 시간 개편에 따른 맥박 신호 추출 파이프라인 영향 검증",
+            "rationale": "[관측된 사실] `condition.html` 내 보정 단계별 소요 시간(추적 보정 12.5초→18초) 및 단계 구성 변경이 반영되었고, `newbiz-core.js` 버전이 Core 2.3으로 전환되었습니다.\n[연구자 가설 및 개발 보고] 보정 구간의 움직임 변화가 생체 신호 수집 프레임 유지에 영향을 주지 않고 맥박 스펙트럼 피크 선택 파이프라인과 안정적으로 병행 가능하다고 가정합니다.\n[구분 및 검증 필요성] accuracyValidated=false이며 프레임 레이트 및 노출 변화가 생체 신호(pulse) 스펙트럼 품질에 미치는 간섭 여부를 실측 데이터셋 기반으로 점검해야 합니다.",
+            "validationPlan": "1. 프레임 파이프라인 검증: 18초 추적 보정 및 변경된 단계 진행 동안의 프레임 공백(150ms 초과 여부) 및 얼굴 ROI 이탈 비율을 집계합니다.\n2. 맥박 품질 평가: 수집된 약한 rPPG 신호 구간에서 신호 대 잡음비(SNR, SNR_GOOD/SNR_FAIR 기준) 및 스펙트럼 고조파 합 피크의 검출 유효율을 산출합니다.\n3. 조건별 분리: 참가자 움직임 수준, 조도, 기기 프레임레이트별로 분목/분자를 분리하여 측정 성공률과 오차 범위를 평가합니다.\n4. 회귀 판단: 시선 개편 전후 동일 참가자 세션 데이터셋 비교를 통해 pulse 창 탈락률 증가 여부를 확인하고 결과를 보고합니다.",
+            "prompt": "현재 코드 `newbiz-core.js`의 Core 2.3 버전 변경 사항과 `condition.html`의 측정 단계별 시간 재배치 내역을 확인하라. 맥박 신호(pulse) 추출 파이프라인과의 연동 상태를 점검하고, 약한 신호 구간의 활용량 및 품질 지표 오차를 평가하는 검증 과제를 수행하라.\n\n[개발 및 검증 요구사항]\n1. 보정 단계 개편(18초 추적 보정 등)에 따른 얼굴 프레임 수집 안정성 및 맥박 창(window) 처리 상태를 점검하라.\n2. 약한 맥박 신호 구간에 대해 신호 대 잡음비(SNR) 및 스펙트럼 피크 검출 성공률을 계산하고, 미달 프레임 제외 기준과 불확실성을 함께 평가하라.\n3. 데이터셋 내 실제 측정 메모 및 정답 레이블을 연결하여 분석하며, 존재하지 않는 실측 성능 수치를 임의로 만들지 말 것.\n4. 성공/회귀 기준: pulse 신호 SNR 품질 기준(SNR_GOOD, SNR_FAIR) 충족 창의 비율 유지/상승 시 성공, 프레임 공백이나 움직임으로 인한 창 탈락 증가 시 회귀로 판정하라.\n5. 결과 보고 양식:\n- 조건별(기기, 참가자, 조도) 분모 및 맥박 측정 성공률\n- 약한 신호 활용량 및 SNR/오차 분포 평가표\n- 회귀 여부 및 미검증 항목 요약\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 70c7e66414d5268a4977a0f399e9fe1662476ef1\nDataset-Task: evo-70c7e66414d5-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "0dc47947d093128b82469dd9f1824fab92ff40f1f6c5a3368c4171c5c08e897f",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 12401,
+            "candidatesTokenCount": 2215,
+            "totalTokenCount": 17915
+          }
+        },
+        "generatedAt": "2026-10-11T23:13:41.142157+00:00",
+        "sourceSha": "70c7e66414d5268a4977a0f399e9fe1662476ef1",
+        "sourceEvidence": {
+          "sha": "70c7e66414d5268a4977a0f399e9fe1662476ef1",
+          "parents": [
+            "adf8cb5c71c91773b9dabd57c97f5d5778aaaaef"
+          ],
+          "committedAt": "2026-10-07T14:22:43Z",
+          "subject": "Core 2.3: corner-referenced vertical iris position, balanced pursuit path, calibration steps pruned",
+          "url": "https://github.com/jeebs0627/neurolens/commit/70c7e66414d5268a4977a0f399e9fe1662476ef1",
+          "files": [
+            {
+              "path": "NEWBIZ_CALIBRATION.md",
+              "status": "modified",
+              "additions": 26,
+              "deletions": 14
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 16,
+              "deletions": 80
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 11,
+              "deletions": 49
+            },
+            {
+              "path": "newbiz-core.test.js",
+              "status": "modified",
+              "additions": 18,
+              "deletions": 46
+            },
+            {
+              "path": "tools/gaze_replay.cjs",
+              "status": "added",
+              "additions": 176,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -211,9 +211,6 @@\n .cal-dot::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff}\n .cal-dot.val{background:var(--blue);box-shadow:0 0 0 8px rgba(31,79,216,.15)}\n .cal-dot.pulse{animation:pls 1.1s ease-in-out infinite}\n-.cal-mark{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:3px solid var(--blue);opacity:.5;pointer-events:none}\n-.cal-mark.done{border-color:#2F9E6A;opacity:1;background:rgba(47,158,106,.25)}\n-.cal-mark.flash{border-color:var(--rose);opacity:1}\n @keyframes pls{50%{transform:scale(.72)}}\n .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;max-width:min(600px,88vw);font-size:16.5px;color:var(--ink-2);word-break:keep-all}\n .center h2{font-size:24px}\n@@ -1333,7 +1330,7 @@ <h2>결과를 정리하고 있어요</h2>\n function stepEstimateSec(key, d) {\n   return {\n     /* 측정 시간만 (단계 안내를 읽는 시간 제외) */\n-    calibration: 55, baseline: d.baseline + 3, pursuit: B.pursuitSec(d) + (d.circle || 0) + 8, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,\n+    calibration: 60, baseline: d.baseline + 3, pursuit: B.pursuitSec(d) + (d.circle || 0) + 8, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,\n     freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 2, pvt: d.pvt + d.pvtPractice * 3.5 + 6, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 6,\n     stress: d.stress + 3, recovery: d.recovery + 3,\n   }[key] || 0;\n@@ -1567,7 +1564,7 @@ <h2>결과를 정리하고 있어요</h2>\n   /* 세로 시선 점수(기록·그림자 비교용): MediaPipe 눈 블렌드셰이프 위로 보기 − 아래로 보기, 두 눈 평균(−1~1). 측정 모델에는 아직 쓰지 않는다 */\n   if ('eyeLookUpLeft' in bs) {\n     f.lookUp = ((bs.eyeLookUpLeft || 0) + (bs.eyeLookUpRight || 0)) / 2; f.lookDown = ((bs.eyeLookDownLeft || 0) + (bs.eyeLookDownRight || 0)) / 2;\n-    f.lookV = f.lookUp - f.lookDown;   // 위·아래 점수는 따로 두면 화면 끝 포화를 모델이 나눠 맞출 수 있는지 그림자 비교(shadow2)로 본다\n+    f.lookV = f.lookUp - f.lookDown;   // 연구 기록용(프레임 lookV). 보정 특징으로는 쓰지 않는다(core 2.3: 실측 재생에서 효과 없음)\n   }\n   /* 아래를 볼 때는 윗눈꺼풀이 시선을 따라 함께 내려온다(눈꺼풀-시선 연동: Becker & Fuchs, 1988). 얼굴 모델은 이를 '반쯤 감음'으로 읽어\n    * 화면 아래쪽을 보는 표본이 모두 버려졌다(2026-10-07 실측 NLR-B8F9…·0819…·6229…, 1707×1067 화면: 보정점 9개 중 가운데·아래 5개 표본 0개\n@@ -1938,7 +1935,7 @@ <h2>결과를 정리하고 있어요</h2>\n   const I = {\n     calibration: { tag: '측정 준비 · Gaze calibration', title: '시선 보정 · 영점 조정', vis: V.cal, time: '약 1분 25초', resp: '눈으로 바라보기 · 따라가기',\n       what: '눈과 머리 자세를 화면 좌표에 맞춰, 화면의 어느 곳을 보고 있는지 추정할 수 있게 합니다. 이후 모든 시선 검사의 정확도를 좌우하는 단계라 네 가지 방법을 겹쳐 쓰고, 검사 중에도 응시점이 나올 때마다 영점을 자동으로 다시 맞춥니다.',\n-      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면을 천천히 돌아다니는 파란 점을 12초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 원 가까이 가면 커서가 원 쪽으로 끌려 들어가 떨림 없이 멈출 수 있어요', '<b>정밀 보정</b> — 새 위치의 파란 점 8개를 바라봐요. 이 점들로 지금까지의 보정을 평가해 화면 위치별로 남은 오차까지 바로잡아요', '<b>클릭 보정</b>(필요할 때만) — 원을 못 맞혔거나 오차가 남으면, 표시된 점 9개 중 바라보는 곳을 직접 6번 클릭해요. 클릭한 자리를 보고 있었다는 확실한 표본으로 보정을 더 맞춰요'],\n+      how: ['<b>응시 보정</b> — 빨간 점 9개를 차례로 눈으로만 바라봐요', '<b>추적 보정</b> — 화면 전체를 고르게 도는 파란 점을 18초간 눈으로 따라가요. 이어서 파란 점 9개로 정확도를 재고 영점을 맞춰요', '<b>시선 이동 확인</b> — 내 시선을 따라 움직이는 커서(●)를 원 안으로 옮겨 잠시 머물러요. 원 가까이 가면 커서가 원 쪽으로 끌려 들어가 떨림 없이 멈출 수 있어요', '<b>정밀 보정</b> — 새 위치의 파란 점 8개를 바라봐요. 이 점들로 지금까지의 보정을 평가해 화면 위치별로 남은 오차까지 바로잡아요'],\n       orig: '응시 보정만 쓰면 점 9개 사이의 공간이 부정확해지기 쉬워요. 움직이는 점을 따라가는 <b>추적 보정</b>으로 화면 전체의 자료를 더하고, 두 모델 중 검증 오차가 작은 쪽을 고른 뒤, 축별 <b>영점 조정</b>으로 남은 치우침을 없앱니다. 커서는 떨림과 지연을 함께 줄이는 One Euro 필터로 표시해요.',\n       ref: 'Semmelmann & Weigelt, 2018 · Pfeuffer et al., 2013 (추적 보정) · Casiez et al., 2012 (One Euro 필터)' },\n     baseline: { tag: '측정 준비 · Resting baseline', title: '안정 기준선', vis: V.calm, time: `${d.baseline}초`, resp: '편안히 바라보기',\n@@ -2227,7 +2224,9 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   S.onFeature = null;\n   return samples;\n }\n-/* 추적 보정: 리사주 경로(가로 0.12Hz · 세로 0.08Hz)로 천천히 움직이는 점. 시선은 표적보다 약 120ms 늦으므로 그만큼 앞선 표적 위치와 짝짓는다 */\n+/* 추적 보정: 리사주 경로(가로 3주기 · 세로 2주기, 18초에 한 바퀴)로 움직이는 점. 시선은 표적보다 약 120ms 늦으므로 그만큼 앞선 표적 위치와 짝짓는다.\n+ * 이전(0.12·0.08Hz, 12.5초)은 25초 주기의 절반만 돌아 화면 3×3 칸 중 좌하·우상·좌중 칸을 한 번도 지나지 않았고(사용자 지적 2026-10-07),\n+ * 추적 표본이 한쪽 대각선에 몰려 그 모서리 보정이 약해졌다. 전 주기를 돌면 칸별 체류 8~13% 로 고르다(최고 속도 약 640px/s·1536 기준) */\n /* 움직이는 점: 경로를 미리 키프레임(60Hz 표본, 구간 사이 직선)으로 만들어 브라우저 컴포지터가 그리게 한다(Web Animations).\n  * 자바스크립트로 매 프레임 left/top 을 바꾸면 같은 스레드의 얼굴 인식(프레임당 15~40ms)에 밀려 점이 끊겨 보였다.\n  * 시작 시각을 t0(performance.now 기준)에 맞추므로, 분석에 쓰는 표적 위치 pos(t − t0)와 화면 위치가 같다.\n@@ -2242,17 +2241,17 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   S.cleanup.push(() => anim.cancel());\n   return settle;\n }\n-async function calPursuit(W, H, sec = 12.5) {\n-  const out = [], LAG = 120;\n-  const pos = t => ({ x: W * (0.5 + 0.38 * Math.sin(2 * Math.PI * 0.12 * t / 1000)), y: H * (0.5 + 0.34 * Math.sin(2 * Math.PI * 0.08 * t / 1000 + Math.PI / 2)) });\n+async function calPursuit(W, H, sec = 18) {\n+  const out = [], LAG = 120, FX = 3 / sec, FY = 2 / sec;\n+  const pos = t => ({ x: W * (0.5 + 0.38 * Math.sin(2 * Math.PI * FX * t / 1000)), y: H * (0.5 + 0.34 * Math.sin(2 * Math.PI * FY * t / 1000 + Math.PI / 2)) });\n   body.innerHTML = `<div class=\"cal-dot val\" id=\"pcDot\" style=\"transition:none\"></div><div class=\"cue\">파란 점을 눈으로 부드럽게 따라가 주세요 · 2단계 추적 보정</div>`;\n   const dot = $('pcDot');\n   let p0 = pos(0); dot.style.left = p0.x + 'px'; dot.style.top = p0.y + 'px';\n   await wait(900);\n   const t0 = await nextFrame();\n   const settle = glide(dot, pos, t0, sec * 1000);\n   S.onFeature = featSampler(t0, 1000, sec * 1000, t => pos(t - t0 - LAG), out, 0.5);\n-  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, path: 'x=W*(0.5+0.38*sin(2pi*0.12*t)), y=H*(0.5+0.34*sin(2pi*0.08*t+pi/2)), t in s from t0' };\n+  if (S.calibLog) S.calibLog.pursuit = { t0, sec, W, H, fx: FX, fy: FY, path: `x=W*(0.5+0.38*sin(2pi*${FX.toFixed(4)}*t)), y=H*(0.5+0.34*sin(2pi*${FY.toFixed(4)}*t+pi/2)), t in s from t0` };\n   const stopT = task('추적 보정', sec * 1000);\n   await wait(sec * 1000);\n   stopT(); settle(); S.onFeature = null;\n@@ -2345,41 +2344,6 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   S.onGaze = null;\n   return { n: res.length, hit: res.filter(r => r.ok).length, pairs: res.filter(r => r.pair).map(r => r.pair), meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };\n }\n-/* 5단계 · 클릭 보정: 9점 안내 표시 위에서 사용자가 지금 바라보는 곳을 직접 n 번 클릭한다. 사람은 클릭할 곳을 먼저 보고 누르므로\n- * 클릭 직전 0.45초(30ms 전까지)의 눈 특징을 그 좌표의 표본으로 쓴다. 시선 커서는 보여 주지 않는다(보고 맞추는 보상을 막기 위해).\n- * 특징이 4프레임 미만이면(깜빡임·눈 안 보임) 세지 않고 다시 요청한다. 적용 여부는 N.refineWithClicks 가 leave-one-out 으로 정한다 */\n-const CLICK_TRIGGER_PCT = 7;   // 정밀 보정 뒤 오차(화면 폭 %)가 이보다 크면 클릭 보정으로 넘어간다 — '양호' 경계(10%)보다 엄격 (실측 2026-10-07: 원 4/4 성공인데 9.3%, 가장자리·아래쪽 오차 체감)\n-async function calClick(W, H, n = 6) {\n-  const marks = []; for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) marks.push({ x: fx * W, y: fy * H });\n-  body.innerHTML = marks.map(m => `<div class=\"cal-mark\" style=\"left:${m.x}px;top:${m.y}px\"></div>`).join('') + '<div class=\"cue\" id=\"ckCue\" style=\"top:4%;bottom:auto\"></div>';\n-  const els = [...body.querySelectorAll('.cal-mark')], cue = $('ckCue'), recent = [], out = [];\n-  const say = extra => { cue.textContent = `점 하나를 바라본 채, 보고 있는 바로 그 자리를 클릭해 주세요 · ${out.length}/${n} · 5단계 클릭 보정${extra ? ' · ' + extra : ''}`; };\n-  say('');\n-  S.onFeature = (t, f) => { recent.push({ t, f }); while (recent.length && recent[0].t < t - 1500) recent.shift(); };\n-  await new Promise((res, rej) => {\n-    let lastClick = -Infinity;\n-    const onClick = e => {\n-      if (e.target.closest('button')) return;\n-      const t = now(); if (t - lastClick < 500) return; lastClick = t;\n-      const r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;\n-      if (x < 0 || y < 0 || x > W || y > H) return;\n-      const fs = N.robustFeatures(recent.filter(s => s.t >= t - 450 && s.t <= t - 30).map(s => s.f));\n-      const near = marks.reduce((b, m, i) => { const d = Math.hypot(m.x - x, m.y - y); return d < b.d && d < W * 0.06 ? { d, el: els[i] } : b; }, { d: Infinity, el: null }).el;\n-      if (fs.length < 4) { if (near) { near.classList.add('flash'); setTimeout(() => near.classList.remove('flash'), 600); } say('눈이 잘 보이지 않았어요 — 점을 보면서 한 번 더'); return; }\n-      out.push({ x, y, fs, t });\n-      if (S.calibLog) S.calibLog.targets.push({ t, x, y, kind: 'click' });\n-      if (near) near.classList.add('done');\n-      say('');\n-      if (out.length >= n) { waiters.delete(w); w.cleanup(); res(); }\n-    };\n-    /* #stageBody 는 크기가 없는 상자라(자식이 모두 absolute) 클릭의 표적은 stage 층이 된다 — body 에 걸면 이벤트가 오지 않는다(실측 2026-10-07: 클릭 무반응) */\n-    const w = { rej, cleanup: () => { stage.removeEventListener('click', onClick); S.onFeature = null; } };\n-    waiters.add(w); S.cleanup.push(w.cleanup);\n-    stage.addEventListener('click', onClick);\n-  });\n-  S.onFeature = null;\n-  return out;\n-}\n async function calibrate() {\n   await brief('calibration');\n   const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })));\n@@ -2439,28 +2403,18 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n       /* 4단계 · 정밀 보정: 앞 단계에서 쓰지 않은 새 위치 8곳을 커서 없이 바라보게 한 뒤, 이 점들을 ‘처음 보는 평가 자료’로 써서\n        *   ① 지금까지의 보정  ② 모든 보정 표본으로 다시 학습한 모델  ③ ①·②에 잔차 보정(화면 위치별 남은 오차 면)을 더한 것\n        * 중 오차가 가장 작은 조합을 고른다. 학습에 쓰지 않은 점으로 평가하므로 고른 결과의 오차가 실제 정확도에 가깝다 */\n-      let fine = null, fp = [], clickStep = null;\n+      let fine = null;\n       if (acc.grade !== 'poor') {\n         const fpts = [[0.12, 0.5], [0.88, 0.5], [0.5, 0.12], [0.5, 0.88], [0.32, 0.38], [0.68, 0.62], [0.36, 0.8], [0.64, 0.22]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));\n-        fp = await calCollect(fpts, '파란 점을 바라봐 주세요 · 4단계 정밀 보정');\n+        const fp = await calCollect(fpts, '파란 점을 바라봐 주세요 · 4단계 정밀 보정');\n         const m2 = N.fitGaze([...s9, ...feat(val), ...feat(zc)]);\n         if (m2) N.validateGazeEyes(m2, val, W, H);\n         const cand = [{ key: '기존 보정', model: S.model, A: S.affine, R: null }];\n         if (m2) cand.push({ key: '전체 표본 재학습', model: m2, A: N.fitAffine([...val, ...zc].map(p => predAt(m2, null, p))), R: null });\n-        /* 세로 시선 점수(lookV)를 특징에 더한 후보: 처음 보는 정밀 보정 점에서 기존 최선보다 확실히 좋을 때만 쓴다(N.pickCalibration) */\n-        const m3 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookV'] });\n-        if (m3 && m3.keys.includes('lookV')) { N.validateGazeEyes(m3, val, W, H); cand.push({ key: '전체 표본 재학습 · 세로 점수', model: m3, A: N.fitAffine([...val, ...zc].map(p => predAt(m3, null, p))), R: null, extra: ['lookV'] }); }\n-        /* 위·아래 보기 점수를 따로 넣은 후보: 아래를 볼 때 홍채가 가려져 눌리는 세로 신호를 눈 모양 점수가 보완한다\n-         * (그림자 비교 7세션: 세로 구분력 r 이 6회 상승, 최근 세션 0.64→0.94). 기울기 상한을 넓힌 축별 보정과 함께 평가한다 */\n-        const m4 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookUp', 'lookDown'] });\n-        if (m4 && ['lookUp', 'lookDown'].every(k => m4.keys.includes(k))) { N.validateGazeEyes(m4, val, W, H); cand.push({ key: '전체 표본 재학습 · 위아래 점수', model: m4, A: N.fitAffine([...val, ...zc].map(p => predAt(m4, null, p))), R: null, extra: ['lookUp', 'lookDown'] }); }\n         cand.slice().forEach(c0 => {\n           const pairs = [...val, ...zc].map(p => predAt(c0.model, c0.A, p));\n           const R = N.fitResidual(pairs, W, H);\n           if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R });\n-          /* 국소 잔차: 한 모서리에만 몰린 오차(실측 2026-10-07 좌하 영역)를 쌍선형 면은 못 펴므로, 이웃 보정 점 잔차의 가우스 가중 평균을 후보로 더한다 */\n-          const RL = N.fitLocalResidual(pairs, W, H);\n-          if (RL) cand.push({ ...c0, key: c0.key + ' + 국소 잔차', R: RL });\n         });\n         cand.forEach(c => { c.acc = N.gazeAccuracy(fp.map(p => predAt(c.model, c.A, p, c.R)), W, H); });\n         const ok = cand.filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);\n@@ -2471,18 +2425,14 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n            * 전체 보정 점에서 오차가 줄어들 때만 바꾸고, 표시하는 오차는 학습에 쓰지 않았던 평가 오차(b0)를 그대로 쓴다 */\n           {\n             const pts = [...val, ...zc, ...fp];\n-            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)], 0.5, { extra: b0.extra || [] }) || b0.model) : b0.model;\n+            const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)]) || b0.model) : b0.model;\n             if (mF !== b0.model) N.validateGazeEyes(mF, val, W, H);\n             const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;\n-            const RF = b0.R ? (b0.R.kind === 'local' ? N.fitLocalResidual : N.fitResidual)(pts.map(p => predAt(mF, AF, p)), W, H) : null;\n+            const RF = b0.R ? N.fitResidual(pts.map(p => predAt(mF, AF, p)), W, H) : null;\n             const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);\n             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }\n           }\n-          fine = { chosen: b0.key, lookV: !!b0.extra, extra: b0.extra || null, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };\n-          /* 그림자 평가: 세로 시선 점수(lookV)를 특징에 더하면 처음 보는 정밀 보정 점의 오차가 줄어드는지 — 결과만 기록하고 측정 모델은 그대로 */\n-          try { fine.shadow = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookV'] }); }\n-          catch (e) { fine.shadow = { extra: ['lookV'], error: String(e && e.message || e).slice(0, 120) }; }\n-          try { fine.shadow2 = N.compareGazeFeatures({ train: [...s9, ...feat(val), ...feat(zc)], fitPts: [...val, ...zc], evalPts: fp, W, H, extra: ['lookUp', 'lookDown'] }); } catch (_) {}\n+          fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };\n           acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };\n           /* 적응형 안정화: 정밀 보정 점을 바라보는 동안의 시선 흔들림(점별 MAD 중앙값)으로 화면 시선 평활 강도를 정한다 */\n           const noise = N.median(fp.map(p => { const g = p.fs.map(f => N.applyResidual(S.resid, N.applyAffine(S.affine, N.predictGaze(S.model, f)))).filter(Boolean); if (g.length < 4) return NaN; const mx = N.median(g.map(q => q.x)); return N.median(g.map(q => Math.abs(q.x - mx))) * 1.4826 / W; }).filter(Number.isFinite));\n@@ -2498,17 +2448,6 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n         points:pairs.map(p=>({x:p.x,y:p.y,gx:p.gx,gy:p.gy,n:p.fs.length})),\n         eyes:Object.fromEntries(Object.entries(S.model.eyes||{}).map(([side,m])=>[side,m?.validation||null]))};\n       info = `<div class=\"calsum\"><div><span>보정 모델</span><b>${esc(cands[0].key)}</b></div><div><span>보정 오차</span><b>${before.errPct}%</b></div><div><span>시선 이동</span><b>${ctl ? `${ctl.hit}/${ctl.n} 성공` : '—'}</b></div><div><span>정밀 보정 후</span><b>${fine ? fine.after + '%' : '—'}</b></div></div>${fine ? `<p class=\"small muted\" style=\"margin:8px 0 0\">새 위치 ${fine.points}곳으로 평가해 ‘${esc(fine.chosen)}’을 골랐어요 (적용 전 ${fine.before}% → ${fine.after}%)</p>` : ''}`;\n-      /* 5단계 · 클릭 보정(필요할 때만): 3단계 원을 하나라도 못 맞혔거나 정밀 보정 뒤 오차가 CLICK_TRIGGER_PCT 를 넘으면 자동으로, 아니면 완료 카드의 선택으로.\n-       * 클릭 표본을 더해 모델·축별·잔차 보정을 다시 맞추고, 클릭 점의 leave-one-out 오차가 줄어들 때만 바꾼다. 표시 오차도 그 held-out 값으로 바꾼다 */\n-      clickStep = async () => {\n-        const clicks = await calClick(W, H);\n-        const ck = N.refineWithClicks({ train: [...s9, ...feat(val), ...feat(zc), ...feat(fp)], points: [...val, ...zc, ...fp], clicks, W, H, extra: (fine && fine.extra) || [], residual: S.resid ? S.resid.kind || 'bilinear' : false, model: S.model, affine: S.affine, resid: S.resid });\n-        if (ck && ck.applied) { S.model = ck.model; S.affine = ck.A; S.resid = ck.R; resetEuro(); acc = { ...acc, errPct: ck.after, grade: ck.grade }; S.calibLog.model = { ...S.calibLog.model, coefficients: S.model, click: true }; S.calibLog.affine = S.affine; }\n-        acc.click = ck ? { n: ck.n, before: ck.before, after: ck.after, applied: ck.applied, residual: ck.residual || null, tried: ck.tried, points: ck.points } : { n: clicks.length, applied: false };\n-        S.calibLog.click = acc.click;\n-        info += `<p class=\"small muted\" style=\"margin:8px 0 0\">클릭 보정 ${acc.click.n}곳: 클릭 지점 오차 ${ck && ck.before !== null ? ck.before + '% → ' + ck.after + '%' : '측정 불가'} ${acc.click.applied ? '(적용)' : '(기존 보정 유지)'}</p>`;\n-      };\n-      if ((ctl && ctl.hit < ctl.n) || (acc.errPct !== null && acc.errPct > CLICK_TRIGGER_PCT)) await clickStep();\n       if (ctl && ctl.hit < Math.ceil(ctl.n / 2) && acc.grade === 'good') acc.grade = 'fair';      // 수치는 좋아도 실제로 시선을 옮기지 못하면 한 단계 낮춘다\n       /* 오차는 표본이 있는 점만으로 계산되므로, 점이 빠지면 '양호'가 과장된다(실측 NLR-B8F9…: 9점 중 4점만으로 2.8% '양호').\n        * 평가점의 75% 미만만 잡히면 '보통'으로, 화면 아래 40%의 점이 하나도 잡히지 않으면 아래쪽 시선을 믿을 수 없어 다시 보정을 권한다 */\n@@ -2519,10 +2458,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     }\n     S.calib = { ...acc, samples: s9.length + sp.length };\n     if (acc.grade !== 'poor') {\n-      let c;\n-      while ((c = await pauseCard('보정 완료', `${info}<p style=\"margin:12px 0 0\">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정', ...(clickStep && !acc.click ? ['클릭 보정 추가'] : [])])) === 2) {\n-        await clickStep(); S.calib = { ...acc, samples: s9.length + sp.length };\n-      }\n+      const c = await pauseCard('보정 완료', `${info}<p style=\"margin:12px 0 0\">시선 오차 약 <b>${acc.errPct}%</b> (화면 폭 대비) · ${acc.grade === 'good' ? '양호해요.' : '보통이에요. 더 정확하게 하려면 다시 보정할 수 있어요.'}</p>`, '다음', ['다시 보정']);\n       if (c === 1) continue;\n       return;\n     }\nFILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.2';   // 2.2 (2026-10-07): 국소 잔차 보정 후보(fitLocalResidual, 모서리 오차), 클릭 보정 클릭 수신 수정(stage) · 2.1: 시선 5단계 클릭 보정(refineWithClicks, leave-one-out 채택) · 심박 스펙트럼 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.3';   // 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -457,7 +457,10 @@\n     icx /= 5; icy /= 5;\n     const ix = icx - ax, iy = icy - ay;\n     const u = (ix * dx + iy * dy) / L2;                       // 눈꼬리→눈머리 축 위치 (0~1)\n-    const midX = (lm[top].x + lm[bot].x) / 2, midY = (lm[top].y + lm[bot].y) / 2;\n+    /* 세로 기준은 눈꺼풀 중점이 아니라 눈꼬리-눈머리 축: 아래를 보면 윗눈꺼풀이 홍채를 따라 내려와(눈꺼풀-시선 연동) 눈꺼풀 중점 기준 v 는\n+     * 거의 변하지 않아 세로 신호가 절반 이하로 눌렸다. 눈꼬리는 시선과 무관하게 고정이라 기준으로 삼는다.\n+     * 실측 재생(2026-10-07, 13세션): 정밀 보정 held-out 10.8→9.5%, 원형 추적 과제 세로 오차 13.3→8.9%H, 영점 뒤 오차 9.3→6.9%W (tools/gaze_replay.cjs) */\n+    const midX = (ax + bx) / 2, midY = (ay + by) / 2;\n     const v = (-(icx-midX)*dy + (icy-midY)*dx) / L2; // Eye-local perpendicular axis compensates head roll.\n     const open = Math.hypot(lm[bot].x - lm[top].x, lm[bot].y - lm[top].y) / L;\n     return { u, v, open };\n@@ -585,15 +588,14 @@\n   function fitAffine(pairs) {\n     const P = (pairs || []).filter(p => finite(p.x) && finite(p.y) && finite(p.gx) && finite(p.gy));\n     if (P.length < 3) return null;\n-    /* 기울기 상한: 기본 0.75~1.35. 표적과 예측의 상관이 높으면(r ≥ 0.8, 5점 이상) 0.6~2.2 까지 허용한다.\n-     * 웹캠 세로 시선은 아래를 볼 때 홍채가 눈꺼풀에 가려 예측 범위가 절반 가까이 눌린다(2026-10-07 실측 NLR-541B…: 세로 기울기 1.72·r 0.90,\n-     * 그림자 비교 7세션에서 세로 구분력 r 0.64→0.94 인데 기울기 상한 때문에 오차가 커짐). 상관이 낮으면 늘리지 않는다(잡음 증폭 방지) */\n+    /* 기울기 0.75~1.35 로 제한해 과보정을 막는다. 세로 압축은 눈꼬리 기준 v(eyeUV)로 원천에서 풀었으므로 넓은 상한(2.2)은 쓰지 않는다\n+     * (실측 재생 13세션: 넓은 상한과 결과 동일) */\n     const axis = (t, g) => {\n       const mt = mean(t), mg = mean(g);\n       let cov = 0, vg = 0, vt = 0;\n       for (let i = 0; i < t.length; i++) { cov += (g[i] - mg) * (t[i] - mt); vg += (g[i] - mg) ** 2; vt += (t[i] - mt) ** 2; }\n-      const r = vt > 0 && vg > 0 ? cov / Math.sqrt(vt * vg) : 0, wide = t.length >= 5 && r >= 0.8;\n-      const a = vt > 0 && vg > 0 ? clamp(cov / vg, wide ? 0.6 : 0.75, wide ? 2.2 : 1.35) : 1;\n+      const r = vt > 0 && vg > 0 ? cov / Math.sqrt(vt * vg) : 0;\n+      const a = vt > 0 && vg > 0 ? clamp(cov / vg, 0.75, 1.35) : 1;\n       return { a, b: mt - a * mg, r: round(r, 2) };\n     };\n     return { x: axis(P.map(p => p.x), P.map(p => p.gx)), y: axis(P.map(p => p.y), P.map(p => p.gy)) };\n@@ -740,22 +742,8 @@\n     const cx = fitAxis('x', W), cy = fitAxis('y', H);\n     return cx && cy ? { W, H, cx, cy, n: P.length } : null;\n   }\n-  /* 국소 잔차 보정(local): 쌍선형 면(축당 4계수)은 한 모서리에만 몰린 오차(실측 2026-10-07: 좌하 영역만 크게 빗나감)를 펴지 못한다.\n-   * 보정 점마다 남은 오차(dx,dy)를 두고, 예측 위치에서 가우스 가중(σ = 화면 폭의 22%)으로 이웃 점의 잔차를 평균해 더한다.\n-   * 0 잔차의 가상 가중(0.35)을 섞어 점이 먼 곳에서는 보정이 0 으로 줄어들게 하고(과적합 억제), 보정량 상한은 화면의 12% */\n-  function fitLocalResidual(pairs, W, H, sigma = 0.22) {\n-    const P = (pairs || []).filter(p => [p.x, p.y, p.gx, p.gy].every(finite));\n-    if (P.length < 6) return null;\n-    return { kind: 'local', W, H, sigma, n: P.length, pts: P.map(p => ({ gx: p.gx / W, gy: p.gy / H, dx: (p.x - p.gx) / W, dy: (p.y - p.gy) / H })) };\n-  }\n   function applyResidual(R, g) {\n     if (!R || !g) return g;\n-    if (R.kind === 'local') {\n-      const x = g.x / R.W, y = g.y / R.H, k = R.H / R.W;\n-      let sw = 0.35, sx = 0, sy = 0;\n-      for (const p of R.pts) { const w = Math.exp(-((x - p.gx) ** 2 + ((y - p.gy) * k) ** 2) / (2 * R.sigma * R.sigma)); sw += w; sx += w * p.dx; sy += w * p.dy; }\n-      return { ...g, x: g.x + clamp(sx / sw, -0.12, 0.12) * R.W, y: g.y + clamp(sy / sw, -0.12, 0.12) * R.H };\n-    }\n     const x = g.x / R.W - 0.5, y = g.y / R.H - 0.5, v = [1, x, y, x * y];\n     const dx = clamp(v.reduce((s, a, i) => s + a * R.cx[i], 0), -0.12, 0.12) * R.W, dy = clamp(v.reduce((s, a, i) => s + a * R.cy[i], 0), -0.12, 0.12) * R.H;\n     return { ...g, x: g.x + dx, y: g.y + dy };\n@@ -791,32 +779,6 @@\n     const need = base.acc.errPct - Math.max(margin.abs, margin.rel * base.acc.errPct);\n     return best.acc.errPct <= need ? best : base;\n   }\n-  /* 클릭 보정(사용자 확인 응시): 사용자가 지금 바라보는 곳을 직접 클릭한 점의 눈 특징(클릭 직전 0.4초)을 라벨이 확실한 표본으로 더해\n-   * 모델·축별·잔차 보정을 모두 다시 맞춘다. 클릭 순간 시선은 클릭 지점에 있다(Huang et al., 2016 PACE; Sugano et al., 2015) — 점을 ‘보고 있었는지’\n-   * 알 수 없는 수동 응시 표본보다 라벨 잡음이 작아 가중 2. 2026-10-05 ‘클릭 영점 3점(이동만)’ 시뮬레이션은 모든 세션에서 악화됐으므로 이동만 고치지 않는다.\n-   * 정직한 평가: before = 지금 보정으로 클릭 점을 예측한 오차(클릭은 학습에 안 씀) · after = 클릭 점을 하나씩 빼고 다시 맞춘 보정으로 그 점을 예측(leave-one-out).\n-   * after < before 일 때만 적용(applied). train: [{x,y,f,w?}] · points/clicks: [{x,y,fs:[f…]}] */\n-  function refineWithClicks({ train, points, clicks, W, H, extra = [], residual = false, model, affine = null, resid = null, weight = 2 }) {\n-    const at = (m, A, R, p) => { const g = p.fs.map(f => applyResidual(R, applyAffine(A, predictGaze(m, f)))).filter(q => q && finite(q.x) && finite(q.y)); return g.length >= 4 ? { x: p.x, y: p.y, gx: median(g.map(q => q.x)), gy: median(g.map(q => q.y)) } : null; };\n-    const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f, w: weight })));\n-    const fitR = (kind, pairs) => kind === 'local' ? fitLocalResidual(pairs, W, H) : kind ? fitResidual(pairs, W, H) : null;\n-   ",
+          "patchTruncated": true,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38183400362"
+      }
     },
     {
       "sha": "91fa0e35c9045176e787b27b70e6cdc5640f0ddd",
@@ -5031,6 +5499,16 @@
       "accuracyValidated": false,
       "tasks": [
         {
+          "id": "evo-91fa0e35c904-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 클릭 수신부 변경 및 국소 잔차 보정(fitLocalResidual)의 실측 데이터 기반 일반화 및 회귀 검증",
+          "rationale": "코드 변경을 통해 #stage 클릭 이벤트 수신 및 fitLocalResidual 기반 국소 잔차 보정이 도입되었습니다. 그러나 제공된 diff와 합성 단위 테스트만으로는 다양한 웹캠 기기, 조명 조건, 피험자 두부 움직임 환경에서의 시선 추적 성공률과 영역별 정확도를 보장할 수 없습니다. 따라서 개발자의 가설(모서리 잔차 보정 유용성)과 실측 증거를 구분하고, 약한 신호 구간에서의 활용량과 오차 증가 여부를 분리 평가해야 합니다.",
+          "validationPlan": "1. dataset 내 실제 피험자 측정 기록 및 연구자 메모를 연결하여 클릭 보정 및 잔차 보정 전후 데이터 추출\n2. 전체 세션 시도 횟수(실패 및 중도 탈락 세션 포함)를 분모로 설정하여 클릭 보정 적용 성공률(Yield) 산출\n3. 참가자별, 기기 종류별, 촬영 날짜별로 교차 검증 세트를 분리하여 기존 쌍선형(bilinear) 모델과 국소(local) 잔차 모델의 화면 영역별(중앙 vs 4개 모서리) 오차(errPct) 비교\n4. 국소 잔차 보정 적용 시 외곽 영역 신호 활용량 증가 대비 오차 폭발(회귀) 발생 비율을 통계적으로 측정",
+          "prompt": "[과제: 시선 클릭 수신부 변경 및 국소 잔차 보정(fitLocalResidual) 기능 검증]\n\n1. 현재 코드 확인 요구사항\n- condition.html의 calClick 내 #stage 이벤트 수신기 등록 및 e.target.closest('button') 예외 처리 로직을 점검하십시오.\n- newbiz-core.js의 fitLocalResidual, applyResidual, refineWithClicks 함수 동작 방식을 확인하고, S.calibLog 및 acc.click에 기록되는 tried 계측 구조를 검토하십시오.\n\n2. 변경 및 검증 과제\n- 수집된 dataset의 피험자 세션 및 연구자 메모를 연결하여 클릭 보정 시도 세션을 분석하십시오. 절대 존재하지 않는 성능 수치를 임의로 만들어내지 마십시오.\n- 국소 잔차 보정이 한쪽 모서리 오차를 줄이는 과정에서 다른 화면 영역의 좌표를 왜곡시키지 않는지 약한 유효 신호의 활용량(Yield)과 오차(Error)를 동시에 평가하십시오.\n- 단일 세션에 대한 결과로 일반화하지 말고, 실패 세션을 포함한 전체 시도 건수를 분모로 설정하십시오.\n- 평가 시 참가자 식별자, 기기 모듈, 측정 날짜별로 독립적인 세트 분리를 적용하십시오.\n\n3. 성공 및 회귀 기준\n- 성공 기준: 기존 모델 대비 화면 모서리 영역의 leave-one-out 오차가 통계적으로 유의미하게 감소하면서, 중앙 영역 오차 상승(회귀)이 발생하지 않고 전체 보정 적용 성공률(Yield)이 유지/상승할 것.\n- 회귀 기준: 특정 점 가수 가중으로 인해 보정 점과 먼 영역에서 시선 좌표 왜곡이 발생하거나, 오차 산출 불가능(errPct === null) 세션 비율이 증가하는 경우.\n\n4. 결과 보고 양식\n- [코드 검토 결과]: condition.html 및 newbiz-core.js 변경점 동작 여부\n- [실측 데이터 연결 연동 소스]: 사용된 dataset 세션 ID, 연구자 메모 연결 내역\n- [조건별 활용률 및 오차 표]:\n  * 전체 시도 분모 / 클릭 보정 성공 건수 / 적용률(%)\n  * 모델 종류(미보정 vs 쌍선형 vs 국소 잔차)별 화면 영역(중앙/모서리) 오차 분포(errPct)\n  * 참가자/기기/날짜별 분리 평가 요약\n- [회귀 평가 및 판정]: 국소 보정 과적합 발생 여부 및 최종 채택 권고안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 91fa0e35c9045176e787b27b70e6cdc5640f0ddd\nDataset-Task: evo-91fa0e35c904-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
           "id": "evo-91fa0e35c904-pulse",
           "domain": "pulse",
           "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
@@ -5039,24 +5517,98 @@
           "prompt": "NeuroLens 알고리즘 후속 과제 evo-91fa0e35c904-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 91fa0e35c9045176e787b27b70e6cdc5640f0ddd\n변경 제목: Core 2.2: click calibration receives clicks, local residual correction for corner errors\n관련 파일: NEWBIZ_CALIBRATION.md, condition.html, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-91fa0e35c904-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
           "generator": "rule",
           "state": "proposed"
-        },
-        {
-          "id": "evo-91fa0e35c904-measurement",
-          "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-91fa0e35c904-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 91fa0e35c9045176e787b27b70e6cdc5640f0ddd\n변경 제목: Core 2.2: click calibration receives clicks, local residual correction for corner errors\n관련 파일: NEWBIZ_CALIBRATION.md, condition.html, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-91fa0e35c904-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [],
-      "lastAttemptAt": "2026-10-07T13:39:30.203547+00:00",
-      "analysisError": "HTTP_504",
-      "analysisErrorCode": "GEMINI_TIMEOUT"
+      "lastAttemptAt": "2026-10-11T23:13:41.249815+00:00",
+      "analysis": {
+        "summary": "2026-10-07 커밋(91fa0e35c9045176e787b27b70e6cdc5640f0ddd)을 통해 condition.html, newbiz-core.js, newbiz-core.test.js, NEWBIZ_CALIBRATION.md 파일의 변경이 관측되었습니다 (filesTruncated: false, patchTruncated: false).\n\n[주요 변경 내용]\n1. 클릭 보정 이벤트 처리 구조 변경: condition.html에서 클릭 보정 이벤트 수신기가 body에서 #stage 레벨로 이동되었고, 버튼 요소 클릭 제외 조건(e.target.closest('button'))이 추가되었습니다.\n2. 국소 잔차 보정(fitLocalResidual) 도입: newbiz-core.js에 가우스 가중 평균(기본 sigma=0.22, 최대 보정 한계 12%)을 이용한 fitLocalResidual 및 applyResidual 분기가 추가되었으며, refineWithClicks에서 기존 쌍선형(bilinear) 보정과 국소(local) 보정을 모두 평가(tried)한 뒤 leave-one-out 오차가 낮은 모델을 선택하도록 개편되었습니다.\n3. 단위 테스트 추가: newbiz-core.test.js에 편향 데이터 및 무편향 데이터를 활용한 국소 잔차 보정 검증 알고리즘 테스트가 추가되었습니다.\n\n[미검증 영향 및 제한사항]\n- 개발자 주석 및 커밋 메세지에 언급된 '좌하 영역 오차' 및 '클릭 무반응'은 개발자의 가설 및 관측 메모일 뿐, 검증된 임상/독립적 정답 수치가 아닙니다 (accuracyValidated: false).\n- 가우스 가중 기반 국소 잔차 보정이 특정 외곽 지점 오차를 완화하는 반면, 다른 영역에 과적합(Overfitting)을 일으키거나 외곽 보정 왜곡을 유발하는지 여부는 실제 피험자 실측 데이터셋을 통해 검증되지 않았습니다.",
+        "tasks": [
+          {
+            "id": "evo-91fa0e35c904-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 클릭 수신부 변경 및 국소 잔차 보정(fitLocalResidual)의 실측 데이터 기반 일반화 및 회귀 검증",
+            "rationale": "코드 변경을 통해 #stage 클릭 이벤트 수신 및 fitLocalResidual 기반 국소 잔차 보정이 도입되었습니다. 그러나 제공된 diff와 합성 단위 테스트만으로는 다양한 웹캠 기기, 조명 조건, 피험자 두부 움직임 환경에서의 시선 추적 성공률과 영역별 정확도를 보장할 수 없습니다. 따라서 개발자의 가설(모서리 잔차 보정 유용성)과 실측 증거를 구분하고, 약한 신호 구간에서의 활용량과 오차 증가 여부를 분리 평가해야 합니다.",
+            "validationPlan": "1. dataset 내 실제 피험자 측정 기록 및 연구자 메모를 연결하여 클릭 보정 및 잔차 보정 전후 데이터 추출\n2. 전체 세션 시도 횟수(실패 및 중도 탈락 세션 포함)를 분모로 설정하여 클릭 보정 적용 성공률(Yield) 산출\n3. 참가자별, 기기 종류별, 촬영 날짜별로 교차 검증 세트를 분리하여 기존 쌍선형(bilinear) 모델과 국소(local) 잔차 모델의 화면 영역별(중앙 vs 4개 모서리) 오차(errPct) 비교\n4. 국소 잔차 보정 적용 시 외곽 영역 신호 활용량 증가 대비 오차 폭발(회귀) 발생 비율을 통계적으로 측정",
+            "prompt": "[과제: 시선 클릭 수신부 변경 및 국소 잔차 보정(fitLocalResidual) 기능 검증]\n\n1. 현재 코드 확인 요구사항\n- condition.html의 calClick 내 #stage 이벤트 수신기 등록 및 e.target.closest('button') 예외 처리 로직을 점검하십시오.\n- newbiz-core.js의 fitLocalResidual, applyResidual, refineWithClicks 함수 동작 방식을 확인하고, S.calibLog 및 acc.click에 기록되는 tried 계측 구조를 검토하십시오.\n\n2. 변경 및 검증 과제\n- 수집된 dataset의 피험자 세션 및 연구자 메모를 연결하여 클릭 보정 시도 세션을 분석하십시오. 절대 존재하지 않는 성능 수치를 임의로 만들어내지 마십시오.\n- 국소 잔차 보정이 한쪽 모서리 오차를 줄이는 과정에서 다른 화면 영역의 좌표를 왜곡시키지 않는지 약한 유효 신호의 활용량(Yield)과 오차(Error)를 동시에 평가하십시오.\n- 단일 세션에 대한 결과로 일반화하지 말고, 실패 세션을 포함한 전체 시도 건수를 분모로 설정하십시오.\n- 평가 시 참가자 식별자, 기기 모듈, 측정 날짜별로 독립적인 세트 분리를 적용하십시오.\n\n3. 성공 및 회귀 기준\n- 성공 기준: 기존 모델 대비 화면 모서리 영역의 leave-one-out 오차가 통계적으로 유의미하게 감소하면서, 중앙 영역 오차 상승(회귀)이 발생하지 않고 전체 보정 적용 성공률(Yield)이 유지/상승할 것.\n- 회귀 기준: 특정 점 가수 가중으로 인해 보정 점과 먼 영역에서 시선 좌표 왜곡이 발생하거나, 오차 산출 불가능(errPct === null) 세션 비율이 증가하는 경우.\n\n4. 결과 보고 양식\n- [코드 검토 결과]: condition.html 및 newbiz-core.js 변경점 동작 여부\n- [실측 데이터 연결 연동 소스]: 사용된 dataset 세션 ID, 연구자 메모 연결 내역\n- [조건별 활용률 및 오차 표]:\n  * 전체 시도 분모 / 클릭 보정 성공 건수 / 적용률(%)\n  * 모델 종류(미보정 vs 쌍선형 vs 국소 잔차)별 화면 영역(중앙/모서리) 오차 분포(errPct)\n  * 참가자/기기/날짜별 분리 평가 요약\n- [회귀 평가 및 판정]: 국소 보정 과적합 발생 여부 및 최종 채택 권고안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 91fa0e35c9045176e787b27b70e6cdc5640f0ddd\nDataset-Task: evo-91fa0e35c904-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-91fa0e35c904-pulse",
+            "domain": "pulse",
+            "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+            "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+            "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+            "prompt": "NeuroLens 알고리즘 후속 과제 evo-91fa0e35c904-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 91fa0e35c9045176e787b27b70e6cdc5640f0ddd\n변경 제목: Core 2.2: click calibration receives clicks, local residual correction for corner errors\n관련 파일: NEWBIZ_CALIBRATION.md, condition.html, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-91fa0e35c904-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+            "generator": "rule",
+            "state": "proposed"
+          }
+        ],
+        "evidenceHash": "b6c111f3e6cb69429fe4997b7d6f30c0cfaaf9271c3aa21a35ead04b76a6c62b",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 7398,
+            "candidatesTokenCount": 1420,
+            "totalTokenCount": 11046
+          }
+        },
+        "generatedAt": "2026-10-11T23:14:04.061622+00:00",
+        "sourceSha": "91fa0e35c9045176e787b27b70e6cdc5640f0ddd",
+        "sourceEvidence": {
+          "sha": "91fa0e35c9045176e787b27b70e6cdc5640f0ddd",
+          "parents": [
+            "dce9b596b77ac2565611c080e42e88f03fece0de"
+          ],
+          "committedAt": "2026-10-07T13:38:42Z",
+          "subject": "Core 2.2: click calibration receives clicks, local residual correction for corner errors",
+          "url": "https://github.com/jeebs0627/neurolens/commit/91fa0e35c9045176e787b27b70e6cdc5640f0ddd",
+          "files": [
+            {
+              "path": "NEWBIZ_CALIBRATION.md",
+              "status": "modified",
+              "additions": 6,
+              "deletions": 0
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 12,
+              "deletions": 6
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 26,
+              "deletions": 8
+            },
+            {
+              "path": "newbiz-core.test.js",
+              "status": "modified",
+              "additions": 27,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -2359,6 +2359,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   await new Promise((res, rej) => {\n     let lastClick = -Infinity;\n     const onClick = e => {\n+      if (e.target.closest('button')) return;\n       const t = now(); if (t - lastClick < 500) return; lastClick = t;\n       const r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;\n       if (x < 0 || y < 0 || x > W || y > H) return;\n@@ -2371,9 +2372,10 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n       say('');\n       if (out.length >= n) { waiters.delete(w); w.cleanup(); res(); }\n     };\n-    const w = { rej, cleanup: () => { body.removeEventListener('click', onClick); S.onFeature = null; } };\n+    /* #stageBody 는 크기가 없는 상자라(자식이 모두 absolute) 클릭의 표적은 stage 층이 된다 — body 에 걸면 이벤트가 오지 않는다(실측 2026-10-07: 클릭 무반응) */\n+    const w = { rej, cleanup: () => { stage.removeEventListener('click', onClick); S.onFeature = null; } };\n     waiters.add(w); S.cleanup.push(w.cleanup);\n-    body.addEventListener('click', onClick);\n+    stage.addEventListener('click', onClick);\n   });\n   S.onFeature = null;\n   return out;\n@@ -2453,8 +2455,12 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n         const m4 = N.fitGaze([...s9, ...feat(val), ...feat(zc)], 0.5, { extra: ['lookUp', 'lookDown'] });\n         if (m4 && ['lookUp', 'lookDown'].every(k => m4.keys.includes(k))) { N.validateGazeEyes(m4, val, W, H); cand.push({ key: '전체 표본 재학습 · 위아래 점수', model: m4, A: N.fitAffine([...val, ...zc].map(p => predAt(m4, null, p))), R: null, extra: ['lookUp', 'lookDown'] }); }\n         cand.slice().forEach(c0 => {\n-          const R = N.fitResidual([...val, ...zc, ...(ctl && ctl.pairs ? [] : [])].map(p => predAt(c0.model, c0.A, p)), W, H);\n+          const pairs = [...val, ...zc].map(p => predAt(c0.model, c0.A, p));\n+          const R = N.fitResidual(pairs, W, H);\n           if (R) cand.push({ ...c0, key: c0.key + ' + 잔차 보정', R });\n+          /* 국소 잔차: 한 모서리에만 몰린 오차(실측 2026-10-07 좌하 영역)를 쌍선형 면은 못 펴므로, 이웃 보정 점 잔차의 가우스 가중 평균을 후보로 더한다 */\n+          const RL = N.fitLocalResidual(pairs, W, H);\n+          if (RL) cand.push({ ...c0, key: c0.key + ' + 국소 잔차', R: RL });\n         });\n         cand.forEach(c => { c.acc = N.gazeAccuracy(fp.map(p => predAt(c.model, c.A, p, c.R)), W, H); });\n         const ok = cand.filter(c => c.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);\n@@ -2468,7 +2474,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n             const mF = b0.key.startsWith('전체') ? (N.fitGaze([...s9, ...feat(val), ...feat(zc), ...feat(fp)], 0.5, { extra: b0.extra || [] }) || b0.model) : b0.model;\n             if (mF !== b0.model) N.validateGazeEyes(mF, val, W, H);\n             const AF = N.fitAffine(pts.map(p => predAt(mF, null, p))) || b0.A;\n-            const RF = b0.R ? N.fitResidual(pts.map(p => predAt(mF, AF, p)), W, H) : null;\n+            const RF = b0.R ? (b0.R.kind === 'local' ? N.fitLocalResidual : N.fitResidual)(pts.map(p => predAt(mF, AF, p)), W, H) : null;\n             const eB = N.gazeAccuracy(pts.map(p => predAt(b0.model, b0.A, p, b0.R)), W, H), eF = N.gazeAccuracy(pts.map(p => predAt(mF, AF, p, RF)), W, H);\n             if (eF.errPct !== null && eB.errPct !== null && eF.errPct <= eB.errPct) { S.model = mF; S.affine = AF; S.resid = RF; }\n           }\n@@ -2496,9 +2502,9 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n        * 클릭 표본을 더해 모델·축별·잔차 보정을 다시 맞추고, 클릭 점의 leave-one-out 오차가 줄어들 때만 바꾼다. 표시 오차도 그 held-out 값으로 바꾼다 */\n       clickStep = async () => {\n         const clicks = await calClick(W, H);\n-        const ck = N.refineWithClicks({ train: [...s9, ...feat(val), ...feat(zc), ...feat(fp)], points: [...val, ...zc, ...fp], clicks, W, H, extra: (fine && fine.extra) || [], residual: !!S.resid, model: S.model, affine: S.affine, resid: S.resid });\n+        const ck = N.refineWithClicks({ train: [...s9, ...feat(val), ...feat(zc), ...feat(fp)], points: [...val, ...zc, ...fp], clicks, W, H, extra: (fine && fine.extra) || [], residual: S.resid ? S.resid.kind || 'bilinear' : false, model: S.model, affine: S.affine, resid: S.resid });\n         if (ck && ck.applied) { S.model = ck.model; S.affine = ck.A; S.resid = ck.R; resetEuro(); acc = { ...acc, errPct: ck.after, grade: ck.grade }; S.calibLog.model = { ...S.calibLog.model, coefficients: S.model, click: true }; S.calibLog.affine = S.affine; }\n-        acc.click = ck ? { n: ck.n, before: ck.before, after: ck.after, applied: ck.applied, points: ck.points } : { n: clicks.length, applied: false };\n+        acc.click = ck ? { n: ck.n, before: ck.before, after: ck.after, applied: ck.applied, residual: ck.residual || null, tried: ck.tried, points: ck.points } : { n: clicks.length, applied: false };\n         S.calibLog.click = acc.click;\n         info += `<p class=\"small muted\" style=\"margin:8px 0 0\">클릭 보정 ${acc.click.n}곳: 클릭 지점 오차 ${ck && ck.before !== null ? ck.before + '% → ' + ck.after + '%' : '측정 불가'} ${acc.click.applied ? '(적용)' : '(기존 보정 유지)'}</p>`;\n       };\nFILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.1';   // 2.1 (2026-10-07): 시선 5단계 클릭 보정(refineWithClicks, leave-one-out 채택) · 심박 스펙트럼 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.2';   // 2.2 (2026-10-07): 국소 잔차 보정 후보(fitLocalResidual, 모서리 오차), 클릭 보정 클릭 수신 수정(stage) · 2.1: 시선 5단계 클릭 보정(refineWithClicks, leave-one-out 채택) · 심박 스펙트럼 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -740,8 +740,22 @@\n     const cx = fitAxis('x', W), cy = fitAxis('y', H);\n     return cx && cy ? { W, H, cx, cy, n: P.length } : null;\n   }\n+  /* 국소 잔차 보정(local): 쌍선형 면(축당 4계수)은 한 모서리에만 몰린 오차(실측 2026-10-07: 좌하 영역만 크게 빗나감)를 펴지 못한다.\n+   * 보정 점마다 남은 오차(dx,dy)를 두고, 예측 위치에서 가우스 가중(σ = 화면 폭의 22%)으로 이웃 점의 잔차를 평균해 더한다.\n+   * 0 잔차의 가상 가중(0.35)을 섞어 점이 먼 곳에서는 보정이 0 으로 줄어들게 하고(과적합 억제), 보정량 상한은 화면의 12% */\n+  function fitLocalResidual(pairs, W, H, sigma = 0.22) {\n+    const P = (pairs || []).filter(p => [p.x, p.y, p.gx, p.gy].every(finite));\n+    if (P.length < 6) return null;\n+    return { kind: 'local', W, H, sigma, n: P.length, pts: P.map(p => ({ gx: p.gx / W, gy: p.gy / H, dx: (p.x - p.gx) / W, dy: (p.y - p.gy) / H })) };\n+  }\n   function applyResidual(R, g) {\n     if (!R || !g) return g;\n+    if (R.kind === 'local') {\n+      const x = g.x / R.W, y = g.y / R.H, k = R.H / R.W;\n+      let sw = 0.35, sx = 0, sy = 0;\n+      for (const p of R.pts) { const w = Math.exp(-((x - p.gx) ** 2 + ((y - p.gy) * k) ** 2) / (2 * R.sigma * R.sigma)); sw += w; sx += w * p.dx; sy += w * p.dy; }\n+      return { ...g, x: g.x + clamp(sx / sw, -0.12, 0.12) * R.W, y: g.y + clamp(sy / sw, -0.12, 0.12) * R.H };\n+    }\n     const x = g.x / R.W - 0.5, y = g.y / R.H - 0.5, v = [1, x, y, x * y];\n     const dx = clamp(v.reduce((s, a, i) => s + a * R.cx[i], 0), -0.12, 0.12) * R.W, dy = clamp(v.reduce((s, a, i) => s + a * R.cy[i], 0), -0.12, 0.12) * R.H;\n     return { ...g, x: g.x + dx, y: g.y + dy };\n@@ -785,19 +799,23 @@\n   function refineWithClicks({ train, points, clicks, W, H, extra = [], residual = false, model, affine = null, resid = null, weight = 2 }) {\n     const at = (m, A, R, p) => { const g = p.fs.map(f => applyResidual(R, applyAffine(A, predictGaze(m, f)))).filter(q => q && finite(q.x) && finite(q.y)); return g.length >= 4 ? { x: p.x, y: p.y, gx: median(g.map(q => q.x)), gy: median(g.map(q => q.y)) } : null; };\n     const feat = list => list.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f, w: weight })));\n-    const fit = cl => {\n+    const fitR = (kind, pairs) => kind === 'local' ? fitLocalResidual(pairs, W, H) : kind ? fitResidual(pairs, W, H) : null;\n+    const fit = (cl, kind) => {\n       const m = fitGaze([...train, ...feat(cl)], 0.5, { extra }); if (!m) return null;\n       const pts = [...points, ...cl]; validateGazeEyes(m, pts, W, H);\n       const A = fitAffine(pts.map(p => at(m, null, null, p)).filter(Boolean));\n-      const R = residual ? fitResidual(pts.map(p => at(m, A, null, p)).filter(Boolean), W, H) : null;\n-      return { model: m, A, R };\n+      return { model: m, A, R: fitR(kind, pts.map(p => at(m, A, null, p)).filter(Boolean)), residual: kind || null };\n     };\n     const ok = (clicks || []).filter(p => p.fs && p.fs.length >= 4);\n     if (ok.length < 3 || !model) return null;\n     const before = gazeAccuracy(ok.map(p => at(model, affine, resid, p)).filter(Boolean), W, H);\n-    const after = gazeAccuracy(ok.map((p, i) => { const f = fit(ok.filter((_, j) => j !== i)); return f ? at(f.model, f.A, f.R, p) : null; }).filter(Boolean), W, H);\n-    const better = after.errPct !== null && before.errPct !== null && after.errPct < before.errPct, full = better ? fit(ok) : null;\n-    return { n: ok.length, before: before.errPct, after: after.errPct, grade: after.grade, applied: !!full, ...(full || {}), points: ok.map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length })) };\n+    /* 잔차 보정 종류는 지금 쓰는 것과 '국소'를 모두 시험한다 — 클릭은 모서리 오차 정보가 처음 들어오는 곳이라 국소 보정이 쓸모 있을 때가 많다 */\n+    const kinds = [...new Set([residual === true ? 'bilinear' : residual || null, 'local'])];\n+    const tried = kinds.map(kind => ({ kind, acc: gazeAccuracy(ok.map((p, i) => { const f = fit(ok.filter((_, j) => j !== i), kind); return f ? at(f.model, f.A, f.R, p) : null; }).filter(Boolean), W, H) }))\n+      .filter(t => t.acc.errPct !== null).sort((a, b) => a.acc.errPct - b.acc.errPct);\n+    const best = tried[0], after = best ? best.acc : { errPct: null, grade: 'none' };\n+    const better = best && before.errPct !== null && after.errPct < before.errPct, full = better ? fit(ok, best.kind) : null;\n+    return { n: ok.length, before: before.errPct, after: after.errPct, grade: after.grade, applied: !!full, ...(full || {}), tried: tried.map(t => ({ kind: t.kind || 'none', errPct: t.acc.errPct })), points: ok.map(p => ({ x: Math.round(p.x), y: Math.round(p.y), n: p.fs.length })) };\n   }\n   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */\n   /* 오차 = 점별 거리(가로·세로 같은 무게)의 평균 ÷ 화면 폭. 이전 식(세로 ×0.6, 중앙값)은 가로가 정확하면 세로가 크게 빗나가도\n@@ -1139,7 +1157,7 @@\n     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,\n     buildBvp, hrWindows, phaseHr, sessionTrend, repairPhase, measureEvidence, motionBursts, beats, ibis, rmssd, breathingCoupling,\n     faceFeatures, fitGaze, predictGaze, compareGazeFeatures, pickCalibration, refineWithClicks, softBound, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,\n-    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,\n+    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, breathWave, fitResidual, fitLocalResidual, applyResidual, gazeStabilizer, robustFeatures, composeAffine, synthFrames,\n   };\n   const Fusion = createFusion(api); api.Fusion = Fusion;\n   return api;\nFILE newbiz-core.test.js\n@@ -206,6 +206,33 @@ const N = require('./newbiz-core.js');\n   console.log(`PASS click calibration: held-out click error ${r.before}% → ${r.after}% (applied)`);\n }\n \n+\n+/* 국소 잔차 보정: 좌하 모서리에만 몰린 오차(세로 신호가 그 영역에서만 더 눌림)는 쌍선형 면으로는 못 펴고 국소 가중 평균으로 펴진다.\n+ * 평가는 학습에 쓰지 않은 정밀 보정 8점. 치우침이 없는 자료에서는 국소 보정이 기존보다 크게 나빠지지 않아야 한다 */\n+{\n+  const W = 1536, H = 864;\n+  const gen = (seed, cornerBias) => {\n+    let s = seed; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };\n+    const g = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());\n+    return (x, y) => { const nx = x / W - 0.5, ny = y / H - 0.5, corner = cornerBias * Math.max(0, -nx) * Math.max(0, ny) * 4; return { u: 0.5 + 0.11 * nx + 0.007 * g() + corner * 0.03, v: 0.02 * ny - 0.011 * Math.max(0, ny) - corner * 0.012 + 0.008 * g(), open: 0.30 - 0.05 * ny + 0.008 * g(), yaw: 0.002 * g(), pitch: 0.003 * g(), cx: 0.5 + 0.002 * g(), cy: 0.5 + 0.002 * g() }; };\n+  };\n+  const run = (feat) => {\n+    const pts = (list, n) => list.map(([fx, fy]) => ({ x: fx * W, y: fy * H, fs: Array.from({ length: n }, () => feat(fx * W, fy * H)) }));\n+    const s9 = []; for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 14; i++) s9.push({ x: fx * W, y: fy * H, f: feat(fx * W, fy * H) });\n+    const val = pts([[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]], 14), zc = pts([[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]], 14);\n+    const fp = pts([[0.12, 0.5], [0.88, 0.5], [0.5, 0.12], [0.5, 0.88], [0.32, 0.38], [0.68, 0.62], [0.36, 0.8], [0.64, 0.22]], 14);\n+    const at = (m, A, R, p) => { const q = p.fs.map(f => N.applyResidual(R, N.applyAffine(A, N.predictGaze(m, f)))); return { x: p.x, y: p.y, gx: N.median(q.map(v => v.x)), gy: N.median(q.map(v => v.y)) }; };\n+    const m = N.fitGaze([...s9, ...val.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f }))), ...zc.flatMap(p => p.fs.map(f => ({ x: p.x, y: p.y, f })))]);\n+    const A = N.fitAffine([...val, ...zc].map(p => at(m, null, null, p))), pairs = [...val, ...zc].map(p => at(m, A, null, p));\n+    const e = R => N.gazeAccuracy(fp.map(p => at(m, A, R, p)), W, H).errPct;\n+    return { none: e(null), bilinear: e(N.fitResidual(pairs, W, H)), local: e(N.fitLocalResidual(pairs, W, H)) };\n+  };\n+  const biased = run(gen(21, 1)), flat = run(gen(21, 0));\n+  assert.ok(biased.local < biased.bilinear && biased.local < biased.none, `corner bias: ${JSON.stringify(biased)}`);\n+  assert.ok(flat.local <= Math.min(flat.none, flat.bilinear) + 1.0, `no bias: ${JSON.stringify(flat)}`);\n+  console.log(`PASS local residual: corner-biased ${biased.none}% → bilinear ${biased.bilinear}% → local ${biased.local}% · unbiased none ${flat.none}% / local ${flat.local}%`);\n+}\n+\n console.log('newbiz-core tests passed');\n \n /* 시선 화면 밖 가속 억제 (2026-10-05): ① 제곱항 모델이 보정 범위 밖에서 1차로 이어지는지 ② 화면 밖 압축이 화면 안은 그대로, 밖은 단조·유계인지 */",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38183400362"
+      }
     },
     {
       "sha": "dce9b596b77ac2565611c080e42e88f03fece0de",
@@ -17148,9 +17700,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "47ea624561473b8c502fe0730b463736ad1d0873"
+    "sourceHead": "fd67eac24b855c0852982f3cd44df4b38f12ec0a"
   },
-  "updatedAt": "2026-10-11T19:45:28.838579+00:00",
-  "aiCooldownUntil": "2026-10-11T19:50:27.561053+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-11T23:14:05.113540+00:00"
 }
