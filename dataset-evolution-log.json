@@ -3,6 +3,84 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "19cc0c44d6b6d3960495dee591d2fcce8c855539",
+      "parents": [
+        "95ec7a9f7204d893b9d08053596def5b0bdd5b5d"
+      ],
+      "committedAt": "2026-10-11T22:32:13+09:00",
+      "subject": "시선 core 2.7: 세로 휴대폰 가로 오차 — 고개 yaw 보상 u(u + 0.25·yaw)",
+      "url": "https://github.com/jeebs0627/neurolens/commit/19cc0c44d6b6d3960495dee591d2fcce8c855539",
+      "files": [
+        {
+          "path": "NEWBIZ_CALIBRATION.md",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 0
+        },
+        {
+          "path": "condition-labels.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "newbiz-core.js",
+          "status": "modified",
+          "additions": 16,
+          "deletions": 7
+        },
+        {
+          "path": "newbiz-core.test.js",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 0
+        },
+        {
+          "path": "tools/colab/engine_bench.cjs",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "pulse"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/newbiz-core.js b/newbiz-core.js\nindex 21d5436..6ef0623 100644\n--- a/newbiz-core.js\n+++ b/newbiz-core.js\n@@ -14,5 +14,5 @@\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.6';   // 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.7';   // 2.7 (2026-10-11): 시선 모델 u 에 고개 yaw 보상(u + 0.25·yaw) — 세로 휴대폰 가로 오차 −40% · 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   /* 시선 모델 입력 특징 버전: faceFeatures(u·v 눈꼬리 기준 등)·predictGaze·fitAffine 기본값이 baseX…eyeMode 의 뜻을 바꿀 때만 올린다.\n    * 학습 모델 manifest.supports.features 와 비교한다 — 엔진 버전(VERSION)은 심박·판정 변경에도 올라가 모델이 이유 없이 꺼졌다(core 2.4~2.6). 2.3: 홍채 세로 기준 눈꼬리 축 */\n@@ -517,6 +517,14 @@\n   /* 제곱항 접선 연장(zr): 홍채 위치(u,v)가 보정 때 본 범위를 벗어나면 제곱항이 위치의 제곱으로 커져 시선이 화면 밖에서 가속하듯 튄다.\n    * 범위 안은 그대로, 범위 밖은 경계에서의 접선(1차)으로 이어 붙여 같은 눈 움직임에 같은 만큼만 움직이게 한다 */\n-  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS, zr = null) => {\n-    const z = keys.map(k => (finite(f[k]) ? clamp((f[k] - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0));\n+  /* 고개 yaw 보상 u: 같은 점을 볼 때 고개가 돌면 눈은 반대로 돌아 u 가 바뀐다. 보정 중에는 고개가 거의 안 움직여(σ 0.002~0.006)\n+   * 회귀가 yaw 계수를 배우지 못하고(HEAD_RIDGE 로 0 쪽 수축), 과제·정밀 보정에서 고개가 조금만 돌아도 가로 시선이 밀렸다.\n+   * 실측 52세션 보정점 다중회귀(u ~ 표적 x·y + yaw + cx): yaw 1 당 u −0.26(역분산 합산, PC·가로·세로 휴대폰 같은 부호).\n+   * 세로 휴대폰은 화면 폭이 좁아 같은 밀림이 폭의 큰 몫이다 — 정밀 점 가로 오차가 yaw 변화와 r 0.75(yaw 0.01 ≈ 30px, 폭 384px).\n+   * u + 0.25·yaw 로 학습·예측하면 재생 정밀 held-out: 세로 13.4→11.3%(가로 68→41px, 11세션 중 8 개선·1 악화) · 가로 휴대폰 14.5→13.3%\n+   * · PC 8.4→8.0%(원형 추적 과제 오차 불변). 계수는 모델에 기록(model.uYaw) — 기록 없는 옛 모델은 그대로 예측한다 */\n+  const U_YAW = 0.25;\n+  const featVal = (f, k, uYaw) => (k === 'u' && uYaw && finite(f.yaw) ? f.u + uYaw * f.yaw : f[k]);\n+  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS, zr = null, uYaw = 0) => {\n+    const z = keys.map(k => { const x = featVal(f, k, uYaw); return finite(x) ? clamp((x - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0; });\n     if (!quad) return [1, ...z];\n     if (!zr) return [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]];\n@@ -531,6 +539,7 @@\n     const keys = [...(opt.open !== false && S.every(s => finite(s.f.open)) ? [...GAZE_KEYS, 'open'] : GAZE_KEYS), ...(opt.extra || []).filter(k => S.every(s => finite(s.f[k])))];\n     const mu = {}, sd = {};\n-    keys.forEach(k => { mu[k] = mean(S.map(s => s.f[k])); sd[k] = std(S.map(s => s.f[k])) || 1; });\n-    const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));\n+    const uYaw = opt.uYaw ?? U_YAW;\n+    keys.forEach(k => { const xs = S.map(s => featVal(s.f, k, uYaw)); mu[k] = mean(xs); sd[k] = std(xs) || 1; });\n+    const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys, null, uYaw)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));\n     const zr = quad ? { lo: [0, 1].map(j => Math.min(...X.map(r => r[1 + j]))), hi: [0, 1].map(j => Math.max(...X.map(r => r[1 + j]))) } : null;\n     const wsum = W.reduce((a, b) => a + b, 0);\n@@ -551,5 +560,5 @@\n     const wx = fit('x'), wy = fit('y');\n     if(!wx || !wy)return null;\n-    const model={mu,sd,wx,wy,quad,keys,zr};\n+    const model={mu,sd,wx,wy,quad,keys,zr,...(uYaw?{uYaw}:{})};\n     if(!opt.singleEye){\n       model.eyes={};\n@@ -586,5 +595,5 @@\n       }\n     }\n-    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS, model.zr);\n+    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS, model.zr, model.uYaw || 0);\n     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);\n     return { x: dot(model.wx), y: dot(model.wy) };\ndiff --git a/newbiz-core.test.js b/newbiz-core.test.js\nindex 0131346..9f78865 100644\n--- a/newbiz-core.test.js\n+++ b/newbiz-core.test.js\n@@ -184,4 +184,19 @@ const N = require('./newbiz-core.js');\n }\n \n+/* 고개 yaw 보상(core 2.7): 세로 휴대폰 보정 중엔 고개가 거의 안 움직이다가, 그 뒤 고개가 0.03 돌면(같은 점을 봐도 u 가 −0.25·Δyaw)\n+ * 보상 없는 모델은 가로로 화면 폭의 ~25% 밀렸다(실측 정밀 점 가로 오차 ~ yaw 변화 r 0.75) */\n+{\n+  const W = 384, H = 799, S = [];\n+  let k = 0;\n+  for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 20; i++, k++) {\n+    const n = Math.sin(k * 12.9898), yaw = -0.03 + n * 0.003;\n+    S.push({ x: fx * W, y: fy * H, f: { u: 0.5 + (fx - 0.5) * 0.03 - 0.25 * yaw, v: -0.09 + (fy - 0.5) * 0.02, yaw, pitch: 0.03, cx: 0.51, cy: 0.53, open: 0.4 } });\n+  }\n+  const turned = { u: 0.5 - 0.25 * 0.0, v: -0.09, yaw: 0.0, pitch: 0.03, cx: 0.51, cy: 0.53, open: 0.4 };   // 가운데를 보며 고개만 +0.03\n+  const errNew = Math.abs(N.predictGaze(N.fitGaze(S), turned).x - W / 2), errOld = Math.abs(N.predictGaze(N.fitGaze(S, 0.5, { uYaw: 0 }), turned).x - W / 2);\n+  assert.ok(N.fitGaze(S).uYaw === 0.25, 'yaw compensation recorded in model');\n+  assert.ok(errNew < 20 && errOld > 3 * errNew, `yaw-compensated u keeps x after a head turn: ${errNew.toFixed(0)}px vs ${errOld.toFixed(0)}px`);\n+  console.log(`PASS gaze yaw compensation: head turn 0.03 → x error ${errNew.toFixed(0)}px (uncompensated ${errOld.toFixed(0)}px, W ${W})`);\n+}\n \n /* 홍채 세로 위치의 기준: 아래를 보면 윗눈꺼풀이 홍채를 따라 내려온다(눈꺼풀-시선 연동). 눈꺼풀 중점 기준이면 v 가 거의 변하지 않지만,\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-19cc0c44d6b6-pulse",
+          "domain": "pulse",
+          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-19cc0c44d6b6-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 19cc0c44d6b6d3960495dee591d2fcce8c855539\n변경 제목: 시선 core 2.7: 세로 휴대폰 가로 오차 — 고개 yaw 보상 u(u + 0.25·yaw)\n관련 파일: NEWBIZ_CALIBRATION.md, condition-labels.js, newbiz-core.js, newbiz-core.test.js, tools/colab/engine_bench.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-19cc0c44d6b6-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-56087088952",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-11T13:32:19Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/9jNih2qTHfqxut53vgc4DQjjbgo3",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-11T13:32:40.841051+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "5960bf9216e43f76b66d64c2f563cf4ef95c3242",
       "parents": [
         "7034ee3382a12cefcdc226b7dda88f992bc3f564"
@@ -16704,7 +16782,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "06ae74cb81878e8a207be20f7aaabcb09b20f478"
+    "sourceHead": "19cc0c44d6b6d3960495dee591d2fcce8c855539"
   },
-  "updatedAt": "2026-10-11T08:55:44.807599+00:00"
+  "updatedAt": "2026-10-11T13:32:59.043326+00:00",
+  "aiCooldownUntil": "2026-10-11T13:37:57.646439+00:00",
+  "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
