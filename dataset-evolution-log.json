@@ -55,16 +55,16 @@
         {
           "id": "evo-19cc0c44d6b6-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-19cc0c44d6b6-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 19cc0c44d6b6d3960495dee591d2fcce8c855539\n변경 제목: 시선 core 2.7: 세로 휴대폰 가로 오차 — 고개 yaw 보상 u(u + 0.25·yaw)\n관련 파일: NEWBIZ_CALIBRATION.md, condition-labels.js, newbiz-core.js, newbiz-core.test.js, tools/colab/engine_bench.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-19cc0c44d6b6-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "고개 yaw 보상 변경에 따른 심박 측정 파이프라인의 회귀 영향 및 약한 신호 활용성 평가",
+          "rationale": "[관측 사실]\n`newbiz-core.js`에서 시선 모델 입력 특징 연산 시 고개 yaw 보상(`u + 0.25 * yaw`)이 도입되었고, `newbiz-core.test.js`에 단위 테스트가 추가되었습니다. `NEWBIZ_CALIBRATION.md`, `condition-labels.js`, `tools/colab/engine_bench.cjs`는 파일 변경 목록에 있으나 diff 정보가 생략되었습니다.\n\n[개발자 주장 및 가설 구분]\n커밋 주석의 오차 감쇠(-40%) 수치는 개발 보고상의 가설적/내부 재생 결과일 뿐 독립 진단 기준이 아닙니다. 가설로서, 고개 변위 보상 로직이 심박 측정 영역(ROI) 추적, 움직임 구간 블랭킹, 프레임 공백 처리 및 신호 융합 로직과 연동될 때 머리 움직임 구간의 맥박 약한 신호 회복률 및 BPM 오차에 예기치 않은 회귀나 불확실성 변화를 유발할 수 있습니다. 정상 신호만 채우거나 약한 신호를 일률 폐기하지 않고 오차 범위를 정밀 평가해야 합니다.",
+          "validationPlan": "1. 데이터셋 연계 검증: 제공된 연구 자료에 실측 데이터가 없으므로, 지정된 평가 데이터셋(참가자/기기/날짜가 분리된 다중 세션)의 메모 및 가용 측정 신호를 연결하여 평가를 수행합니다.\n2. 분모 명시 실패 평가: 단순 성공 세션만 집계하지 않고, 전체 시도 수(실패, 중단, 창 탈락 포함 분모)를 명시하여 측정 성공률을 산출합니다.\n3. 평가 항목 및 지표:\n - 고개 움직임 수준별(정지, 소폭 yaw 회전, 큰 움직임) 신호 활용 비율(%)과 BPM 추정 오차(MAE, RMSE) 동시 산출\n - 프레임 공백 및 약한 맥신호 구간에서의 프레임 탈락률(Window drop rate) 및 불확실성 지수 평가\n - core 2.6 대비 core 2.7에서의 심박 신호 처리 파이프라인 회귀 여부 확인\n4. 제외 기준 및 허용 오차: 인위적인 정상값 임의 채움 금지, 오차 허용 범위를 넘는 보정 구간은 미측정/제외 사유를 명확히 기록합니다.",
+          "prompt": "당신은 NeuroLens 측정 알고리즘 개발 AI입니다. 다음 지시사항에 따라 현행 코드를 확인하고 회귀 및 약한 신호 활용성 평가 과제를 수행하세요.\n\n[수행 과제]\n1. 코드 현황 확인:\n - `newbiz-core.js`의 `In_mind core 2.7` 변경사항(`U_YAW`, `featVal`, `gazeVec`, `fitGaze`, `predictGaze`)과 `newbiz-core.test.js`의 로직을 점검하세요.\n - diff가 생략된 `tools/colab/engine_bench.cjs`, `condition-labels.js`, `NEWBIZ_CALIBRATION.md`의 현재 파일 상태 및 심박 처리 관련 여부를 파악하세요.\n\n2. 심박 신호 평가 및 변경 과제 작성:\n - 머리 움직임(yaw 변위) 발생 시 심박 신호 영역 추적 및 약한 맥박 신호 회복 로직이 올바르게 동작하는지 평가 코드를 구성하세요.\n - 임의로 실측 성능 수치를 만들지 말고, 기존 평가 데이터셋의 실측 기록 및 메모를 연결하여 분석하도록 코드를 설계하세요.\n - 정상값 강제 채움이나 모든 약한 신호 폐기 방식을 지양하고, 불확실성/허용 오차 범위 내에서 부분 유효 신호 활용량과 BPM 오차를 함께 평가하세요.\n\n3. 성공 및 회귀 기준 정의:\n - 성공 기준: core 2.6 대비 core 2.7 적용 시, 고개 움직임 구간의 맥박 신호 탈락 비율이 증가하지 않으면서 BPM 추정 오차가 허용 범위를 준수함.\n - 회귀 기준: 고개 회전 시 심박 창 탈락률 증가, 약한 신호 구간에서의 BPM 오차 급증, 혹은 단일 세션 특화로 인한 타 기기/참가자 환경에서의 성능 저하 발생 시 회귀로 판정.\n\n4. 결과 보고 양식 요구:\n - [관측 사실 / 연구자 주장 / 검증된 증거] 구분 표기\n - 평가 분모 명시 (전체 시도 수, 실패/탈락 포함)\n - 조건별(기기 유형, 참가자, 고개 움직임 정도) 활용률 및 오차 비교표 작성\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 19cc0c44d6b6d3960495dee591d2fcce8c855539\nDataset-Task: evo-19cc0c44d6b6-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-56087088952",
@@ -96,9 +96,88 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-11T13:32:40.841051+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-11T15:43:18.066189+00:00",
+      "analysis": {
+        "summary": "관측된 변경 사항으로 `newbiz-core.js` 내 버전이 'In_mind core 2.6'에서 '2.7'로 업그레이드되었으며, 시선 추적 모델 연산 함수(`featVal`, `gazeVec`, `fitGaze`, `predictGaze`)에 고개 yaw 보상 로직(`u + 0.25 * yaw`, `U_YAW = 0.25`)이 추가되었습니다. `newbiz-core.test.js`에 고개 회전 시 시선 보상 동작을 확인하는 단위 테스트 1건이 추가되었습니다. 그 외 `NEWBIZ_CALIBRATION.md`, `condition-labels.js`, `tools/colab/engine_bench.cjs` 파일이 수정되었으나 패치 상세 내용(diff)은 제공된 연구 자료에서 생략되었습니다.\n\n코드 주석 및 커밋 메타데이터에는 '세로 휴대폰 가로 오차 -40%', '52세션 보정점 다중회귀', '11세션 중 8 개선' 등의 개발자 주장이 포함되어 있으나, 메타데이터상 `accuracyValidated: false`이며 독립적인 외부 실측 정답(Ground Truth) 데이터셋이 이 자료에 포함되어 있지 않으므로 이를 임상/실황 성능이 검증된 결과로 해석할 수 없습니다. 따라서 이번 변경이 움직임 구간에서의 약한 신호 처리 및 심박(pulse) 측정 파이프라인 전체 성능에 미치는 영향을 데이터셋 연계 검증을 통해 파악해야 합니다.",
+        "tasks": [
+          {
+            "id": "evo-19cc0c44d6b6-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "고개 yaw 보상 변경에 따른 심박 측정 파이프라인의 회귀 영향 및 약한 신호 활용성 평가",
+            "rationale": "[관측 사실]\n`newbiz-core.js`에서 시선 모델 입력 특징 연산 시 고개 yaw 보상(`u + 0.25 * yaw`)이 도입되었고, `newbiz-core.test.js`에 단위 테스트가 추가되었습니다. `NEWBIZ_CALIBRATION.md`, `condition-labels.js`, `tools/colab/engine_bench.cjs`는 파일 변경 목록에 있으나 diff 정보가 생략되었습니다.\n\n[개발자 주장 및 가설 구분]\n커밋 주석의 오차 감쇠(-40%) 수치는 개발 보고상의 가설적/내부 재생 결과일 뿐 독립 진단 기준이 아닙니다. 가설로서, 고개 변위 보상 로직이 심박 측정 영역(ROI) 추적, 움직임 구간 블랭킹, 프레임 공백 처리 및 신호 융합 로직과 연동될 때 머리 움직임 구간의 맥박 약한 신호 회복률 및 BPM 오차에 예기치 않은 회귀나 불확실성 변화를 유발할 수 있습니다. 정상 신호만 채우거나 약한 신호를 일률 폐기하지 않고 오차 범위를 정밀 평가해야 합니다.",
+            "validationPlan": "1. 데이터셋 연계 검증: 제공된 연구 자료에 실측 데이터가 없으므로, 지정된 평가 데이터셋(참가자/기기/날짜가 분리된 다중 세션)의 메모 및 가용 측정 신호를 연결하여 평가를 수행합니다.\n2. 분모 명시 실패 평가: 단순 성공 세션만 집계하지 않고, 전체 시도 수(실패, 중단, 창 탈락 포함 분모)를 명시하여 측정 성공률을 산출합니다.\n3. 평가 항목 및 지표:\n - 고개 움직임 수준별(정지, 소폭 yaw 회전, 큰 움직임) 신호 활용 비율(%)과 BPM 추정 오차(MAE, RMSE) 동시 산출\n - 프레임 공백 및 약한 맥신호 구간에서의 프레임 탈락률(Window drop rate) 및 불확실성 지수 평가\n - core 2.6 대비 core 2.7에서의 심박 신호 처리 파이프라인 회귀 여부 확인\n4. 제외 기준 및 허용 오차: 인위적인 정상값 임의 채움 금지, 오차 허용 범위를 넘는 보정 구간은 미측정/제외 사유를 명확히 기록합니다.",
+            "prompt": "당신은 NeuroLens 측정 알고리즘 개발 AI입니다. 다음 지시사항에 따라 현행 코드를 확인하고 회귀 및 약한 신호 활용성 평가 과제를 수행하세요.\n\n[수행 과제]\n1. 코드 현황 확인:\n - `newbiz-core.js`의 `In_mind core 2.7` 변경사항(`U_YAW`, `featVal`, `gazeVec`, `fitGaze`, `predictGaze`)과 `newbiz-core.test.js`의 로직을 점검하세요.\n - diff가 생략된 `tools/colab/engine_bench.cjs`, `condition-labels.js`, `NEWBIZ_CALIBRATION.md`의 현재 파일 상태 및 심박 처리 관련 여부를 파악하세요.\n\n2. 심박 신호 평가 및 변경 과제 작성:\n - 머리 움직임(yaw 변위) 발생 시 심박 신호 영역 추적 및 약한 맥박 신호 회복 로직이 올바르게 동작하는지 평가 코드를 구성하세요.\n - 임의로 실측 성능 수치를 만들지 말고, 기존 평가 데이터셋의 실측 기록 및 메모를 연결하여 분석하도록 코드를 설계하세요.\n - 정상값 강제 채움이나 모든 약한 신호 폐기 방식을 지양하고, 불확실성/허용 오차 범위 내에서 부분 유효 신호 활용량과 BPM 오차를 함께 평가하세요.\n\n3. 성공 및 회귀 기준 정의:\n - 성공 기준: core 2.6 대비 core 2.7 적용 시, 고개 움직임 구간의 맥박 신호 탈락 비율이 증가하지 않으면서 BPM 추정 오차가 허용 범위를 준수함.\n - 회귀 기준: 고개 회전 시 심박 창 탈락률 증가, 약한 신호 구간에서의 BPM 오차 급증, 혹은 단일 세션 특화로 인한 타 기기/참가자 환경에서의 성능 저하 발생 시 회귀로 판정.\n\n4. 결과 보고 양식 요구:\n - [관측 사실 / 연구자 주장 / 검증된 증거] 구분 표기\n - 평가 분모 명시 (전체 시도 수, 실패/탈락 포함)\n - 조건별(기기 유형, 참가자, 고개 움직임 정도) 활용률 및 오차 비교표 작성\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 19cc0c44d6b6d3960495dee591d2fcce8c855539\nDataset-Task: evo-19cc0c44d6b6-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "ec2dc338cafec1237872baad8f630630c0ae8eefb1d529ecf373316ad20d348f",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 4798,
+            "candidatesTokenCount": 1464,
+            "totalTokenCount": 7968
+          }
+        },
+        "generatedAt": "2026-10-11T15:43:42.503552+00:00",
+        "sourceSha": "19cc0c44d6b6d3960495dee591d2fcce8c855539",
+        "sourceEvidence": {
+          "sha": "19cc0c44d6b6d3960495dee591d2fcce8c855539",
+          "parents": [
+            "95ec7a9f7204d893b9d08053596def5b0bdd5b5d"
+          ],
+          "committedAt": "2026-10-11T13:32:13Z",
+          "subject": "시선 core 2.7: 세로 휴대폰 가로 오차 — 고개 yaw 보상 u(u + 0.25·yaw)",
+          "url": "https://github.com/jeebs0627/neurolens/commit/19cc0c44d6b6d3960495dee591d2fcce8c855539",
+          "files": [
+            {
+              "path": "NEWBIZ_CALIBRATION.md",
+              "status": "modified",
+              "additions": 20,
+              "deletions": 0
+            },
+            {
+              "path": "condition-labels.js",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 16,
+              "deletions": 7
+            },
+            {
+              "path": "newbiz-core.test.js",
+              "status": "modified",
+              "additions": 15,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/engine_bench.cjs",
+              "status": "modified",
+              "additions": 4,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.6';   // 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.7';   // 2.7 (2026-10-11): 시선 모델 u 에 고개 yaw 보상(u + 0.25·yaw) — 세로 휴대폰 가로 오차 −40% · 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   /* 시선 모델 입력 특징 버전: faceFeatures(u·v 눈꼬리 기준 등)·predictGaze·fitAffine 기본값이 baseX…eyeMode 의 뜻을 바꿀 때만 올린다.\n    * 학습 모델 manifest.supports.features 와 비교한다 — 엔진 버전(VERSION)은 심박·판정 변경에도 올라가 모델이 이유 없이 꺼졌다(core 2.4~2.6). 2.3: 홍채 세로 기준 눈꼬리 축 */\n   const GAZE_FEATURES = 'gaze-features-2.3';\n@@ -516,8 +516,16 @@\n   const HEAD_SD_MIN = { yaw: 0.01, pitch: 0.01, cx: 0.01, cy: 0.01 }, Z_MAX = 4, HEAD_RIDGE = 100;\n   /* 제곱항 접선 연장(zr): 홍채 위치(u,v)가 보정 때 본 범위를 벗어나면 제곱항이 위치의 제곱으로 커져 시선이 화면 밖에서 가속하듯 튄다.\n    * 범위 안은 그대로, 범위 밖은 경계에서의 접선(1차)으로 이어 붙여 같은 눈 움직임에 같은 만큼만 움직이게 한다 */\n-  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS, zr = null) => {\n-    const z = keys.map(k => (finite(f[k]) ? clamp((f[k] - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0));\n+  /* 고개 yaw 보상 u: 같은 점을 볼 때 고개가 돌면 눈은 반대로 돌아 u 가 바뀐다. 보정 중에는 고개가 거의 안 움직여(σ 0.002~0.006)\n+   * 회귀가 yaw 계수를 배우지 못하고(HEAD_RIDGE 로 0 쪽 수축), 과제·정밀 보정에서 고개가 조금만 돌아도 가로 시선이 밀렸다.\n+   * 실측 52세션 보정점 다중회귀(u ~ 표적 x·y + yaw + cx): yaw 1 당 u −0.26(역분산 합산, PC·가로·세로 휴대폰 같은 부호).\n+   * 세로 휴대폰은 화면 폭이 좁아 같은 밀림이 폭의 큰 몫이다 — 정밀 점 가로 오차가 yaw 변화와 r 0.75(yaw 0.01 ≈ 30px, 폭 384px).\n+   * u + 0.25·yaw 로 학습·예측하면 재생 정밀 held-out: 세로 13.4→11.3%(가로 68→41px, 11세션 중 8 개선·1 악화) · 가로 휴대폰 14.5→13.3%\n+   * · PC 8.4→8.0%(원형 추적 과제 오차 불변). 계수는 모델에 기록(model.uYaw) — 기록 없는 옛 모델은 그대로 예측한다 */\n+  const U_YAW = 0.25;\n+  const featVal = (f, k, uYaw) => (k === 'u' && uYaw && finite(f.yaw) ? f.u + uYaw * f.yaw : f[k]);\n+  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS, zr = null, uYaw = 0) => {\n+    const z = keys.map(k => { const x = featVal(f, k, uYaw); return finite(x) ? clamp((x - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0; });\n     if (!quad) return [1, ...z];\n     if (!zr) return [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]];\n     const c0 = clamp(z[0], zr.lo[0], zr.hi[0]), c1 = clamp(z[1], zr.lo[1], zr.hi[1]), e0 = z[0] - c0, e1 = z[1] - c1;\n@@ -530,8 +538,9 @@\n     /* opt.extra: 추가 특징(예: lookV — MediaPipe 세로 시선 점수). 모든 표본에 값이 있을 때만 쓴다 */\n     const keys = [...(opt.open !== false && S.every(s => finite(s.f.open)) ? [...GAZE_KEYS, 'open'] : GAZE_KEYS), ...(opt.extra || []).filter(k => S.every(s => finite(s.f[k])))];\n     const mu = {}, sd = {};\n-    keys.forEach(k => { mu[k] = mean(S.map(s => s.f[k])); sd[k] = std(S.map(s => s.f[k])) || 1; });\n-    const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));\n+    const uYaw = opt.uYaw ?? U_YAW;\n+    keys.forEach(k => { const xs = S.map(s => featVal(s.f, k, uYaw)); mu[k] = mean(xs); sd[k] = std(xs) || 1; });\n+    const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys, null, uYaw)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));\n     const zr = quad ? { lo: [0, 1].map(j => Math.min(...X.map(r => r[1 + j]))), hi: [0, 1].map(j => Math.max(...X.map(r => r[1 + j]))) } : null;\n     const wsum = W.reduce((a, b) => a + b, 0);\n     /* opt.axisRidge: 축별·특징별 수축 배율 {x:{v:..}, y:{u:..}} — 제곱항 이름은 u2·v2·uv. 기본 없음 = 기존과 동일 */\n@@ -550,7 +559,7 @@\n     };\n     const wx = fit('x'), wy = fit('y');\n     if(!wx || !wy)return null;\n-    const model={mu,sd,wx,wy,quad,keys,zr};\n+    const model={mu,sd,wx,wy,quad,keys,zr,...(uYaw?{uYaw}:{})};\n     if(!opt.singleEye){\n       model.eyes={};\n       for(const side of ['left','right']){\n@@ -585,7 +594,7 @@\n         f = { ...f, eyes: null, u: e.u, v: e.v };                      // 한쪽 눈 모델이 없으면 그 눈 특징으로 양안 모델 사용\n       }\n     }\n-    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS, model.zr);\n+    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS, model.zr, model.uYaw || 0);\n     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);\n     return { x: dot(model.wx), y: dot(model.wy) };\n   }\nFILE newbiz-core.test.js\n@@ -183,6 +183,21 @@ const N = require('./newbiz-core.js');\n   assert.ok(center.y > -0.25 * H && center.y < 1.25 * H, 'gaze y stays on screen after a 2% posture shift: ' + Math.round(center.y));\n }\n \n+/* 고개 yaw 보상(core 2.7): 세로 휴대폰 보정 중엔 고개가 거의 안 움직이다가, 그 뒤 고개가 0.03 돌면(같은 점을 봐도 u 가 −0.25·Δyaw)\n+ * 보상 없는 모델은 가로로 화면 폭의 ~25% 밀렸다(실측 정밀 점 가로 오차 ~ yaw 변화 r 0.75) */\n+{\n+  const W = 384, H = 799, S = [];\n+  let k = 0;\n+  for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 20; i++, k++) {\n+    const n = Math.sin(k * 12.9898), yaw = -0.03 + n * 0.003;\n+    S.push({ x: fx * W, y: fy * H, f: { u: 0.5 + (fx - 0.5) * 0.03 - 0.25 * yaw, v: -0.09 + (fy - 0.5) * 0.02, yaw, pitch: 0.03, cx: 0.51, cy: 0.53, open: 0.4 } });\n+  }\n+  const turned = { u: 0.5 - 0.25 * 0.0, v: -0.09, yaw: 0.0, pitch: 0.03, cx: 0.51, cy: 0.53, open: 0.4 };   // 가운데를 보며 고개만 +0.03\n+  const errNew = Math.abs(N.predictGaze(N.fitGaze(S), turned).x - W / 2), errOld = Math.abs(N.predictGaze(N.fitGaze(S, 0.5, { uYaw: 0 }), turned).x - W / 2);\n+  assert.ok(N.fitGaze(S).uYaw === 0.25, 'yaw compensation recorded in model');\n+  assert.ok(errNew < 20 && errOld > 3 * errNew, `yaw-compensated u keeps x after a head turn: ${errNew.toFixed(0)}px vs ${errOld.toFixed(0)}px`);\n+  console.log(`PASS gaze yaw compensation: head turn 0.03 → x error ${errNew.toFixed(0)}px (uncompensated ${errOld.toFixed(0)}px, W ${W})`);\n+}\n \n /* 홍채 세로 위치의 기준: 아래를 보면 윗눈꺼풀이 홍채를 따라 내려온다(눈꺼풀-시선 연동). 눈꺼풀 중점 기준이면 v 가 거의 변하지 않지만,\n  * 눈꼬리-눈머리 축 기준이면 홍채가 내려간 만큼 v 가 커져야 한다. 478점 랜드마크를 합성해 확인한다 */",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38152435747"
+      }
     },
     {
       "sha": "5960bf9216e43f76b66d64c2f563cf4ef95c3242",
@@ -3544,16 +3623,16 @@
         {
           "id": "evo-b184ab8636fd-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-b184ab8636fd-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: b184ab8636fdb8ea2a71b7262cae4558356cd4c0\n변경 제목: dataset 06: 딥러닝 보정 모델 학습·작동 대시보드 + 공개 학습 원장(training-ledger.json)\n관련 파일: COLAB_TRAINING_RUNBOOK.md, condition-labels.browser.test.cjs, dataset-training.js, dataset.css, dataset.html, tools/colab/nlcolab/cli.py, tools/colab/nlcolab/inventory.py, tools/colab/nlcolab/ledger.py, tools/colab/nlcolab/pipeline.py, tools/colab/tests/test_pipeline.py, training-ledger.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-b184ab8636fd-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "웹캠 시선 잔차 보정 모델의 약한 신호 활용률 및 참가자·기기·일자 분리 오차 회귀 검증",
+          "rationale": "[관측 사실]\n`dataset-training.js` 커밋 변경 사항에서 `meta.gazeModel` 내 지연 시간(`latency`), 추론 프레임(`inferred`), 탈락 프레임(`dropped`)을 집계하고, `training-ledger.json`을 기반으로 val/locked/temporal 세트의 중앙 오차(px)를 추적하는 UI 구조가 추가되었습니다. 주석에는 표적 proxy 오차가 외부 eye tracker 정확도가 아님이 명시되었으며, 최소 3명 이상의 `subjectKey`가 확보되어야 사람 단위 평가가 가능함이 안내되었습니다. (patchExcerpt 잘림 포함)\n\n[개발자 주장 및 가설]\n개발자는 학습 원장(ledger)과 대시보드 통합을 통해 게이트 통과 여부 및 모델 승격(active/shadow) 상태를 관리할 수 있다고 주장합니다. 또한 딥러닝 잔차 보정 모델 도입이 기존 엔진 대비 오차(px)를 감소시킬 것이라는 가설을 전제로 합니다.\n\n[후속 과제 사유]\n커밋 제목이나 대시보드 지표 자체는 검증된 성능을 의미하지 않습니다. 실제 웹캠 환경에서는 조도 저하, 프레임 드롭, 두부 고정 불가 등으로 인해 약한 신호가 빈번히 발생합니다. 편향된 측정 결과나 정상값 임의 생성을 배제하고, 전체 프레임 분모(시도/성공/드롭)를 기준으로 참가자(subjectKey), 기기 종류, 촬영 일자별로 평가를 분리하여 잔차 보정 모델의 실질적 오차 개선율과 약한 신호 활용성을 실측 데이터셋 기반으로 검증해야 합니다.",
+          "validationPlan": "1. 실측 데이터셋 연동 및 분모 정의:\n   - `dataset` 내 수집 세션의 `meta`, `audit`, `reference_review` 원본 기록을 연결하여 평가 프레임워크 구축 (수치 임의 생성 금지).\n   - 전체 시도 프레임 = `inferred` + `dropped` + `invalid/low-quality`를 전체 분모로 설정.\n2. 조건별 활용률 및 오차 평가:\n   - 참가자(subjectKey 분리, 최소 3인 이상 disjoint), 기기 유형(웹캠 해상도/프레임레이트), 수집 일자별로 구획을 분리하여 오차 평가.\n   - 각 조건별 '유효 신호 활용률(활용 프레임 수 / 전체 프레임 분모)'과 '조건부 중앙 오차(px) 및 P95 오차(px)'를 동시에 산출.\n3. 회귀 및 임계치 검증:\n   - 기존 엔진(In_mind core 파이프라인) 대비 후보 모델(candidate/shadow)의 locked holdout 및 temporal holdout 세트 오차 비교.\n   - 회귀 기준: 유효 활용률이 기존 대비 감소하거나, locked test 중 오차가 기존 엔진 대비 악화되는 구간이 발생할 경우 게이트 실패 처리.\n   - ONNX-JS 간 추론 동일성(parity) 및 프레임 당 추론 지연시간(meanMs) 허용 한도 검증.",
+          "prompt": "당신은 NeuroLens 시선 측정 알고리즘 연구개발 AI입니다. 제공된 공개 GitHub 코드 변경사항(dataset-training.js 및 colab ledger 시스템)을 바탕으로, 시선 잔차 보정 딥러닝 모델의 실제 성능과 유효 신호 활용률을 검증하는 후속 개발 및 회귀 평가 과제를 수행하세요.\n\n[현재 코드 및 환경 확인]\n1. `dataset-training.js`, `tools/colab/nlcolab/ledger.py`, `training-ledger.json` 및 관련 브라우저 테스트 코드(`condition-labels.browser.test.cjs`)를 확인하세요. (제공된 diff 패치가 일부 생략되었음을 염두에 두세요.)\n2. 코드 내 `meta.gazeModel` (inferred, dropped, latency) 및 `classify()`, `aggregate()` 함수에서 수집하는 데이터 구조를 분석하세요.\n\n[개발 및 검증 요구사항]\n1. 실측 데이터셋 연동 및 평가 모듈 구현:\n   - 데이터셋 내 `meta`, `audit` 정보를 기반으로 실제 세션 데이터를 연결하여 분석하세요. 없는 수치나 정확도를 임의로 만들어내지 마세요.\n   - 전체 프레임 분모(`total = inferred + dropped + uncollected`)를 명확히 정의하고, 단순 성공 프레임만으로 오차를 과소평가하지 않도록 하세요.\n2. 조건별 활용률 및 오차 분리 평가:\n   - 참가자(`subjectKey` 기준 person-disjoint split), 사용 기기, 수집 일자별로 데이터를 그룹화하세요.\n   - 각 그룹별로 (a) 약한 신호/유효 프레임 활용률(%), (b) 시선 보정 오차 중앙값(px) 및 P95(px)를 동시에 계산하세요.\n3. 성공 및 회귀 판단 기준 설정:\n   - 성공 기준: 기존 기본 엔진 대비, 동일한 disjoint holdout 세트에서 중앙 오차가 증가하지 않으면서 유효 프레임 활용률이 동등 이상일 것. 추론 지연시간이 허용 범위 내일 것.\n   - 회귀 기준: 특정 subjectKey, 특정 기기, 또는 특정 촬영 일자 조건에서 프레임 탈락률이 급증하거나 P95 오차가 폭증하는 현상 발생 시 candidate 통과 불가.\n   - 정밀도/완전성 검증: ONNX 파이프라인과 JS 브라우저 추론 간의 parity 불일치가 발생하지 않을 것.\n\n[결과 보고 양식]\n검증 완료 후 아래 형식으로 보고서를 출력하세요:\n\n1. 데이터셋 연동 및 평가 개요 (대상 세션 수, 참가자 수, 기기 종류, 분석 프레임 총수)\n2. 기존 엔진 vs 후보 모델 성능 비교표 (참가자/기기/일자별 분리)\n   - 평가 그룹 | 전체 분모 | 활용 프레임 수(활용률 %) | 기존 엔진 Median/P95 (px) | 후보 모델 Median/P95 (px) | 지연시간(ms)\n3. 회귀 및 게이트 검증 결과 (Locked holdout, Temporal holdout, Parity 검증 pass/fail 여부 및 사유)\n4. 한계점 및 향후 고도화 필요사항 (약한 신호 환경에서의 탈락 원인 분석)\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: b184ab8636fdb8ea2a71b7262cae4558356cd4c0\nDataset-Task: evo-b184ab8636fd-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55855543988",
@@ -3585,9 +3664,124 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-08T02:35:20.756604+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-11T15:43:42.527821+00:00",
+      "analysis": {
+        "summary": "공개 커밋 b184ab8636fdb8ea2a71b7262cae4558356cd4c0 (커밋 메시지: 'dataset 06: 딥러닝 보정 모델 학습·작동 대시보드 + 공개 학습 원장(training-ledger.json)')의 코드 변경 사항을 분석한 결과는 다음과 같습니다. 제공된 patchExcerpt는 일부 파일(dataset-training.js)의 잘린 변경사항(patchTruncated: true)만을 포함하고 있습니다.\n\n[관측된 변경 사항]\n1. `dataset-training.js` 대시보드 스크립트 전면 개편:\n   - `training-ledger.json`, `model-registry.json`, `release_policy.json` 및 세션 `meta.gazeModel`, `audit.gazeLabels`를 읽어 시선 보정 모델의 활성 상태(active/shadow/off), 추론 오차(px), 지연 시간(latency), 추론 완료 수(inferred), 탈락 프레임 수(dropped)를 집계·시각화하는 다이어그램 및 테이블 구조 추가.\n   - 세션 적격성 판단 로직 정교화: `subjectKey` 존재 여부, 라벨 수집 세션 여부, `nl-research-3` 스키마 적용 여부, 검증/평가에 필요한 최소 인원 수(최소 3명 이상 disjoint 요구) 조건 명시.\n   - 외부 라이브러리 없는 SVG 차트 생성기(`lineChart`) 구현으로 학습 배치 간 중앙 오차(medianPx) 및 데이터 규모 추세 표시.\n   - 주석을 통해 '기록된 오차는 표적 proxy 기준(px)일 뿐 외부 eye tracker 절대 정확도가 아니며, 단일 실행 오차 감소는 추세로 간주할 수 없음'을 명시적 원칙으로 고정.\n2. Colab 및 파이프라인 관리 도구 파일 변경 (`COLAB_TRAINING_RUNBOOK.md`, `inventory.py`, `ledger.py`, `pipeline.py`, `cli.py`, `test_pipeline.py` 등): 학습 결과 원장 작성 및 공개 메커니즘 연동.\n\n[미검증 영향 및 기술적 위험]\n1. 정확도 및 임상적 유효성 미검증 (`accuracyValidated: false`): 대시보드 상의 오차 수치는 표적 proxy(px) 기준 계산값일 뿐, 실제 외부 정답 센서(Eye Tracker)나 실제 대상자 기준 수평/수직 시선 오차(degree)가 검증된 것이 아닙니다.\n2. 부분 약한 신호 및 프레임 탈락 영향 미평가: 웹캠 조도/두부 움직임에 따른 `dropped` 프레임 분모가 오차 집계 시 탈락하여, 정상 추론된 일부 프레임만으로 착시적 성능 개선이 표출될 위험이 존재합니다.\n3. 단일/소수 세션 편향: `subjectKey` 분리가 되지 않은 세션이 포함될 경우 사람 단위 일반화 검증이 불가하며, 기기 및 촬영 일자별 환경 변인에 따른 회귀 위험성이 식별되지 않았습니다.",
+        "tasks": [
+          {
+            "id": "evo-b184ab8636fd-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "웹캠 시선 잔차 보정 모델의 약한 신호 활용률 및 참가자·기기·일자 분리 오차 회귀 검증",
+            "rationale": "[관측 사실]\n`dataset-training.js` 커밋 변경 사항에서 `meta.gazeModel` 내 지연 시간(`latency`), 추론 프레임(`inferred`), 탈락 프레임(`dropped`)을 집계하고, `training-ledger.json`을 기반으로 val/locked/temporal 세트의 중앙 오차(px)를 추적하는 UI 구조가 추가되었습니다. 주석에는 표적 proxy 오차가 외부 eye tracker 정확도가 아님이 명시되었으며, 최소 3명 이상의 `subjectKey`가 확보되어야 사람 단위 평가가 가능함이 안내되었습니다. (patchExcerpt 잘림 포함)\n\n[개발자 주장 및 가설]\n개발자는 학습 원장(ledger)과 대시보드 통합을 통해 게이트 통과 여부 및 모델 승격(active/shadow) 상태를 관리할 수 있다고 주장합니다. 또한 딥러닝 잔차 보정 모델 도입이 기존 엔진 대비 오차(px)를 감소시킬 것이라는 가설을 전제로 합니다.\n\n[후속 과제 사유]\n커밋 제목이나 대시보드 지표 자체는 검증된 성능을 의미하지 않습니다. 실제 웹캠 환경에서는 조도 저하, 프레임 드롭, 두부 고정 불가 등으로 인해 약한 신호가 빈번히 발생합니다. 편향된 측정 결과나 정상값 임의 생성을 배제하고, 전체 프레임 분모(시도/성공/드롭)를 기준으로 참가자(subjectKey), 기기 종류, 촬영 일자별로 평가를 분리하여 잔차 보정 모델의 실질적 오차 개선율과 약한 신호 활용성을 실측 데이터셋 기반으로 검증해야 합니다.",
+            "validationPlan": "1. 실측 데이터셋 연동 및 분모 정의:\n   - `dataset` 내 수집 세션의 `meta`, `audit`, `reference_review` 원본 기록을 연결하여 평가 프레임워크 구축 (수치 임의 생성 금지).\n   - 전체 시도 프레임 = `inferred` + `dropped` + `invalid/low-quality`를 전체 분모로 설정.\n2. 조건별 활용률 및 오차 평가:\n   - 참가자(subjectKey 분리, 최소 3인 이상 disjoint), 기기 유형(웹캠 해상도/프레임레이트), 수집 일자별로 구획을 분리하여 오차 평가.\n   - 각 조건별 '유효 신호 활용률(활용 프레임 수 / 전체 프레임 분모)'과 '조건부 중앙 오차(px) 및 P95 오차(px)'를 동시에 산출.\n3. 회귀 및 임계치 검증:\n   - 기존 엔진(In_mind core 파이프라인) 대비 후보 모델(candidate/shadow)의 locked holdout 및 temporal holdout 세트 오차 비교.\n   - 회귀 기준: 유효 활용률이 기존 대비 감소하거나, locked test 중 오차가 기존 엔진 대비 악화되는 구간이 발생할 경우 게이트 실패 처리.\n   - ONNX-JS 간 추론 동일성(parity) 및 프레임 당 추론 지연시간(meanMs) 허용 한도 검증.",
+            "prompt": "당신은 NeuroLens 시선 측정 알고리즘 연구개발 AI입니다. 제공된 공개 GitHub 코드 변경사항(dataset-training.js 및 colab ledger 시스템)을 바탕으로, 시선 잔차 보정 딥러닝 모델의 실제 성능과 유효 신호 활용률을 검증하는 후속 개발 및 회귀 평가 과제를 수행하세요.\n\n[현재 코드 및 환경 확인]\n1. `dataset-training.js`, `tools/colab/nlcolab/ledger.py`, `training-ledger.json` 및 관련 브라우저 테스트 코드(`condition-labels.browser.test.cjs`)를 확인하세요. (제공된 diff 패치가 일부 생략되었음을 염두에 두세요.)\n2. 코드 내 `meta.gazeModel` (inferred, dropped, latency) 및 `classify()`, `aggregate()` 함수에서 수집하는 데이터 구조를 분석하세요.\n\n[개발 및 검증 요구사항]\n1. 실측 데이터셋 연동 및 평가 모듈 구현:\n   - 데이터셋 내 `meta`, `audit` 정보를 기반으로 실제 세션 데이터를 연결하여 분석하세요. 없는 수치나 정확도를 임의로 만들어내지 마세요.\n   - 전체 프레임 분모(`total = inferred + dropped + uncollected`)를 명확히 정의하고, 단순 성공 프레임만으로 오차를 과소평가하지 않도록 하세요.\n2. 조건별 활용률 및 오차 분리 평가:\n   - 참가자(`subjectKey` 기준 person-disjoint split), 사용 기기, 수집 일자별로 데이터를 그룹화하세요.\n   - 각 그룹별로 (a) 약한 신호/유효 프레임 활용률(%), (b) 시선 보정 오차 중앙값(px) 및 P95(px)를 동시에 계산하세요.\n3. 성공 및 회귀 판단 기준 설정:\n   - 성공 기준: 기존 기본 엔진 대비, 동일한 disjoint holdout 세트에서 중앙 오차가 증가하지 않으면서 유효 프레임 활용률이 동등 이상일 것. 추론 지연시간이 허용 범위 내일 것.\n   - 회귀 기준: 특정 subjectKey, 특정 기기, 또는 특정 촬영 일자 조건에서 프레임 탈락률이 급증하거나 P95 오차가 폭증하는 현상 발생 시 candidate 통과 불가.\n   - 정밀도/완전성 검증: ONNX 파이프라인과 JS 브라우저 추론 간의 parity 불일치가 발생하지 않을 것.\n\n[결과 보고 양식]\n검증 완료 후 아래 형식으로 보고서를 출력하세요:\n\n1. 데이터셋 연동 및 평가 개요 (대상 세션 수, 참가자 수, 기기 종류, 분석 프레임 총수)\n2. 기존 엔진 vs 후보 모델 성능 비교표 (참가자/기기/일자별 분리)\n   - 평가 그룹 | 전체 분모 | 활용 프레임 수(활용률 %) | 기존 엔진 Median/P95 (px) | 후보 모델 Median/P95 (px) | 지연시간(ms)\n3. 회귀 및 게이트 검증 결과 (Locked holdout, Temporal holdout, Parity 검증 pass/fail 여부 및 사유)\n4. 한계점 및 향후 고도화 필요사항 (약한 신호 환경에서의 탈락 원인 분석)\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: b184ab8636fdb8ea2a71b7262cae4558356cd4c0\nDataset-Task: evo-b184ab8636fd-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "ce076033cc35d59e309ff39af8286219951505a7c075b9b8a60d13683512001c",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 3,
+          "usage": {
+            "promptTokenCount": 10332,
+            "candidatesTokenCount": 2257,
+            "totalTokenCount": 14710
+          }
+        },
+        "generatedAt": "2026-10-11T15:44:41.838202+00:00",
+        "sourceSha": "b184ab8636fdb8ea2a71b7262cae4558356cd4c0",
+        "sourceEvidence": {
+          "sha": "b184ab8636fdb8ea2a71b7262cae4558356cd4c0",
+          "parents": [
+            "f5878cfc9b8411e3aa2f1dff26540677bd9b5ad7"
+          ],
+          "committedAt": "2026-10-08T02:34:57Z",
+          "subject": "dataset 06: 딥러닝 보정 모델 학습·작동 대시보드 + 공개 학습 원장(training-ledger.json)",
+          "url": "https://github.com/jeebs0627/neurolens/commit/b184ab8636fdb8ea2a71b7262cae4558356cd4c0",
+          "files": [
+            {
+              "path": "COLAB_TRAINING_RUNBOOK.md",
+              "status": "modified",
+              "additions": 7,
+              "deletions": 0
+            },
+            {
+              "path": "condition-labels.browser.test.cjs",
+              "status": "modified",
+              "additions": 7,
+              "deletions": 4
+            },
+            {
+              "path": "dataset-training.js",
+              "status": "modified",
+              "additions": 114,
+              "deletions": 61
+            },
+            {
+              "path": "dataset.css",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 0
+            },
+            {
+              "path": "dataset.html",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 3
+            },
+            {
+              "path": "tools/colab/nlcolab/cli.py",
+              "status": "modified",
+              "additions": 10,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/inventory.py",
+              "status": "modified",
+              "additions": 44,
+              "deletions": 1
+            },
+            {
+              "path": "tools/colab/nlcolab/ledger.py",
+              "status": "added",
+              "additions": 68,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/pipeline.py",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/tests/test_pipeline.py",
+              "status": "modified",
+              "additions": 15,
+              "deletions": 0
+            },
+            {
+              "path": "training-ledger.json",
+              "status": "added",
+              "additions": 237,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE dataset-training.js\n@@ -1,90 +1,143 @@\n-/* 학습 파이프라인 상태 (dataset.html · 06): 불러온 연구 세션의 라벨 등급·적격성 집계, 모델 registry(active/shadow/candidates/history), release policy,\n- * 다음 Colab 작업 안내. 값은 기록 그대로이며 정확도 검증이 아니다. 학습 실행 자체는 Colab/로컬 CLI 에서 일어나고 여기서는 결과 파일(registry)만 읽는다.\n- * 원자료는 내려받지 않는다(목록의 meta/audit 만 사용). */\n+/* 학습·모델 대시보드 (dataset.html · 06)\n+ * 근거 파일: training-ledger.json(학습 배치 실행마다 비민감 집계 1건) · model-registry.json(active/shadow/candidates/history) · release_policy.json ·\n+ * 불러온 세션 목록의 meta.gazeModel(검사 시작 시 고정한 모델의 실제 작동 기록) 와 audit.gazeLabels(라벨 수).\n+ * 원칙: 값은 기록 그대로. ‘개선도’는 같은 정책 아래 같은 지표의 실행 간 변화일 뿐이며 실행 1회면 추세를 말하지 않는다. 오차는 표적 proxy 기준(px) 이고 외부 eye tracker 정확도가 아니다.\n+ * 원자료는 내려받지 않는다(목록 메타만 사용). 모든 삽입 값은 esc() 로 이스케이프한다. */\n (function () {\n   'use strict';\n-  const $ = id => document.getElementById(id), esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n+  const $ = id => document.getElementById(id), finite = Number.isFinite;\n+  const esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n   const NB = ['01_dataset_audit', '02_train_gaze_residual', '03_train_rppg_quality', '04_release_candidate'];\n   const colab = nb => `https://colab.research.google.com/github/jeebs0627/neurolens/blob/main/notebooks/${nb}.ipynb`;\n-  let state = { rows: [], allowed: false }, registry = null, policy = null, loadError = null;\n-  const date = v => (v ? new Date(v).toLocaleString('ko-KR') : '미기록');\n+  const date = v => (v ? new Date(v).toLocaleString('ko-KR') : '미기록'), short = v => (v ? new Date(v).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '—');\n+  const f1 = v => (finite(v) ? (Math.round(v * 10) / 10).toString() : '—'), pct = v => (finite(v) ? (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%' : '—');\n+  let state = { rows: [], allowed: false }, registry = null, policy = null, ledger = null, loadError = [];\n \n-  /* 세션 1건의 학습 관점 요약 (원자료 없이 meta/audit 만으로) */\n+  /* ---------- 세션 목록 집계 (meta/audit 만) ---------- */\n   function classify(r) {\n     const m = r.meta || {}, a = r.audit || {}, schema = m.schema || 'nl-research-1', kind = m.sessionKind || a.sessionKind || 'condition';\n     const labels = a.gazeLabels || null, ref = r.reference_review || a.reference || null;\n     const refGrade = !ref ? 'none' : ref.status === 'paired' ? 'paired' : ref.status === 'exploratory' ? 'exploratory' : 'no-overlap';\n-    const cal = a.gaze?.calibration || null, hasCal = !!cal && cal.errPct != null;\n+    const cal = a.gaze?.calibration || null, hasCal = !!cal && cal.errPct != null, hasLabels = !!(labels && labels.valid > 0);\n     const reasons = [];\n     if (m.demo) reasons.push('demo');\n-    if (!hasCal) reasons.push('no-calibration');\n-    if (schema !== 'nl-research-3') reasons.push('legacy-schema:' + schema + ' (표적 구간 backfill · 잔차 보정 미기록)');\n-    if (!m.subjectKey) reasons.push('no-subject-key (사람 단위 분리 불가)');\n+    if (!hasCal && !hasLabels) reasons.push('no-calibration');\n+    if (schema !== 'nl-research-3') reasons.push('legacy-schema:' + schema);\n+    if (!m.subjectKey) reasons.push('no-subject-key');\n     if (a.outcome && a.outcome !== 'complete') reasons.push('outcome:' + a.outcome);\n-    /* 라벨 수집 세션은 유효 라벨이 있으면 보정 요약(errPct)이 비어 있어도 적격(라벨 창이 지도 자료). 그 밖에는 보정 결과가 있어야 표적 라벨이 있다 */\n-    const hasLabels = !!(labels && labels.valid > 0);\n-    if (hasLabels) { const i = reasons.indexOf('no-calibration'); if (i >= 0) reasons.splice(i, 1); }\n-    const gaze = m.demo ? 'demo' : (hasCal || hasLabels) ? (reasons.some(x => x.startsWith('legacy')) ? 'eligible-legacy-backfill' : 'eligible') : 'unlabeled-only';\n+    const gaze = m.demo ? 'demo' : (hasCal || hasLabels) ? (schema !== 'nl-research-3' ? 'eligible-legacy-backfill' : 'eligible') : 'unlabeled-only';\n     const rppg = m.demo ? 'demo' : refGrade === 'paired' ? 'eligible' : refGrade === 'exploratory' ? 'needs-sync' : 'unlabeled-only';\n-    return { kind, schema, core: a.versions?.core || m.versions?.core || '?', labels, refGrade, gaze, rppg, reasons, subject: m.subjectKey || null, synthetic: !!m.synthetic, at: r.created_at };\n+    const gm = m.gazeModel || null;\n+    return { kind, schema, core: a.versions?.core || m.versions?.core || '?', labels, refGrade, gaze, rppg, reasons, subject: m.subjectKey || null, synthetic: !!m.synthetic, at: r.created_at, model: gm ? { id: gm.id, mode: gm.mode || 'off', reason: gm.reason, latency: gm.latency?.meanMs ?? null, inferred: gm.inferred || 0, dropped: gm.dropped || 0 } : null };\n   }\n   function aggregate(rows) {\n-    const C = rows.map(classify).filter(c => !c.synthetic), by = (f) => { const o = {}; C.forEach(c => { const k = f(c); o[k] = (o[k] || 0) + 1; }); return o; };\n-    return { n: C.length, kind: by(c => c.kind), gaze: by(c => c.gaze), rppg: by(c => c.rppg), schema: by(c => c.schema), core: by(c => c.core), ref: by(c => c.refGrade),\n-      labelSessions: C.filter(c => c.labels && c.labels.valid).length, labelsValid: C.reduce((s, c) => s + (c.labels?.valid || 0), 0), labelsTrain: C.reduce((s, c) => s + (c.labels?.train || 0), 0), labelsHoldout: C.reduce((s, c) => s + (c.labels?.holdout || 0), 0),\n-      holdoutBroken: C.filter(c => c.labels && c.labels.holdoutPipelineUnchanged === false).length, subjects: new Set(C.map(c => c.subject).filter(Boolean)).size, noSubject: C.filter(c => !c.subject).length,\n-      reasons: (() => { const o = {}; C.forEach(c => c.reasons.forEach(x => { o[x] = (o[x] || 0) + 1; })); return o; })(), latest: C.map(c => c.at).filter(Boolean).sort().at(-1) || null, synthetic: rows.length - C.length, rows: C };\n+    const C = rows.map(classify).filter(c => !c.synthetic), by = f => { const o = {}; C.forEach(c => { const k = f(c); o[k] = (o[k] || 0) + 1; }); return o; };\n+    const withModel = C.filter(c => c.model && c.model.mode !== 'off');\n+    return { n: C.length, kind: by(c => c.kind), gaze: by(c => c.gaze), rppg: by(c => c.rppg), schema: by(c => c.schema), ref: by(c => c.refGrade), modelMode: by(c => (c.model ? c.model.mode : 'unrecorded')),\n+      labelSessions: C.filter(c => c.labels && c.labels.valid).length, labelsValid: C.reduce((s, c) => s + (c.labels?.valid || 0), 0), labelsHoldout: C.reduce((s, c) => s + (c.labels?.holdout || 0), 0), subjects: new Set(C.map(c => c.subject).filter(Boolean)).size, noSubject: C.filter(c => !c.subject).length,\n+      modelSessions: withModel.length, modelLatency: withModel.length ? withModel.reduce((s, c) => s + (c.model.latency || 0), 0) / withModel.length : null, modelInferred: withModel.reduce((s, c) => s + c.model.inferred, 0), modelDropped: withModel.reduce((s, c) => s + c.model.dropped, 0),\n+      latest: C.map(c => c.at).filter(Boolean).sort().at(-1) || null, synthetic: rows.length - C.length };\n   }\n-  function nextJob(agg) {\n-    const P = policy?.gaze_residual, R = policy?.rppg_quality;\n-    const out = [];\n-    if (!state.allowed) return ['연구 관리자로 로그인하면 불러온 세션 범위의 적격성·라벨 집계가 표시됩니다.'];\n-    if (!agg.n) return ['불러온 세션이 없습니다. 02 실측 검토에서 서버 새로고침 후 다시 보세요.'];\n-    const eligible = (agg.gaze.eligible || 0) + (agg.gaze['eligible-legacy-backfill'] || 0), groups = agg.subjects || eligible;\n+\n+  /* ---------- 작은 SVG 차트 (외부 라이브러리 없음) ---------- */\n+  function lineChart(series, opt = {}) {\n+    const W = opt.width || 560, H = opt.height || 200, P = { l: 44, r: 12, t: 14, b: 28 };\n+    const pts = series.flatMap(s => s.values.filter(finite));\n+    if (!pts.length) return `<div class=\"chart-empty\">${esc(opt.empty || '기록 없음')}</div>`;\n+    const n = Math.max(...series.map(s => s.values.length)), ymax = Math.max(...pts) * 1.1 || 1, ymin = opt.zero ? 0 : Math.min(...pts) * 0.9;\n+    const x = i => P.l + (n === 1 ? (W - P.l - P.r) / 2 : i * (W - P.l - P.r) / (n - 1)), y = v => P.t + (H - P.t - P.b) * (1 - (v - ymin) / (ymax - ymin || 1));\n+    const ticks = [0, .5, 1].map(k => ymin + (ymax - ymin) * k);\n+    const grid = ticks.map(v => `<line x1=\"${P.l}\" x2=\"${W - P.r}\" y1=\"${y(v).toFixed(1)}\" y2=\"${y(v).toFixed(1)}\" stroke=\"#E3E7EE\"/><text x=\"${P.l - 6}\" y=\"${(y(v) + 4).toFixed(1)}\" text-anchor=\"end\" font-size=\"10\" fill=\"#7C869B\">${esc(f1(v))}</text>`).join('');\n+    const xl = (opt.labels || []).map((l, i) => `<text x=\"${x(i).toFixed(1)}\" y=\"${H - 8}\" text-anchor=\"middle\" font-size=\"10\" fill=\"#7C869B\">${esc(l)}</text>`).join('');\n+    const lines = series.map(s => { const d = s.values.map((v, i) => (finite(v) ? `${x(i).toFixed(1)},${y(v).toFixed(1)}` : null)).filter(Boolean); return `<polyline fill=\"none\" stroke=\"${esc(s.color)}\" stroke-width=\"2\" points=\"${d.join(' ')}\"/>` + s.values.map((v, i) => (finite(v) ? `<circle cx=\"${x(i).toFixed(1)}\" cy=\"${y(v).toFixed(1)}\" r=\"3.5\" fill=\"${esc(s.color)}\"><title>${esc(s.name)} · ${esc(f1(v))}</title></circle>` : '')).join(''); }).join('');\n+    const legend = series.map((s, i) => `<g transform=\"translate(${P.l + (i % 2) * 260},${H + 4 + Math.floor(i / 2) * 12})\"><rect width=\"10\" height=\"3\" y=\"-7\" fill=\"${esc(s.color)}\"/><text x=\"14\" font-size=\"10\" fill=\"#4A5672\">${esc(s.name)}</text></g>`).join('');\n+    return `<svg viewBox=\"0 0 ${W} ${H + 30}\" width=\"100%\" role=\"img\" aria-label=\"${esc(opt.aria || '추세 차트')}\">${grid}${xl}${lines}${legend}</svg>`;\n+  }\n+\n+  /* ---------- 렌더 ---------- */\n+  function statusCards(agg) {\n+    const act = registry?.active, sh = registry?.shadow, runs = ledger?.runs || [], last = runs.at(-1);\n+    const modelState = act ? ['작동 중 (active)', `${act.id} v${act.version}`, 'ok'] : sh ? ['그림자 작동 (shadow)', `${sh.id} v${sh.version} · 출력 기록만, 측정에 미적용`, 'warn'] : ['꺼짐', '등록된 모델 없음 — 기존 엔진(In_mind core 파이프라인)만 사용', 'off'];\n+    const field = agg.modelSessions ? `${agg.modelSessions}세션에서 모델 추론 기록 (평균 ${f1(agg.modelLatency)}ms · 추론 ${agg.modelInferred} · 건너뜀 ${agg.modelDropped})` : `불러온 ${agg.n}세션 중 모델이 켜진 세션 0 (모드: ${JSON.stringify(agg.modelMode)})`;\n+    const g = last?.gaze, gate = g?.gate;\n+    const cards = [\n+      ['딥러닝 모델 작동 상태', modelState[0], modelState[1], modelState[2]],\n+      ['현장 작동 기록', agg.modelSessions ? `${agg.modelSessions} 세션` : '0 세션', field, agg.modelSessions ? 'ok' : 'off'],\n+      ['최근 학습 실행', last ? date(last.at) : '없음', last ? `${g ? g.status : '—'} · 선택 ${g?.chosen || '—'} · gate ${gate ? (gate.pass ? '통과' : '실패: ' + gate.failed.join(', ')) : '—'}` : '학습 배치가 아직 원장을 올리지 않음', last ? (gate?.pass ? 'ok' : 'warn') : 'off'],\n+      ['학습 데이터', last ? `${last.data.sessions} 세션` : `${agg.n} 세션(목록)`, last ? `적격 ${last.data.eligibleGaze} · 라벨 세션 ${last.data.labelSessions} · 사람 키 ${last.data.subjects} · 기준 심박 paired ${last.data.referencePaired}` : '원장 없음', 'neutral'],\n+    ];\n+    return `<div class=\"dash-cards\">${cards.map(([t, v, s, cls]) => `<div class=\"dash-card ${esc(cls)}\"><small>${esc(t)}</small><strong>${esc(v)}</strong><span>${esc(s)}</span></div>`).join('')}</div>`;\n+  }\n+  const bestOf = r => { const m = r.gaze.models || {}; const k = r.gaze.chosen && m[r.gaze.chosen] ? r.gaze.chosen : Object.keys(m).find(n => n.startsWith('mlp')) || Object.keys(m)[0]; return k ? { name: k, ...m[k] } : null; };\n+  function trendSection() {\n+    const runs = (ledger?.runs || []).filter(r => r.gaze && !r.gaze.synthetic);\n+    if (!runs.length) return `<h3>개선 추세</h3><p class=\"muted\">학습 실행 기록이 없습니다. Colab/CLI 배치가 끝나면 <code>python -m nlcolab publish-ledger</code> 로 비민감 집계를 원장에 올리고 commit 하면 여기에 쌓입니다.</p>`;\n+    const labels = runs.map(r => short(r.at));\n+    const val = lineChart([{ name: '기존 엔진 (val)', color: '#7C88A2', values: runs.map(r => r.gaze.baseline?.val?.medianPx) }, { name: '선택 모델 (val)', color: '#1F4FD8', values: runs.map(r => bestOf(r)?.val?.medianPx) }, { name: '기존 엔진 (locked test)', color: '#B7BFCD', values: runs.map(r => r.gaze.baseline?.lockedTest?.medianPx) }, { name: '선택 모델 (locked test)', color: '#C9577A', values: runs.map(r => bestOf(r)?.lockedTest?.medianPx) }], { labels, zero: true, aria: '실행별 중앙 오차(px)' });\n+    const data = lineChart([{ name: '세션', color: '#7C88A2', values: runs.map(r => r.data.sessions) }, { name: '적격 세션', color: '#1F4FD8', values: runs.map(r => r.data.eligibleGaze) }, { name: '라벨 수집 세션', color: '#2F9E6A', values: runs.map(r => r.data.labelSessions) }, { name: '사람 키', color: '#C9577A', values: runs.map(r => r.data.subjects) }], { labels, zero: true, aria: '실행별 데이터 규모' });\n+    const rows = runs.map(r => { const b = bestOf(r), g = r.gaze; const gain = b?.val && g.baseline?.val ? 1 - b.val.medianPx / g.baseline.val.medianPx : NaN, lg = b?.lockedTest && g.baseline?.lockedTest ? 1 - b.lockedTest.medianPx / g.baseline.lockedTest.medianPx : NaN, tg = b?.temporalTest && g.baseline?.temporalTest ? 1 - b.temporalTest.medianPx / g.baseline.temporalTest.medianPx : NaN;\n+      return `<tr><td>${esc(date(r.at))}<small>${esc((r.snapshot || '').slice(0, 10))} · 정책 ${esc(r.policyVersion || '—')}</small></td><td>${esc(r.data.sessions)} / ${esc(r.data.eligibleGaze)} / ${esc(r.data.labelSessions)} / ${esc(r.data.subjects)}</td><td>${esc(f1(g.baseline?.val?.medianPx))}</td><td>${esc(g.chosen)}<small>${esc(b ? f1(b.val?.medianPx) : '—')} px · ${esc(pct(gain))}</small></td><td>${esc(pct(lg))}<small>${esc(f1(b?.lockedTest?.medianPx))} vs ${esc(f1(g.baseline?.lockedTest?.medianPx))}</small></td><td>${esc(pct(tg))}</td><td>${g.gate ? (g.gate.pass ? '통과' : '실패') : '—'}<small>${esc(g.gate ? g.gate.failed.join(', ') : '')}</small></td><td>${esc(g.status)}${g.candidate ? '<small>' + esc(g.candidate) + '</small>' : ''}</td></tr>`; }).join('');\n+    const multi = runs.length >= 2;\n+    return `<h3>개선 추세 <small class=\"muted\">실행 ${esc(runs.length)}회 · 같은 정책 아래 같은 지표의 실행 간 변화만 ‘개선’으로 읽는다${multi ? '' : ' · 실행 1회는 추세가 아니라 기준점'}</small></h3>\n+      <div class=\"dash-grid\"><div><p class=\"muted\">중앙 오차(px, 작을수록 좋음) — val 은 모델 선택용, locked test 는 학습·선택에 쓰지 않은 세션</p>${val}</div><div><p class=\"muted\">데이터 규모 — 사람 키가 늘어야 사람 단위 평가가 가능하다</p>${data}</div></div>\n+      <div class=\"table-wrap\"><table><thead><tr><th>실행</th><th>세션 / 적격 / 라벨 / 사람</th><th>기존 엔진 val px</th><th>선택 모델 (val)</th><th>locked test 개선</th><th>temporal 개선</th><th>gate</th><th>상태</th></tr></thead><tbody>${rows}</tbody></table></div>\n+      <p class=\"muted\">오차는 보정·라벨 표적 proxy 기준이며 외부 eye tracker 정확도가 아니다. val 개선이 locked/temporal 에서 재현되지 않으면 모델은 등록되지 않는다(정책 ${esc(policy?.version || '')}).</p>`;\n+  }\n+  function lastRunDetail() {\n+    const r = (ledger?.runs || []).filter(x => x.gaze && !x.gaze.synthetic).at(-1); if (!r) return '';\n+    const g = r.gaze, models = Object.entries(g.models || {});\n+    const row = (name, m) => m ? `<tr><td>${esc(name)}</td><td>${esc(m.params ?? '—')}</td><td>${esc(f1(m.val?.medianPx))} / ${esc(f1(m.val?.p95Px))}</td><td>${esc(f1(m.lockedTest?.medianPx))} / ${esc(f1(m.lockedTest?.p95Px))}</td><td>${esc(f1(m.temporalTest?.medianPx))} / ${esc(f1(m.temporalTest?.p95Px))}</td><td>${esc(m.val?.byRegion ? Object.entries(m.val.byRegion).map(([k, v]) => `${k} ${f1(v)}`).join(' · ') : '—')}</td><td>${m.parity === undefined ? '—' : m.parity ? 'ok' : '불일치'}</td></tr>` : '';\n+    const rp = r.rppg;\n+    return `<h3>최근 실행 상세 <small class=\"muted\">${esc(date(r.at))} · 엔진 ${esc(r.engine || '')} · 분할 ${esc(g.groupKey)} 단위</small></h3>\n+      <div class=\"table-wrap\"><table><thead><tr><th>모델</th><th>파라미터</th><th>val 중앙/P95 px</th><th>locked 중앙/P95</th><th>temporal 중앙/P95</th><th>val 영역별 중앙</th><th>ONNX parity</th></tr></thead><tbody>${row('기존 엔진 (baseline)', { params: 0, ...g.baseline })}${models.map(([k, m]) => row(k, m)).join('')}</tbody></table></div>\n+      <div class=\"workflow-counts\">${Object.entries(g.splits || {}).map(([k, v]) => `<span>${esc(k)} <b>${esc(v.groups)}g · ${esc(v.windows)}창 · ${esc(v.records)}</b></span>`).join('')}</div>\n+      ${g.bootstrap && g.bootstrap.groups ? `<p class=\"muted\">그룹 bootstrap(val) 개선 중앙값 ${esc(pct(g.bootstrap.medianGain))}, 95% CI ${esc(pct(g.bootstrap.ci95[0]))} ~ ${esc(pct(g.bootstrap.ci95[1]))}, 그룹 ${esc(g.bootstrap.groups)}</p>` : ''}\n+      <p>rPPG 선택기: <b>${esc(rp ? rp.status : '—')}</b>${rp ? ` · paired 세션 ${esc(rp.pairedSessions)} · epoch ${esc(rp.pairedEpochs)} · exploratory 행 ${esc(rp.exploratoryRows)}` : ''}</p>\n+      ${r.limitations ? `<details><summary>한계·주의</summary><ul>${r.limitations.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>` : ''}`;\n+  }\n+  function registrySection() {\n+    const reg = registry, act = reg?.active, sh = reg?.shadow, cands = reg?.candidates || [], hist = reg?.history || [];\n+    const entry = (label, e) => e ? `<tr><td>${esc(label)}</td><td><code>${esc(e.id)}</code> v${esc(e.version)}<small>${esc(e.kind)} · ${esc(e.state || label)}${e.maxState ? ' · 최대 ' + esc(e.maxState) : ''}</small></td><td>${esc(e.sha256 ? e.sha256.slice(0, 16) + '…' : '—')}</td><td>${esc(e.approvedBy || '—')}<small>${esc(date(e.approvedAt || e.createdAt))}</small></td></tr>` : `<tr><td>${esc(label)}</td><td colspan=\"3\" class=\"muted\">없음</td></tr>`;\n+    return `<h3>모델 registry <small class=\"muted\">${reg ? `갱신 ${esc(date(reg.updatedAt))} · 정책 ${esc(policy?.version || '?')}` : esc(loadError.join(' · ') || '불러오는 중')}</small></h3>\n+      <div class=\"table-wrap\"><table><thead><tr><th>역할</th><th>모델</th><th>SHA-256</th><th>승인</th></tr></thead><tbody>${entry('active', act)}${entry('shadow', sh)}${cands.map(c => entry('candidate', c)).join('')}</tbody></table></div>\n+      <p class=\"muted\">trained ≠ candidate ≠ active. 승격은 release policy 통과 + shadow 실기기 확인 + 승인된 canary 뒤 사람이 registry 를 수정한 commit 으로만 일어나며 세션 중에는 바뀌지 않습니다.</p>\n+      <details><summary>승인·rollback 이력 ${esc(hist.length)}건</summary><ul class=\"notes\">${hist.slice().reverse().map(h => `<li><b>${esc(h.event)}</b> · ${esc(date(h.at))} · ${esc(h.actor || '')}<p>${esc(h.reason || h.note || h.id || '')}</p></li>`).join('') || '<li class=\"muted\">없음</li>'}</ul></details>`;\n+  }\n+  function nextSection(agg) {\n+    const P = policy?.gaze_residual, R = policy?.rppg_quality, last = (ledger?.runs || []).at(-1), out = [];\n+    if (!state.allowed) out.push('연구 관리자로 로그인하면 불러온 세션 범위의 적격성·라벨·현장 작동 집계가 표시됩니다.');\n     if (P) {\n-      if (eligible < P.minTrainGroups + P.minValGroups + P.minLockedTestGroups) out.push(`시선 잔차: 적격 세션 ${eligible}건 · 정책 최소(학습 ${P.minTrainGroups} + 검증 ${P.minValGroups} + 평가 ${P.minLockedTestGroups} 그룹)에 미달 → 다음 Colab 실행은 insufficient_data 로 끝납니다. /condition?mode=gaze-label 수집을 늘리세요.`);\n-      else out.push(`시선 잔차: 적격 세션 ${eligible}건(그룹 ${groups}) → 01 감사 → 02 학습을 실행할 수 있습니다. 결과가 정책을 통과해야 candidate 가 됩니다.`);\n-      if (agg.noSubject) out.push(`subjectKey 없는 세션 ${agg.noSubject}건: 세션 단위 분할만 가능. 사람 단위 일반화 주장은 할 수 없습니다.`);\n-      if (agg.labelsHoldout) out.push(`라벨 수집 최종 holdout 표적 ${agg.labelsHoldout}개(eval_only · 학습 제외 · 보고용)${agg.holdoutBroken ? ` · 평가 블록 중 보정 변경 감지 ${agg.holdoutBroken}건(해당 holdout 무효)` : ''}.`);\n+      const subjects = last ? last.data.subjects : agg.subjects, labels = last ? last.data.labelSessions : agg.labelSessions;\n+      if (subjects < 3) out.push(`사람 키 보유 세션 ${subjects}건: 사람 단위 평가가 불가능합니다. 서로 다른 사람 3명 이상이 각자 브라우저에서 /condition?mode=gaze-label 을 진행해야 다음 실행에서 person-disjoint 평가와 prospective holdout 이 생깁니다.`);\n+      if (labels < P.minValGroups + P.minLockedTestGroups) out.push(`라벨 수집 세션 ${labels}건: 정책 최소(검증 ${P.minValGroups} + 평가 ${P.minLockedTestGroups} 그룹)에 미달.`);\n+      if (last?.gaze?.gate && !last.gaze.gate.pass) out.push(`최근 실행 gate 실패 항목: ${last.gaze.gate.failed.join(', ')} → 같은 자료로 재실행해도 결과는 같습니다. 자료가 바뀌면 스냅샷이 감지해 재학습합니다.`);\n     }\n-    if (R) {\n-      const paired = agg.rppg.eligible || 0;\n-      out.push(paired < R.minPairedSessions ? `rPPG 선택기: 검증된(paired) 기준 세션 ${paired}건 < ${R.minPairedSessions} → insufficient_reference_labels. 탐색적(exploratory) ${agg.rppg['needs-sync'] || 0}건은 02 실측 검토에서 동기화 근거를 검증해 paired 로 바꿔야 라벨이 됩니다.` : `rPPG 선택기: paired ${paired}건 → 03 학습 가능.`);\n-    }\n-    return out;\n+    if (R) { const paired = last ? last.data.referencePaired : (agg.rppg.eligible || 0); out.push(paired < R.minPairedSessions ? `rPPG: 검증된 기준 심박 세션 ${paired} < ${R.minPairedSessions} → insufficient_reference_labels. BLE 장비 연결 또는 기준 CSV+동기화 검증이 필요합니다.` : `rPPG: paired ${paired} → 03 학습 가능.`); }\n+    return `<h3>다음 작업</h3><ul>${out.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p>${NB.map(nb => `<a class=\"button\" target=\"_blank\" rel=\"noopener\" href=\"${esc(colab(nb))}\">${esc(nb)} ↗</a>`).join(' ')}</p>\n+      <p class=\"muted\">Colab 은 활성 런타임에서만 실행되는 배치입니다. 배치가 끝나면 <code>publish-ledger</code> 로 원장을 갱신하고 commit 하면 이 화면이 갱신됩니다.</p>`;\n   }\n   function render() {\n     const pane = $('pane-training'); if (!pane) return;\n     const agg = aggregate(state.rows);\n-    const reg = registry, act = reg?.active, sh = reg?.shadow, cands = reg?.candidates || [], hist = reg?.history || [];\n-    $('trainingInventory').innerHTML = `<h3>불러온 세션의 라벨 등급·적격성 <small class=\"muted\">목록 meta/audit 기준 · 원자료 미열람 · 불러온 범위 한정${agg.synthetic ? ` · 합성 ${agg.synthetic}건 제외` : ''}</small></h3>\n-      <div class=\"workflow-counts\"><span>세션 <b>${agg.n}</b></span><span>라벨 수집 세션 <b>${agg.labelSessions}</b></span><span>유효 라벨 표적 <b>${agg.labelsValid}</b></span><span>학습 역할 <b>${agg.labelsTrain}</b></span><span>최종 holdout(eval_only) <b>${agg.labelsHoldout}</b></span><span>기준 paired <b>${agg.ref.paired || 0}</b></span><span>기준 exploratory <b>${agg.ref.exploratory || 0}</b></span><span>subjectKey <b>${agg.subjects}</b></span></div>\n+    $('trainingStatus').innerHTML = statusCards(agg);\n+    $('trainingTrend').innerHTML = trendSection();\n+    $('trainingDetail').innerHTML = lastRunDetail();\n+    $('trainingInventory').innerHTML = `<h3>불러온 세션 집계 <small class=\"muted\">목록 meta/audit 기준 · 원자료 미열람 · 불러온 범위 한정${agg.synthetic ? ` · 합성 ${esc(agg.synthetic)}건 제외` : ''}</small></h3>\n+      <div class=\"workflow-counts\"><span>세션 <b>${esc(agg.n)}</b></span><span>라벨 수집 세션 <b>${esc(agg.labelSessions)}</b></span><span>유효 라벨 표적 <b>${esc(agg.labelsValid)}</b></span><span>최종 holdout(eval_only) <b>${esc(agg.labelsHoldout)}</b></span><span>기준 paired <b>${esc(agg.ref.paired || 0)}</b></span><span>사람 키 <b>${esc(agg.subjects)}</b></span><span>모델 켜진 세션 <b>${esc(agg.modelSessions)}</b></span></div>\n       <div class=\"table-wrap\"><table><thead><tr><th>과제</th><th>eligible</th><th>eligible (legacy backfill)</th><th>needs-sync</th><th>unlabeled-only</th><th>demo</th></tr></thead><tbody>\n-      <tr><td>시선 잔차</td><td>${agg.gaze.eligible || 0}</td><td>${agg.gaze['eligible-legacy-backfill'] || 0}</td><td>—</td><td>${agg.gaze['unlabeled-only'] || 0}</td><td>${agg.gaze.demo || 0}</td></tr>\n-      <tr><td>rPPG 품질 선택기</td><td>${agg.rppg.eligible || 0}</td><td>—</td><td>${agg.rppg['needs-sync'] || 0}</td><td>${agg.rppg['unlabeled-only'] || 0}</td><td>${agg.rppg.demo || 0}</td></tr></tbody></table></div>\n-      <p class=\"muted\">라벨 출처: explicit_target_confirmed(라벨 수집 모드 · proxy) · calibration_target · free_click_weak(학습·평가 제외) · engine_prediction(정답 아님) · reference_eyetracker 0건. 제외·주의 사유: ${Object.entries(agg.reasons).map(([k, v]) => `${esc(k)} ${v}`).join(' · ') || '없음'}</p>\n-      <p class=\"muted\">세션 종류 ${esc(JSON.stringify(agg.kind))} · 스키마 ${esc(JSON.stringify(agg.schema))} · core ${esc(JSON.stringify(agg.core))} · 최근 세션 ${esc(date(agg.latest))}</p>`;\n-    $('trainingNext').innerHTML = `<h3>다음 Colab 작업</h3><ul>${nextJob(agg).map(x => `<li>${esc(x)}</li>`).join('')}</ul>\n-      <p>${NB.map(nb => `<a class=\"button\" target=\"_blank\" rel=\"noopener\" href=\"${esc(colab(nb))}\">${esc(nb)} ↗</a>`).join(' ')}</p>\n-      <p class=\"muted\">Colab 은 활성 런타임에서만 실행되는 배치입니다(무인 스케줄러·상시 서버 아님). 끊기면 같은 노트북을 다시 열어 이어서 실행합니다. 실행 결과(스냅샷·run 상태·보고서)는 Drive 의 neurolens-training/work 에, 후보 모델은 검토된 commit 으로만 저장소에 들어옵니다.</p>`;\n-    const entry = (label, e) => e ? `<tr><td>${esc(label)}</td><td><code>${esc(e.id)}</code> v${esc(e.version)}<small>${esc(e.kind)} · ${esc(e.state || label)}</small></td><td>${esc(e.sha256 ? e.sha256.slice(0, 16) + '…' : '—')}</td><td>${esc(e.approvedBy || '—')}<small>${esc(date(e.approvedAt || e.createdAt))}</small></td><td>${e.report ? esc(e.report) : '—'}</td></tr>` : `<tr><td>${esc(label)}</td><td colspan=\"4\" class=\"muted\">없음 — 기존 엔진(In_mind core 파",
+          "patchTruncated": true,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38152435747"
+      }
     },
     {
       "sha": "c876c5a7452d1398dd185b250581f3ae5f0d5ba6",
@@ -3654,16 +3848,16 @@
         {
           "id": "evo-c876c5a7452d-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-c876c5a7452d-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: c876c5a7452d1398dd185b250581f3ae5f0d5ba6\n변경 제목: release gate: locked/temporal test 회귀 금지 규칙(사후 추가 공개) · integrity 검사 정의 수정 · subjectKey 없는 후보는 shadow 전용 · 실측 첫 실행 결과 기록\n관련 파일: COLAB_TRAINING_RUNBOOK.md, dataset-engine-log.json, release_policy.json, tools/colab/nlcolab/inventory.py, tools/colab/nlcolab/pipeline.py, tools/colab/nlcolab/release.py, tools/colab/tests/test_pipeline.py\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-c876c5a7452d-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "release policy 및 Colab 파이프라인 변경에 따른 회귀 방지 및 약한 신호 활용 평가",
+          "rationale": "커밋 c876c5a7452d1398dd185b250581f3ae5f0d5ba6을 통해 파이프라인 및 릴리스 정책 관련 파일이 변경되었습니다. 연구자 주장에 따르면 locked/temporal 회귀 금지 및 subjectKey 부재 시 shadow 분류 규칙 등이 반영되었으나, 패치 디프가 생략되어 구체적 구현 확인이 필요하며 `accuracyValidated`가 false이므로 기술적 효과가 검증된 상태가 아닙니다. 가설 단계의 릴리스 통과 기준이 실제 약한 신호(불안정한 웹캠 광량·프레임 유실 등)의 유효 활용량과 측정 오차에 미치는 영향을 검증해야 합니다.",
+          "validationPlan": "1. 생략된 diff 파악을 위해 `tools/colab/nlcolab/pipeline.py`, `release.py`, `release_policy.json` 등의 실제 변경 내용을 조회하고 integrity 및 shadow 분류 로직을 확인합니다.\n2. 참가자, 촬영 기기, 관측 날짜별로 분리된 실측 데이터셋(dataset-engine-log.json 및 연계 데이터)을 기반으로 테스트를 수행합니다.\n3. 단일 세션에 치우치지 않는 전체 분모 대비 측정 성공률(활용률), 허용 오차 한계, 불확실성 구간을 분리 평가하여 정상값 임의 채우기나 과도한 신호 폐기가 발생하지 않는지 검증합니다.",
+          "prompt": "다음 지시사항에 따라 커밋 c876c5a7452d1398dd185b250581f3ae5f0d5ba6의 변경사항을 확인하고 후속 검증 과제를 수행하세요.\n\n[1. 현재 코드 및 변경사항 확인]\n- 제공된 정보에서 diff 내용(`patchExcerpt`)이 생략되어 있으므로, `release_policy.json`, `tools/colab/nlcolab/pipeline.py`, `release.py`, `inventory.py`, `COLAB_TRAINING_RUNBOOK.md`, `tools/colab/tests/test_pipeline.py`의 현재 상태를 직접 검사하세요.\n- `subjectKey`가 없는 후보를 shadow 전용으로 격리하는 로직과 locked/temporal test 회귀 금지 규칙이 실제 코드에 어떻게 구현되었는지 분석하세요.\n\n[2. 약한 신호 활용량 및 오차 평가 과제]\n- 임의로 성능 수치를 만들어내지 말고, `dataset-engine-log.json` 및 연계된 실측 데이터셋 매니페스트를 참조하세요.\n- 웹캠 기반의 조도 변화, 미세 움직임 등 약한 신호 구간에서 신호를 무조건 폐기하거나 정상값으로 임의 대체하지 않고 유효 신호로 회복해 활용하는 비율(측정 성공률)과 오차 범위를 함께 측정하도록 평가 파이프라인을 구성하세요.\n- 참가자/기기/날짜별로 분리된 분모를 설정하고 실패 시도를 반드시 분모에 포함하여 활용률과 오차를 계산하세요.\n\n[3. 성공 및 회귀 기준 정의]\n- 회귀 기준: 기존 locked/temporal 테스트 세트 대비 오차 증가 또는 유효 신호 활용률 하락이 관측될 경우 회귀로 판단합니다.\n- 성공 기준: shadow 후보 격리 로직이 정상 작동하고, 약한 신호 구역의 측정 성공률이 유지되면서 불확실성 평가 오차 범위 내에 수렴하는 경우.\n\n[4. 결과 보고 양식]\n결과는 다음 항목을 포함한 보고서 형태로 작성하세요:\n- 코드 분석 요약 (변경된 함수/규칙 목록)\n- 데이터셋 분리 평가 결과 (참가자/기기/날짜별 활용률 및 오차, 임의 수치 작성 금지)\n- 약한 신호 처리 양상 (폐기/보정/활용 비율 및 불확실성 평가)\n- 회귀 테스트 합격 여부 및 shadow 분류 정책 작동 검증\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: c876c5a7452d1398dd185b250581f3ae5f0d5ba6\nDataset-Task: evo-c876c5a7452d-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "generated",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-55854300165",
@@ -3694,7 +3888,101 @@
           "url": "https://neurolens-jba83sfqa-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-11T15:44:41.874077+00:00",
+      "analysis": {
+        "summary": "커밋 c876c5a7452d1398dd185b250581f3ae5f0d5ba6에서 `release_policy.json`, `COLAB_TRAINING_RUNBOOK.md`, `dataset-engine-log.json`, 및 `tools/colab/nlcolab/` 하위 모듈(`inventory.py`, `pipeline.py`, `release.py`, `test_pipeline.py`)에 대한 변경이 관측되었습니다. 커밋 제목은 locked/temporal test 회귀 금지 규칙, integrity 검사 정의 수정, subjectKey 없는 후보의 shadow 전용 지정 등을 다루고 있으나, 제공된 패치 본문(`patchExcerpt`)이 비어 있어 상세 코드 패치 내용이 생략된 상태입니다. 또한 해당 커밋의 `accuracyValidated` 속성은 `false`로 설정되어 있으므로 커밋 제목이나 연구자 주장을 검증된 성능 개선으로 간주할 수 없습니다. 실제 파이프라인의 회귀 여부와 측정 성공률 및 오차 특성은 관련 dataset 실측 데이터와 연계한 검증 체계 작성이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-c876c5a7452d-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "release policy 및 Colab 파이프라인 변경에 따른 회귀 방지 및 약한 신호 활용 평가",
+            "rationale": "커밋 c876c5a7452d1398dd185b250581f3ae5f0d5ba6을 통해 파이프라인 및 릴리스 정책 관련 파일이 변경되었습니다. 연구자 주장에 따르면 locked/temporal 회귀 금지 및 subjectKey 부재 시 shadow 분류 규칙 등이 반영되었으나, 패치 디프가 생략되어 구체적 구현 확인이 필요하며 `accuracyValidated`가 false이므로 기술적 효과가 검증된 상태가 아닙니다. 가설 단계의 릴리스 통과 기준이 실제 약한 신호(불안정한 웹캠 광량·프레임 유실 등)의 유효 활용량과 측정 오차에 미치는 영향을 검증해야 합니다.",
+            "validationPlan": "1. 생략된 diff 파악을 위해 `tools/colab/nlcolab/pipeline.py`, `release.py`, `release_policy.json` 등의 실제 변경 내용을 조회하고 integrity 및 shadow 분류 로직을 확인합니다.\n2. 참가자, 촬영 기기, 관측 날짜별로 분리된 실측 데이터셋(dataset-engine-log.json 및 연계 데이터)을 기반으로 테스트를 수행합니다.\n3. 단일 세션에 치우치지 않는 전체 분모 대비 측정 성공률(활용률), 허용 오차 한계, 불확실성 구간을 분리 평가하여 정상값 임의 채우기나 과도한 신호 폐기가 발생하지 않는지 검증합니다.",
+            "prompt": "다음 지시사항에 따라 커밋 c876c5a7452d1398dd185b250581f3ae5f0d5ba6의 변경사항을 확인하고 후속 검증 과제를 수행하세요.\n\n[1. 현재 코드 및 변경사항 확인]\n- 제공된 정보에서 diff 내용(`patchExcerpt`)이 생략되어 있으므로, `release_policy.json`, `tools/colab/nlcolab/pipeline.py`, `release.py`, `inventory.py`, `COLAB_TRAINING_RUNBOOK.md`, `tools/colab/tests/test_pipeline.py`의 현재 상태를 직접 검사하세요.\n- `subjectKey`가 없는 후보를 shadow 전용으로 격리하는 로직과 locked/temporal test 회귀 금지 규칙이 실제 코드에 어떻게 구현되었는지 분석하세요.\n\n[2. 약한 신호 활용량 및 오차 평가 과제]\n- 임의로 성능 수치를 만들어내지 말고, `dataset-engine-log.json` 및 연계된 실측 데이터셋 매니페스트를 참조하세요.\n- 웹캠 기반의 조도 변화, 미세 움직임 등 약한 신호 구간에서 신호를 무조건 폐기하거나 정상값으로 임의 대체하지 않고 유효 신호로 회복해 활용하는 비율(측정 성공률)과 오차 범위를 함께 측정하도록 평가 파이프라인을 구성하세요.\n- 참가자/기기/날짜별로 분리된 분모를 설정하고 실패 시도를 반드시 분모에 포함하여 활용률과 오차를 계산하세요.\n\n[3. 성공 및 회귀 기준 정의]\n- 회귀 기준: 기존 locked/temporal 테스트 세트 대비 오차 증가 또는 유효 신호 활용률 하락이 관측될 경우 회귀로 판단합니다.\n- 성공 기준: shadow 후보 격리 로직이 정상 작동하고, 약한 신호 구역의 측정 성공률이 유지되면서 불확실성 평가 오차 범위 내에 수렴하는 경우.\n\n[4. 결과 보고 양식]\n결과는 다음 항목을 포함한 보고서 형태로 작성하세요:\n- 코드 분석 요약 (변경된 함수/규칙 목록)\n- 데이터셋 분리 평가 결과 (참가자/기기/날짜별 활용률 및 오차, 임의 수치 작성 금지)\n- 약한 신호 처리 양상 (폐기/보정/활용 비율 및 불확실성 평가)\n- 회귀 테스트 합격 여부 및 shadow 분류 정책 작동 검증\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: c876c5a7452d1398dd185b250581f3ae5f0d5ba6\nDataset-Task: evo-c876c5a7452d-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "a40b9ddfb6ebdc1283abd6a3a09f11aab8d3a3509a358dcaa361dec157550c99",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 1011,
+            "candidatesTokenCount": 1238,
+            "totalTokenCount": 3436
+          }
+        },
+        "generatedAt": "2026-10-11T15:44:56.170930+00:00",
+        "sourceSha": "c876c5a7452d1398dd185b250581f3ae5f0d5ba6",
+        "sourceEvidence": {
+          "sha": "c876c5a7452d1398dd185b250581f3ae5f0d5ba6",
+          "parents": [
+            "f271eab625a3b1a34efd6b33ca72fe8ecfbd4c52"
+          ],
+          "committedAt": "2026-10-08T02:06:33Z",
+          "subject": "release gate: locked/temporal test 회귀 금지 규칙(사후 추가 공개) · integrity 검사 정의 수정 · subjectKey 없는 후보는 shadow 전용 · 실측 첫 실행 결과 기록",
+          "url": "https://github.com/jeebs0627/neurolens/commit/c876c5a7452d1398dd185b250581f3ae5f0d5ba6",
+          "files": [
+            {
+              "path": "COLAB_TRAINING_RUNBOOK.md",
+              "status": "modified",
+              "additions": 28,
+              "deletions": 7
+            },
+            {
+              "path": "dataset-engine-log.json",
+              "status": "modified",
+              "additions": 8,
+              "deletions": 0
+            },
+            {
+              "path": "release_policy.json",
+              "status": "modified",
+              "additions": 47,
+              "deletions": 9
+            },
+            {
+              "path": "tools/colab/nlcolab/inventory.py",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "tools/colab/nlcolab/pipeline.py",
+              "status": "modified",
+              "additions": 18,
+              "deletions": 4
+            },
+            {
+              "path": "tools/colab/nlcolab/release.py",
+              "status": "modified",
+              "additions": 11,
+              "deletions": 2
+            },
+            {
+              "path": "tools/colab/tests/test_pipeline.py",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 2
+            }
+          ],
+          "domains": [
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38152435747"
+      }
     },
     {
       "sha": "e22a9b683a890c36794ce3a398eaa31dfa1ff4bb",
@@ -16802,9 +17090,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "40bf5687dacf42434590e48f9d20bc0097e55d97"
+    "sourceHead": "16a536e7268a2abb627b5e8f34764a9ff5d67281"
   },
-  "updatedAt": "2026-10-11T13:33:24.475076+00:00",
-  "aiCooldownUntil": "2026-10-11T13:37:57.646439+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-11T15:44:57.085262+00:00"
 }
