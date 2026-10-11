@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 2.6';   // 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 2.7';   // 2.7 (2026-10-11): 시선 모델 u 에 고개 yaw 보상(u + 0.25·yaw) — 세로 휴대폰 가로 오차 −40% · 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   /* 시선 모델 입력 특징 버전: faceFeatures(u·v 눈꼬리 기준 등)·predictGaze·fitAffine 기본값이 baseX…eyeMode 의 뜻을 바꿀 때만 올린다.
    * 학습 모델 manifest.supports.features 와 비교한다 — 엔진 버전(VERSION)은 심박·판정 변경에도 올라가 모델이 이유 없이 꺼졌다(core 2.4~2.6). 2.3: 홍채 세로 기준 눈꼬리 축 */
   const GAZE_FEATURES = 'gaze-features-2.3';
@@ -516,8 +516,16 @@
   const HEAD_SD_MIN = { yaw: 0.01, pitch: 0.01, cx: 0.01, cy: 0.01 }, Z_MAX = 4, HEAD_RIDGE = 100;
   /* 제곱항 접선 연장(zr): 홍채 위치(u,v)가 보정 때 본 범위를 벗어나면 제곱항이 위치의 제곱으로 커져 시선이 화면 밖에서 가속하듯 튄다.
    * 범위 안은 그대로, 범위 밖은 경계에서의 접선(1차)으로 이어 붙여 같은 눈 움직임에 같은 만큼만 움직이게 한다 */
-  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS, zr = null) => {
-    const z = keys.map(k => (finite(f[k]) ? clamp((f[k] - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0));
+  /* 고개 yaw 보상 u: 같은 점을 볼 때 고개가 돌면 눈은 반대로 돌아 u 가 바뀐다. 보정 중에는 고개가 거의 안 움직여(σ 0.002~0.006)
+   * 회귀가 yaw 계수를 배우지 못하고(HEAD_RIDGE 로 0 쪽 수축), 과제·정밀 보정에서 고개가 조금만 돌아도 가로 시선이 밀렸다.
+   * 실측 52세션 보정점 다중회귀(u ~ 표적 x·y + yaw + cx): yaw 1 당 u −0.26(역분산 합산, PC·가로·세로 휴대폰 같은 부호).
+   * 세로 휴대폰은 화면 폭이 좁아 같은 밀림이 폭의 큰 몫이다 — 정밀 점 가로 오차가 yaw 변화와 r 0.75(yaw 0.01 ≈ 30px, 폭 384px).
+   * u + 0.25·yaw 로 학습·예측하면 재생 정밀 held-out: 세로 13.4→11.3%(가로 68→41px, 11세션 중 8 개선·1 악화) · 가로 휴대폰 14.5→13.3%
+   * · PC 8.4→8.0%(원형 추적 과제 오차 불변). 계수는 모델에 기록(model.uYaw) — 기록 없는 옛 모델은 그대로 예측한다 */
+  const U_YAW = 0.25;
+  const featVal = (f, k, uYaw) => (k === 'u' && uYaw && finite(f.yaw) ? f.u + uYaw * f.yaw : f[k]);
+  const gazeVec = (f, mu, sd, quad, keys = GAZE_KEYS, zr = null, uYaw = 0) => {
+    const z = keys.map(k => { const x = featVal(f, k, uYaw); return finite(x) ? clamp((x - mu[k]) / Math.max(sd[k], HEAD_SD_MIN[k] || 0), -Z_MAX, Z_MAX) : 0; });
     if (!quad) return [1, ...z];
     if (!zr) return [1, ...z, z[0] * z[0], z[1] * z[1], z[0] * z[1]];
     const c0 = clamp(z[0], zr.lo[0], zr.hi[0]), c1 = clamp(z[1], zr.lo[1], zr.hi[1]), e0 = z[0] - c0, e1 = z[1] - c1;
@@ -530,8 +538,9 @@
     /* opt.extra: 추가 특징(예: lookV — MediaPipe 세로 시선 점수). 모든 표본에 값이 있을 때만 쓴다 */
     const keys = [...(opt.open !== false && S.every(s => finite(s.f.open)) ? [...GAZE_KEYS, 'open'] : GAZE_KEYS), ...(opt.extra || []).filter(k => S.every(s => finite(s.f[k])))];
     const mu = {}, sd = {};
-    keys.forEach(k => { mu[k] = mean(S.map(s => s.f[k])); sd[k] = std(S.map(s => s.f[k])) || 1; });
-    const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));
+    const uYaw = opt.uYaw ?? U_YAW;
+    keys.forEach(k => { const xs = S.map(s => featVal(s.f, k, uYaw)); mu[k] = mean(xs); sd[k] = std(xs) || 1; });
+    const X = S.map(s => gazeVec(s.f, mu, sd, quad, keys, null, uYaw)), d = X[0].length, W = S.map(s => (finite(s.w) ? s.w : 1));
     const zr = quad ? { lo: [0, 1].map(j => Math.min(...X.map(r => r[1 + j]))), hi: [0, 1].map(j => Math.max(...X.map(r => r[1 + j]))) } : null;
     const wsum = W.reduce((a, b) => a + b, 0);
     /* opt.axisRidge: 축별·특징별 수축 배율 {x:{v:..}, y:{u:..}} — 제곱항 이름은 u2·v2·uv. 기본 없음 = 기존과 동일 */
@@ -550,7 +559,7 @@
     };
     const wx = fit('x'), wy = fit('y');
     if(!wx || !wy)return null;
-    const model={mu,sd,wx,wy,quad,keys,zr};
+    const model={mu,sd,wx,wy,quad,keys,zr,...(uYaw?{uYaw}:{})};
     if(!opt.singleEye){
       model.eyes={};
       for(const side of ['left','right']){
@@ -585,7 +594,7 @@
         f = { ...f, eyes: null, u: e.u, v: e.v };                      // 한쪽 눈 모델이 없으면 그 눈 특징으로 양안 모델 사용
       }
     }
-    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS, model.zr);
+    const v = gazeVec(f, model.mu, model.sd, model.quad, model.keys || GAZE_KEYS, model.zr, model.uYaw || 0);
     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);
     return { x: dot(model.wx), y: dot(model.wy) };
   }

@@ -183,6 +183,21 @@ const N = require('./newbiz-core.js');
   assert.ok(center.y > -0.25 * H && center.y < 1.25 * H, 'gaze y stays on screen after a 2% posture shift: ' + Math.round(center.y));
 }
 
+/* 고개 yaw 보상(core 2.7): 세로 휴대폰 보정 중엔 고개가 거의 안 움직이다가, 그 뒤 고개가 0.03 돌면(같은 점을 봐도 u 가 −0.25·Δyaw)
+ * 보상 없는 모델은 가로로 화면 폭의 ~25% 밀렸다(실측 정밀 점 가로 오차 ~ yaw 변화 r 0.75) */
+{
+  const W = 384, H = 799, S = [];
+  let k = 0;
+  for (const fy of [0.14, 0.5, 0.88]) for (const fx of [0.08, 0.5, 0.92]) for (let i = 0; i < 20; i++, k++) {
+    const n = Math.sin(k * 12.9898), yaw = -0.03 + n * 0.003;
+    S.push({ x: fx * W, y: fy * H, f: { u: 0.5 + (fx - 0.5) * 0.03 - 0.25 * yaw, v: -0.09 + (fy - 0.5) * 0.02, yaw, pitch: 0.03, cx: 0.51, cy: 0.53, open: 0.4 } });
+  }
+  const turned = { u: 0.5 - 0.25 * 0.0, v: -0.09, yaw: 0.0, pitch: 0.03, cx: 0.51, cy: 0.53, open: 0.4 };   // 가운데를 보며 고개만 +0.03
+  const errNew = Math.abs(N.predictGaze(N.fitGaze(S), turned).x - W / 2), errOld = Math.abs(N.predictGaze(N.fitGaze(S, 0.5, { uYaw: 0 }), turned).x - W / 2);
+  assert.ok(N.fitGaze(S).uYaw === 0.25, 'yaw compensation recorded in model');
+  assert.ok(errNew < 20 && errOld > 3 * errNew, `yaw-compensated u keeps x after a head turn: ${errNew.toFixed(0)}px vs ${errOld.toFixed(0)}px`);
+  console.log(`PASS gaze yaw compensation: head turn 0.03 → x error ${errNew.toFixed(0)}px (uncompensated ${errOld.toFixed(0)}px, W ${W})`);
+}
 
 /* 홍채 세로 위치의 기준: 아래를 보면 윗눈꺼풀이 홍채를 따라 내려온다(눈꺼풀-시선 연동). 눈꺼풀 중점 기준이면 v 가 거의 변하지 않지만,
  * 눈꼬리-눈머리 축 기준이면 홍채가 내려간 만큼 v 가 커져야 한다. 478점 랜드마크를 합성해 확인한다 */

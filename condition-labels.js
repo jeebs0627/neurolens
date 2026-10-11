@@ -255,11 +255,11 @@
   const digest = value => sha256Hex(canonical(value));
 
   /* ---------- 개인 시선 파이프라인 snapshot·digest ----------
-   * 저장된 model/affine 만으로 당시 분석 좌표를 재현하려면 mu·sd·wx·wy·quad·keys·zr·eyes(검증 포함)·combine·affine·resid·drift 가 모두 필요하다.
+   * 저장된 model/affine 만으로 당시 분석 좌표를 재현하려면 mu·sd·wx·wy·quad·keys·zr·eyes(검증 포함)·combine·affine·resid·drift 가 모두 필요하다(core 2.7~: uYaw 도).
    * 스냅샷은 JSON 직렬화 가능한 plain object 로만 구성한다 */
   function pipelineSnapshot(S) {
     const m = S.model || null;
-    const strip = model => model ? { mu: model.mu, sd: model.sd, wx: model.wx, wy: model.wy, quad: !!model.quad, keys: model.keys || null, zr: model.zr || null, validation: model.validation || null } : null;
+    const strip = model => model ? { mu: model.mu, sd: model.sd, wx: model.wx, wy: model.wy, quad: !!model.quad, keys: model.keys || null, zr: model.zr || null, validation: model.validation || null, ...(model.uYaw ? { uYaw: model.uYaw } : {}) } : null;   // uYaw: core 2.7 고개 yaw 보상(없는 옛 모델은 digest 불변)
     return {
       version: 1, model: m ? { ...strip(m), eyes: m.eyes ? { left: strip(m.eyes.left), right: strip(m.eyes.right) } : null, combine: m.combine || null } : null,
       affine: S.affine || null, resid: S.resid || null, drift: S.drift ? { dx: S.drift.dx, dy: S.drift.dy } : null,

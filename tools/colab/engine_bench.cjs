@@ -37,6 +37,10 @@ const VARIANTS = {
   cross_100: variant({ axisRidge: { x: { v: 100, open: 100, v2: 100, uv: 100 }, y: { u: 100, u2: 100, uv: 100 } } }),
   crossX_10: variant({ axisRidge: { x: { v: 10, open: 10, v2: 10, uv: 10 } } }),
   crossX_100: variant({ axisRidge: { x: { v: 100, open: 100, v2: 100, uv: 100 } } }),
+  /* 고개 yaw 보상 u(u + k·yaw): 같은 점을 볼 때 yaw 가 바뀌면 u 가 −0.25 남짓 따라 바뀐다(52세션 다중회귀) */
+  uyaw_020: variant({ uYaw: 0.2 }),
+  uyaw_025: variant({ uYaw: 0.25 }),
+  uyaw_030: variant({ uYaw: 0.3 }),
 };
 const ONLY = (process.argv.find(a => a.startsWith('--variants=')) || '').slice(11).split(',').filter(Boolean);
 if (ONLY.length) for (const k of Object.keys(VARIANTS)) if (k !== 'base' && !ONLY.includes(k)) delete VARIANTS[k];
