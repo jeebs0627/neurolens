@@ -2068,16 +2068,16 @@
         {
           "id": "evo-971ffc39e9b9-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-971ffc39e9b9-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 971ffc39e9b9b9ab080f262cee9f1456282c4710\n변경 제목: 메인페이지 문구 추가 교정 및 /condition In_Mind Core 신경망 엔진 뱃지\n관련 파일: condition.html, index.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-971ffc39e9b9-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "UI 표기 신뢰성 확보를 위한 웹캠 약한 신호 회복 알고리즘 및 오차·활용률 평가",
+          "rationale": "condition.html에 'In_Mind Core 신경망 엔진' 문구가 추가되었으나 이는 마케팅적 표현일 뿐 실제 측정 정확도가 검증된 것은 아닙니다. 일상 웹캠 환경에서는 조명 변동, 미세 움직임 등으로 신호 대 잡음 비(SNR)가 낮아지므로, 약한 신호를 무조건 폐기하거나 임의 가공하지 않으면서도 유효 신호 활용량과 허용 오차를 정밀하게 평가하는 신호 처리 검증이 요구됩니다.",
+          "validationPlan": "1. dataset에 등록된 실제 피험자 수집 데이터 및 연구 메모를 연결하여 관측 신호 품질을 평가하며, 임의의 수치를 만들어내지 않는다.\n2. 참가자, 촬영 기기, 수집 날짜별로 분리된 데이터셋을 통해 단일 세션 편향을 방지한다.\n3. 전체 시도 건수를 분모로 설정하고 측정 실패, 허용 오차 초과, 신호 제외 건수를 정량적으로 집계한다.\n4. 조명 저하 및 미세 흔들림 구간에서 약한 신호 회복 시 오차와 활용률의 상충 관계(Trade-off)를 측정한다.\n5. 기준 센서가 없는 상태의 자체 테스트 결과를 독립적 임상 진단 정답으로 포장하지 않도록 회귀 평가 항목을 유지한다.",
+          "prompt": "[현재 코드 확인 및 개발·검증 과제]\n1. 커밋 971ffc39e9b9b9ab080f262cee9f1456282c4710에서 변경된 condition.html의 UI 표기('In_Mind Core 신경망 엔진')와 연동되는 실제 측정 신호 처리 파이프라인을 확인하라. (index.html 변경사항은 diff가 생략되었으므로 추가 확인 필요)\n2. 웹캠 기반 약한 신호 회복 로직 구현 시, 노이즈가 포함된 부분 유효 신호를 전량 폐기하지 않고 허용 오차 범위 내에서 회복하여 활용량을 높이는 알고리즘 개선 과제를 수행하라. 임의로 정상값을 채워 넣는 가공 방식은 엄격히 금지한다.\n3. 연결된 dataset의 실측 기록 및 연구자 메모를 바탕으로 성능을 평가하되, 존재하지 않는 실측 수치나 성능 지표를 가공하여 보고하지 마라.\n\n[성공 및 회귀 기준]\n- 성공 기준: 전체 시도 수(분모) 대비 신호 폐기율이 감소하고, 조건별(조명/기기) 평가에서 허용 오차 범위 내의 부분 유효 신호 활용률이 유의미하게 향상됨.\n- 회귀 기준: 신호 오차가 모호할 때 임의의 정상값 데이터로 대치하거나, 실패 시도를 분모에서 제외하여 측정 성공률을 부풀리는 경우, 혹은 기준 센서 없는 결과를 임상 진단 정답으로 정의하는 경우 회귀로 판단한다.\n\n[결과 보고 양식]\n1. 평가 대상 분모(참가자/기기/날짜 분리된 전체 시도 수) 및 성공/실패/제외 건수\n2. 조건별 약한 신호 활용률 대 측정 오차 범위(불확실성 포함)\n3. 알고리즘 수정에 따른 유효 신호 회복률 변화 분석 및 한계점 정리\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 971ffc39e9b9b9ab080f262cee9f1456282c4710\nDataset-Task: evo-971ffc39e9b9-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 4,
+      "analysisState": "generated",
+      "analysisAttempts": 5,
       "deploymentEvents": [
         {
           "key": "check-55958499162",
@@ -2109,9 +2109,70 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-11T01:56:06.326355+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-11T08:54:28.765463+00:00",
+      "analysis": {
+        "summary": "본 소스 코드 변경(커밋 971ffc39e9b9b9ab080f262cee9f1456282c4710)은 condition.html에 '.core-badge' 스타일 및 'In_Mind Core 신경망 엔진' 뱃지 문구를 추가하고 index.html의 일부 문구를 교정한 건입니다. 제공된 patchExcerpt에는 condition.html의 diff만 포함되어 있으며, index.html의 실제 수정 내역은 생략되어 있습니다. 커밋 메시지와 UI 상에 '신경망 엔진' 및 '눈과 심박 측정'이라는 문구가 노출되었으나, 변경 내역에는 rPPG 심박 추출이나 안구 운동 측정 알고리즘의 정밀도를 개선하는 백엔드/신호처리 로직이 포함되어 있지 않으며 검증 여부도 거짓(accuracyValidated: false)으로 명시되어 있습니다. 따라서 프론트엔드 표기와 실제 웹캠 측정 신호 처리 알고리즘 간의 수능성 및 제반 오차·활용률에 대한 후속 기술 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-971ffc39e9b9-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "UI 표기 신뢰성 확보를 위한 웹캠 약한 신호 회복 알고리즘 및 오차·활용률 평가",
+            "rationale": "condition.html에 'In_Mind Core 신경망 엔진' 문구가 추가되었으나 이는 마케팅적 표현일 뿐 실제 측정 정확도가 검증된 것은 아닙니다. 일상 웹캠 환경에서는 조명 변동, 미세 움직임 등으로 신호 대 잡음 비(SNR)가 낮아지므로, 약한 신호를 무조건 폐기하거나 임의 가공하지 않으면서도 유효 신호 활용량과 허용 오차를 정밀하게 평가하는 신호 처리 검증이 요구됩니다.",
+            "validationPlan": "1. dataset에 등록된 실제 피험자 수집 데이터 및 연구 메모를 연결하여 관측 신호 품질을 평가하며, 임의의 수치를 만들어내지 않는다.\n2. 참가자, 촬영 기기, 수집 날짜별로 분리된 데이터셋을 통해 단일 세션 편향을 방지한다.\n3. 전체 시도 건수를 분모로 설정하고 측정 실패, 허용 오차 초과, 신호 제외 건수를 정량적으로 집계한다.\n4. 조명 저하 및 미세 흔들림 구간에서 약한 신호 회복 시 오차와 활용률의 상충 관계(Trade-off)를 측정한다.\n5. 기준 센서가 없는 상태의 자체 테스트 결과를 독립적 임상 진단 정답으로 포장하지 않도록 회귀 평가 항목을 유지한다.",
+            "prompt": "[현재 코드 확인 및 개발·검증 과제]\n1. 커밋 971ffc39e9b9b9ab080f262cee9f1456282c4710에서 변경된 condition.html의 UI 표기('In_Mind Core 신경망 엔진')와 연동되는 실제 측정 신호 처리 파이프라인을 확인하라. (index.html 변경사항은 diff가 생략되었으므로 추가 확인 필요)\n2. 웹캠 기반 약한 신호 회복 로직 구현 시, 노이즈가 포함된 부분 유효 신호를 전량 폐기하지 않고 허용 오차 범위 내에서 회복하여 활용량을 높이는 알고리즘 개선 과제를 수행하라. 임의로 정상값을 채워 넣는 가공 방식은 엄격히 금지한다.\n3. 연결된 dataset의 실측 기록 및 연구자 메모를 바탕으로 성능을 평가하되, 존재하지 않는 실측 수치나 성능 지표를 가공하여 보고하지 마라.\n\n[성공 및 회귀 기준]\n- 성공 기준: 전체 시도 수(분모) 대비 신호 폐기율이 감소하고, 조건별(조명/기기) 평가에서 허용 오차 범위 내의 부분 유효 신호 활용률이 유의미하게 향상됨.\n- 회귀 기준: 신호 오차가 모호할 때 임의의 정상값 데이터로 대치하거나, 실패 시도를 분모에서 제외하여 측정 성공률을 부풀리는 경우, 혹은 기준 센서 없는 결과를 임상 진단 정답으로 정의하는 경우 회귀로 판단한다.\n\n[결과 보고 양식]\n1. 평가 대상 분모(참가자/기기/날짜 분리된 전체 시도 수) 및 성공/실패/제외 건수\n2. 조건별 약한 신호 활용률 대 측정 오차 범위(불확실성 포함)\n3. 알고리즘 수정에 따른 유효 신호 회복률 변화 분석 및 한계점 정리\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 971ffc39e9b9b9ab080f262cee9f1456282c4710\nDataset-Task: evo-971ffc39e9b9-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "0d7dc6e039ebd5135b6d2217fd956c812462513b941db818d9d18aeac57a9fa8",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 1567,
+            "candidatesTokenCount": 1044,
+            "totalTokenCount": 4406
+          }
+        },
+        "generatedAt": "2026-10-11T08:54:46.989126+00:00",
+        "sourceSha": "971ffc39e9b9b9ab080f262cee9f1456282c4710",
+        "sourceEvidence": {
+          "sha": "971ffc39e9b9b9ab080f262cee9f1456282c4710",
+          "parents": [
+            "2625680b2f15c8e3698ec7dacd2a78202e03aa61"
+          ],
+          "committedAt": "2026-10-09T05:14:01Z",
+          "subject": "메인페이지 문구 추가 교정 및 /condition In_Mind Core 신경망 엔진 뱃지",
+          "url": "https://github.com/jeebs0627/neurolens/commit/971ffc39e9b9b9ab080f262cee9f1456282c4710",
+          "files": [
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 0
+            },
+            {
+              "path": "index.html",
+              "status": "modified",
+              "additions": 12,
+              "deletions": 9
+            }
+          ],
+          "domains": [
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -707,6 +707,8 @@\n .lp-bg img{object-fit:cover;object-position:50% 24%;-webkit-mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.55) 22%,#000 46%);mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.55) 22%,#000 46%)}\n .lp-in{position:relative;z-index:1;max-width:520px;padding:58px 0 50px 52px}\n .lp-hero .kicker{color:var(--blue)}\n+.core-badge{display:inline-flex;align-items:center;gap:7px;margin-top:12px;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(90deg,#5B3FD6,#1F4FD8);border-radius:999px;padding:6px 14px;box-shadow:0 6px 16px rgba(31,79,216,.25)}\n+.core-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#7FE0C8;box-shadow:0 0 0 3px rgba(127,224,200,.3)}\n .lp-hero h1{font-size:40px;line-height:1.28;margin:14px 0 16px;color:var(--ink);letter-spacing:-.03em}\n .lp-hero h1 em{font-style:normal;background:linear-gradient(90deg,#1F4FD8,#1baf7a);-webkit-background-clip:text;background-clip:text;color:transparent}\n .lp-hero .lead{color:var(--ink-2);font-size:16.5px;line-height:1.75}\n@@ -990,6 +992,7 @@\n     <div class=\"lp-bg\" aria-hidden=\"true\"><picture><source srcset=\"img/condition-hero.webp\" type=\"image/webp\"><img src=\"img/condition-hero.jpg\" alt=\"\" fetchpriority=\"high\"></picture></div>\n     <div class=\"lp-in\">\n       <div class=\"kicker\">Mind Condition Test</div>\n+      <span class=\"core-badge\">In_Mind Core 신경망 엔진</span>\n       <h1>오늘 내 마음 컨디션,<br><em>눈과 심박으로</em> 확인해 보세요</h1>\n       <p class=\"lead\">웹캠으로 눈의 움직임과 반응 속도, 얼굴에 비치는 심박을 재서 지금의 피로도·집중력·마음 상태·긴장 회복력을 알려 드려요. 결과에 맞춘 관리 방법까지 함께 정리해 드립니다.</p>\n       <div class=\"lp-stats\">",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38126450983"
+      }
     },
     {
       "sha": "69aa821ff94e3a875b1ea2bbb6375391b6548460",
@@ -2218,6 +2279,26 @@
       "accuracyValidated": false,
       "tasks": [
         {
+          "id": "evo-35e0dee68591-gaze",
+          "domain": "gaze",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 안정화기 보류 표본 복원 로직의 신호 활용률 및 사카드 잠복기 편향 검증",
+          "rationale": "newbiz-core.js 및 condition.html 변경을 통해 큰 시선 이동 확정 시 이전 보류 표본(bl=true)을 bl=false로 복원하는 기능이 추가되었다. 개발자는 이를 통해 사카드 및 자유 보기의 1프레임 지연 편향을 제거한다고 주장하나, 이는 단위 테스트(newbiz-core.test.js) 수준에서 확인된 개발자 가설이다. 보류 표본을 되살릴 때 고립 노이즈 표본이 오복원될 가능성이 있으므로, 약한 신호 활용량 증가와 측정 오차(degree) 증가 간의 상충 관계를 실측 데이터셋과 연결하여 평가해야 한다.",
+          "validationPlan": "1. 데이터셋 연동: dataset 내 실제 사용자 세션(참가자/기기/날짜별 분리)의 시선 추적 기록과 정답 메모를 연동하여 평가한다. 없는 수치를 임의로 작성하지 않는다.\n2. 평가 분모: 전체 프레임 수, 보류 처리된 표본 수, 복원된 표본 수, 실패 시도를 명확히 포함한다.\n3. 조건별 지표: 복원 전(core 2.3) vs 복원 후(core 2.4)의 표본 활용률(bl=false 비율), 사카드 잠복기 추정값, 고정/이동 구간의 시선 좌표 오차(RMSE, 도 단위)를 측정한다.\n4. 회귀 및 제외 기준: 보류 복원 후 고립 튐 오복원으로 고정 구간 RMS 노이즈가 15% 이상 증가하거나 시선 좌표 오차가 유의미하게 악화될 경우 복원 로직 대상에서 제외 조건으로 설정한다.",
+          "prompt": "현재 코드(newbiz-core.js, condition.html, newbiz-core.test.js)에 반영된 gazeStabilizer 확정 보류 표본 복원 로직(st.confirmed 연동 bl=false 처리)을 검증하고 개선 과제를 수행하라.\n\n[필수 수행 과제]\n1. 현재 구현 확인: newbiz-core.js의 gazeStabilizer가 confirmed 배열을 반환하는 구조와 condition.html에서 context.trial.samples의 bl 값을 재설정하는 방식을 정적 분석하라.\n2. 데이터셋 연동 평가: dataset 내 저장된 실측 시선 측정 세션 메모 및 좌표 데이터를 연동하라. 없는 수치나 실측 결과를 절대로 만들어내지 마라.\n3. 부분 유효 신호 활용 및 오차 동시 평가: 복원된 보류 표본으로 인한 신호 활용률 증가분(복원 표본 비율)과 복원 표본 포함 시의 시선 위치 오차(RMSE, 도 단위) 및 사카드 잠복기 측정 변화를 비교 평가하라.\n4. 분모 명시: 전체 시도 수, 실패한 시도 수, 전체 프레임 수, 보류 표본 수 및 복원 표본 수를 분모로 하는 통계를 참가자, 기기, 날짜별로 분리하여 산출하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: 보류 복원을 통해 사카드 시작 시점 식별 지연이 감소하면서도 고정(fixation) 구간의 시선 좌표 RMSE 오차가 기존 대비 악화되지 않을 것.\n- 회귀 기준: 보류 복원으로 인해 고립 노이즈/튐 표본이 복원되어 노이즈 지표(S2S RMS)가 15% 이상 증가하거나 시선 좌표 오차가 악화되는 경우.\n\n[결과 보고 양식]\n- 분석 대상 파일 및 메서드 범위\n- dataset 연동 세션 정보 (참가자 ID, 기기 종류, 측정 일자별 분모)\n- 복원 전/후 표본 활용률 및 시선 좌표 오차 비교표 (수치는 dataset 기반 실측 결과만 명시)\n- 회귀 발생 여부 및 향후 조건부 제외 기준 제안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\nDataset-Task: evo-35e0dee68591-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-35e0dee68591-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "PVT 자극 색상 대비 변경 및 rAF 콜백 타임스탬프 보정의 반응시간 유효성 검증",
+          "rationale": "condition.html 및 newbiz-battery.js 변경에서 PVT 자극을 연회색/붉은색에서 검은 바탕/흰 글씨(#0B0D12/#FFFFFF)로 바꾸고, nextFrame()의 onset 기록을 rAF 콜백 내부 now() 실행 시각으로 변경했다. 개발자는 대비 증가를 통해 반응시간 30~50ms 섞임을 방지하고 cbLagMs 기록을 통해 메인 스레드 부하 지연을 보정한다고 주장하나, 이는 개발자 가설 및 모사 테스트 주장에 불과하다. 시각 자극 대비 변경이 반응시간 측정에 미치는 영향과 rAF 타임스탬프 보정의 정확도를 실측 telemetry 데이터셋 기반으로 검증해야 한다.",
+          "validationPlan": "1. 데이터셋 연동: dataset 내 S.telemetry.stimuli 로그 및 PVT 검사 수행 기록을 연결하여 검증한다. 실측 정답 수치를 임의로 창작하지 않는다.\n2. 평가 분모: 검사 세션 수, 세션당 자극 제시 횟수, 메인 스레드 점유로 인한 지연 발생 프레임 수, 미응답/오반응 실패 시도를 분모로 설정한다.\n3. 조건별 지표: 참가자/기기/날짜별 환경에서 legacyOnset 대비 onset 차이(cbLagMs) 분포, PVT 1.4(구 대비) 대비 PVT 1.5(신 대비)에서의 반응시간 중앙값 및 변동성(SD) 비교.\n4. 회귀 및 제외 기준: cbLagMs 보정 시 시계 역전 현상이 발생하거나 자극 제시 타임스탬프 누락율이 증가하는 경우 해당 타임스탬프 산출 방식을 제외/보완한다.",
+          "prompt": "현재 코드(condition.html, newbiz-battery.js)의 PVT 시각 대비 변경(#0B0D12/#FFFFFF) 및 nextFrame() 자극 onset 타임스탬프 보정 로직을 검증하는 과제를 수행하라.\n\n[필수 수행 과제]\n1. 코드 분석: condition.html의 nextFrame() 구현에서 requested, onset, legacyOnset, cbLagMs 산출 방식과 condition.html/newbiz-battery.js의 PVT 자극 색상 제어를 확인하라.\n2. dataset 연동: dataset에 누적된 자극 텔레메트리(telemetry.stimuli) 및 PVT 반응시간 세션 기록을 연동하라. 실측 수치를 절대 만들어내지 말 것.\n3. 활용량 및 오차 평가: 메인 스레드 부하 상황(cbLagMs > 0)에서 onset 보정 적용에 따른 타임스탬프 오차 변화와, PVT 대비 변경 전후 반응시간 분포의 유효 변화를 함께 평가하라.\n4. 평가 분모: 전체 자극 제시 횟수, 지연 발생 횟수, 무효/실패 시도를 포함한 분모를 참가자/기기/날짜별로 분리하여 제시하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: cbLagMs 보정을 통해 메인 스레드 부하 시의 자극 오버헤드 측정 오차가 정량적으로 보정되고, 자극 타임스탬프 일관성이 확보될 것.\n- 회귀 기준: 타임스탬프 계산에서 음수 지연이 발생하거나 자극 제시 시점과 입력 이벤트 간 시계 불일치가 유발되는 경우.\n\n[결과 보고 양식]\n- 관측된 타임스탬프 및 UI 변경 분석 요약\n- dataset 연동 평가 세션 및 분모 내역 (참가자/기기/날짜 구분)\n- onset vs legacyOnset 타임스탬프 오차 및 cbLagMs 분포 분석 (실측 dataset 기반)\n- PVT 버전 간 반응시간 측정 유효성 평가 및 검증 결과 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\nDataset-Task: evo-35e0dee68591-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
           "id": "evo-35e0dee68591-pulse",
           "domain": "pulse",
           "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
@@ -2226,30 +2307,10 @@
           "prompt": "NeuroLens 알고리즘 후속 과제 evo-35e0dee68591-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\n변경 제목: Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자\n관련 파일: condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-35e0dee68591-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
           "generator": "rule",
           "state": "proposed"
-        },
-        {
-          "id": "evo-35e0dee68591-gaze",
-          "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-35e0dee68591-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\n변경 제목: Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자\n관련 파일: condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-35e0dee68591-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
-          "id": "evo-35e0dee68591-measurement",
-          "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-35e0dee68591-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\n변경 제목: Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자\n관련 파일: condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-35e0dee68591-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisState": "generated",
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-55950406067",
@@ -2281,9 +2342,104 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-09T04:28:30.681582+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-11T08:54:46.993688+00:00",
+      "analysis": {
+        "summary": "관측된 코드 변경 내역:\n1. condition.html: PVT(피로·반응시간 검사) 상자 배경 및 글자색을 #EFF1F5/#B83A49에서 검은 바탕·흰 글자(#0B0D12/#FFFFFF, 대비 19:1)로 변경하고 SVG 예시를 수정함. 자극 프레임 표기 함수 nextFrame()에서 onset 시각을 rAF 콜백 내부 now() 시각으로 변경하고 legacyOnset, cbLagMs를 텔레메트리에 추가함. st.confirmed 발생 시 trial.samples 내 보류 표본의 bl(exclusion flag)을 false로 되살리는 로직을 추가함.\n2. newbiz-battery.js: VERSION을 'In_mind battery 1.5'로 올리고 PVT 색상 변경에 따라 이전 버전(1.4 이하)과의 반응시간 직접 비교를 금지하는 주석을 명시함.\n3. newbiz-core.js: VERSION을 'In_mind core 2.4'로 올리고 gazeStabilizer에서 확정된 큰 이동에 대해 보류되었던 표본 시각 배열(confirmed)을 반환하도록 로직 개편.\n4. newbiz-core.test.js: gazeStabilizer의 confirmed 반환 및 고립된 튐 보류 동작에 대한 단위 테스트 추가.\n\n파일 트렁크(생략) 여부: filesTruncated=false, patchTruncated=false로 제공된 패치 범위 전체가 근거로 사용됨.\n\n미검증 영향 및 개발 주장의 한계:\n- 본 커밋의 accuracyValidated 필드는 false이며, 커밋 메시지 및 코드 주석에 언급된 'PVT 반응시간 30~50ms 섞임 방지', '사카드 잠복기 +28~47ms 편향 제거', '부하 55ms에서 반응시간 편향 15->6ms 감소' 등은 개발자의 가설 및 모사 부하/단위 테스트 수준의 주장에 불과함.\n- 보류 표본 복원이 실제 웹캠 환경의 눈꺼풀/홍채 추적 노이즈를 포함할 때 발생하는 시선 좌표 오차 부작용과, PVT 시각 대비 변경이 실제 인체 반응시간 분포에 미치는 정량적 영향은 검증된 정답 수치가 아니며 실측 dataset 연동 평가가 필수적임.",
+        "tasks": [
+          {
+            "id": "evo-35e0dee68591-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 안정화기 보류 표본 복원 로직의 신호 활용률 및 사카드 잠복기 편향 검증",
+            "rationale": "newbiz-core.js 및 condition.html 변경을 통해 큰 시선 이동 확정 시 이전 보류 표본(bl=true)을 bl=false로 복원하는 기능이 추가되었다. 개발자는 이를 통해 사카드 및 자유 보기의 1프레임 지연 편향을 제거한다고 주장하나, 이는 단위 테스트(newbiz-core.test.js) 수준에서 확인된 개발자 가설이다. 보류 표본을 되살릴 때 고립 노이즈 표본이 오복원될 가능성이 있으므로, 약한 신호 활용량 증가와 측정 오차(degree) 증가 간의 상충 관계를 실측 데이터셋과 연결하여 평가해야 한다.",
+            "validationPlan": "1. 데이터셋 연동: dataset 내 실제 사용자 세션(참가자/기기/날짜별 분리)의 시선 추적 기록과 정답 메모를 연동하여 평가한다. 없는 수치를 임의로 작성하지 않는다.\n2. 평가 분모: 전체 프레임 수, 보류 처리된 표본 수, 복원된 표본 수, 실패 시도를 명확히 포함한다.\n3. 조건별 지표: 복원 전(core 2.3) vs 복원 후(core 2.4)의 표본 활용률(bl=false 비율), 사카드 잠복기 추정값, 고정/이동 구간의 시선 좌표 오차(RMSE, 도 단위)를 측정한다.\n4. 회귀 및 제외 기준: 보류 복원 후 고립 튐 오복원으로 고정 구간 RMS 노이즈가 15% 이상 증가하거나 시선 좌표 오차가 유의미하게 악화될 경우 복원 로직 대상에서 제외 조건으로 설정한다.",
+            "prompt": "현재 코드(newbiz-core.js, condition.html, newbiz-core.test.js)에 반영된 gazeStabilizer 확정 보류 표본 복원 로직(st.confirmed 연동 bl=false 처리)을 검증하고 개선 과제를 수행하라.\n\n[필수 수행 과제]\n1. 현재 구현 확인: newbiz-core.js의 gazeStabilizer가 confirmed 배열을 반환하는 구조와 condition.html에서 context.trial.samples의 bl 값을 재설정하는 방식을 정적 분석하라.\n2. 데이터셋 연동 평가: dataset 내 저장된 실측 시선 측정 세션 메모 및 좌표 데이터를 연동하라. 없는 수치나 실측 결과를 절대로 만들어내지 마라.\n3. 부분 유효 신호 활용 및 오차 동시 평가: 복원된 보류 표본으로 인한 신호 활용률 증가분(복원 표본 비율)과 복원 표본 포함 시의 시선 위치 오차(RMSE, 도 단위) 및 사카드 잠복기 측정 변화를 비교 평가하라.\n4. 분모 명시: 전체 시도 수, 실패한 시도 수, 전체 프레임 수, 보류 표본 수 및 복원 표본 수를 분모로 하는 통계를 참가자, 기기, 날짜별로 분리하여 산출하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: 보류 복원을 통해 사카드 시작 시점 식별 지연이 감소하면서도 고정(fixation) 구간의 시선 좌표 RMSE 오차가 기존 대비 악화되지 않을 것.\n- 회귀 기준: 보류 복원으로 인해 고립 노이즈/튐 표본이 복원되어 노이즈 지표(S2S RMS)가 15% 이상 증가하거나 시선 좌표 오차가 악화되는 경우.\n\n[결과 보고 양식]\n- 분석 대상 파일 및 메서드 범위\n- dataset 연동 세션 정보 (참가자 ID, 기기 종류, 측정 일자별 분모)\n- 복원 전/후 표본 활용률 및 시선 좌표 오차 비교표 (수치는 dataset 기반 실측 결과만 명시)\n- 회귀 발생 여부 및 향후 조건부 제외 기준 제안\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\nDataset-Task: evo-35e0dee68591-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-35e0dee68591-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "PVT 자극 색상 대비 변경 및 rAF 콜백 타임스탬프 보정의 반응시간 유효성 검증",
+            "rationale": "condition.html 및 newbiz-battery.js 변경에서 PVT 자극을 연회색/붉은색에서 검은 바탕/흰 글씨(#0B0D12/#FFFFFF)로 바꾸고, nextFrame()의 onset 기록을 rAF 콜백 내부 now() 실행 시각으로 변경했다. 개발자는 대비 증가를 통해 반응시간 30~50ms 섞임을 방지하고 cbLagMs 기록을 통해 메인 스레드 부하 지연을 보정한다고 주장하나, 이는 개발자 가설 및 모사 테스트 주장에 불과하다. 시각 자극 대비 변경이 반응시간 측정에 미치는 영향과 rAF 타임스탬프 보정의 정확도를 실측 telemetry 데이터셋 기반으로 검증해야 한다.",
+            "validationPlan": "1. 데이터셋 연동: dataset 내 S.telemetry.stimuli 로그 및 PVT 검사 수행 기록을 연결하여 검증한다. 실측 정답 수치를 임의로 창작하지 않는다.\n2. 평가 분모: 검사 세션 수, 세션당 자극 제시 횟수, 메인 스레드 점유로 인한 지연 발생 프레임 수, 미응답/오반응 실패 시도를 분모로 설정한다.\n3. 조건별 지표: 참가자/기기/날짜별 환경에서 legacyOnset 대비 onset 차이(cbLagMs) 분포, PVT 1.4(구 대비) 대비 PVT 1.5(신 대비)에서의 반응시간 중앙값 및 변동성(SD) 비교.\n4. 회귀 및 제외 기준: cbLagMs 보정 시 시계 역전 현상이 발생하거나 자극 제시 타임스탬프 누락율이 증가하는 경우 해당 타임스탬프 산출 방식을 제외/보완한다.",
+            "prompt": "현재 코드(condition.html, newbiz-battery.js)의 PVT 시각 대비 변경(#0B0D12/#FFFFFF) 및 nextFrame() 자극 onset 타임스탬프 보정 로직을 검증하는 과제를 수행하라.\n\n[필수 수행 과제]\n1. 코드 분석: condition.html의 nextFrame() 구현에서 requested, onset, legacyOnset, cbLagMs 산출 방식과 condition.html/newbiz-battery.js의 PVT 자극 색상 제어를 확인하라.\n2. dataset 연동: dataset에 누적된 자극 텔레메트리(telemetry.stimuli) 및 PVT 반응시간 세션 기록을 연동하라. 실측 수치를 절대 만들어내지 말 것.\n3. 활용량 및 오차 평가: 메인 스레드 부하 상황(cbLagMs > 0)에서 onset 보정 적용에 따른 타임스탬프 오차 변화와, PVT 대비 변경 전후 반응시간 분포의 유효 변화를 함께 평가하라.\n4. 평가 분모: 전체 자극 제시 횟수, 지연 발생 횟수, 무효/실패 시도를 포함한 분모를 참가자/기기/날짜별로 분리하여 제시하라.\n\n[성공 및 회귀 기준]\n- 성공 기준: cbLagMs 보정을 통해 메인 스레드 부하 시의 자극 오버헤드 측정 오차가 정량적으로 보정되고, 자극 타임스탬프 일관성이 확보될 것.\n- 회귀 기준: 타임스탬프 계산에서 음수 지연이 발생하거나 자극 제시 시점과 입력 이벤트 간 시계 불일치가 유발되는 경우.\n\n[결과 보고 양식]\n- 관측된 타임스탬프 및 UI 변경 분석 요약\n- dataset 연동 평가 세션 및 분모 내역 (참가자/기기/날짜 구분)\n- onset vs legacyOnset 타임스탬프 오차 및 cbLagMs 분포 분석 (실측 dataset 기반)\n- PVT 버전 간 반응시간 측정 유효성 평가 및 검증 결과 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\nDataset-Task: evo-35e0dee68591-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-35e0dee68591-pulse",
+            "domain": "pulse",
+            "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
+            "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+            "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
+            "prompt": "NeuroLens 알고리즘 후속 과제 evo-35e0dee68591-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 35e0dee6859105e40d6a1c6a7d9770aa5caa4a78\n변경 제목: Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자\n관련 파일: condition.html, newbiz-battery.js, newbiz-core.js, newbiz-core.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-35e0dee68591-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+            "generator": "rule",
+            "state": "proposed"
+          }
+        ],
+        "evidenceHash": "b0d2be9e38658876ce52ae1f2f715a0f6f4a60694f69ab531aa675cc1e2494a8",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 7189,
+            "candidatesTokenCount": 2428,
+            "totalTokenCount": 15038
+          }
+        },
+        "generatedAt": "2026-10-11T08:55:28.217919+00:00",
+        "sourceSha": "35e0dee6859105e40d6a1c6a7d9770aa5caa4a78",
+        "sourceEvidence": {
+          "sha": "35e0dee6859105e40d6a1c6a7d9770aa5caa4a78",
+          "parents": [
+            "5a7369075539e5d9a98b7c11bae919a22d17c483"
+          ],
+          "committedAt": "2026-10-09T01:51:19Z",
+          "subject": "Core 2.4 / battery 1.5: 사카드 잠복기 보류 표본 편향 제거, 자극 onset 을 rAF 콜백 시각으로, PVT 검은 바탕·흰 숫자",
+          "url": "https://github.com/jeebs0627/neurolens/commit/35e0dee6859105e40d6a1c6a7d9770aa5caa4a78",
+          "files": [
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 6,
+              "deletions": 4
+            },
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 7,
+              "deletions": 1
+            },
+            {
+              "path": "newbiz-core.test.js",
+              "status": "modified",
+              "additions": 14,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -228,7 +228,7 @@\n @keyframes rngPop{from{transform:scale(.4);opacity:.2}to{transform:scale(1);opacity:1}}\n .sac-tgt{position:absolute;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 7px rgba(201,60,92,.15)}\n .pvt{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center}\n-.pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#B83A49;background:#EFF1F5}\n+.pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#FFFFFF;background:#0B0D12}   /* 검은 바탕·흰 숫자(대비 19:1): 연회색·붉은 숫자(4.9:1)는 개시 인식이 늦어 반응시간에 30~50ms 가 섞일 수 있음 — PVT 원판 기기처럼 어두운 바탕. 상자만 어둡게 해 얼굴 조명(심박·눈꺼풀)은 그대로 */\n .pvt-msg{height:26px;margin-top:14px;font-size:15px;color:#59647D}\n .sart{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-family:var(--font-num);font-weight:700;color:#2C3650;line-height:1;min-width:220px;text-align:center;contain:layout}\n .sart span{display:inline-block;font-size:var(--sart-max,120px);transform-origin:center;will-change:transform,opacity}\n@@ -1674,6 +1674,7 @@ <h2>결과를 정리하고 있어요</h2>\n     if (context.trial && context.trial === S.curTrial) {\n       const sample = {t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,px:pred.x,py:pred.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag};\n       context.trial.samples.push(sample);\n+      if (st && st.confirmed) { const ss = context.trial.samples; for (let i = ss.length - 2; i >= 0 && ss[i].t >= st.confirmed[0]; i--) if (st.confirmed.includes(ss[i].t)) ss[i].bl = false; }   // 확인된 이동의 보류 표본은 분석에 되살린다\n       const gm = S.gazeModel;\n       if (gm && gm.mode !== 'off' && fr.gazeOk && S.cur !== 'calibration') {\n         const W = stage.clientWidth || innerWidth, H = stage.clientHeight || innerHeight, base = gm.contract === 'replace-residual' ? gA : g0;\n@@ -1868,8 +1869,9 @@ <h2>결과를 정리하고 있어요</h2>\n function every(ms, fn) { const id = setInterval(fn, ms); const stop = () => clearInterval(id); S.cleanup.push(stop); return stop; }\n // rAF is a pre-paint onset estimate, not a photodiode measurement of physical display latency.\n /* rAF 타임스탬프는 그 프레임의 시작(vsync) 시각이라, 요청보다 앞설 수 있다(2026-10-08 실측: 자극의 26~91% · 최대 92ms 앞섬). 표시는 요청 뒤에만 일어나므로\n- * onset = max(rAF, 요청 시각) 으로 쓰고 원래 rAF 값은 rafTs 로 보존한다(반응시간·사카드 잠복기가 그만큼 부풀지 않게) */\n-const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(rafTs=>{const onset=Math.max(rafTs,requested);S.telemetry?.stimuli.push({key:S.cur,requested,onset,rafTs,clamped:rafTs<requested});r(onset);})); };\n+ * 2026-10-09: onset = rAF 콜백이 실제로 실행된 시각. 그리기는 콜백 뒤에만 일어나므로 이 값은 실제 표시보다 늦을 수 없고 max(rAF, 요청)보다 항상 참값에 가깝다.\n+ * 얼굴 추론이 메인 스레드를 점유하면 콜백이 vsync 보다 최대 한 추론 길이만큼 늦게 돈다(모사 부하 55ms: 반응시간 편향 중앙 15→6ms, 최대 71→16ms). 이전 값은 legacyOnset 으로 보존 */\n+const nextFrame = () => { const requested=now(); return new Promise(r=>requestAnimationFrame(rafTs=>{const onset=now(),legacyOnset=Math.max(rafTs,requested);S.telemetry?.stimuli.push({key:S.cur,requested,onset,legacyOnset,rafTs,clamped:rafTs<requested,cbLagMs:Math.round((onset-legacyOnset)*10)/10});r(onset);})); };\n /* 입력 이벤트: 시각(event.timeStamp, performance.now 와 같은 시계)·dispatch 지연·종류. 포인터 이벤트는 client 좌표를 함께 남긴다 —\n  * 일반 검사 중의 클릭 좌표는 provenance 를 보존한 weak 기록(free_click_weak)일 뿐이며 시선 정답으로 쓰지 않는다 */\n function recordInput(e){const t=e.timeStamp,dispatch=now()-t;const row={key:S.cur,t,dispatchMs:dispatch>=0&&dispatch<60000?dispatch:null,type:e.type};\n@@ -2038,7 +2040,7 @@ <h2>결과를 정리하고 있어요</h2>\n   pro: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><circle cx=\"150\" cy=\"85\" r=\"7\" fill=\"#59647D\"/><circle class=\"a-blink\" cx=\"252\" cy=\"85\" r=\"11\" fill=\"#C93C5C\"/><path d=\"M162 85 H232\" stroke=\"#1F4FD8\" stroke-width=\"3.5\" marker-end=\"url(#ah1)\"/><defs><marker id=\"ah1\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"5\" markerHeight=\"5\" orient=\"auto\"><path d=\"M0 0L10 5L0 10z\" fill=\"#1F4FD8\"/></marker></defs><text x=\"252\" y=\"122\" text-anchor=\"middle\" font-size=\"13\" fill=\"#1F4FD8\" font-weight=\"700\">점을 보기</text></svg>',\n   anti: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><circle cx=\"150\" cy=\"85\" r=\"7\" fill=\"#59647D\"/><circle class=\"a-blink\" cx=\"252\" cy=\"85\" r=\"11\" fill=\"#C93C5C\"/><circle cx=\"48\" cy=\"85\" r=\"11\" fill=\"none\" stroke=\"#1F4FD8\" stroke-width=\"2.5\" stroke-dasharray=\"4 4\"/><path d=\"M138 85 H68\" stroke=\"#1F4FD8\" stroke-width=\"3.5\" marker-end=\"url(#ah2)\"/><defs><marker id=\"ah2\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"5\" markerHeight=\"5\" orient=\"auto\"><path d=\"M0 0L10 5L0 10z\" fill=\"#1F4FD8\"/></marker></defs><text x=\"48\" y=\"122\" text-anchor=\"middle\" font-size=\"13\" fill=\"#1F4FD8\" font-weight=\"700\">반대쪽 보기</text></svg>',\n   fv: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><rect x=\"24\" y=\"44\" width=\"110\" height=\"82\" rx=\"6\" fill=\"#C9CFDA\"/><rect x=\"166\" y=\"44\" width=\"110\" height=\"82\" rx=\"6\" fill=\"#C9CFDA\"/><circle cx=\"79\" cy=\"78\" r=\"16\" fill=\"#AEB6C6\"/><path d=\"M58 112 Q79 96 100 112\" fill=\"#AEB6C6\"/><path d=\"M186 112 L210 82 L232 104 L246 92 L262 112z\" fill=\"#AEB6C6\"/></svg>',\n-  pvt: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><rect x=\"90\" y=\"50\" width=\"120\" height=\"66\" rx=\"12\" fill=\"#EFF1F5\" stroke=\"#A9B2C5\" stroke-width=\"2\"/><text class=\"a-blink\" x=\"150\" y=\"96\" text-anchor=\"middle\" font-size=\"30\" font-weight=\"700\" fill=\"#B83A49\" font-family=\"Sora\">247</text><text x=\"150\" y=\"146\" text-anchor=\"middle\" font-size=\"12\" fill=\"#66728A\">숫자가 보이면 바로 스페이스바</text></svg>',\n+  pvt: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><rect x=\"90\" y=\"50\" width=\"120\" height=\"66\" rx=\"12\" fill=\"#0B0D12\" stroke=\"#A9B2C5\" stroke-width=\"2\"/><text class=\"a-blink\" x=\"150\" y=\"96\" text-anchor=\"middle\" font-size=\"30\" font-weight=\"700\" fill=\"#FFFFFF\" font-family=\"Sora\">247</text><text x=\"150\" y=\"146\" text-anchor=\"middle\" font-size=\"12\" fill=\"#66728A\">숫자가 보이면 바로 스페이스바</text></svg>',\n   sart: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/>' + [['7', 60, 1, 34], ['2', 120, 1, 24], ['3', 180, 0, 40], ['9', 240, 1, 28]].map(([d, x, k, fz]) => `<text x=\"${x}\" y=\"92\" text-anchor=\"middle\" font-size=\"${fz}\" font-weight=\"700\" fill=\"#2C3650\" font-family=\"Sora\">${d}</text><text x=\"${x}\" y=\"128\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"${k ? '#1F4FD8' : '#C93C5C'}\">${k ? '누름' : '멈춤'}</text>`).join('') + '</svg>',\n   math: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><text x=\"150\" y=\"58\" text-anchor=\"middle\" font-size=\"24\" font-weight=\"700\" fill=\"#2C3650\" font-family=\"Sora\">47 − 39 + 1 = ?</text><rect x=\"24\" y=\"72\" width=\"252\" height=\"5\" rx=\"2.5\" fill=\"#D3D9E5\"/><rect class=\"a-shrink\" x=\"24\" y=\"72\" width=\"252\" height=\"5\" rx=\"2.5\" fill=\"#7D879E\"/>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((v, i) => `<rect x=\"${24 + i * 25.4}\" y=\"92\" width=\"21\" height=\"30\" rx=\"6\" fill=\"${v === 1 ? '#DCE1EA' : '#F2F4F8'}\" stroke=\"${v === 1 ? '#5D6E94' : '#C9D0DD'}\"/><text x=\"${34.5 + i * 25.4}\" y=\"113\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"700\" fill=\"#2C3650\" font-family=\"Sora\">${v}</text>`).join('') + '<rect x=\"24\" y=\"138\" width=\"252\" height=\"7\" rx=\"3.5\" fill=\"#D9DEE7\"/><rect x=\"24\" y=\"138\" width=\"150\" height=\"7\" rx=\"3.5\" fill=\"#7D879E\"/><rect x=\"224\" y=\"134\" width=\"2\" height=\"15\" fill=\"#3A4560\"/><text x=\"225\" y=\"160\" text-anchor=\"middle\" font-size=\"10\" fill=\"#3A4560\" font-weight=\"700\">목표 80%</text></svg>',\n   breath: '<svg viewBox=\"0 0 300 170\"><rect x=\"6\" y=\"6\" width=\"288\" height=\"158\" rx=\"10\" fill=\"#E3E7EE\"/><circle cx=\"110\" cy=\"85\" r=\"58\" fill=\"none\" stroke=\"#D3D9E5\" stroke-width=\"5\"/><circle class=\"a-grow\" cx=\"110\" cy=\"85\" r=\"46\" fill=\"rgba(127,163,184,.2)\" stroke=\"#7FA3B8\" stroke-width=\"3\"/><text x=\"110\" y=\"90\" text-anchor=\"middle\" font-size=\"14\" font-weight=\"700\" fill=\"#3A4560\">들숨 5초</text><path d=\"M188 110 C204 110 210 60 226 60 S248 110 264 110\" fill=\"none\" stroke=\"#7FA3B8\" stroke-width=\"2.5\"/><text x=\"226\" y=\"138\" text-anchor=\"middle\" font-size=\"11\" fill=\"#66728A\">분당 6회 · 0.1Hz</text></svg>',\nFILE newbiz-battery.js\n@@ -19,7 +19,7 @@\n })(typeof window !== 'undefined' ? window : null, function (N) {\n   'use strict';\n \n-  const VERSION = 'In_mind battery 1.4';   // 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n+  const VERSION = 'In_mind battery 1.5';   // 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제\n   const finite = v => typeof v === 'number' && Number.isFinite(v);\n   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\n   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;\nFILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 2.3';   // 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n+  const VERSION = 'In_mind core 2.4';   // 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -711,7 +711,13 @@\n           pend = pend.filter(q => t - q.t <= SPAN); pend.push(p);\n           const ok = pend.length >= 2 && pend.every(q => dist(q, p) <= CONF);\n           if (!ok) return { x: stable.x, y: stable.y, t, held: true };\n+          /* confirmed: 보류했다가 진짜 이동으로 확인된 앞 표본 시각 — 기록 측이 분석 제외(bl)를 되돌린다.\n+           * 되돌리지 않으면 사카드 착지 첫 표본이 빠져 잠복기가 1프레임 쪽으로 늦게 보간된다(합성 +28~47ms) */\n+          const confirmed = pend.slice(0, -1).map(q => q.t);\n           win = pend.slice(); pend = [];\n+          win = win.filter(q => t - q.t <= SPAN).slice(-N);\n+          stable = { x: median(win.map(q => q.x)), y: median(win.map(q => q.y)), t };\n+          return { ...stable, held: false, confirmed };\n         } else { pend = []; win.push(p); }\n         win = win.filter(q => t - q.t <= SPAN).slice(-N);\n         stable = { x: median(win.map(q => q.x)), y: median(win.map(q => q.y)), t };\nFILE newbiz-core.test.js\n@@ -327,3 +327,17 @@ console.log('newbiz-core tests passed');\n   assert.ok(e.coverage > 0.8 && Math.abs(e.bpm - 80) < 3, `dropped frames: coverage ${e.coverage} bpm ${e.bpm}`);\n   console.log('PASS frame drops: short gaps (≤150ms) kept as measured pulse');\n }\n+\n+/* 시선 안정화: 큰 이동은 다음 표본이 확인할 때까지 보류하되, 확인되면 보류 표본 시각을 돌려준다(분석에서 되살림 — 사카드 잠복기 1프레임 편향 방지).\n+ * 확인되지 않은 한 프레임 튐은 계속 보류로 남는다 */\n+{\n+  const st = N.gazeStabilizer({ W: 1440, H: 900 });\n+  [0, 66, 133].forEach(t => st.push({ x: 720, y: 450 }, t));\n+  assert.equal(st.push({ x: 1220, y: 450 }, 200).held, true);\n+  const r = st.push({ x: 1225, y: 452 }, 266);\n+  assert.equal(r.held, false); assert.deepEqual(r.confirmed, [200]); assert.ok(r.x > 1200);\n+  assert.equal(st.push({ x: 300, y: 450 }, 333).held, true);           // 고립된 튐\n+  const back = st.push({ x: 1222, y: 451 }, 400);\n+  assert.equal(back.held, false); assert.equal(back.confirmed, undefined);\n+  console.log('PASS gaze stabilizer: confirmed jumps return held sample times, isolated spikes stay held');\n+}",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38126450983"
+      }
     },
     {
       "sha": "3a580aafd197f0635e06e0e9b613572b8046a58c",
@@ -2983,16 +3139,16 @@
         {
           "id": "evo-99903b247265-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-99903b247265-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 99903b247265c02df0428a74db8d1474f5b7f128\n변경 제목: shadow 정책 예외 배포: MLP 잔차 모델(gaze-residual-a05c5d16-mlp-shadowx) registry.shadow 등록 · 모델 클라이언트 스코프 결함 수정\n관련 파일: COLAB_TRAINING_RUNBOOK.md, condition-gaze-model.js, dataset-engine-log.json, model-registry.json, models/gaze/gaze-residual-a05c5d16-mlp-shadowx/MODEL_CARD.md, models/gaze/gaze-residual-a05c5d16-mlp-shadowx/manifest.json, models/gaze/gaze-residual-a05c5d16-mlp-shadowx/model.onnx, tools/colab/nlcolab/cli.py, tools/colab/nlcolab/pipeline.py, tools/colab/nlcolab/release.py, training-ledger.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-99903b247265-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "웹캠 시선 추적 잔차 모델(gaze-residual-a05c5d16-mlp-shadowx)의 회귀 평가 및 약한 신호 활용률-오차 검증",
+          "rationale": "소스 변경 결과 model-registry.json 및 condition-gaze-model.js 등에 MLP 잔차 모델 관련 예외 배포가 반영되었으나, accuracyValidated가 false이며 diff 패치가 생략(patchExcerpt 빈 값)되어 있어 실제 오차 개선 여부는 미검증 상태입니다. 커밋 메세지의 결함 수정 및 잔차 예측 성능 주장은 연구자 가설로 분류하며, 일상 웹캠의 제한된 환경에서 조도 변화나 두부 변위 등 저품질 신호 입력 시 오차가 악화되는 회귀 현상이 없는지 분석해야 합니다.",
+          "validationPlan": "1. dataset에 기록된 관측 데이터 및 연구자 메모를 연계하여 평가 대상 분모(전체 시도 수, 실패 세션 포함)를 설정합니다.\n2. 참가자, 기기 종류, 촬영 날짜별로 평가 단위를 분리하고, 조도 및 두부 자세 조건별 약한 신호의 활용률(Coverage)과 오차(Error), 불확실성을 측정합니다.\n3. 정상값을 임의 생성해 채우는 방식을 금지하고, 허용 오차 범위를 벗어난 데이터의 제외 기준을 명확히 정의합니다.\n4. 기존 기준 모델 대비 shadow 모델의 조건별 오차 회귀 여부와 불확실성 구간을 비교하여 보고서 형태로 정리합니다.",
+          "prompt": "다음 요구사항에 따라 gaze-residual-a05c5d16-mlp-shadowx 모델 도입에 따른 후속 개발 및 검증 과제를 수행하시오.\n\n1. 코드 및 환경 확인:\n   - condition-gaze-model.js, model-registry.json, tools/colab/nlcolab/ 파이프라인의 현재 구현 상태를 확인하시오.\n   - models/gaze/gaze-residual-a05c5d16-mlp-shadowx/MODEL_CARD.md 및 manifest.json에 명시된 모델 구조와 설정값을 파악하시오.\n\n2. 약한 신호 활용 및 오차 평가 개발 과제:\n   - 저조도, 광원 치우침, 고개 기울임 등 일상 웹캠의 약한 신호 환경에서 신호 폐기율을 무조건 높이지 않고, 근거가 있는 유효 신호의 활용량(전체 시도 대비 측정 성공 비율)을 향상시키는 평가 로직을 작성하시오.\n   - 가공의 정상값을 임의로 만들어 채우는 interpolation이나 단편적 약한 신호 전량 폐기 방식을 지양하고, 불확실성 산출 및 제외 기준을 함께 평가 체계에 포함하시오.\n\n3. 검증 및 성과 기준 (성공/회귀 판단 기준):\n   - 평가 시 실패 시도를 포함한 전체 시도 건수를 분모로 명시하시오.\n   - 참가자, 기기 사양, 측정 날짜별로 분리 평가를 실시하고, 조건별 활용률과 오차 변화를 동시 기록하시오.\n   - 기존 모델 대비 오차가 비정상적으로 증가하는 구역(회귀)이 발생하는지 파악하고 평가 결과를 정량화하시오.\n   - 실측 성능 수치를 임의 작성하지 말고 dataset의 실측 메모 및 평가 로그와 연계하여 결과를 추출하시오.\n\n4. 결과 보고 양식:\n   - [관측 사실]: 파일 변경 및 설정 확인 내역\n   - [가설 및 연구자 주장 검증]: 커밋 내역 주장에 대한 실제 실측 데이터셋 연계 검증 결과\n   - [분석 결과]: 실패 분모 포함 활용률-오차 표, 참가자/기기/날짜별 불확실성 평가\n   - [향후 조치]: shadow 배포 유지/수정/롤백 판단 및 후속 알고리즘 개선 방향\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 99903b247265c02df0428a74db8d1474f5b7f128\nDataset-Task: evo-99903b247265-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisState": "generated",
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-55856060718",
@@ -3024,9 +3180,124 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-08T23:59:08.296601+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-11T08:55:28.224670+00:00",
+      "analysis": {
+        "summary": "커밋 99903b247265c02df0428a74db8d1474f5b7f128에서는 gaze-residual-a05c5d16-mlp-shadowx 잔차 모델의 shadow 등록, ONNX 모델 파일 및 모델 카드 추가, condition-gaze-model.js 및 Colab 파이프라인 수정을 포함한 11개 파일의 변경이 관측되었습니다. 커밋 제목은 'MLP 잔차 모델 shadow 등록 및 스코프 결함 수정'을 제시하지만, 해당 커밋의 accuracyValidated 항목이 false로 지정되어 있고 패치 본문(patchExcerpt)이 제공되지 않은 생략 상태이므로 변경된 구체적 로직과 알고리즘적 영향은 검증되지 않았습니다. 커밋 제목의 주장을 검증된 성능 향상으로 취급할 수 없으므로, 약한 신호 수용 시의 오차 변화, 회귀 가능성, 기기/환경별 측정 성공률을 실측 데이터셋과 연계하여 독립적으로 검증하는 후속 과제가 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-99903b247265-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "웹캠 시선 추적 잔차 모델(gaze-residual-a05c5d16-mlp-shadowx)의 회귀 평가 및 약한 신호 활용률-오차 검증",
+            "rationale": "소스 변경 결과 model-registry.json 및 condition-gaze-model.js 등에 MLP 잔차 모델 관련 예외 배포가 반영되었으나, accuracyValidated가 false이며 diff 패치가 생략(patchExcerpt 빈 값)되어 있어 실제 오차 개선 여부는 미검증 상태입니다. 커밋 메세지의 결함 수정 및 잔차 예측 성능 주장은 연구자 가설로 분류하며, 일상 웹캠의 제한된 환경에서 조도 변화나 두부 변위 등 저품질 신호 입력 시 오차가 악화되는 회귀 현상이 없는지 분석해야 합니다.",
+            "validationPlan": "1. dataset에 기록된 관측 데이터 및 연구자 메모를 연계하여 평가 대상 분모(전체 시도 수, 실패 세션 포함)를 설정합니다.\n2. 참가자, 기기 종류, 촬영 날짜별로 평가 단위를 분리하고, 조도 및 두부 자세 조건별 약한 신호의 활용률(Coverage)과 오차(Error), 불확실성을 측정합니다.\n3. 정상값을 임의 생성해 채우는 방식을 금지하고, 허용 오차 범위를 벗어난 데이터의 제외 기준을 명확히 정의합니다.\n4. 기존 기준 모델 대비 shadow 모델의 조건별 오차 회귀 여부와 불확실성 구간을 비교하여 보고서 형태로 정리합니다.",
+            "prompt": "다음 요구사항에 따라 gaze-residual-a05c5d16-mlp-shadowx 모델 도입에 따른 후속 개발 및 검증 과제를 수행하시오.\n\n1. 코드 및 환경 확인:\n   - condition-gaze-model.js, model-registry.json, tools/colab/nlcolab/ 파이프라인의 현재 구현 상태를 확인하시오.\n   - models/gaze/gaze-residual-a05c5d16-mlp-shadowx/MODEL_CARD.md 및 manifest.json에 명시된 모델 구조와 설정값을 파악하시오.\n\n2. 약한 신호 활용 및 오차 평가 개발 과제:\n   - 저조도, 광원 치우침, 고개 기울임 등 일상 웹캠의 약한 신호 환경에서 신호 폐기율을 무조건 높이지 않고, 근거가 있는 유효 신호의 활용량(전체 시도 대비 측정 성공 비율)을 향상시키는 평가 로직을 작성하시오.\n   - 가공의 정상값을 임의로 만들어 채우는 interpolation이나 단편적 약한 신호 전량 폐기 방식을 지양하고, 불확실성 산출 및 제외 기준을 함께 평가 체계에 포함하시오.\n\n3. 검증 및 성과 기준 (성공/회귀 판단 기준):\n   - 평가 시 실패 시도를 포함한 전체 시도 건수를 분모로 명시하시오.\n   - 참가자, 기기 사양, 측정 날짜별로 분리 평가를 실시하고, 조건별 활용률과 오차 변화를 동시 기록하시오.\n   - 기존 모델 대비 오차가 비정상적으로 증가하는 구역(회귀)이 발생하는지 파악하고 평가 결과를 정량화하시오.\n   - 실측 성능 수치를 임의 작성하지 말고 dataset의 실측 메모 및 평가 로그와 연계하여 결과를 추출하시오.\n\n4. 결과 보고 양식:\n   - [관측 사실]: 파일 변경 및 설정 확인 내역\n   - [가설 및 연구자 주장 검증]: 커밋 내역 주장에 대한 실제 실측 데이터셋 연계 검증 결과\n   - [분석 결과]: 실패 분모 포함 활용률-오차 표, 참가자/기기/날짜별 불확실성 평가\n   - [향후 조치]: shadow 배포 유지/수정/롤백 판단 및 후속 알고리즘 개선 방향\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 99903b247265c02df0428a74db8d1474f5b7f128\nDataset-Task: evo-99903b247265-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "b4dbeb1b2959edc53887668347652fa6e5028ea1139dc57a43752e24f79764c6",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 1178,
+            "candidatesTokenCount": 1177,
+            "totalTokenCount": 3861
+          }
+        },
+        "generatedAt": "2026-10-11T08:55:44.339834+00:00",
+        "sourceSha": "99903b247265c02df0428a74db8d1474f5b7f128",
+        "sourceEvidence": {
+          "sha": "99903b247265c02df0428a74db8d1474f5b7f128",
+          "parents": [
+            "a51e5ae5825562e0781acbeb596cd5eef26f117a"
+          ],
+          "committedAt": "2026-10-08T02:47:10Z",
+          "subject": "shadow 정책 예외 배포: MLP 잔차 모델(gaze-residual-a05c5d16-mlp-shadowx) registry.shadow 등록 · 모델 클라이언트 스코프 결함 수정",
+          "url": "https://github.com/jeebs0627/neurolens/commit/99903b247265c02df0428a74db8d1474f5b7f128",
+          "files": [
+            {
+              "path": "COLAB_TRAINING_RUNBOOK.md",
+              "status": "modified",
+              "additions": 9,
+              "deletions": 0
+            },
+            {
+              "path": "condition-gaze-model.js",
+              "status": "modified",
+              "additions": 7,
+              "deletions": 4
+            },
+            {
+              "path": "dataset-engine-log.json",
+              "status": "modified",
+              "additions": 8,
+              "deletions": 0
+            },
+            {
+              "path": "model-registry.json",
+              "status": "modified",
+              "additions": 39,
+              "deletions": 3
+            },
+            {
+              "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/MODEL_CARD.md",
+              "status": "added",
+              "additions": 151,
+              "deletions": 0
+            },
+            {
+              "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/manifest.json",
+              "status": "added",
+              "additions": 1413,
+              "deletions": 0
+            },
+            {
+              "path": "models/gaze/gaze-residual-a05c5d16-mlp-shadowx/model.onnx",
+              "status": "added",
+              "additions": 0,
+              "deletions": 0
+            },
+            {
+              "path": "tools/colab/nlcolab/cli.py",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 1
+            },
+            {
+              "path": "tools/colab/nlcolab/pipeline.py",
+              "status": "modified",
+              "additions": 21,
+              "deletions": 8
+            },
+            {
+              "path": "tools/colab/nlcolab/release.py",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 1
+            },
+            {
+              "path": "training-ledger.json",
+              "status": "modified",
+              "additions": 4,
+              "deletions": 3
+            }
+          ],
+          "domains": [
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38126450983"
+      }
     },
     {
       "sha": "674b963946acc70a87c36ac643a5337f773044d4",
@@ -16433,9 +16704,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "d452b9254d9ced69121b044839520e9f095f7367"
+    "sourceHead": "06ae74cb81878e8a207be20f7aaabcb09b20f478"
   },
-  "updatedAt": "2026-10-11T01:56:20.698257+00:00",
-  "aiCooldownUntil": "2026-10-11T02:56:19.958868+00:00",
-  "aiCooldownReason": "GEMINI_RATE_LIMIT"
+  "updatedAt": "2026-10-11T08:55:44.807599+00:00"
 }
