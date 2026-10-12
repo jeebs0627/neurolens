@@ -242,28 +242,28 @@
       "accuracyValidated": false,
       "tasks": [
         {
-          "id": "evo-02dfd754c597-gaze",
-          "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-02dfd754c597-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 02dfd754c59727c8d609d4feeba5bdc1503dbc94\n변경 제목: fix: exclude invalid PVT response metrics from alert score\n관련 파일: newbiz-battery.js, newbiz-battery.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-02dfd754c597-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
           "id": "evo-02dfd754c597-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-02dfd754c597-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 02dfd754c59727c8d609d4feeba5bdc1503dbc94\n변경 제목: fix: exclude invalid PVT response metrics from alert score\n관련 파일: newbiz-battery.js, newbiz-battery.test.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-02dfd754c597-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "PVT 무효화 조건 적용에 따른 지표 신뢰도 차단 및 측정 신호 활용량·오차 평가",
+          "rationale": "[관측된 사실] `newbiz-battery.js`에서 `pvt.invalid` 조건 성립 시 `ind.key.startsWith('pvt')` 조건으로 PVT 응답 지표의 신뢰도 `r`을 0으로 처리하고, `REL.pvtFalse`를 `rOf.pvt`로 통합함.\n[연구 가설] 수행 부실로 인한 무효 PVT 응답을 영역 점수 산출에서 제외함으로써 지표 오염을 방지하고 측정 안정성을 확보할 수 있을 것임.\n[검증 시 주의사항] 본 커밋의 변경 사항은 실측 정확도가 입증된 결과가 아니므로, 무효화 처리 시 약한 유효 신호까지 과도하게 폐기되는지 혹은 불확실성이 줄어드는지 실측 데이터셋과의 연동 평가가 필수적임. 임의의 정상값 생성은 금지됨.",
+          "validationPlan": "1. dataset에 저장된 관측 메모 및 실측 데이터셋을 연결하여 무효 PVT 조건 발동 세션의 실제 비율과 사유를 분석함.\n2. 참가자, 촬영 기기, 측정 날짜별로 분리하여 단일 세션에 편향되지 않은 평가 수행.\n3. 과제 실패 시도를 포함한 전체 세션을 분모로 설정하여 무효화 적용 전후의 지표 활용률 및 알림 영역 점수 오차 범위를 측정함.",
+          "prompt": "현재 코드베이스의 `newbiz-battery.js`와 `newbiz-battery.test.js`에 구현된 PVT 무효화 로직(`invalidTaskIndicator`) 및 신뢰도 산출 방식(`REL.pvtFalse`)을 확인하라.\n\n[개발 및 검증 과제]\n1. `pvt.invalid` 판정 시 PVT 지표 제외 로직이 의도한 지표에만 정확히 적용되는지 검증하고, 약한 신호 유효 구간에서의 오차 및 불확실성을 평가하라.\n2. dataset 디렉토리 내의 실측 데이터 및 관측 메모를 연결하여 과제 무효화 처리 시 약한 신호 폐기율과 지표 활용량의 트레이드오프를 측정하라. 없는 성능 수치나 무작위 정상값을 만들어 채우지 마라.\n\n[성공 및 회귀 기준]\n- 기존 및 신규 테스트 케이스 100% 통과\n- 무효 PVT 세션에서 PVT 지표 차단(`r=0`, `excluded=true`)이 정상 작동하되, 다른 측정 지표가 손실되지 않음\n- 실패 세션을 포함한 분모 기반의 지표 활용률 및 오차 한계 제시\n\n[결과 보고 양식]\n1. 현재 코드 변경점 및 신뢰도 산출 연관성 분석\n2. dataset 연결을 통한 조건별 활용률-오차 평가 결과 (수치 조작 금지)\n3. 회귀 테스트 결과 및 미결 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 02dfd754c59727c8d609d4feeba5bdc1503dbc94\nDataset-Task: evo-02dfd754c597-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-02dfd754c597-gaze",
+          "domain": "gaze",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "PVT 과제 무효화 상황에서의 시선 및 안구 지표(PERCLOS/깜빡임) 독립 보존성 검증",
+          "rationale": "[관측된 사실] `newbiz-battery.js`의 `invalidTaskIndicator` 변경 조건 및 `newbiz-battery.test.js`의 테스트 코드에 따르면 PVT 과제가 무효 처리되더라도 `perclos` 등 안구 지표는 신뢰도 0으로 차단되지 않고 유지됨.\n[연구 가설] 반응 수행 능력 부실(PVT 무효)과 웹캠 기반 시선/안구 추적 측정값은 독립적일 수 있으므로 안구 지표를 보존하는 것이 데이터 활용량을 높이고 총체적 측정 성공률을 개선할 것임.\n[검증 시 주의사항] 웹캠 환경 특유의 노이즈와 신호 약화가 PVT 무효화 상황과 결합할 때 안구 추적 오차가 증폭되지 않는지 불확실성과 허용 오차를 함께 평가해야 함.",
+          "validationPlan": "1. dataset 내 시선 추적 관측 메모 및 데이터셋을 활용하여 PVT 무효화 세션에서의 PERCLOS 및 깜빡임 지표 신뢰성을 평가함.\n2. 참가자/기기/날짜별로 평가 분모를 분리하여 약한 시선 신호 환경(저조도, 흔들림 등)에서 안구 지표의 활용률과 편향 오차를 측정함.\n3. 기준 센서가 없는 조건임을 명시하고 합성 테스트 및 자체 결과 수치를 독립적인 정답으로 표현하지 않음.",
+          "prompt": "현재 코드(`newbiz-battery.js`, `newbiz-battery.test.js`)에서 PVT 무효화 상태에서도 안구 지표(`perclos`, `blinkDur`)가 독립적으로 보존되는 구조를 확인하라.\n\n[개발 및 검증 과제]\n1. PVT 반응 지표가 무효화된 세션에서 추출된 안구 측정 지표의 신호 오차 및 허용 범위를 평가하는 검증 과제를 작성하라.\n2. 약한 신호 환경에서 시선 지표의 활용성 및 불확실성을 측정하되, dataset의 관측 메모와 실측 자료를 연결하여 판단하라. 임의의 정상값이나 수치를 가상으로 작성하지 마라.\n\n[성공 및 회귀 기준]\n- PVT 무효 발생 시 안구 측정 지표 신뢰도(`rOf.eye`)가 정당한 이유 없이 0으로 삭제되거나 왜곡되지 않음\n- 회귀 테스트를 통해 PVT 무효화가 안구 지표에 미치는 영향을 제어하고 불확실성 범위를 명시함\n\n[결과 보고 양식]\n1. 안구 지표 보존 로직 코드 확인 결과\n2. dataset 실측 기록 연동에 기반한 안구 신호 활용률 및 오차 범위 보고\n3. 회귀 테스트 통과 여부 및 한계점\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 02dfd754c59727c8d609d4feeba5bdc1503dbc94\nDataset-Task: evo-02dfd754c597-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-56109694685",
@@ -324,9 +324,81 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-12T08:10:25.143500+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-12T09:47:24.809129+00:00",
+      "analysis": {
+        "summary": "관측된 코드 변경: `newbiz-battery.js`에서 `REL.pvtFalse` 신뢰도 함수가 `rOf.pvt`로 정동되었으며, `sart` 무효화 조건만 다루던 `invalidSartIndicator` 판정이 `invalidTaskIndicator`로 확장되어 `pvt.invalid` 발생 시 PVT 관련 지표(3개)의 신뢰도 `r`을 0으로 명시적 차단하도록 변경되었습니다. `newbiz-battery.test.js`에는 무효 PVT 세션에서 PVT 관련 지표가 무효 처리(`r=0`, `score=null`, `status='na'`, `excluded=true`)되는 반면 독립적인 안구 측정 신호(`perclos`) 및 영역 점수가 의도대로 유지되는지 검증하는 단위 테스트가 추가되었습니다 (수정 파일: `newbiz-battery.js` +8/-4, `newbiz-battery.test.js` +25/-0, 파일 및 패치 생략 없음).\n\n미검증 영향 및 개발 주의사항: 커밋 제목('fix: exclude invalid PVT response metrics...')은 개발자의 의도된 변경 설명일 뿐, 사용자 대상의 실제 측정 정확도나 임상 진단 성능 향상이 검증되었음을 의미하지 않습니다(`accuracyValidated`: false). 본 자료에는 실측 성능 수치가 포함되어 있지 않으므로 임의로 수치를 보정하거나 조작해서는 안 됩니다. 다양한 웹캠 환경에서 무효화 기준 발동 빈도, 약한 안구/반응 신호의 활용량과 오차 수준, 세션 간 불확실성에 대한 추가 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-02dfd754c597-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "PVT 무효화 조건 적용에 따른 지표 신뢰도 차단 및 측정 신호 활용량·오차 평가",
+            "rationale": "[관측된 사실] `newbiz-battery.js`에서 `pvt.invalid` 조건 성립 시 `ind.key.startsWith('pvt')` 조건으로 PVT 응답 지표의 신뢰도 `r`을 0으로 처리하고, `REL.pvtFalse`를 `rOf.pvt`로 통합함.\n[연구 가설] 수행 부실로 인한 무효 PVT 응답을 영역 점수 산출에서 제외함으로써 지표 오염을 방지하고 측정 안정성을 확보할 수 있을 것임.\n[검증 시 주의사항] 본 커밋의 변경 사항은 실측 정확도가 입증된 결과가 아니므로, 무효화 처리 시 약한 유효 신호까지 과도하게 폐기되는지 혹은 불확실성이 줄어드는지 실측 데이터셋과의 연동 평가가 필수적임. 임의의 정상값 생성은 금지됨.",
+            "validationPlan": "1. dataset에 저장된 관측 메모 및 실측 데이터셋을 연결하여 무효 PVT 조건 발동 세션의 실제 비율과 사유를 분석함.\n2. 참가자, 촬영 기기, 측정 날짜별로 분리하여 단일 세션에 편향되지 않은 평가 수행.\n3. 과제 실패 시도를 포함한 전체 세션을 분모로 설정하여 무효화 적용 전후의 지표 활용률 및 알림 영역 점수 오차 범위를 측정함.",
+            "prompt": "현재 코드베이스의 `newbiz-battery.js`와 `newbiz-battery.test.js`에 구현된 PVT 무효화 로직(`invalidTaskIndicator`) 및 신뢰도 산출 방식(`REL.pvtFalse`)을 확인하라.\n\n[개발 및 검증 과제]\n1. `pvt.invalid` 판정 시 PVT 지표 제외 로직이 의도한 지표에만 정확히 적용되는지 검증하고, 약한 신호 유효 구간에서의 오차 및 불확실성을 평가하라.\n2. dataset 디렉토리 내의 실측 데이터 및 관측 메모를 연결하여 과제 무효화 처리 시 약한 신호 폐기율과 지표 활용량의 트레이드오프를 측정하라. 없는 성능 수치나 무작위 정상값을 만들어 채우지 마라.\n\n[성공 및 회귀 기준]\n- 기존 및 신규 테스트 케이스 100% 통과\n- 무효 PVT 세션에서 PVT 지표 차단(`r=0`, `excluded=true`)이 정상 작동하되, 다른 측정 지표가 손실되지 않음\n- 실패 세션을 포함한 분모 기반의 지표 활용률 및 오차 한계 제시\n\n[결과 보고 양식]\n1. 현재 코드 변경점 및 신뢰도 산출 연관성 분석\n2. dataset 연결을 통한 조건별 활용률-오차 평가 결과 (수치 조작 금지)\n3. 회귀 테스트 결과 및 미결 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 02dfd754c59727c8d609d4feeba5bdc1503dbc94\nDataset-Task: evo-02dfd754c597-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-02dfd754c597-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "PVT 과제 무효화 상황에서의 시선 및 안구 지표(PERCLOS/깜빡임) 독립 보존성 검증",
+            "rationale": "[관측된 사실] `newbiz-battery.js`의 `invalidTaskIndicator` 변경 조건 및 `newbiz-battery.test.js`의 테스트 코드에 따르면 PVT 과제가 무효 처리되더라도 `perclos` 등 안구 지표는 신뢰도 0으로 차단되지 않고 유지됨.\n[연구 가설] 반응 수행 능력 부실(PVT 무효)과 웹캠 기반 시선/안구 추적 측정값은 독립적일 수 있으므로 안구 지표를 보존하는 것이 데이터 활용량을 높이고 총체적 측정 성공률을 개선할 것임.\n[검증 시 주의사항] 웹캠 환경 특유의 노이즈와 신호 약화가 PVT 무효화 상황과 결합할 때 안구 추적 오차가 증폭되지 않는지 불확실성과 허용 오차를 함께 평가해야 함.",
+            "validationPlan": "1. dataset 내 시선 추적 관측 메모 및 데이터셋을 활용하여 PVT 무효화 세션에서의 PERCLOS 및 깜빡임 지표 신뢰성을 평가함.\n2. 참가자/기기/날짜별로 평가 분모를 분리하여 약한 시선 신호 환경(저조도, 흔들림 등)에서 안구 지표의 활용률과 편향 오차를 측정함.\n3. 기준 센서가 없는 조건임을 명시하고 합성 테스트 및 자체 결과 수치를 독립적인 정답으로 표현하지 않음.",
+            "prompt": "현재 코드(`newbiz-battery.js`, `newbiz-battery.test.js`)에서 PVT 무효화 상태에서도 안구 지표(`perclos`, `blinkDur`)가 독립적으로 보존되는 구조를 확인하라.\n\n[개발 및 검증 과제]\n1. PVT 반응 지표가 무효화된 세션에서 추출된 안구 측정 지표의 신호 오차 및 허용 범위를 평가하는 검증 과제를 작성하라.\n2. 약한 신호 환경에서 시선 지표의 활용성 및 불확실성을 측정하되, dataset의 관측 메모와 실측 자료를 연결하여 판단하라. 임의의 정상값이나 수치를 가상으로 작성하지 마라.\n\n[성공 및 회귀 기준]\n- PVT 무효 발생 시 안구 측정 지표 신뢰도(`rOf.eye`)가 정당한 이유 없이 0으로 삭제되거나 왜곡되지 않음\n- 회귀 테스트를 통해 PVT 무효화가 안구 지표에 미치는 영향을 제어하고 불확실성 범위를 명시함\n\n[결과 보고 양식]\n1. 안구 지표 보존 로직 코드 확인 결과\n2. dataset 실측 기록 연동에 기반한 안구 신호 활용률 및 오차 범위 보고\n3. 회귀 테스트 통과 여부 및 한계점\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 02dfd754c59727c8d609d4feeba5bdc1503dbc94\nDataset-Task: evo-02dfd754c597-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "13ae311f4f0da871e6b1c4d645a434b7ddcebe72729ecbc842fa19b4f031bc94",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 2258,
+            "candidatesTokenCount": 1737,
+            "totalTokenCount": 7356
+          }
+        },
+        "generatedAt": "2026-10-12T09:47:55.000217+00:00",
+        "sourceSha": "02dfd754c59727c8d609d4feeba5bdc1503dbc94",
+        "sourceEvidence": {
+          "sha": "02dfd754c59727c8d609d4feeba5bdc1503dbc94",
+          "parents": [
+            "2d1ef67bc751d2232a614aa157c296c90fb500f6"
+          ],
+          "committedAt": "2026-10-12T02:19:57Z",
+          "subject": "fix: exclude invalid PVT response metrics from alert score",
+          "url": "https://github.com/jeebs0627/neurolens/commit/02dfd754c59727c8d609d4feeba5bdc1503dbc94",
+          "files": [
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 8,
+              "deletions": 4
+            },
+            {
+              "path": "newbiz-battery.test.js",
+              "status": "modified",
+              "additions": 25,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE newbiz-battery.js\n@@ -1002,7 +1002,10 @@\n     /* 머리 동조 감점: 이득과 속도 유지율(느린 단계에서 머리가 더 따라 돌아 >1 이 됨)에 같이 쓴다 */\n     const headF = () => pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1;\n     const REL = {\n-      pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,\n+      pvtLapses: rOf.pvt,\n+      pvtMedian: rOf.pvt,\n+      pvtFalse: rOf.pvt,\n+      perclos: rOf.eye, blinkDur: rOf.eye,\n       antiError: rOf.anti,\n       /* 억제 실패는 거부 시행(3) 수로 신뢰도를 정한다: 빠른 모드 6회면 1회가 17%p */\n       sartCommission: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0,\n@@ -1043,9 +1046,10 @@\n     const NA = { recovery: base.recoveryNA || null, negHr: finite(neuSec) && neuSec < 20 ? { reason: 'neutral-block-too-short', sec: round(neuSec, 0) } : null };\n     const indicators = INDICATORS.map(ind => {\n       const raw = NA[ind.key] ? null : ind.get(a), has = finite(raw), v = has ? round(raw, ind.d) : null, sc = has ? scoreOf(v, ind.band) : null;\n-      /* 과제가 무효이면 SART 응답 및 그 구간의 머리 움직임을 판정하지 않는다. */\n-      const invalidSartIndicator = !!(sart && sart.invalid) && (ind.key.startsWith('sart') || ind.key === 'motion');\n-      const r = has ? round(invalidSartIndicator ? 0 : (REL[ind.key]?.() ?? 1), 2) : null;\n+      /* 과제가 무효이면 응답 지표(PVT·SART)와 SART 구간의 머리 움직임을 판정하지 않는다. */\n+      const invalidTaskIndicator = (!!(pvt && pvt.invalid) && ind.key.startsWith('pvt')) ||\n+        (!!(sart && sart.invalid) && (ind.key.startsWith('sart') || ind.key === 'motion'));\n+      const r = has ? round(invalidTaskIndicator ? 0 : (REL[ind.key]?.() ?? 1), 2) : null;\n       const se = has && SE[ind.key] ? SE[ind.key]() : null;\n       const ci = finite(se) ? [round(v - 1.96 * se, ind.d), round(v + 1.96 * se, ind.d)] : null;\n       const cuts = ind.band.dir === 'mid' ? [ind.band.up.ok, ind.band.up.concern, ind.band.down.ok, ind.band.down.concern] : [ind.band.ok, ind.band.concern];\nFILE newbiz-battery.test.js\n@@ -278,6 +278,31 @@ for (const [p, e] of Object.entries(expect)) {\n   checkReport(rr, 'pvt-invalid');\n }\n \n+/* 무효 PVT의 반응 지표는 모두 제외하되 독립적인 눈 신호는 유지한다. */\n+{\n+  const rec = B.simulate('balanced', { mode: 'quick', seed: 1 });\n+  const valid = B.run(rec).battery;\n+  assert.equal(valid.indicators.find(i => i.key === 'pvtFalse').r, 0.87);\n+  rec.pvt.falseStarts = 80;\n+  const invalid = B.run(rec).battery;\n+  const withoutPvt = B.run({ ...rec, pvt: null }).battery;\n+\n+  assert.ok(invalid.pvt.invalid);\n+  assert.equal(invalid.pvt.falsePer3, 160);\n+  const pvtIndicators = invalid.indicators.filter(i => i.key.startsWith('pvt'));\n+  assert.equal(pvtIndicators.length, 3);\n+  for (const indicator of pvtIndicators) {\n+    assert.equal(indicator.r, 0, `${indicator.key} reliability`);\n+    assert.equal(indicator.score, null, `${indicator.key} score`);\n+    assert.equal(indicator.status, 'na', `${indicator.key} status`);\n+    assert.equal(indicator.excluded, true, `${indicator.key} excluded`);\n+  }\n+  assert.ok(invalid.domains.alert.explain.every(i => !i.key.startsWith('pvt')));\n+  assert.deepEqual(invalid.indicators.find(i => i.key === 'perclos'), valid.indicators.find(i => i.key === 'perclos'));\n+  assert.equal(invalid.domains.alert.score, withoutPvt.domains.alert.score);\n+  assert.equal(invalid.domains.alert.score, 91);\n+}\n+\n /* SART 누락이 50%를 넘으면 과제 구간의 판정 지표가 모두 영역 점수에서 빠진다. */\n {\n   const rec = B.simulate('balanced', { mode: 'quick', seed: 1 });",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38232114419"
+      }
     },
     {
       "sha": "82921b89fda2ff0540a1cc687af5b82601005e79",
@@ -383,7 +455,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-56109132808",
@@ -444,7 +516,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-12T08:20:20.257210+00:00",
+      "lastAttemptAt": "2026-10-12T09:47:55.003564+00:00",
       "analysisError": "HTTP_503",
       "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
@@ -18146,9 +18218,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "8667b4148edaf65de6ed24be0427070636a920f1"
+    "sourceHead": "41817050d1130857103314e4acca87cdc8596d70"
   },
-  "updatedAt": "2026-10-12T08:21:18.346646+00:00",
-  "aiCooldownUntil": "2026-10-12T08:25:50.999747+00:00",
+  "updatedAt": "2026-10-12T09:48:00.352878+00:00",
+  "aiCooldownUntil": "2026-10-12T09:52:59.883692+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
