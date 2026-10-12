@@ -96,6 +96,26 @@
           "at": "2026-10-12T02:02:50Z",
           "url": "https://neurolens-5t6kv6zuu-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
+        },
+        {
+          "key": "check-56109180040",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-12T02:03:34Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/6wshjq6H9PjmJ1FkAkrfmhfgHzHc",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-7004925815-19621179240",
+          "type": "deployment",
+          "deploymentId": 7004925815,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-12T02:03:34Z",
+          "url": "https://neurolens-k5u6gfjg4-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
         }
       ],
       "lastAttemptAt": "2026-10-12T02:02:33.786086+00:00",
@@ -17800,9 +17820,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "99d0d9e71cdc83541b62796f4640c6394b59b5d9"
+    "sourceHead": "e572db80ed087c034ecc80a43a6ee3f80141499c"
   },
-  "updatedAt": "2026-10-12T02:03:10.253532+00:00",
+  "updatedAt": "2026-10-12T02:03:59.662213+00:00",
   "aiCooldownUntil": "2026-10-12T03:02:46.348137+00:00",
   "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
