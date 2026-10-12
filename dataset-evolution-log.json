@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "83b99cbe7dea6dedef2c16990c0b6ead41b85fc5",
+      "parents": [
+        "a998f3bfb85e0859b04a6932beebd3b8f826e64d"
+      ],
+      "committedAt": "2026-10-12T17:19:52+09:00",
+      "subject": "홈페이지 실증 타임라인: 2026 · NOW 에 Eye·休 앱 개발(출시중) 추가",
+      "url": "https://github.com/jeebs0627/neurolens/commit/83b99cbe7dea6dedef2c16990c0b6ead41b85fc5",
+      "files": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56123627004",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-12T08:19:58Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/491MmrT5cYpdSxGmMhjxwhfBz3zw",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "e6d90b9733e7c4b9ffc490f544804e76d8f6c220",
       "parents": [
         "07cf39e19bc44ce448cb2c020577a3ecee2d0ec0"
@@ -325,7 +363,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-56109132808",
@@ -386,9 +424,9 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-12T02:02:33.786086+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-12T08:20:20.257210+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
     {
       "sha": "19cc0c44d6b6d3960495dee591d2fcce8c855539",
@@ -18088,9 +18126,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "21702b97636a89a31c6bc34b7ca89a3391b0faef"
+    "sourceHead": "83b99cbe7dea6dedef2c16990c0b6ead41b85fc5"
   },
-  "updatedAt": "2026-10-12T08:11:38.724376+00:00",
-  "aiCooldownUntil": "2026-10-12T08:16:08.311471+00:00",
+  "updatedAt": "2026-10-12T08:20:52.001400+00:00",
+  "aiCooldownUntil": "2026-10-12T08:25:50.999747+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
