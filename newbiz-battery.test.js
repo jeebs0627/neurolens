@@ -278,6 +278,38 @@ for (const [p, e] of Object.entries(expect)) {
   checkReport(rr, 'pvt-invalid');
 }
 
+/* SART 누락이 50%를 넘으면 과제 구간의 판정 지표가 모두 영역 점수에서 빠진다. */
+{
+  const rec = B.simulate('balanced', { mode: 'quick', seed: 1 });
+  const valid = B.run(rec).battery;
+  const shorter = B.run({ ...rec, sart: { ...rec.sart, trials: rec.sart.trials.slice(0, 36) } }).battery;
+  assert.equal(shorter.sart.n, 36);
+  assert.equal(shorter.indicators.find(i => i.key === 'sartOmission').r, 0.67);
+  rec.sart.trials.filter(t => t.digit !== B.PROTOCOL.sart.nogo).slice(0, 30).forEach(t => { t.rt = null; });
+  const invalid = B.run(rec).battery;
+  const withoutSartRec = { ...rec, sart: null, phases: { ...rec.phases } };
+  delete withoutSartRec.phases.sart;
+  const withoutSart = B.run(withoutSartRec).battery;
+
+  assert.equal(valid.domains.control.score, 88);
+  assert.ok(invalid.sart.invalid && invalid.sart.omission > 0.5);
+  const isSartIndicator = i => i.key.startsWith('sart') || i.key === 'motion';
+  const sartIndicators = invalid.indicators.filter(isSartIndicator);
+  assert.equal(sartIndicators.length, 5);
+  for (const indicator of sartIndicators) {
+    assert.equal(indicator.score, null, `${indicator.key} score`);
+    assert.equal(indicator.status, 'na', `${indicator.key} status`);
+    if (indicator.value !== null) {
+      assert.equal(indicator.r, 0, `${indicator.key} reliability`);
+      assert.equal(indicator.excluded, true, `${indicator.key} excluded`);
+    }
+  }
+  assert.equal(sartIndicators.find(i => i.key === 'sartOmission').value, 68.2);
+  assert.ok(invalid.domains.control.explain.every(i => !isSartIndicator(i)));
+  assert.equal(invalid.domains.control.score, withoutSart.domains.control.score);
+  assert.equal(invalid.domains.control.score, 91);
+}
+
 /* 13) NL-QC: 신뢰도 가중 · 수렴 원칙 · 잠정 */
 {
   const I = (key, primary, score, r = 1, extra = {}) => ({ key, domain: 'alert', primary, value: 1, score, status: B.statusOf(score), r, borderline: false, excluded: false, ...extra });

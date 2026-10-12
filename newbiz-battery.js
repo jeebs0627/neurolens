@@ -1003,7 +1003,11 @@
     const headF = () => pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1;
     const REL = {
       pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,
-      antiError: rOf.anti, sartCommission: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, sartCv: rOf.sart,   // 억제 실패는 거부 시행(3) 수로 신뢰도를 정한다: 빠른 모드 6회면 1회가 17%p sartOmission: () => sart ? clamp(sart.n / 54, 0, 1) : 0,
+      antiError: rOf.anti,
+      /* 억제 실패는 거부 시행(3) 수로 신뢰도를 정한다: 빠른 모드 6회면 1회가 17%p */
+      sartCommission: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0,
+      sartCv: rOf.sart,
+      sartOmission: rOf.sart,
       /* 이득은 머리가 표적을 따라 돌수록(머리 동조 |r| 0.3→0.7) 신뢰도를 낮춘다 — 눈 대신 머리가 움직이면 시선 폭이 작게 잡힌다 */
       pursuitGain: () => rOf.pursuit() * headF(), pursuitErr: rOf.pursuit, circErr: rOf.circle, motion: rOf.motion,
       pursuitSpeed: () => rOf.pursuit() * headF(), sartDprime: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0, pursuitLatency: () => reversal && reversal.ok ? clamp(reversal.valid / Math.max(10, reversal.n), 0, 1) * fpsF('pursuit') : 0,   // 프로토콜 10회 기준(이전 /12 는 10/10 이어도 0.83)
@@ -1039,7 +1043,9 @@
     const NA = { recovery: base.recoveryNA || null, negHr: finite(neuSec) && neuSec < 20 ? { reason: 'neutral-block-too-short', sec: round(neuSec, 0) } : null };
     const indicators = INDICATORS.map(ind => {
       const raw = NA[ind.key] ? null : ind.get(a), has = finite(raw), v = has ? round(raw, ind.d) : null, sc = has ? scoreOf(v, ind.band) : null;
-      const r = has ? round(REL[ind.key] ? REL[ind.key]() : 1, 2) : null;
+      /* 과제가 무효이면 SART 응답 및 그 구간의 머리 움직임을 판정하지 않는다. */
+      const invalidSartIndicator = !!(sart && sart.invalid) && (ind.key.startsWith('sart') || ind.key === 'motion');
+      const r = has ? round(invalidSartIndicator ? 0 : (REL[ind.key]?.() ?? 1), 2) : null;
       const se = has && SE[ind.key] ? SE[ind.key]() : null;
       const ci = finite(se) ? [round(v - 1.96 * se, ind.d), round(v + 1.96 * se, ind.d)] : null;
       const cuts = ind.band.dir === 'mid' ? [ind.band.up.ok, ind.band.up.concern, ind.band.down.ok, ind.band.down.concern] : [ind.band.ok, ind.band.concern];
