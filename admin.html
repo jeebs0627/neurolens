@@ -149,9 +149,9 @@ footer{border-top:1px solid var(--line);background:#fff;padding:24px 0;text-alig
     <div class="panel ai-health" aria-label="AI API 연결 상태">
       <h3>AI API · 실시간 연결 상태</h3><button class="btn" id="healthRefresh" type="button">⟳ 연결 재확인</button>
       <div class="ai-health-list">
-        <div class="health-item" id="healthCare"><span class="health-dot"></span><span>감정 총평 · carebot</span><span class="state">대기</span></div>
         <div class="health-item" id="healthProfile"><span class="health-dot"></span><span>특징 총평 · GEMINI_API_KEY</span><span class="state">대기</span></div>
-        <div class="health-item" id="healthMbti"><span class="health-dot"></span><span>MBTI 해설 · chatbot</span><span class="state">대기</span></div>
+        <div class="health-item" id="healthMbti"><span class="health-dot"></span><span>MBTI 해설 · MBTI_BOT</span><span class="state">대기</span></div>
+        <div class="health-item" id="healthCondition"><span class="health-dot"></span><span>마인드 컨디션 해설 · rPPG</span><span class="state">대기</span></div>
       </div>
     </div>
 
@@ -278,7 +278,7 @@ function renderDash(){
 
 /* 고정된 한 단어 응답만 요청해 세 키·모델의 실호출 성공을 확인한다. */
 async function checkApis(){
-  const targets=[['healthCare','/api/care-preview'],['healthProfile','/gemini'],['healthMbti','/api/mbti-preview']];
+  const targets=[['healthProfile','/gemini'],['healthMbti','/api/mbti-preview'],['healthCondition','/rppg']];
   await Promise.all(targets.map(async ([id,url])=>{
     const item=document.getElementById(id),state=item.querySelector('.state');
     item.classList.remove('ok','fail');state.textContent='확인 중…';

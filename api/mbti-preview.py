@@ -20,9 +20,9 @@ class handler(BaseHTTPRequestHandler):
         if not host or (urlparse(source).hostname or "").lower() != host:
             return self._send(403, {"error": "forbidden"})
 
-        key = os.environ.get("chatbot", "").strip()
+        key = os.environ.get("MBTI_BOT", "").strip()
         if not key:
-            return self._send(503, {"error": "chatbot environment variable is missing"})
+            return self._send(503, {"error": "MBTI_BOT environment variable is missing"})
 
         try:
             length = int(self.headers.get("Content-Length", "0"))
