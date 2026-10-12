@@ -278,6 +278,31 @@ for (const [p, e] of Object.entries(expect)) {
   checkReport(rr, 'pvt-invalid');
 }
 
+/* 무효 PVT의 반응 지표는 모두 제외하되 독립적인 눈 신호는 유지한다. */
+{
+  const rec = B.simulate('balanced', { mode: 'quick', seed: 1 });
+  const valid = B.run(rec).battery;
+  assert.equal(valid.indicators.find(i => i.key === 'pvtFalse').r, 0.87);
+  rec.pvt.falseStarts = 80;
+  const invalid = B.run(rec).battery;
+  const withoutPvt = B.run({ ...rec, pvt: null }).battery;
+
+  assert.ok(invalid.pvt.invalid);
+  assert.equal(invalid.pvt.falsePer3, 160);
+  const pvtIndicators = invalid.indicators.filter(i => i.key.startsWith('pvt'));
+  assert.equal(pvtIndicators.length, 3);
+  for (const indicator of pvtIndicators) {
+    assert.equal(indicator.r, 0, `${indicator.key} reliability`);
+    assert.equal(indicator.score, null, `${indicator.key} score`);
+    assert.equal(indicator.status, 'na', `${indicator.key} status`);
+    assert.equal(indicator.excluded, true, `${indicator.key} excluded`);
+  }
+  assert.ok(invalid.domains.alert.explain.every(i => !i.key.startsWith('pvt')));
+  assert.deepEqual(invalid.indicators.find(i => i.key === 'perclos'), valid.indicators.find(i => i.key === 'perclos'));
+  assert.equal(invalid.domains.alert.score, withoutPvt.domains.alert.score);
+  assert.equal(invalid.domains.alert.score, 91);
+}
+
 /* SART 누락이 50%를 넘으면 과제 구간의 판정 지표가 모두 영역 점수에서 빠진다. */
 {
   const rec = B.simulate('balanced', { mode: 'quick', seed: 1 });

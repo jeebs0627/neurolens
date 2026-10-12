@@ -1002,7 +1002,10 @@
     /* 머리 동조 감점: 이득과 속도 유지율(느린 단계에서 머리가 더 따라 돌아 >1 이 됨)에 같이 쓴다 */
     const headF = () => pursuit && finite(pursuit.headFollow) ? clamp(1 - (pursuit.headFollow - 0.3) / 0.4, 0.15, 1) : 1;
     const REL = {
-      pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,
+      pvtLapses: rOf.pvt,
+      pvtMedian: rOf.pvt,
+      pvtFalse: rOf.pvt,
+      perclos: rOf.eye, blinkDur: rOf.eye,
       antiError: rOf.anti,
       /* 억제 실패는 거부 시행(3) 수로 신뢰도를 정한다: 빠른 모드 6회면 1회가 17%p */
       sartCommission: () => sart && !sart.invalid ? clamp(sart.nogo / 12, 0, 1) : 0,
@@ -1043,9 +1046,10 @@
     const NA = { recovery: base.recoveryNA || null, negHr: finite(neuSec) && neuSec < 20 ? { reason: 'neutral-block-too-short', sec: round(neuSec, 0) } : null };
     const indicators = INDICATORS.map(ind => {
       const raw = NA[ind.key] ? null : ind.get(a), has = finite(raw), v = has ? round(raw, ind.d) : null, sc = has ? scoreOf(v, ind.band) : null;
-      /* 과제가 무효이면 SART 응답 및 그 구간의 머리 움직임을 판정하지 않는다. */
-      const invalidSartIndicator = !!(sart && sart.invalid) && (ind.key.startsWith('sart') || ind.key === 'motion');
-      const r = has ? round(invalidSartIndicator ? 0 : (REL[ind.key]?.() ?? 1), 2) : null;
+      /* 과제가 무효이면 응답 지표(PVT·SART)와 SART 구간의 머리 움직임을 판정하지 않는다. */
+      const invalidTaskIndicator = (!!(pvt && pvt.invalid) && ind.key.startsWith('pvt')) ||
+        (!!(sart && sart.invalid) && (ind.key.startsWith('sart') || ind.key === 'motion'));
+      const r = has ? round(invalidTaskIndicator ? 0 : (REL[ind.key]?.() ?? 1), 2) : null;
       const se = has && SE[ind.key] ? SE[ind.key]() : null;
       const ci = finite(se) ? [round(v - 1.96 * se, ind.d), round(v + 1.96 * se, ind.d)] : null;
       const cuts = ind.band.dir === 'mid' ? [ind.band.up.ok, ind.band.up.concern, ind.band.down.ok, ind.band.down.concern] : [ind.band.ok, ind.band.concern];
