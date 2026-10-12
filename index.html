@@ -107,7 +107,8 @@
 html{scroll-behavior:smooth}
 body{font-family:var(--font-kr);color:var(--ink);background:var(--bg);line-height:1.65;font-size:16px;-webkit-font-smoothing:antialiased}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
-section{padding:88px 0}
+section{padding:72px 0}
+@media(max-width:640px){section{padding:56px 0}}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-num);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);margin-bottom:14px}
 .eyebrow::before{content:"";width:22px;height:2px;background:var(--grad-blue);border-radius:2px}
 h2.sec{font-size:clamp(24px,3vw,33px);font-weight:900;letter-spacing:-.02em;margin-bottom:12px;line-height:1.35}
@@ -133,7 +134,7 @@ p.lead{color:var(--gray);max-width:680px;margin-bottom:40px;font-size:15.5px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
 @media(max-width:1080px){.grid4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.grid4{grid-template-columns:1fr}}
-.tag{display:inline-block;font-family:var(--font-num);font-size:10.5px;font-weight:700;letter-spacing:.1em;padding:4px 13px;border-radius:14px}
+.tag{display:inline-block;font-family:var(--font-num);font-size:12px;font-weight:700;letter-spacing:.1em;padding:4px 13px;border-radius:14px}
 
 /* ============================================================
    NAV
@@ -153,10 +154,10 @@ nav .links a{color:var(--gray);text-decoration:none;transition:color .15s}
 nav .links a:hover{color:var(--blue)}
 nav .cta{background:var(--grad-blue);color:#fff;font-weight:700;font-size:13px;padding:9px 20px;border-radius:22px;text-decoration:none;box-shadow:0 6px 14px rgba(30,90,240,.3);transition:transform .15s,box-shadow .15s}
 nav .cta:hover{transform:translateY(-1px);box-shadow:0 10px 20px rgba(30,90,240,.38)}
-/* 모바일: 햄버거 메뉴 */
+/* 태블릿·모바일: 햄버거 메뉴 (메뉴 8개가 한 줄에 들어가지 않는 1023px 이하) */
 nav .menu-btn{display:none;width:38px;height:38px;border:1px solid var(--line);border-radius:11px;background:#fff;cursor:pointer;place-items:center;padding:0}
 nav .menu-btn svg{width:19px;height:19px;stroke:var(--ink);stroke-width:2;stroke-linecap:round;fill:none}
-@media(max-width:760px){
+@media(max-width:1023px){
   nav .in{padding:11px 14px;gap:9px}
   nav .logo{white-space:nowrap;gap:8px}
   nav .logo .mark{width:28px;height:28px}
@@ -214,13 +215,16 @@ header.hero{position:relative;overflow:hidden;background:
 .proof .p:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
 .proof .num{font-family:var(--font-num);font-size:clamp(16px,1.7vw,21px);font-weight:800;letter-spacing:-.02em;line-height:1.15;color:var(--ink);white-space:nowrap}
 .proof .num b{background:var(--grad-hero);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.proof .lb{font-size:11px;line-height:1.35;color:var(--gray);margin-top:4px;word-break:keep-all}
+.proof .lb{font-size:12px;line-height:1.35;color:var(--gray);margin-top:4px;word-break:keep-all}
 .proof .p.im .num b{background:var(--grad-violet,linear-gradient(135deg,#6C4CE0,#9B7BFF));-webkit-background-clip:text;background-clip:text}
 @media(max-width:860px){.proof{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.proof{grid-template-columns:repeat(2,1fr)}}
 nav .links a{white-space:nowrap}
 nav .cta{white-space:nowrap}
 .hero h1.h1-one{font-size:clamp(24px,3.6vw,44px);white-space:nowrap;letter-spacing:-.035em}
 @media(max-width:640px){.hero h1.h1-one{white-space:normal;font-size:27px}}
+.hero p.sub{max-width:none;white-space:nowrap;font-size:clamp(13px,1.45vw,18px)}
+@media(max-width:640px){.hero p.sub{white-space:normal;font-size:15px}}
 /* ---------- 두 검사 라인업 (성향 · 컨디션) ---------- */
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:920px;margin:34px auto 0;text-align:left}
 .dcard2{position:relative;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1.5px solid var(--line);border-radius:22px;padding:24px 24px 20px;box-shadow:var(--shadow-sm);transition:transform .25s,box-shadow .25s,border-color .25s;display:flex;flex-direction:column}
@@ -228,7 +232,7 @@ nav .cta{white-space:nowrap}
 .dcard2 .dh{display:flex;align-items:center;gap:12px}
 .dcard2 .dic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--dc-grad);flex:none;box-shadow:0 8px 18px var(--dc-sh)}
 .dcard2 .dic svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.dcard2 .dk{font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--dc)}
+.dcard2 .dk{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--dc)}
 .dcard2 h3{font-size:20px;font-weight:900;letter-spacing:-.02em;margin-top:1px}
 .dcard2 .dq{font-size:15px;color:var(--ink2);margin:14px 0 10px;font-weight:700}
 .dcard2 .dchips{display:flex;flex-wrap:wrap;gap:6px}
@@ -248,33 +252,56 @@ nav .cta{white-space:nowrap}
 .dc-trait{--dc:#1E5AF0;--dc-soft:var(--blue-soft);--dc-line:var(--blue-line);--dc-grad:var(--grad-blue);--dc-sh:rgba(30,90,240,.28)}
 .dc-cond{--dc:#5B3FD6;--dc-soft:var(--violet-soft);--dc-line:#D7CCFA;--dc-grad:linear-gradient(135deg,#6C4CE0,#13A58A);--dc-sh:rgba(108,76,224,.28)}
 .hero .cat{font-family:var(--font-num);font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--gray2);margin-top:-18px;margin-bottom:6px}
-.pick{margin-top:16px;font-size:13.5px;color:var(--gray)}
-.pick button{font:inherit;font-weight:800;color:var(--blue);background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.picker{display:none;max-width:620px;margin:14px auto 0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;text-align:left;box-shadow:var(--shadow-sm)}
-.picker.on{display:block}
-.picker .pq{font-weight:800;font-size:14.5px;margin-bottom:8px}
-.picker .po{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.picker .po button{font:inherit;font-size:13.5px;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:8px 12px;cursor:pointer;color:var(--ink2)}
-.picker .po button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
-.picker .pr{font-size:14.5px;padding:12px 14px;border-radius:12px;background:var(--blue-soft);color:var(--ink)}
-.duo.hl-trait .dc-trait,.duo.hl-cond .dc-cond{border-color:var(--dc);box-shadow:0 0 0 4px var(--dc-soft),var(--shadow-md)}
 @media(max-width:820px){.duo{grid-template-columns:1fr}}
+/* 히어로 카드 슬라이드: 두 장씩 보이고 ‹‹ ›› 로 한 장씩 이동 */
+/* 히어로 카드 슬라이드: 두 장 + 옆 카드 15% 노출, ‹‹ ›› 로 한 장씩 이동 */
+.duo-car{position:relative;max-width:980px;margin:34px auto 0}
+.duo-vp{overflow:hidden;padding:10px;margin:-10px}
+.duo-car .duo{display:flex;gap:16px;max-width:none;margin:0;transition:transform .55s cubic-bezier(.22,.8,.24,1)}
+.duo-car .duo>.dcard2{flex:0 0 calc((100% - 32px)/2.15);min-width:0;transition:opacity .45s,transform .25s,box-shadow .25s,border-color .25s}
+.duo-car .duo>.dcard2[inert]{opacity:.5}
+.duo-car.pos1 .duo{transform:translateX(calc((100% - 32px)/2.15*-.85))}
+.duo-nav{position:absolute;top:0;bottom:0;z-index:3;width:calc((100% - 32px)/2.15*.15 + 16px);padding:0;border:0;background:none;cursor:pointer;display:grid;place-items:center}
+.duo-nav.next{right:0}.duo-nav.prev{left:0}
+.duo-nav .dn-c{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--line);background:rgba(255,255,255,.96);box-shadow:var(--shadow-md);display:grid;place-items:center;color:var(--ink2);transition:color .2s,border-color .2s,transform .2s}
+.duo-nav:hover .dn-c{color:var(--blue);border-color:var(--blue-line);transform:scale(1.06)}
+.duo-nav:focus-visible{outline:none}.duo-nav:focus-visible .dn-c{outline:3px solid rgba(30,90,240,.35);outline-offset:2px}
+.duo-nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.duo-nav[hidden]{display:none}
+.dc-eye{--dc:#08835F;--dc-soft:#E6F6EF;--dc-line:#BFE6D5;--dc-grad:linear-gradient(135deg,#0FA47A,#3EC49E);--dc-sh:rgba(15,164,122,.28)}
+.dcard2 .dk.kr{font-family:var(--font-kr);letter-spacing:0;font-size:12.5px}
+.dcard2 .dgo.static{cursor:default}
+.dcard2 .dgo.static:hover{transform:none}
+.dcard2 .dgo.static svg{fill:#fff;stroke:none}
+@media(max-width:820px){
+  .duo-vp{overflow:visible;padding:0;margin:0}
+  .duo-car .duo{display:grid;grid-template-columns:1fr;transform:none!important}
+  .duo-nav{display:none!important}
+}
+@media(prefers-reduced-motion:reduce){.duo-car .duo{transition:none}}
 /* 라인업 탭 */
 .ltabs{display:inline-flex;gap:6px;padding:6px;background:#F1F4FA;border:1px solid var(--line);border-radius:16px;margin:0 0 28px}
 .ltabs button{font:inherit;font-size:15px;font-weight:800;color:var(--gray);background:transparent;border:0;border-radius:11px;padding:10px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
 .ltabs button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
 .ltabs button i{width:9px;height:9px;border-radius:50%;background:var(--tc)}
+@media(max-width:640px){.ltabs{display:flex;width:100%}.ltabs button{flex:1;justify-content:center;padding:10px 8px;font-size:13.5px;line-height:1.35;text-align:center;word-break:keep-all}.ltabs button i{display:none}}
 .lpanel[hidden]{display:none!important}
-.prow+.prow{margin-top:30px}
-.prow-h{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 16px;margin:0 0 16px;box-shadow:var(--shadow-sm)}
-.prow-h i{width:9px;height:9px;border-radius:50%;background:var(--tc)}
-.cmp{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin:0 0 30px;background:#fff}
-.cmp>div{padding:16px 20px;font-size:14px;color:var(--ink2);border-top:1px solid var(--line)}
-.cmp>div:nth-child(-n+2){border-top:0;font-weight:900;font-size:15.5px;color:var(--ink)}
-.cmp>div:nth-child(odd){border-right:1px solid var(--line)}
-.cmp small{display:block;font-size:11.5px;font-weight:800;color:var(--gray2);letter-spacing:.04em;margin-bottom:2px}
-.cmp .a{color:#1E5AF0}.cmp .b{color:#5B3FD6}
-@media(max-width:640px){.cmp{grid-template-columns:1fr}.cmp>div:nth-child(odd){border-right:0}}
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(5,auto);grid-auto-flow:column;gap:0;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin:0 0 30px;background:#fff}
+.cmp>div{padding:16px 20px;font-size:14px;color:var(--ink2);border-top:1px solid var(--line);word-break:keep-all}
+.cmp>div:nth-child(5n+1){border-top:0;font-weight:900;font-size:15.5px;color:var(--ink)}
+.cmp>div:nth-child(-n+10){border-right:1px solid var(--line)}
+.cmp>div:nth-child(n+11){background:#FAFDFB}
+.cmp .gt{display:none}
+.cmp-grp{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin:0 0 10px}
+.cmp-grp span{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:800;padding:0 4px 8px;border-bottom:2px solid currentColor}
+.cmp-grp svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cmp-grp .g-web{color:#3A4FD8}.cmp-grp .g-phone{color:#08835F}
+.cmp small{display:block;font-size:12px;font-weight:800;color:var(--gray2);letter-spacing:.04em;margin-bottom:2px}
+.cmp .a{color:#1E5AF0}.cmp .b{color:#5B3FD6}.cmp .e{color:#08835F}
+.tests-head h2.sec{margin-bottom:14px}
+.tests-head .sec-tag{font-size:clamp(16px,1.7vw,19px);font-weight:800;color:var(--ink2);letter-spacing:-.02em;margin:18px 0 40px;word-break:keep-all}
+.tests-head p.lead{max-width:800px;margin-bottom:10px}
+@media(max-width:640px){.cmp{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row}.cmp>div:nth-child(-n+10){border-right:0}.cmp>div:nth-child(5n+1):not(:first-child){border-top:6px solid #F1F4FA}.cmp-grp{display:none}.cmp .gt{display:block;margin-bottom:4px}}
 .cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .ccard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;border-top:4px solid var(--cc)}
 .ccard .ce{font-size:26px}
@@ -282,7 +309,7 @@ nav .cta{white-space:nowrap}
 .ccard .cpro{font-size:12px;font-weight:800;color:var(--cc)}
 .ccard p{font-size:13.5px;color:var(--gray);margin-top:8px;word-break:keep-all}
 .ccard .ct{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
-.ccard .ct span{font-size:11.5px;font-weight:700;background:#F3F5FA;border-radius:7px;padding:2px 7px;color:var(--ink2)}
+.ccard .ct span{font-size:12px;font-weight:700;background:#F3F5FA;border-radius:7px;padding:2px 7px;color:var(--ink2)}
 @media(max-width:1000px){.cgrid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.cgrid{grid-template-columns:1fr}}
 .cfoot{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-top:16px}
 .cbox{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px}
@@ -295,7 +322,7 @@ nav .cta{white-space:nowrap}
 .ev{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
 .ev .cbox h4 small{display:block;font-size:12px;font-weight:700;color:var(--gray2);margin-top:2px}
 .evt{width:100%;border-collapse:collapse;font-size:13px}
-.evt th{font-size:11.5px;color:var(--gray2);text-align:left;padding:7px 6px;border-bottom:1.5px solid var(--line)}
+.evt th{font-size:12px;color:var(--gray2);text-align:left;padding:7px 6px;border-bottom:1.5px solid var(--line)}
 .evt td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2)}
 .evt td b{color:var(--ink)}
 p.lead.lead-1l{max-width:none}
@@ -328,7 +355,7 @@ p.lead.lead-1l{max-width:none}
 .persona li:first-child{border-top:none}
 .persona li svg{width:17px;height:17px;flex:none;margin-top:3px;stroke:var(--pc-solid,#1E5AF0);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .common-issue{margin-top:26px;display:flex;align-items:center;gap:14px;justify-content:center;background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:16px;padding:16px 24px;font-size:14.5px;font-weight:700;color:var(--ink);flex-wrap:wrap;text-align:center}
-.common-issue .chip{font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#fff;background:var(--grad-blue);padding:5px 13px;border-radius:14px;flex:none}
+.common-issue .chip{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.1em;color:#fff;background:var(--grad-blue);padding:5px 13px;border-radius:14px;flex:none}
 .alert-band{margin-top:16px;background:linear-gradient(135deg,#0B1B3F,#1A2C5E);color:#fff;border-radius:var(--radius);padding:30px 34px;display:flex;gap:20px;align-items:center}
 @media(max-width:640px){.alert-band{flex-direction:column;text-align:center}}
 .alert-band .warn{width:52px;height:52px;border-radius:15px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);display:grid;place-items:center;flex:none}
@@ -340,17 +367,17 @@ p.lead.lead-1l{max-width:none}
 /* ============================================================
    TESTS (검사 3종 + 추가 리포트 7종)
 ============================================================ */
-.tcard{display:flex;flex-direction:column}
-.tcard .head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.tcard{display:flex;flex-direction:column;overflow:hidden}
+.tcard .tc-art{position:absolute;top:8px;right:6px;width:58%;max-width:168px;height:128px;object-fit:contain;object-position:right top;pointer-events:none;z-index:0}
+.tcard>*:not(.tc-art){position:relative;z-index:1}
+.tcard .tag{align-self:flex-start;max-width:100%}
+.tcard p.desc{word-break:keep-all}
+.tcard .head{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:96px;margin-bottom:14px}
 .tcard h3{font-size:18px;font-weight:900;margin-bottom:8px}
 .tcard p.desc{font-size:13.5px;color:var(--gray);flex:1;margin-bottom:20px}
 .tcard .feat{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
-.tcard .feat span{font-size:11.5px;font-weight:600;color:var(--gray);background:#F4F7FD;border:1px solid var(--line);border-radius:12px;padding:3px 10px}
-.btn-card{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-family:var(--font-kr);font-size:14px;font-weight:800;border:none;border-radius:13px;padding:13px 0;cursor:pointer;transition:all .2s;color:var(--cb,#1E5AF0);background:var(--cb-soft,#EEF3FF)}
-.btn-card svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
-.btn-card:hover{color:#fff;background:var(--cb-grad,var(--grad-blue));box-shadow:0 10px 22px var(--cb-sh,rgba(30,90,240,.3))}
-.btn-card:hover svg{transform:translateX(3px)}
-.free-flag{font-family:var(--font-num);font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--green);background:var(--green-soft);border:1px solid #BFE8D9;border-radius:12px;padding:4px 11px}
+.tcard .feat span{font-size:12px;font-weight:600;color:var(--gray);background:#F4F7FD;border:1px solid var(--line);border-radius:12px;padding:3px 10px}
+.free-flag{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--green);background:var(--green-soft);border:1px solid #BFE8D9;border-radius:12px;padding:4px 11px}
 
 /* 추가 리포트 7종 */
 .more-reports{margin-top:22px;background:linear-gradient(135deg,#F6F8FF 0%,#FBF9FF 55%,#F4FBF8 100%);border:1px solid var(--blue-line);border-radius:var(--radius);padding:34px 32px;position:relative;overflow:hidden}
@@ -368,25 +395,11 @@ p.lead.lead-1l{max-width:none}
 .mr-cat ul{list-style:none}
 .mr-cat li{font-size:13px;color:var(--ink2);padding:5px 0;border-top:1px dashed var(--line);display:flex;align-items:center;justify-content:space-between;gap:6px}
 .mr-cat li:first-child{border-top:none}
-.mr-cat li .q{font-family:var(--font-num);font-size:9.5px;font-weight:700;color:var(--violet);background:var(--violet-soft);border-radius:9px;padding:2px 8px;flex:none;letter-spacing:.04em}
+.mr-cat li .q{font-family:var(--font-num);font-size:12px;font-weight:700;color:var(--violet);background:var(--violet-soft);border-radius:9px;padding:2px 8px;flex:none;letter-spacing:.04em}
 .mr-foot{margin-top:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--gray);position:relative}
 .mr-foot .price{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:5px 14px}
 .mr-foot .price b{color:var(--blue)}
 
-/* ============================================================
-   HOW (구동방식)
-============================================================ */
-.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative}
-@media(max-width:820px){.flow{grid-template-columns:1fr 1fr}}
-@media(max-width:520px){.flow{grid-template-columns:1fr}}
-.flow .step{background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px 20px;text-align:center;position:relative;transition:box-shadow .25s,transform .25s}
-.flow .step:hover{box-shadow:var(--shadow-md);transform:translateY(-4px)}
-.flow .step .ic{margin:0 auto 16px}
-.flow .step .n{position:absolute;top:14px;left:14px;font-family:var(--font-num);font-weight:800;font-size:11px;color:var(--blue);background:var(--blue-soft);border:1px solid var(--blue-line);width:26px;height:26px;border-radius:50%;display:grid;place-items:center}
-.flow .step:not(:last-child)::after{content:"";position:absolute;right:-14px;top:50%;width:12px;height:12px;border-top:2.5px solid var(--blue-line);border-right:2.5px solid var(--blue-line);transform:translateY(-50%) rotate(45deg);z-index:2}
-@media(max-width:820px){.flow .step::after{display:none!important}}
-.flow .step h4{font-size:15.5px;font-weight:800;margin-bottom:6px}
-.flow .step p{font-size:12.5px;color:var(--gray)}
 
 /* ============================================================
    VALIDATION (검증 성능)
@@ -406,7 +419,7 @@ p.lead.lead-1l{max-width:none}
 .support-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
 @media(max-width:820px){.support-row{grid-template-columns:1fr}}
 .support-box{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px 26px}
-.support-box h4{font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--gray);margin-bottom:12px}
+.support-box h4{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--gray);margin-bottom:12px}
 .support-box .line{font-size:14px;color:var(--ink2)}
 .support-box .line b{font-family:var(--font-num);color:var(--blue);font-size:16px}
 .support-box.ext{background:linear-gradient(135deg,#F4F1FE,#F7F5FF);border-color:#DCD2F7}
@@ -435,14 +448,15 @@ p.lead.lead-1l{max-width:none}
 .comp-table{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
 .comp-table table{width:100%;border-collapse:collapse;font-size:13px}
 .comp-table th{background:var(--grad-hero);color:#fff;font-weight:700;padding:12px 10px;text-align:center;font-size:12.5px}
-.comp-table td{padding:11px 10px;text-align:center;border-top:1px solid var(--line);color:var(--ink2)}
+.comp-table td{padding:11px 10px;text-align:center;border-top:1px solid var(--line);color:var(--ink2);word-break:keep-all}
 .comp-table td:first-child{font-weight:700;color:var(--ink)}
 .comp-table tr.me{background:var(--blue-soft)}
 .comp-table tr.me td:first-child{color:var(--blue);font-family:var(--font-num);font-weight:800}
 .comp-table .ok{color:var(--green);font-weight:900}
 .comp-table .no{color:var(--rose);font-weight:900}
 .comp-table .half{color:var(--amber);font-weight:900}
-.comp-note{font-size:11.5px;color:var(--gray2);padding:10px 16px;border-top:1px solid var(--line);text-align:left}
+.comp-table th:last-child,.comp-table td:last-child{white-space:nowrap;padding-left:14px;padding-right:14px}
+.comp-note{font-size:12px;color:var(--gray2);padding:10px 16px;border-top:1px solid var(--line);text-align:left}
 
 /* ============================================================
    FIELD DATA (생애주기 현장 실증)
@@ -452,14 +466,14 @@ p.lead.lead-1l{max-width:none}
 .field-band .fb-head{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px}
 .field-band h3{font-size:clamp(19px,2.4vw,25px);font-weight:900;line-height:1.4}
 .field-band h3 em{font-style:normal;color:#8FB2FF}
-.field-band .consent{font-size:11.5px;font-weight:700;color:#C9D8FF;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:6px 14px}
+.field-band .consent{font-size:12px;font-weight:700;color:#C9D8FF;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:6px 14px}
 .lifecycle{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px;position:relative;z-index:2}
 .lifecycle span{font-size:13px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);border-radius:22px;padding:8px 20px}
 .lifecycle .arrow{background:none;border:none;color:#7C94D8;padding:8px 2px;font-weight:400}
 .commit{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;position:relative;z-index:2}
 @media(max-width:820px){.commit{grid-template-columns:1fr}}
 .commit .c{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:20px}
-.commit .c .cno{font-family:var(--font-num);font-size:10px;font-weight:800;letter-spacing:.14em;color:#8FB2FF;margin-bottom:8px}
+.commit .c .cno{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.14em;color:#8FB2FF;margin-bottom:8px}
 .commit .c h4{font-size:15px;font-weight:800;margin-bottom:4px}
 .commit .c p{font-size:12.5px;color:#B9C4DE}
 
@@ -470,8 +484,8 @@ p.lead.lead-1l{max-width:none}
 @media(max-width:820px){.road{grid-template-columns:1fr}}
 .road .stage{border-radius:var(--radius);padding:30px 26px;border:1px solid var(--line);background:#fff;position:relative;overflow:hidden;transition:box-shadow .25s,transform .25s}
 .road .stage:hover{box-shadow:var(--shadow-md);transform:translateY(-4px)}
-.road .stage .ph{font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.13em;padding:5px 14px;border-radius:14px;display:inline-block;margin-bottom:16px}
-.road .stage .biz{display:inline-block;font-size:11px;font-weight:700;color:var(--gray);background:#F4F7FD;border:1px solid var(--line);border-radius:11px;padding:3px 10px;margin-left:6px;vertical-align:1px}
+.road .stage .ph{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.13em;padding:5px 14px;border-radius:14px;display:inline-block;margin-bottom:16px}
+.road .stage .biz{display:inline-block;font-size:12px;font-weight:700;color:var(--gray);background:#F4F7FD;border:1px solid var(--line);border-radius:11px;padding:3px 10px;margin-left:6px;vertical-align:1px}
 .road .s1{border-top:4px solid var(--blue)}
 .road .s1 .ph{color:var(--blue);background:var(--blue-soft)}
 .road .s2{border-top:4px solid var(--violet)}
@@ -482,7 +496,7 @@ p.lead.lead-1l{max-width:none}
 .road .price-line{font-size:12.5px;font-weight:700;color:var(--gray);margin-bottom:14px}
 .road .price-line b{color:var(--blue)}
 .road ul{list-style:none;font-size:13.5px;color:var(--gray)}
-.road li{padding:6px 0 6px 22px;position:relative}
+.road li{padding:6px 0 6px 22px;position:relative;word-break:keep-all}
 .road li::before{content:"";position:absolute;left:4px;top:14px;width:7px;height:7px;border-radius:50%}
 .road .s1 li::before{background:var(--blue)}
 .road .s2 li::before{background:var(--violet)}
@@ -531,18 +545,19 @@ p.lead.lead-1l{max-width:none}
 .data-card .dh svg{width:17px;height:17px;stroke:var(--blue);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .data-card .dh small{font-weight:500;color:var(--gray);font-size:12px}
 .data-card .tbl-wrap{overflow-x:auto}
+@media(max-width:640px){.data-card .tbl-wrap table{min-width:620px}.data-card th,.data-card td{word-break:keep-all}.comp-table{overflow-x:auto}.comp-table table{min-width:560px}.comp-table th{word-break:keep-all}}
 .data-card table{width:100%;border-collapse:collapse;font-size:12.5px}
-.data-card th{background:#F1F4FB;color:var(--gray);font-weight:700;padding:9px 16px;text-align:left;font-size:11.5px;letter-spacing:.02em;white-space:nowrap}
+.data-card th{background:#F1F4FB;color:var(--gray);font-weight:700;padding:9px 16px;text-align:left;font-size:12px;letter-spacing:.02em;white-space:nowrap}
 .data-card td{padding:11px 16px;border-top:1px solid var(--line);color:var(--ink2);vertical-align:top;line-height:1.6}
 .data-card td:first-child{font-weight:700;color:var(--ink);white-space:nowrap}
 .data-card .pv{font-family:var(--font-num);font-weight:800;color:var(--blue);font-size:15px;white-space:nowrap}
-.data-card .cite{font-size:11px;font-weight:700;color:var(--violet);background:var(--violet-soft);border-radius:10px;padding:2px 10px;white-space:nowrap;display:inline-block}
+.data-card .cite{font-size:12px;font-weight:700;color:var(--violet);background:var(--violet-soft);border-radius:10px;padding:2px 10px;white-space:nowrap;display:inline-block}
 .evi-grid{display:grid;gap:20px;margin-top:14px}
 .evi-foot{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
 @media(max-width:820px){.evi-foot{grid-template-columns:1fr}}
 .evi-foot div{background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px 18px;font-size:12.5px;color:var(--gray);line-height:1.6}
-.evi-foot b{display:block;font-family:var(--font-num);font-size:11px;letter-spacing:.1em;color:var(--blue);margin-bottom:5px}
-.src-note{font-size:11.5px;color:var(--gray2);margin-top:12px}
+.evi-foot b{display:block;font-family:var(--font-num);font-size:12px;letter-spacing:.1em;color:var(--blue);margin-bottom:5px}
+.src-note{font-size:12px;color:var(--gray2);margin-top:12px}
 
 /* ============================================================
    MILESTONES (데이터 확보 및 실증의 시간)
@@ -563,7 +578,7 @@ p.lead.lead-1l{max-width:none}
 .mile li{font-size:13px;color:var(--ink2);padding:6px 0 6px 18px;position:relative;line-height:1.55}
 .mile li::before{content:"";position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--blue-line)}
 .mile .y26 li::before{background:var(--blue)}
-.mile li small{display:block;color:var(--gray2);font-size:11.5px}
+.mile li small{display:block;color:var(--gray2);font-size:12px}
 
 /* ============================================================
    TEAM (팀빌딩)
@@ -593,7 +608,7 @@ p.lead.lead-1l{max-width:none}
 @media(max-width:820px){.adv-row{grid-template-columns:1fr}}
 .adv{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:26px 28px;transition:box-shadow .25s,transform .25s}
 .adv:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
-.adv .role{font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--violet);margin-bottom:9px}
+.adv .role{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--violet);margin-bottom:9px}
 .adv h4{font-size:16.5px;font-weight:900;margin-bottom:7px}
 .adv p{font-size:12.5px;color:var(--gray);line-height:1.7}
 .adv.hire{background:var(--grad-hero);border:none;box-shadow:0 14px 30px rgba(60,80,230,.3)}
@@ -615,7 +630,7 @@ p.lead.lead-1l{max-width:none}
 footer{border-top:1px solid var(--line);background:linear-gradient(180deg,#F7FAFF,#EFF4FE);padding:40px 0;text-align:center}
 footer .co{font-family:var(--font-num);font-weight:800;font-size:15px;margin-bottom:6px}
 footer p{font-size:12.5px;color:var(--gray)}
-.disclaimer{font-size:11.5px;color:var(--gray2);margin-top:10px}
+.disclaimer{font-size:12px;color:var(--gray2);margin-top:10px}
 
 /* ============================================================
    AUTH — 우측 상단 로그인/마이페이지 + 모달
@@ -690,6 +705,130 @@ footer p{font-size:12.5px;color:var(--gray)}
 .done-card h2{font-size:23px!important;margin-bottom:10px!important}
 .done-card p{font-size:14px;color:var(--gray);line-height:1.75;margin-bottom:22px}
 .done-hint{font-size:12px!important;color:var(--gray2)!important;margin:16px 0 0!important}
+
+/* ---------- 섹션 배경 아트 : 한쪽 가장자리에 흐리게 깔리는 사진 ---------- */
+.has-art{position:relative;overflow:hidden;isolation:isolate}
+.sec-art{position:absolute;top:0;right:0;z-index:-1;pointer-events:none}
+.sec-art img{display:block;width:100%;height:100%;object-fit:cover}
+#problem .sec-art{width:clamp(420px,46vw,760px);height:min(100%,980px);
+  -webkit-mask-image:radial-gradient(ellipse 95% 85% at 100% 22%,#000 30%,transparent 74%);mask-image:radial-gradient(ellipse 95% 85% at 100% 22%,#000 30%,transparent 74%)}
+#problem .sec-art img{object-position:center top;opacity:.3}
+#problem .persona .pcard{background:rgba(255,255,255,.9);backdrop-filter:blur(3px)}
+#tests .sec-art{left:0;right:auto;width:clamp(520px,58vw,980px);height:740px;
+  -webkit-mask-image:radial-gradient(ellipse 100% 92% at 0% 18%,#000 34%,transparent 76%);mask-image:radial-gradient(ellipse 100% 92% at 0% 18%,#000 34%,transparent 76%)}
+#tests .sec-art img{object-position:0% 30%;opacity:.4}
+#team .sec-art{width:clamp(460px,52vw,860px);height:620px;
+  -webkit-mask-image:radial-gradient(ellipse 100% 90% at 100% 16%,#000 36%,transparent 76%);mask-image:radial-gradient(ellipse 100% 90% at 100% 16%,#000 36%,transparent 76%)}
+#team .sec-art img{object-position:center 22%;opacity:.6}
+@media(max-width:820px){
+  .sec-art{width:100%!important;height:440px!important}
+  #problem .sec-art img{opacity:.22}#tests .sec-art img{opacity:.28}#team .sec-art img{opacity:.4}
+}
+
+/* ---------- How It Works : 두 측정 파이프라인 ---------- */
+#how{background:linear-gradient(180deg,#FAFBFE 0%,#F5F7FF 100%);border-top:1px solid var(--line)}
+#how .wrap{max-width:1240px}
+.how-head{max-width:calc(var(--maxw) - 48px);margin:0 auto 40px}
+.how-head p.lead{max-width:940px;margin:0;font-size:15.5px;line-height:1.8}
+.pipe{--tc:#1E5AF0;--tc2:#4A7DFF;--tsoft:#EEF3FF;--tline:#D6E2FF;--ttint:#F4F7FF;
+  position:relative;overflow:hidden;border:1px solid var(--tline);border-radius:28px;padding:30px 30px 28px;
+  background:radial-gradient(120% 140% at 100% 0%,var(--tsoft) 0%,rgba(255,255,255,0) 46%),linear-gradient(180deg,var(--ttint),#fff 70%);
+  box-shadow:0 24px 48px -28px rgba(30,60,160,.28)}
+.pipe+.pipe{margin-top:26px}
+.pipe.v{--tc:#6C4CE0;--tc2:#9B7BFF;--tsoft:#EEE8FF;--tline:#E2D9FB;--ttint:#F8F5FF;box-shadow:0 24px 48px -28px rgba(90,60,190,.3)}
+.pipe-h{display:flex;align-items:center;gap:18px;margin-bottom:24px;position:relative;z-index:1;min-height:72px}
+.pipe-ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;flex:none;background:linear-gradient(140deg,var(--tc2),var(--tc));box-shadow:0 12px 26px -6px color-mix(in srgb,var(--tc) 55%,transparent),inset 0 2px 0 rgba(255,255,255,.35)}
+.pipe-ic svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.pipe-h h3{font-size:clamp(19px,2vw,23px);font-weight:900;letter-spacing:-.02em;line-height:1.3}
+.pipe-h p{font-size:14.5px;color:var(--gray);margin-top:3px}
+.pipe-deco{position:absolute;right:0;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:12px}
+.pipe-steps{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:30px;position:relative;z-index:1}
+.ps{position:relative;background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px 20px 22px;box-shadow:0 10px 26px -18px rgba(11,27,63,.35);display:flex;flex-direction:column}
+.ps:not(:last-child)::after{content:"";position:absolute;right:-22px;top:50%;width:14px;height:2px;background:color-mix(in srgb,var(--tc) 45%,#fff)}
+.ps:not(:last-child)::before{content:"";position:absolute;right:-23px;top:50%;width:7px;height:7px;border-top:2px solid color-mix(in srgb,var(--tc) 45%,#fff);border-right:2px solid color-mix(in srgb,var(--tc) 45%,#fff);transform:translate(0,-50%) rotate(45deg);margin-top:1px}
+.ps-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.ps-n{font-family:var(--font-num);font-size:13px;font-weight:800;color:var(--tc);background:var(--tsoft);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ps-art{width:92px;height:80px;margin:-6px -6px 0 0;flex:none}
+.ps-art svg{width:100%;height:100%;overflow:visible}
+.ps h4{font-size:17px;font-weight:900;letter-spacing:-.02em;margin-bottom:6px}
+.ps p{font-size:13.5px;line-height:1.65;color:var(--gray);word-break:keep-all}
+/* 패널 우상단 장식 */
+.gz-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid var(--tline);border-radius:18px;padding:10px 14px 10px 10px;box-shadow:0 14px 30px -18px rgba(30,60,160,.45)}
+.gz-eye{width:118px;height:56px;border-radius:12px;background:radial-gradient(ellipse at 50% 55%,#fff 0%,#EAF0FF 70%);position:relative;overflow:hidden}
+.gz-eye svg{width:100%;height:100%}
+.gz-meta{display:flex;flex-direction:column;gap:4px;min-width:118px}
+.gz-meta b{font-family:var(--font-num);font-size:11.5px;font-weight:700;color:var(--ink2);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.gz-meta b i{font-style:normal;font-size:10px;color:#fff;background:var(--tc);border-radius:999px;padding:1px 7px}
+.gz-meta svg{width:118px;height:22px}
+.bio-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.82);backdrop-filter:blur(8px);border:1px solid var(--tline);border-radius:16px;padding:9px 13px;box-shadow:0 14px 30px -18px rgba(90,60,190,.5)}
+.bio-chip svg{width:18px;height:18px;flex:none}
+.bio-chip b{font-family:var(--font-num);font-size:13px;font-weight:800;color:var(--ink)}
+.bio-chip b small{font-size:10.5px;font-weight:600;color:var(--gray);margin-left:2px}
+.bio-chip .ecg{width:72px;height:22px}
+.bio-dot{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.85);border:1px solid var(--tline);box-shadow:0 12px 24px -14px rgba(90,60,190,.55)}
+.bio-dot svg{width:21px;height:21px;stroke:var(--tc);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:1100px){.pipe-deco{display:none}}
+@media(max-width:820px){.how-head p.lead br{display:none}}
+@media(max-width:1000px){.pipe-steps{grid-template-columns:1fr 1fr;gap:16px}.ps::before,.ps::after{display:none}}
+@media(max-width:560px){.pipe{padding:22px 16px 18px;border-radius:22px}.pipe-steps{grid-template-columns:1fr}.pipe-h{gap:14px}.pipe-ic{width:52px;height:52px}.pipe-ic svg{width:25px;height:25px}}
+
+/* ---------- NeuroLens Next ---------- */
+#next{border-top:1px solid var(--line);background:#fff}
+.nx-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:20px;align-items:stretch}
+.nx-card{--nc:#0FA47A;--nsoft:#EAF7F2;position:relative;border:1px solid var(--line);border-radius:28px;padding:28px 26px 26px;background:#fff;display:flex;flex-direction:column;overflow:hidden}
+.nx-card::before{content:"";position:absolute;inset:0 0 auto 0;height:180px;background:radial-gradient(90% 100% at 50% 0%,var(--nsoft),transparent 72%);z-index:0;pointer-events:none}
+.nx-card>*{position:relative;z-index:1}
+.nx-card.st{--nc:#6C4CE0;--nsoft:#F1EDFD}
+.nx-card.kit{--nc:#1E5AF0;--nsoft:#EEF3FF}
+.nx-kind{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:13.5px;font-weight:700;color:var(--nc);margin-bottom:2px}
+.nx-badge{font-family:var(--font-num);font-size:10.5px;font-weight:800;letter-spacing:.04em;line-height:1;color:#fff;background:var(--nc);border-radius:999px;padding:4px 8px}
+.nx-card h3{font-family:var(--font-num);font-size:clamp(24px,2.3vw,30px);font-weight:800;letter-spacing:-.03em;line-height:1.2;margin-bottom:20px}
+/* Eye·休 */
+.eye-body{display:grid;grid-template-columns:1fr 172px;gap:18px;align-items:center;flex:1}
+.eye-q{font-size:19px;font-weight:900;letter-spacing:-.02em;line-height:1.4;margin-bottom:14px}
+.eye-f{list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+.eye-f li{font-size:13px;font-weight:700;color:#08664C;background:var(--nsoft);border:1px solid #CBEBDD;border-radius:10px;padding:6px 11px;width:fit-content}
+.eye-eng{font-size:12px;color:var(--gray)}
+.eye-eng b{font-family:var(--font-num);color:var(--ink2)}
+.eye-and{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;font-weight:700;color:var(--gray);border:1px dashed #CBD5E6;border-radius:9px;padding:5px 9px}
+.eye-and svg{width:13px;height:13px;fill:var(--gray)}
+.phone{width:172px;border-radius:30px;padding:7px;background:#1B2422;box-shadow:0 26px 40px -22px rgba(8,40,30,.55),inset 0 0 0 1px rgba(255,255,255,.08)}
+.phone-s{border-radius:24px;background:#0F1715;color:#E7F3EE;padding:9px 11px 8px;font-size:9px;line-height:1.45;display:flex;flex-direction:column;min-height:330px}
+.ph-sb{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-num);font-size:8px;font-weight:700;color:#C9DAD3;padding:0 4px 9px}
+.ph-sb i{width:44px;height:12px;border-radius:999px;background:#000;display:block}
+.ph-time{text-align:center;font-size:7.5px;color:#7E928B;margin:-2px 0 7px}
+.ph-home{width:54px;height:3px;border-radius:2px;background:#3A4642;margin:10px auto 0}
+.phone-s .ph-top{display:flex;justify-content:space-between;align-items:baseline}
+.phone-s .ph-top b{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:-.01em}
+.phone-s .ph-date{color:#8FA59D;font-size:8px;margin:2px 0 10px}
+.ph-card{background:#18221F;border:1px solid #24312D;border-radius:13px;padding:10px 8px 10px}
+.ph-card .ph-row{display:flex;justify-content:space-between;align-items:center;gap:4px;font-weight:700;font-size:8.5px;white-space:nowrap}
+.ph-card .ph-row i{font-style:normal;font-size:7.5px;color:#49D3A0;background:rgba(73,211,160,.14);border-radius:999px;padding:1px 6px}
+.ph-gauge{position:relative;width:112px;margin:6px auto 2px}
+.ph-gauge svg{width:112px;height:66px;display:block}
+.ph-gauge b{position:absolute;left:0;right:0;top:26px;text-align:center;font-family:var(--font-num);font-size:25px;font-weight:800;color:#fff;line-height:1}
+.ph-gauge small{position:absolute;left:0;right:0;top:53px;text-align:center;font-size:7px;color:#8FA59D}
+.ph-msg{text-align:center;font-size:8px;color:#C9DAD3;margin:4px 2px 6px}
+.ph-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.ph-scale span{height:4px;border-radius:2px;background:#2C3A35}
+.ph-scale span:nth-child(1){background:#5A3A36}.ph-scale span:nth-child(2){background:#5A4E33}.ph-scale span:nth-child(3){background:#3E4A3A}.ph-scale span:nth-child(4){background:#2F5A47}
+.ph-scale span:last-child{background:#49D3A0}
+.ph-lb{display:grid;grid-template-columns:repeat(5,1fr);font-size:6.3px;white-space:nowrap;letter-spacing:-.02em;color:#7E928B;text-align:center;margin-top:3px}
+.ph-btn{margin-top:auto;background:#49D3A0;color:#06291D;border-radius:999px;text-align:center;font-weight:800;font-size:8.5px;padding:6px 0}
+/* In_Mind Station */
+.st-photo{border-radius:18px;overflow:hidden;aspect-ratio:830/755;border:1px solid var(--line);background:#EEF0F6}
+.st-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.st-note{font-size:14px;color:var(--gray);margin-top:16px;line-height:1.7;word-break:keep-all}
+/* Signal Kit */
+.kit-quote{font-size:clamp(18px,1.7vw,21px);font-weight:900;letter-spacing:-.02em;line-height:1.5;color:var(--ink);padding:18px 0 22px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:18px}
+.kit-quote q{quotes:"“" "”"}
+.kit-quote q::before,.kit-quote q::after{color:var(--nc)}
+.kit-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.kit-list li{display:flex;gap:12px;align-items:center;font-size:14px;font-weight:700;color:var(--ink2);background:linear-gradient(90deg,var(--nsoft),#fff);border:1px solid #DCE6FF;border-radius:14px;padding:12px 14px}
+.kit-list li svg{width:20px;height:20px;flex:none;stroke:var(--nc);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:1000px){.nx-grid{grid-template-columns:1fr 1fr}.nx-card.eye{grid-column:1/-1}.nx-card.eye .eye-body{grid-template-columns:minmax(0,280px) 172px;justify-content:space-evenly}}
+@media(max-width:640px){.nx-grid{grid-template-columns:1fr}.nx-card.eye .eye-body{grid-template-columns:1fr 150px;justify-content:stretch}.phone{width:150px}}
+@media(max-width:380px){.eye-body{grid-template-columns:1fr}.phone{margin:0 auto}}
 </style>
 </head>
 <body>
@@ -708,6 +847,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <a href="#tech">성능검증</a>
       <a href="#compete">경쟁력</a>
       <a href="#roadmap">로드맵</a>
+      <a href="#next">Next</a>
       <a href="#team">팀</a>
     </div>
     <button class="menu-btn" id="menuBtn" aria-label="메뉴 열기" aria-expanded="false" aria-controls="navLinks">
@@ -727,6 +867,9 @@ footer p{font-size:12.5px;color:var(--gray)}
     <p class="sub">웹캠 하나로 <b>기본 성향</b>과 <b>오늘의 마음 컨디션</b>을 함께 측정하고, AI 에이전트가 맞춤 케어로 이어 드립니다.</p>
     <p class="cat">생체신호 AI 기반 정신건강 측정 및 Agent 케어 플랫폼</p>
 
+    <div class="duo-car" id="duoCar">
+    <button type="button" class="duo-nav prev" id="duoPrev" aria-label="성향검사 카드로 돌아가기" hidden><span class="dn-c"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 6l-6 6 6 6M11 6l-6 6 6 6"/></svg></span></button>
+    <div class="duo-vp">
     <div class="duo" id="duo">
       <div class="dcard2 dc-trait">
         <div class="drib" aria-hidden="true"><span>Mindgaze Engine</span></div>
@@ -744,24 +887,28 @@ footer p{font-size:12.5px;color:var(--gray)}
         <div class="dmeta"><span>⏱ <b>약 8분</b></span><span>시선 + 심박 + 생체반응</span><span>매일 측정</span></div>
         <div class="dact"><a class="dgo" href="/condition"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg>컨디션 검사 시작</a><a class="dsm" href="/condition?sim=fatigue" target="_blank" rel="noopener">샘플 리포트</a></div>
       </div>
+      <div class="dcard2 dc-eye" id="eyeCard" inert>
+        <div class="drib" aria-hidden="true"><span>Neurolens-efs Engine</span></div>
+        <div class="dh"><div class="dic"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M9 11.5s1.2-2 3-2 3 2 3 2-1.2 2-3 2-3-2-3-2z"/><path d="M11 18.5h2"/></svg></div><div><div class="dk kr">스마트폰 시력 컨디션 케어 앱</div><h3>Eye·休</h3></div></div>
+        <p class="dq">“지금 내 눈의 피로도는?”</p>
+        <div class="dchips"><span>화면 자극</span><span>주변 환경</span><span>거리·눈 반응</span><span>사용 습관</span></div>
+        <div class="dmeta"><span>⏱ <b>실시간 추적</b></span><span>화면 분석 + 시선 동시 측정</span><span>매일 측정</span></div>
+        <div class="dact"><span class="dgo static"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 9.4l1.6-2.8a.4.4 0 0 0-.7-.4l-1.6 2.8a9.9 9.9 0 0 0-8.6 0L6.6 6.2a.4.4 0 0 0-.7.4l1.6 2.8A9.4 9.4 0 0 0 2.6 17h18.8a9.4 9.4 0 0 0-3.9-7.6zM8 14.3a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zm8 0a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8z"/></svg>앱 다운받기</span></div>
+      </div>
     </div>
-    <p class="pick">어떤 검사가 맞을지 모르겠다면? <button type="button" id="pickBtn">30초 추천 받기</button></p>
-    <div class="picker" id="picker">
-      <div class="pq">요즘 더 궁금한 것은?</div><div class="po" data-q="0"><button type="button" data-v="t">나라는 사람의 성격·적성</button><button type="button" data-v="c">요즘 지치고 집중이 안 되는 이유</button></div>
-      <div class="pq">지금 신경 쓰이는 것은?</div><div class="po" data-q="1"><button type="button" data-v="t">진로 · 관계 · 일 스타일</button><button type="button" data-v="c">수면 · 스트레스 · 컨디션</button></div>
-      <div class="pq">지금 쓸 수 있는 시간은?</div><div class="po" data-q="2"><button type="button" data-v="t">5분</button><button type="button" data-v="c">8분 이상</button></div>
-      <div class="pr" id="pickRes">세 가지를 고르면 맞는 검사를 알려 드려요.</div>
+    </div>
+    <button type="button" class="duo-nav next" id="duoNext" aria-label="Eye·休 앱 카드 보기"><span class="dn-c"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6l6 6-6 6M13 6l6 6-6 6"/></svg></span></button>
     </div>
     <div class="meta">
       <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>로그인 없이 시작</span>
-      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>PC · 노트북 웹캠</span>
+      <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>PC · 노트북 웹캠, 스마트폰</span>
       <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>영상은 저장하지 않아요</span>
       <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>웰니스 참고 지표 · 비진단</span>
     </div>
     <p id="status"></p>
 
     <div class="proof">
-      <div class="p"><div class="num"><b>9,200</b>명+@</div><div class="lb">AI 학습 데이터</div></div>
+      <div class="p"><div class="num"><b>9,200</b>명+</div><div class="lb">AI 학습 데이터</div></div>
       <div class="p"><div class="num"><b>19</b>개 지표</div><div class="lb">In_mind · 시선·심박·생체반응 동시 측정</div></div>
       <div class="p"><div class="num"><b>1,600</b>명</div><div class="lb">경기도 8개교 현직 교사단 현장 실증</div></div>
       <div class="p"><div class="num">AUC <b>0.83~0.84</b></div><div class="lb">PHQ-9 우울위험 선별 · 엄격한 검증</div></div>
@@ -783,10 +930,11 @@ footer p{font-size:12.5px;color:var(--gray)}
 </div>
 
 <!-- ================= PROBLEM ================= -->
-<section id="problem" style="background:#FAFBFE;border-top:1px solid var(--line)">
+<section id="problem" class="has-art" style="background:#FAFBFE;border-top:1px solid var(--line)">
+  <div class="sec-art" aria-hidden="true"><img src="img/bg-problem.webp" alt="" width="610" height="737" loading="lazy" decoding="async"></div>
   <div class="wrap">
     <span class="eyebrow">Problem</span>
-    <h2 class="sec">"괜찮아요"라고 답한 아이와 동료의 시선과 마음은 <em>괜찮지 않았습니다</em></h2>
+    <h2 class="sec">“괜찮아요”라고 답한 아이와 동료의 시선과 마음은 <em>괜찮지 않았습니다</em></h2>
     <p class="lead">자기보고만으로는 응답 왜곡, 과장, 부정 등 실제 상태를 놓치고, 발견한 뒤에도 케어로 이어지지 않습니다.</p>
 
     <div class="persona">
@@ -796,7 +944,7 @@ footer p{font-size:12.5px;color:var(--gray)}
         <img width="158" height="153" class="photo" src="img/112.webp" alt="시험·진로·관계 스트레스를 겪는 학생 — NeuroLens 심리검사 대상 사용자" loading="lazy">
         <ul>
           <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 15.5c1-.9 2.2-1.4 3.5-1.4s2.5.5 3.5 1.4M9 10h.01M15 10h.01"/></svg>감정 변화를 인지하고 표현하기 어려움</li>
-          <li><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>자가보고의 사회적 바람직성 응답 편향</li>
+          <li><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>자기보고의 사회적 바람직성 응답 편향</li>
           <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>위험 신호를 스스로 축소해 보고</li>
         </ul>
       </div>
@@ -824,13 +972,13 @@ footer p{font-size:12.5px;color:var(--gray)}
 
     <div class="common-issue">
       <span class="chip">공통 문제</span>
-      본인이 쓴 답이 실제 상태를 대변하지 못하고 자기 왜곡/과장이 발생, 설령 발견돼도 적절한 케어로 이어지지 않습니다.
+      스스로 답한 결과가 실제 상태를 대변하지 못한 채 왜곡·과장되고, 위험이 발견되더라도 적절한 케어로 이어지지 않습니다.
     </div>
 
     <div class="alert-band">
       <div class="warn"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4M12 17.5h.01"/></svg></div>
       <div>
-        <h3>그리고 선별된 뒤에도 — 결과지를 받은 아이에게 <em>'내일 무엇을 어떻게 해야 하는지'</em> 알려주는 사람, 후속 조처가 없었습니다.</h3>
+        <h3>그리고 선별된 뒤에도 — 결과지를 받은 아이에게 <em>'내일 무엇을 어떻게 해야 하는지'</em> 알려 주는 사람도, 후속 조치도 없었습니다.</h3>
         <h3 style="margin-top:10px">산재사망을 증빙하는 과정에서 평소 혼자 고단했을 고인의 단서를 찾기 어려워 무력하다는 노무사의 하소연도 있었습니다.</h3>
         <p>발견 이후의 '케어 단절'이, 가능했던 회복의 시간을 놓치게 합니다. NeuroLens는 측정에서 케어까지 이어지는 AI Agent 폐루프를 만듭니다.</p>
       </div>
@@ -839,35 +987,52 @@ footer p{font-size:12.5px;color:var(--gray)}
 </section>
 
 <!-- ================= 검사 종류 ================= -->
-<section id="tests">
+<section id="tests" class="has-art">
+  <div class="sec-art" aria-hidden="true"><img src="img/bg-tests.webp" alt="" width="1200" height="900" loading="lazy" decoding="async"></div>
   <div class="wrap">
-    <span class="eyebrow">Two Tests · One NeuroLens</span>
-    <h2 class="sec">기본 성향은 <em>시선추적 AI</em>로, 오늘의 컨디션은 <em>In_mind AI</em>로<br>측정에서 케어까지 더 나은 '나'를 알아갑니다</h2>
-    <p class="lead">뉴로렌즈(NeuroLens)는 웹캠 하나로 두 가지를 측정합니다. <b>시선추적 AI 성향검사</b>는 설문과 무의식적 시선 신호를 결합해 자기보고 편향을 보완하고, <b>마인드 AI 컨디션 검사</b>는 자체 엔진 In_mind로 시선·심박·생체반응을 함께 읽어 오늘의 상태를 봅니다. 두 결과는 AI Agent 케어로 이어집니다.</p>
-
-    <div class="cmp">
-      <div><span class="a">● 시선추적 AI 성향검사</span></div><div><span class="b">● 마인드 AI 컨디션 검사</span></div>
-      <div><small>답하는 질문</small>나는 어떤 사람인가 — 기본 성향</div><div><small>답하는 질문</small>나는 지금 어떤 상태인가 — 오늘의 컨디션</div>
-      <div><small>측정</small>자극 이미지 응시 시선 + 설문 · 약 5분</div><div><small>측정</small>시선 + 심박 + 생체반응 · 약 8분</div>
-      <div><small>결과</small>Big5 · MBTI · 직업흥미 · 직무 적합도 (+ 리포트 6종)</div><div><small>결과</small>또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력, 마음 날씨</div>
-      <div><small>케어</small>성향 조합 맞춤 케어 · AI 상담</div><div><small>케어</small>맞춤 케어 트랙 · 매일 측정으로 변화 확인</div>
+    <div class="tests-head">
+    <span class="eyebrow">Two Tests + Daily Care</span>
+    <h2 class="sec">나를 알아가는 순간부터,<br>일상을 돌보는 습관까지, <em>NeuroLens</em></h2>
+    <p class="lead">NeuroLens는 웹캠과 스마트폰에서 얻는 시선·생체신호와 사용 환경 정보를 통해 자기 이해와 일상 케어를 연결합니다.</p>
+    <p class="lead"><b>시선추적 AI</b>로 설문과 시선 신호를 함께 분석해 나의 성향을 탐색하고, 자체 엔진 <b>In_mind</b>로 시선·심박 등 생체신호를 살펴 오늘의 컨디션을 돌아보도록 돕습니다. <b>Eye·休</b>는 스마트폰의 화면 자극과 주변 환경, 눈 반응과 사용 습관을 바탕으로 눈 사용 부담을 추정하고 케어로 안내합니다.</p>
+    <p class="sec-tag">나의 특성을 이해하고, 오늘의 상태를 살피고, 일상에 필요한 쉼을 더합니다.</p>
     </div>
-    <div class="ltabs" role="tablist" aria-label="검사 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 AI 컨디션 검사</button></div>
+
+    <div class="cmp-grp"><span class="g-web"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><circle cx="12" cy="10" r="2"/></svg>웹캠 기반 검사</span><span class="g-phone"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>스마트폰 기반 일상 케어</span></div>
+    <div class="cmp">
+      <div><small class="gt">웹캠 기반 검사</small><span class="a">● 시선추적 AI 성향검사</span></div>
+      <div><small>답하는 질문</small>나는 어떤 사람인가 — 기본 성향</div>
+      <div><small>측정</small>자극 이미지 응시 시선 + 설문 · 약 5분</div>
+      <div><small>결과</small>Big5 · MBTI · 직업흥미 · 직무 적합도 (+ 리포트 6종)</div>
+      <div><small>케어</small>성향 조합 맞춤 케어 · AI 상담</div>
+      <div><small class="gt">웹캠 기반 검사</small><span class="b">● 마인드 AI 컨디션 검사</span></div>
+      <div><small>답하는 질문</small>나는 지금 어떤 상태인가 — 오늘의 컨디션</div>
+      <div><small>측정</small>시선 + 심박 + 생체반응 · 약 8분</div>
+      <div><small>결과</small>또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력, 마음 날씨</div>
+      <div><small>케어</small>맞춤 케어 트랙 · 매일 측정으로 변화 확인</div>
+      <div><small class="gt">스마트폰 기반 일상 케어</small><span class="e">● Eye·休 눈 사용 케어</span></div>
+      <div><small>답하는 질문</small>나는 눈을 어떻게 쓰고 있으며, 언제 쉬면 좋을까 — 일상의 눈 사용 습관</div>
+      <div><small>측정</small>화면 자극 + 주변 환경 + 거리·눈 반응 + 사용 습관 · 스마트폰 사용 중 관측</div>
+      <div><small>결과</small>눈 사용 부담 추정 점수 · 주요 부담 요인 · 사용 기록과 변화 추이</div>
+      <div><small>케어</small>휴식 알림 · 사용 습관 돌아보기 · 체감 피로도 기록</div>
+    </div>
+    <div class="ltabs" role="tablist" aria-label="검사 선택"><button type="button" role="tab" aria-selected="true" data-tab="t" style="--tc:#1E5AF0"><i></i>시선추적 AI 성향검사</button><button type="button" role="tab" aria-selected="false" data-tab="c" style="--tc:#6C4CE0"><i></i>마인드 AI 컨디션 검사</button><button type="button" role="tab" aria-selected="false" data-tab="e" style="--tc:#0FA47A"><i></i>Eye·休 눈 사용 케어</button></div>
     <div class="lpanel" data-panel="t">
     <div class="grid4">
       <div class="card tcard" style="--cb:#1E5AF0;--cb-soft:var(--blue-soft);--cb-grad:var(--grad-blue);--cb-sh:rgba(30,90,240,.3)">
+        <img class="tc-art" src="img/cards/t-big5.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
         <div class="head">
           <div class="ic b"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.2 13 13l-3.8 1.8L11 11l3.8-1.8z"/></svg></div>
           <span class="free-flag">FREE</span>
         </div>
         <span class="tag" style="color:var(--blue);background:var(--blue-soft);margin-bottom:10px">BIG 5 · OCEAN</span>
         <h3>Big 5 성격 요인</h3>
-        <p class="desc">개방성·성실성·외향성·친화성·신경성 5개 요인을 정밀 분석합니다.</p>
+        <p class="desc">개방성 · 성실성 · 외향성 · 친화성 · 신경성 5개 요인을 정밀하게 분석합니다.</p>
         <div class="feat"><span>원점수</span><span>T점수</span><span>백분위</span><span>레이더 차트</span></div>
-        <button class="btn-card" onclick="startTest()">검사 시작하기<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
 
       <div class="card tcard" style="--cb:#6C4CE0;--cb-soft:var(--violet-soft);--cb-grad:var(--grad-violet);--cb-sh:rgba(108,76,224,.3)">
+        <img class="tc-art" src="img/cards/t-riasec.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
         <div class="head">
           <div class="ic v"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.2"/><circle cx="12" cy="12" r="1.6"/></svg></div>
           <span class="free-flag">FREE</span>
@@ -876,31 +1041,30 @@ footer p{font-size:12.5px;color:var(--gray)}
         <h3>직업흥미유형</h3>
         <p class="desc">RIASEC 6각형 모델 기반으로 흥미 유형 조합과 직무적합도 순위를 제공합니다.</p>
         <div class="feat"><span>Holland 직업흥미 6타입</span><span>3개 상위 타입 조합</span><span>카드뷰</span></div>
-        <button class="btn-card" onclick="startTest()">검사 시작하기<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
 
       <div class="card tcard" style="--cb:#0FA47A;--cb-soft:var(--green-soft);--cb-grad:var(--grad-green);--cb-sh:rgba(15,164,122,.3)">
+        <img class="tc-art" src="img/cards/t-mbti.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
         <div class="head">
           <div class="ic g"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg></div>
           <span class="free-flag">FREE</span>
         </div>
         <span class="tag" style="color:var(--green);background:var(--green-soft);margin-bottom:10px">MBTI · 16 TYPES</span>
         <h3>16개 성격유형</h3>
-        <p class="desc">시선행동 데이터로 보정된 성격유형 분석으로 익숙한 프레임의 신뢰도를 높입니다.</p>
+        <p class="desc">시선행동 데이터를 보정한 성격유형 분석으로 익숙한 프레임의 신뢰도를 높입니다.</p>
         <div class="feat"><span>4지표 분석</span><span>유형 해설</span><span>키워드</span></div>
-        <button class="btn-card" onclick="startTest()">검사 시작하기<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
 
       <div class="card tcard" style="--cb:#E8890C;--cb-soft:var(--amber-soft);--cb-grad:linear-gradient(135deg,#E8890C,#F6B73C);--cb-sh:rgba(232,137,12,.3)">
+        <img class="tc-art" src="img/cards/t-jobfit.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
         <div class="head">
           <div class="ic a"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
           <span class="free-flag">FREE</span>
         </div>
         <span class="tag" style="color:var(--amber);background:var(--amber-soft);margin-bottom:10px">JOB FIT · RANKING</span>
         <h3>직무 적합도</h3>
-        <p class="desc">시선행동 데이터를 바탕으로 성향과 어울리는 직무를 적합도가 높은 순의 상대순위로 보여줍니다.</p>
+        <p class="desc">시선행동 데이터를 바탕으로 성향과 어울리는 직무를 적합도 순으로 보여줍니다.</p>
         <div class="feat"><span>직무 순위</span><span>Top3 뷰</span><span>적합도 상대평가</span></div>
-        <button class="btn-card" onclick="startTest()">검사 시작하기<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
     </div>
 
@@ -952,6 +1116,7 @@ footer p{font-size:12.5px;color:var(--gray)}
     <div class="lpanel" data-panel="c" hidden>
     <div class="grid4">
       <div class="card tcard" style="--cb:#1E5AF0;--cb-soft:var(--blue-soft);--cb-grad:var(--grad-blue);--cb-sh:rgba(30,90,240,.3)">
+        <img class="tc-art" src="img/cards/c-alert.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
         <div class="head">
           <div class="ic b"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></div>
           <span class="free-flag" style="color:#5B3FD6;background:var(--violet-soft);border-color:#D7CCFA">IN_MIND</span>
@@ -960,9 +1125,9 @@ footer p{font-size:12.5px;color:var(--gray)}
         <h3>또렷함</h3>
         <p class="desc">피곤하지 않고 깨어 있는 정도 — 모든 집중의 바탕이 되는 기본 에너지를 측정합니다.</p>
         <div class="feat"><span>PVT-B</span><span>PERCLOS</span><span>반응 지연</span></div>
-        <a class="btn-card" href="/condition" style="text-decoration:none">검사 시작하기<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
       <div class="card tcard" style="--cb:#6C4CE0;--cb-soft:var(--violet-soft);--cb-grad:linear-gradient(135deg,#6C4CE0,#8E75EE);--cb-sh:rgba(108,76,224,.3)">
+        <img class="tc-art" src="img/cards/c-focus.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
         <div class="head">
           <div class="ic v"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg></div>
           <span class="free-flag" style="color:#5B3FD6;background:var(--violet-soft);border-color:#D7CCFA">IN_MIND</span>
@@ -971,9 +1136,9 @@ footer p{font-size:12.5px;color:var(--gray)}
         <h3>집중 조절</h3>
         <p class="desc">충동적으로 반응하지 않고 하려던 일에 집중을 붙잡는 힘을 측정합니다.</p>
         <div class="feat"><span>안티사카드</span><span>원활 추적</span><span>SART</span></div>
-        <a class="btn-card" href="/condition" style="text-decoration:none">검사 시작하기<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
       <div class="card tcard" style="--cb:#E0446A;--cb-soft:#FDEDF1;--cb-grad:linear-gradient(135deg,#E0446A,#F07C98);--cb-sh:rgba(224,68,106,.3)">
+        <img class="tc-art" src="img/cards/c-emotion.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
         <div class="head">
           <div class="ic" style="background:linear-gradient(135deg,#E0446A,#F07C98);box-shadow:0 8px 18px rgba(224,68,106,.28)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><path d="M12 9.5c1-1.4 3.3-.9 3.3 1 0 1.6-3.3 3.5-3.3 3.5s-3.3-1.9-3.3-3.5c0-1.9 2.3-2.4 3.3-1z"/></svg></div>
           <span class="free-flag" style="color:#5B3FD6;background:var(--violet-soft);border-color:#D7CCFA">IN_MIND</span>
@@ -982,9 +1147,9 @@ footer p{font-size:12.5px;color:var(--gray)}
         <h3>마음의 시선</h3>
         <p class="desc">불편하거나 기쁜 정보에 눈과 마음이 얼마나 끌리고 머무는지 측정합니다.</p>
         <div class="feat"><span>정서 사진 자유 보기</span><span>시선 체류</span></div>
-        <a class="btn-card" href="/condition" style="text-decoration:none">검사 시작하기<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
       <div class="card tcard" style="--cb:#0FA47A;--cb-soft:var(--green-soft);--cb-grad:linear-gradient(135deg,#0FA47A,#3EC49E);--cb-sh:rgba(15,164,122,.3)">
+        <img class="tc-art" src="img/cards/c-recovery.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
         <div class="head">
           <div class="ic g"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div>
           <span class="free-flag" style="color:#5B3FD6;background:var(--violet-soft);border-color:#D7CCFA">IN_MIND</span>
@@ -993,7 +1158,6 @@ footer p{font-size:12.5px;color:var(--gray)}
         <h3>몸의 회복력</h3>
         <p class="desc">긴장할 때 심박이 얼마나 오르고 다시 편안해지는지 측정합니다.</p>
         <div class="feat"><span>MIST 암산</span><span>공명 호흡</span><span>심박(rPPG)</span></div>
-        <a class="btn-card" href="/condition" style="text-decoration:none">검사 시작하기<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
     </div>
 
@@ -1021,49 +1185,246 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
     </div>
     </div>
+    <div class="lpanel" data-panel="e" hidden>
+    <div class="grid4">
+      <div class="card tcard" style="--cb:#0FA47A;--cb-soft:var(--green-soft);--cb-grad:linear-gradient(135deg,#0FA47A,#3EC49E);--cb-sh:rgba(15,164,122,.28)">
+        <img class="tc-art" src="img/cards/e-screen.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
+        <div class="head">
+          <div class="ic" style="background:linear-gradient(135deg,#0FA47A,#3EC49E);box-shadow:0 8px 18px rgba(15,164,122,.28)"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10 7.5h4M9.5 11h5M10 14.5h4"/></svg></div>
+          <span class="free-flag" style="color:#08835F;background:var(--green-soft);border-color:#BFE6D5">EFS</span>
+        </div>
+        <span class="tag" style="color:#08835F;background:var(--green-soft);margin-bottom:10px">SCREEN · 화면</span>
+        <h3>화면 자극</h3>
+        <p class="desc">스마트폰의 밝기, 화면 시간, 장면 변화 등 화면에서 오는 시각적 자극이 눈 사용 부담에 미치는 영향을 분석합니다.</p>
+        <div class="feat"><span>밝기</span><span>화면 시간</span><span>장면 변화</span></div>
+      </div>
+      <div class="card tcard" style="--cb:#0E8FA8;--cb-soft:#E6F6F9;--cb-grad:linear-gradient(135deg,#0E8FA8,#3CC0D6);--cb-sh:rgba(14,143,168,.28)">
+        <img class="tc-art" src="img/cards/e-ambient.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
+        <div class="head">
+          <div class="ic" style="background:linear-gradient(135deg,#0E8FA8,#3CC0D6);box-shadow:0 8px 18px rgba(14,143,168,.28)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg></div>
+          <span class="free-flag" style="color:#08835F;background:var(--green-soft);border-color:#BFE6D5">EFS</span>
+        </div>
+        <span class="tag" style="color:#0B7489;background:#E6F6F9;margin-bottom:10px">AMBIENT · 환경</span>
+        <h3>주변 환경</h3>
+        <p class="desc">주변의 밝기, 시간대, 사용 환경 등 스마트폰을 사용하는 주변 환경이 눈의 부담에 미치는 영향을 추정합니다.</p>
+        <div class="feat"><span>주변 조도</span><span>시간대</span><span>환경 차이</span></div>
+      </div>
+      <div class="card tcard" style="--cb:#0FA47A;--cb-soft:var(--green-soft);--cb-grad:linear-gradient(135deg,#0FA47A,#3EC49E);--cb-sh:rgba(15,164,122,.28)">
+        <img class="tc-art" src="img/cards/e-distance.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
+        <div class="head">
+          <div class="ic" style="background:linear-gradient(135deg,#0FA47A,#3EC49E);box-shadow:0 8px 18px rgba(15,164,122,.28)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/><path d="M3 21h18M3 19.5V22.5M21 19.5V22.5"/></svg></div>
+          <span class="free-flag" style="color:#08835F;background:var(--green-soft);border-color:#BFE6D5">EFS</span>
+        </div>
+        <span class="tag" style="color:#08835F;background:var(--green-soft);margin-bottom:10px">DISTANCE · 눈 반응</span>
+        <h3>거리 · 눈 반응</h3>
+        <p class="desc">화면과의 거리, 눈 깜빡임, 눈의 열린 정도, 시선 반응을 관찰하여 눈의 반응 패턴을 분석합니다.</p>
+        <div class="feat"><span>거리 추정</span><span>깜빡임</span><span>눈 반응</span></div>
+      </div>
+      <div class="card tcard" style="--cb:#0E8FA8;--cb-soft:#E6F6F9;--cb-grad:linear-gradient(135deg,#0E8FA8,#3CC0D6);--cb-sh:rgba(14,143,168,.28)">
+        <img class="tc-art" src="img/cards/e-habit.webp" alt="" aria-hidden="true" width="250" height="220" loading="lazy" decoding="async">
+        <div class="head">
+          <div class="ic" style="background:linear-gradient(135deg,#0E8FA8,#3CC0D6);box-shadow:0 8px 18px rgba(14,143,168,.28)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg></div>
+          <span class="free-flag" style="color:#08835F;background:var(--green-soft);border-color:#BFE6D5">EFS</span>
+        </div>
+        <span class="tag" style="color:#0B7489;background:#E6F6F9;margin-bottom:10px">HABIT · 습관</span>
+        <h3>사용 습관</h3>
+        <p class="desc">연속 사용 시간, 잠금 해제 패턴, 짧은 휴식 등 일상의 사용 습관을 분석하여 건강한 눈 사용 습관 형성을 도와줍니다.</p>
+        <div class="feat"><span>연속 사용</span><span>짧은 휴식</span><span>기록 보기</span></div>
+      </div>
+    </div>
+
+    <div class="more-reports">
+      <div class="mr-head">
+        <div class="tl">
+          <div class="ic ic-sm" style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,#0FA47A,#3EC49E);box-shadow:0 8px 18px rgba(15,164,122,.28)"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M9 11.5s1.2-2 3-2 3 2 3 2-1.2 2-3 2-3-2-3-2z"/><path d="M11 18.5h2"/></svg></div>
+          <h3>결과와 케어<small>스마트폰을 쓰는 동안 Neurolens-efs 엔진이 눈 사용 부담을 추정하고, 쉼이 필요한 순간을 알려 줍니다.</small></h3>
+        </div>
+      </div>
+      <div class="mr-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="mr-cat" style="--mc:#0FA47A"><div class="cat"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>결과</div>
+          <ul><li>눈 사용 부담 추정 점수</li><li>주요 부담 요인</li><li>사용 기록과 변화 추이</li></ul></div>
+        <div class="mr-cat" style="--mc:#0E8FA8"><div class="cat"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-8.7-9C2.2 8.5 4.5 5.6 7.5 5.6c1.9 0 3.4 1 4.5 2.5 1.1-1.5 2.6-2.5 4.5-2.5 3 0 5.3 2.9 4.2 6.4C19 16.6 12 21 12 21z"/></svg>케어</div>
+          <ul><li>휴식 알림</li><li>사용 습관 돌아보기</li><li>체감 피로도 기록</li></ul></div>
+      </div>
+      <div class="mr-foot">
+        <span class="price">측정 <b>스마트폰 사용 중 관측</b></span>
+        <span class="price">제공 <b>Android 앱</b></span>
+        <span>눈 사용 부담을 추정하는 웰니스 참고 정보이며, 의료적 진단을 대체하지 않습니다.</span>
+      </div>
+    </div>
+    </div>
   </div>
 </section>
 
 <!-- ================= 구동방식 ================= -->
-<section id="how" style="background:#FAFBFE;border-top:1px solid var(--line)">
+<section id="how">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="hgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8DB0FF"/><stop offset="1" stop-color="#1E5AF0"/></linearGradient>
+      <linearGradient id="hgBl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#D3E0FF"/></linearGradient>
+      <linearGradient id="hgV" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#BBA6FF"/><stop offset="1" stop-color="#6C4CE0"/></linearGradient>
+      <linearGradient id="hgVl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E4DAFF"/></linearGradient>
+      <radialGradient id="hrB"><stop offset="0" stop-color="#DCE7FF"/><stop offset="1" stop-color="#DCE7FF" stop-opacity="0"/></radialGradient>
+      <radialGradient id="hrV"><stop offset="0" stop-color="#E9E0FF"/><stop offset="1" stop-color="#E9E0FF" stop-opacity="0"/></radialGradient>
+    </defs>
+  </svg>
   <div class="wrap">
-    <span class="eyebrow">How It Works</span>
-    <h2 class="sec">카메라 하나로 완성되는 두 가지 측정 파이프라인</h2>
-    <p class="lead lead-1l">별도 장비 없이 브라우저에서 시작합니다. 성향검사는 시선행동 AI가, 컨디션 검사는 자체 엔진 In_mind가 리포트에서 케어까지 책임집니다.</p>
-    <div class="prow" style="--tc:#1E5AF0">
-    <div class="prow-h"><i></i>시선추적 AI 성향검사</div>
-    <div class="flow">
-      <div class="step">
-        <span class="n">1</span>
-        <div class="ic b"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10.5 21 8v8l-5-2.5"/></svg></div>
-        <h4>캘리브레이션</h4><p>웹캠 품질·조도·얼굴 위치를 자동 점검하고 시선을 보정</p>
-      </div>
-      <div class="step">
-        <span class="n">2</span>
-        <div class="ic v"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
-        <h4>5분 시선행동 측정</h4><p>자극 이미지 응시 중 시선좌표를 초당 수십 회 수집(50ms)</p>
-      </div>
-      <div class="step">
-        <span class="n">3</span>
-        <div class="ic nv"><svg viewBox="0 0 24 24"><path d="M9.5 3.5a3 3 0 0 0-3 3c-2 .4-3.2 1.8-3.2 3.7 0 1.2.5 2.2 1.4 2.9-.4.7-.6 1.4-.6 2.2A3.8 3.8 0 0 0 8 19.1c.5 1 1.4 1.6 2.6 1.6 1 0 1.9-.5 2.4-1.2V5.2a3 3 0 0 0-3.5-1.7z"/><path d="M14.5 3.5a3 3 0 0 1 3 3c2 .4 3.2 1.8 3.2 3.7 0 1.2-.5 2.2-1.4 2.9.4.7.6 1.4.6 2.2a3.8 3.8 0 0 1-3.9 3.8c-.5 1-1.4 1.6-2.6 1.6"/></svg></div>
-        <h4>AI 분석</h4><p>I-DT 기반 150+ 시선특징 추출 → BMA 설명가능 모델로 Human Model 생성</p>
-      </div>
-      <div class="step">
-        <span class="n">4</span>
-        <div class="ic g"><svg viewBox="0 0 24 24"><path d="M4 20V12M10 20V6M16 20v-5M21 20H3"/><circle cx="16" cy="8" r="2.6"/><path d="M18 6.2l2.5-2"/></svg></div>
-        <h4>리포트 · API</h4><p>프로파일을 리포트와 JSON API로 제공, 불확실성까지 함께 표기</p>
-      </div>
+    <div class="how-head">
+      <span class="eyebrow">How It Works</span>
+      <h2 class="sec">카메라 하나로 완성되는 <em>두 가지 측정 파이프라인</em></h2>
+      <p class="lead">별도의 장비 없이 브라우저에서 바로 시작합니다. 성향검사는 시선행동 AI가, 컨디션 검사는 자체 엔진 In_mind가 분석하고,<br>검사부터 리포트, 케어까지 하나의 흐름으로 이어집니다.</p>
     </div>
-    </div>
-    <div class="prow" style="--tc:#6C4CE0">
-      <div class="prow-h"><i></i>마인드 AI 컨디션 검사 · In_mind</div>
-      <div class="flow">
-        <div class="step"><span class="n">1</span><div class="ic v"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div><h4>4단계 시선 보정</h4><p>9점 응시 · 움직이는 점 추적 보정 · 커서로 시선 이동 확인 · 새 위치 8곳으로 정밀 보정</p></div>
-        <div class="step"><span class="n">2</span><div class="ic b"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-9 2 3H22"/></svg></div><h4>8분 멀티모달 측정</h4><p>학술 표준 과제 7종 동안 시선 · 심박(이마·양 볼) · 생체반응(눈꺼풀 · 반응 속도 · 호흡)을 동시에 기록</p></div>
-        <div class="step"><span class="n">3</span><div class="ic nv"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg></div><h4>In_mind 분석</h4><p>지표 19개 × 측정 신뢰도 가중 → 4개 영역 → 영역 간 연결(피로 게이팅 · 신경내장 통합) 해석</p></div>
-        <div class="step"><span class="n">4</span><div class="ic g"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-8.7-9C2.2 8.5 4.5 5.6 7.5 5.6c1.9 0 3.4 1 4.5 2.5 1.1-1.5 2.6-2.5 4.5-2.5 3 0 5.3 2.9 4.2 6.4C19 16.6 12 21 12 21z"/></svg></div><h4>보고서 · 케어</h4><p>간편·전문가 보고서와 AI 총평, 맞춤 케어 트랙 → 매일 측정으로 변화 확인</p></div>
-      </div>
-    </div>
+
+    <!-- 시선추적 AI 성향검사 -->
+    <article class="pipe">
+      <header class="pipe-h">
+        <div class="pipe-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div><h3>시선추적 AI 성향검사</h3><p>시선의 움직임에 담긴 성향을 AI가 분석합니다.</p></div>
+        <div class="pipe-deco" aria-hidden="true">
+          <div class="gz-card">
+            <div class="gz-eye"><svg viewBox="0 0 118 56">
+              <path d="M10 28Q59-4 108 28Q59 60 10 28Z" fill="#fff" stroke="#C9D8FF" stroke-width="1.5"/>
+              <circle cx="59" cy="28" r="15" fill="url(#hgB)"/><circle cx="59" cy="28" r="6.5" fill="#0B1B3F"/><circle cx="63.5" cy="23.5" r="2.6" fill="#fff"/>
+              <path d="M4 14V6h8M106 6h8v8M114 42v8h-8M12 50H4v-8" fill="none" stroke="#1E5AF0" stroke-width="2" stroke-linecap="round"/>
+            </svg></div>
+            <div class="gz-meta"><b>Gaze Analysis <i>AI</i></b>
+              <svg viewBox="0 0 118 22"><path d="M2 14C12 4 20 4 30 12S48 20 58 11 76 3 86 12 104 19 116 8" fill="none" stroke="url(#hgB)" stroke-width="2.2" stroke-linecap="round"/><circle cx="116" cy="8" r="3" fill="#1E5AF0"/></svg>
+            </div>
+          </div>
+        </div>
+      </header>
+      <ol class="pipe-steps">
+        <li class="ps">
+          <div class="ps-top"><span class="ps-n">01</span>
+            <div class="ps-art" aria-hidden="true"><svg viewBox="0 0 92 80">
+              <circle cx="50" cy="38" r="36" fill="url(#hrB)"/>
+              <ellipse cx="48" cy="68" rx="17" ry="4.5" fill="url(#hgBl)" stroke="#C9D8FF"/>
+              <rect x="44" y="52" width="8" height="15" rx="3" fill="#C9D8FF"/>
+              <circle cx="48" cy="34" r="23" fill="url(#hgBl)" stroke="#fff" stroke-width="2"/>
+              <circle cx="48" cy="34" r="13" fill="url(#hgB)"/><circle cx="48" cy="34" r="6" fill="#0B1B3F"/><circle cx="51" cy="31" r="2.4" fill="#fff"/>
+            </svg></div>
+          </div>
+          <h4>캘리브레이션</h4>
+          <p>웹캠 품질·조도·얼굴 위치를 자동으로 점검하고, 시선을 보정합니다.</p>
+        </li>
+        <li class="ps">
+          <div class="ps-top"><span class="ps-n">02</span>
+            <div class="ps-art" aria-hidden="true"><svg viewBox="0 0 92 80">
+              <circle cx="48" cy="40" r="36" fill="url(#hrB)"/>
+              <rect x="32" y="10" width="48" height="38" rx="8" fill="#DCE6FF"/>
+              <rect x="16" y="20" width="52" height="42" rx="8" fill="url(#hgBl)" stroke="#fff" stroke-width="2"/>
+              <path d="M22 56l14-17 10 11 7-6 11 12z" fill="url(#hgB)"/><circle cx="55" cy="31" r="4" fill="#fff"/>
+              <path d="M28 30l14-4 24 36" fill="none" stroke="#1E5AF0" stroke-width="1.6" stroke-dasharray="3 3" opacity=".55"/>
+              <circle cx="68" cy="62" r="9" fill="#fff" stroke="url(#hgB)" stroke-width="3"/><circle cx="68" cy="62" r="3.4" fill="#1E5AF0"/>
+            </svg></div>
+          </div>
+          <h4>5분 시선행동 측정</h4>
+          <p>자극 이미지를 보는 동안 시선 좌표를 50ms 간격으로 수집합니다. (약 5분)</p>
+        </li>
+        <li class="ps">
+          <div class="ps-top"><span class="ps-n">03</span>
+            <div class="ps-art" aria-hidden="true"><svg viewBox="0 0 92 80">
+              <circle cx="48" cy="40" r="36" fill="url(#hrB)"/>
+              <g fill="url(#hgB)"><circle cx="35" cy="35" r="13"/><circle cx="48" cy="26" r="14"/><circle cx="62" cy="34" r="13"/><circle cx="39" cy="50" r="13"/><circle cx="58" cy="50" r="13"/></g>
+              <path d="M48 14v48M36 30c4 0 6 3 6 6M60 30c-4 0-6 3-6 6M34 48c3-3 7-3 9 0M62 48c-3-3-7-3-9 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/>
+              <path d="M44 63c-2 4-1 7 3 9" fill="none" stroke="#7FA2FF" stroke-width="3" stroke-linecap="round"/>
+            </svg></div>
+          </div>
+          <h4>AI 분석</h4>
+          <p>I-DT 기반으로 시선 특징 150+개를 추출하고, BMA 설명가능 모델로 개인별 Human Model을 만듭니다.</p>
+        </li>
+        <li class="ps">
+          <div class="ps-top"><span class="ps-n">04</span>
+            <div class="ps-art" aria-hidden="true"><svg viewBox="0 0 92 80">
+              <circle cx="48" cy="40" r="36" fill="url(#hrB)"/>
+              <rect x="20" y="8" width="46" height="62" rx="7" fill="#fff" stroke="#D6E2FF" stroke-width="1.5"/>
+              <rect x="27" y="17" width="22" height="3.5" rx="1.75" fill="#9DB8FF"/><rect x="27" y="24" width="14" height="3.5" rx="1.75" fill="#D6E2FF"/>
+              <rect x="27" y="50" width="5" height="12" rx="1.5" fill="#9DB8FF"/><rect x="35" y="44" width="5" height="18" rx="1.5" fill="url(#hgB)"/><rect x="43" y="54" width="5" height="8" rx="1.5" fill="#C9D8FF"/>
+              <circle cx="64" cy="42" r="16" fill="#fff" stroke="#E6EDFF" stroke-width="7"/>
+              <circle cx="64" cy="42" r="16" fill="none" stroke="url(#hgB)" stroke-width="7" stroke-dasharray="70 101" transform="rotate(-90 64 42)" stroke-linecap="round"/>
+            </svg></div>
+          </div>
+          <h4>리포트 · API</h4>
+          <p>개인별 프로파일을 리포트와 JSON API로 제공하며, 불확실성까지 함께 표시합니다.</p>
+        </li>
+      </ol>
+    </article>
+
+    <!-- 마인드 AI 컨디션 검사 -->
+    <article class="pipe v">
+      <header class="pipe-h">
+        <div class="pipe-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 3.5a3 3 0 0 0-3 3c-2 .4-3.2 1.8-3.2 3.7 0 1.2.5 2.2 1.4 2.9-.4.7-.6 1.4-.6 2.2A3.8 3.8 0 0 0 8 19.1c.5 1 1.4 1.6 2.6 1.6 1 0 1.9-.5 2.4-1.2V5.2a3 3 0 0 0-3.5-1.7z"/><path d="M14.5 3.5a3 3 0 0 1 3 3c2 .4 3.2 1.8 3.2 3.7 0 1.2-.5 2.2-1.4 2.9.4.7.6 1.4.6 2.2a3.8 3.8 0 0 1-3.9 3.8c-.5 1-1.4 1.6-2.6 1.6"/></svg></div>
+        <div><h3>마인드 AI 컨디션 검사 · In_mind</h3><p>시선, 심박, 생체반응까지. 지금의 마음 컨디션을 여러 각도로 읽습니다.</p></div>
+        <div class="pipe-deco" aria-hidden="true">
+          <div class="bio-chip">
+            <svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-8.7-9C2.2 8.5 4.5 5.6 7.5 5.6c1.9 0 3.4 1 4.5 2.5 1.1-1.5 2.6-2.5 4.5-2.5 3 0 5.3 2.9 4.2 6.4C19 16.6 12 21 12 21z" fill="#8E75EE"/></svg>
+            <b>72<small>bpm</small></b>
+            <svg class="ecg" viewBox="0 0 72 22"><path d="M0 13h18l4-7 5 13 4-10 3 4h38" fill="none" stroke="url(#hgV)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="bio-dot"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <div class="bio-dot"><svg viewBox="0 0 24 24"><path d="M12 4v7M12 11c-1.4 1.2-2.8 1.5-3.8 1.5M12 11c1.4 1.2 2.8 1.5 3.8 1.5"/><path d="M7.5 7C5 8.5 3.5 12 3.5 16c0 2.5 1 4 3 4 2.5 0 3.5-2 3.5-5V9.5C10 8 9 6.6 7.5 7zM16.5 7C19 8.5 20.5 12 20.5 16c0 2.5-1 4-3 4-2.5 0-3.5-2-3.5-5V9.5C14 8 15 6.6 16.5 7z"/></svg></div>
+        </div>
+      </header>
+      <ol class="pipe-steps">
+        <li class="ps">
+          <div class="ps-top"><span class="ps-n">01</span>
+            <div class="ps-art" aria-hidden="true"><svg viewBox="0 0 92 80">
+              <circle cx="48" cy="40" r="36" fill="url(#hrV)"/>
+              <g fill="#A994F5"><circle cx="48" cy="11" r="2.8"/><circle cx="69" cy="19" r="2.8"/><circle cx="77" cy="40" r="2.8"/><circle cx="69" cy="61" r="2.8"/><circle cx="48" cy="69" r="2.8"/><circle cx="27" cy="61" r="2.8"/><circle cx="19" cy="40" r="2.8"/><circle cx="27" cy="19" r="2.8"/></g>
+              <circle cx="48" cy="40" r="20" fill="none" stroke="#DCD0FF" stroke-width="1.5" stroke-dasharray="3 4"/>
+              <circle cx="48" cy="40" r="11" fill="#fff" stroke="url(#hgV)" stroke-width="3.2"/><circle cx="48" cy="40" r="3.8" fill="#6C4CE0"/>
+              <path d="M48 24v6M48 50v6M32 40h6M58 40h6" stroke="#6C4CE0" stroke-width="2.4" stroke-linecap="round"/>
+            </svg></div>
+          </div>
+          <h4>4단계 시선 보정</h4>
+          <p>9점 응시 · 움직이는 점 추적 보정 · 커서로 시선 이동 확인 · 새 위치 8곳으로 정밀 보정합니다.</p>
+        </li>
+        <li class="ps">
+          <div class="ps-top"><span class="ps-n">02</span>
+            <div class="ps-art" aria-hidden="true"><svg viewBox="0 0 92 80">
+              <circle cx="48" cy="40" r="36" fill="url(#hrV)"/>
+              <g fill="url(#hgVl)" stroke="#E2D9FB" stroke-width="1.5"><rect x="12" y="6" width="34" height="32" rx="10"/><rect x="50" y="6" width="34" height="32" rx="10"/><rect x="12" y="42" width="34" height="32" rx="10"/><rect x="50" y="42" width="34" height="32" rx="10"/></g>
+              <g fill="none" stroke="#6C4CE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 22s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="29" cy="22" r="2.6" fill="#6C4CE0"/>
+                <circle cx="29" cy="58" r="9"/><path d="M25 60.5c2.2 2 5.8 2 8 0M26 55.5h.01M32 55.5h.01"/>
+                <path d="M67 15v6M67 21c-1.2 1-2.4 1.2-3.2 1.2M67 21c1.2 1 2.4 1.2 3.2 1.2M62.5 17.5c-2 1.3-3 4-3 7 0 2 .8 3.2 2.4 3.2 2 0 2.8-1.6 2.8-4v-4.5c0-1.2-.8-2.2-2.2-1.7zM71.5 17.5c2 1.3 3 4 3 7 0 2-.8 3.2-2.4 3.2-2 0-2.8-1.6-2.8-4v-4.5c0-1.2.8-2.2 2.2-1.7z"/>
+                <path d="M56 59h6l3-6 4 11 3-5h4"/>
+              </g>
+            </svg></div>
+          </div>
+          <h4>8분 멀티모달 측정</h4>
+          <p>학술 표준 과제 7종 동안 시선 · 심박(이마·양 볼) · 생체반응(눈꺼풀 · 반응 속도 · 호흡)을 동시에 기록합니다.</p>
+        </li>
+        <li class="ps">
+          <div class="ps-top"><span class="ps-n">03</span>
+            <div class="ps-art" aria-hidden="true"><svg viewBox="0 0 92 80">
+              <circle cx="48" cy="40" r="36" fill="url(#hrV)"/>
+              <path d="M48 42l28 13-28 13-28-13z" fill="#C9BBF8" opacity=".75"/>
+              <path d="M48 29l28 13-28 13-28-13z" fill="#A890F4" opacity=".9"/>
+              <path d="M48 16l28 13-28 13-28-13z" fill="url(#hgV)"/>
+              <path d="M48 16l28 13-28 13" fill="none" stroke="#fff" stroke-width="1.2" opacity=".6"/>
+            </svg></div>
+          </div>
+          <h4>In_mind 분석</h4>
+          <p>지표 19개를 측정 신뢰도로 가중해 4개 영역으로 묶고, 영역 간 연결(피로 게이팅 · 신경내장 통합)까지 해석합니다.</p>
+        </li>
+        <li class="ps">
+          <div class="ps-top"><span class="ps-n">04</span>
+            <div class="ps-art" aria-hidden="true"><svg viewBox="0 0 92 80">
+              <circle cx="48" cy="40" r="36" fill="url(#hrV)"/>
+              <rect x="12" y="10" width="56" height="50" rx="8" fill="#fff" stroke="#E2D9FB" stroke-width="1.5"/>
+              <rect x="19" y="18" width="20" height="3.5" rx="1.75" fill="#C9BBF8"/>
+              <path d="M19 48l9-9 8 5 10-12 12 7" fill="none" stroke="url(#hgV)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="58" cy="39" r="3.4" fill="#6C4CE0"/>
+              <rect x="56" y="46" width="28" height="26" rx="8" fill="url(#hgV)"/>
+              <path d="M62 54h16M65 50v4M75 50v4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <g fill="#fff"><circle cx="64" cy="60" r="1.6"/><circle cx="70" cy="60" r="1.6"/><circle cx="76" cy="60" r="1.6"/><circle cx="64" cy="66" r="1.6"/><circle cx="70" cy="66" r="1.6"/></g>
+            </svg></div>
+          </div>
+          <h4>보고서 · 케어</h4>
+          <p>간편·전문가 보고서와 AI 총평, 맞춤 케어 트랙을 제공하고 매일 측정으로 변화를 확인합니다.</p>
+        </li>
+      </ol>
+    </article>
   </div>
 </section>
 
@@ -1110,7 +1471,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="support-box ext">
         <h4>EXTERNAL VALIDATION</h4>
         <div class="ext-chips">
-          <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>IRB 승인</span>
+          <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>IRB 승인 (성향검사)</span>
           <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>교육부 에듀테크소프트랩 공교육 적합도 '적합'</span>
           <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>교육부 인가 SW 플랫폼 에듀집 등재</span>
           <span><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>경기도교육연구원 p&lt;0.001</span>
@@ -1286,7 +1647,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       </div>
       <div class="commit">
         <div class="c"><div class="cno">COMMITMENT 01 · 성장</div><h4>생애주기 경험 축적</h4><p>초등부터 노년층까지, 연령과 관심사는 달라도 시선 및 멀티모달 AI로 나를 알아갑니다.</p></div>
-        <div class="c"><div class="cno">COMMITMENT 02 · 확장</div><h4>참여 기반 확보</h4><p>학교·기관·지역 구분없이 현장 참여 기반을 넓혀갑니다.(B2C, B2B, B2G)</p></div>
+        <div class="c"><div class="cno">COMMITMENT 02 · 확장</div><h4>참여 기반 확보</h4><p>학교·기관·지역 구분 없이 현장 참여 기반을 넓혀 갑니다. (B2C · B2B · B2G)</p></div>
         <div class="c"><div class="cno">COMMITMENT 03 · 혁신</div><h4>AI 헬스케어 솔루션</h4><p>멀티모달 생체신호로 만드는 AI 헬스케어 Deeptech를 지향합니다.</p></div>
       </div>
 
@@ -1350,7 +1711,7 @@ footer p{font-size:12.5px;color:var(--gray)}
             <li>용인창업지원센터(바이오·헬스부문) 입주(7월, 완료)</li>
             <li>강남구 청소년 진로·직업박람회(9월, 성료)</li>
             <li>중앙경찰학교 신임경찰관 대상 실증(10월, 진행중)</li>
-            <li>NeuroLens : AI 비접촉 생체측정과 자기조절학 기술백서 발간(10월)</li>
+            <li>NeuroLens: AI 비접촉 생체측정과 자기조절학 기술백서 발간(10월)</li>
             <li>NeuroLens 'In_Mind Core 신경망 엔진' 구축</li>
           </ul>
         </div>
@@ -1378,7 +1739,7 @@ footer p{font-size:12.5px;color:var(--gray)}
         </ul>
       </div>
       <div class="stage s2">
-        <span class="ph">NEXT · '26 Q3 (BETA)</span><span class="biz">플랫폼 · Platform</span>
+        <span class="ph">SOON · '26 Q4 (BETA)</span><span class="biz">플랫폼 · Platform</span>
         <h3>Human Model API</h3>
         <div class="price-line">한계비용 ≈ 0 · <b>비선형 성장</b></div>
         <ul>
@@ -1389,7 +1750,7 @@ footer p{font-size:12.5px;color:var(--gray)}
         </ul>
       </div>
       <div class="stage s3">
-        <span class="ph">FUTURE · '26 Q4 (PRIVATE BETA)</span><span class="biz">구독 · ARR</span>
+        <span class="ph">'26 Q4 (PRIVATE BETA)</span><span class="biz">구독 · ARR</span>
         <h3>AI Coaching Agent</h3>
         <div class="price-line">반복 사용 구독 · <b>월 ₩9,900~19,900</b> (B2C)</div>
         <ul>
@@ -1420,8 +1781,76 @@ footer p{font-size:12.5px;color:var(--gray)}
   </div>
 </section>
 
+<!-- ================= NEUROLENS NEXT ================= -->
+<section id="next">
+  <div class="wrap">
+    <span class="eyebrow">What's Next</span>
+    <h2 class="sec">NeuroLens <em>Next</em></h2>
+    <p class="lead">웹캠에서 검증한 측정 기술을 스마트폰 앱, 오프라인 공간, 다른 서비스로 넓혀 갑니다.</p>
+
+    <div class="nx-grid">
+      <!-- Eye·休 -->
+      <article class="nx-card eye">
+        <p class="nx-kind">스마트폰 시력 컨디션 케어 앱 <span class="nx-badge">B2C</span></p>
+        <h3>Eye·休</h3>
+        <div class="eye-body">
+          <div>
+            <p class="eye-q">지금 내 눈의<br>피로도는?</p>
+            <ul class="eye-f" aria-label="분석 요인">
+              <li>화면 자극</li><li>주변 환경</li><li>거리·눈 반응</li><li>사용 습관</li>
+            </ul>
+            <p class="eye-eng"><b>Neurolens-efs</b> Engine</p>
+            <span class="eye-and"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 9.4l1.6-2.8a.4.4 0 0 0-.7-.4l-1.6 2.8a9.9 9.9 0 0 0-8.6 0L6.6 6.2a.4.4 0 0 0-.7.4l1.6 2.8A9.4 9.4 0 0 0 2.6 17h18.8a9.4 9.4 0 0 0-3.9-7.6zM8 14.3a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zm8 0a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8z"/></svg>Android 앱</span>
+          </div>
+          <div class="phone" role="img" aria-label="Eye·休 앱 화면: 지금 내 눈 컨디션 100점, 매우 양호">
+            <div class="phone-s" aria-hidden="true">
+              <div class="ph-sb"><span>9:41</span><i></i><span>5G</span></div>
+              <div class="ph-top"><b>Eye·休</b></div>
+              <div class="ph-date">10월 12일 월요일</div>
+              <div class="ph-card">
+                <div class="ph-row">내 눈 컨디션 <i>매우 양호</i></div>
+                <div class="ph-gauge">
+                  <svg viewBox="0 0 112 66"><path d="M10 58A46 46 0 0 1 102 58" fill="none" stroke="#24312D" stroke-width="9" stroke-linecap="round"/><path d="M10 58A46 46 0 0 1 102 58" fill="none" stroke="#49D3A0" stroke-width="9" stroke-linecap="round"/></svg>
+                  <b>100</b><small>/ 100</small>
+                </div>
+                <p class="ph-msg">눈이 아주 편안한 상태예요.<br>지금 리듬을 유지해 주세요.</p>
+                <p class="ph-time">10월 12일 (월) 13:05</p>
+                <div class="ph-scale"><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="ph-lb"><span>위험</span><span>주의</span><span>보통</span><span>양호</span><span>매우 양호</span></div>
+              </div>
+              <div class="ph-btn">▷ 눈 케어 시작</div>
+              <div class="ph-home"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- In_Mind Station -->
+      <article class="nx-card st">
+        <p class="nx-kind">마음건강 측정 모듈러 룸 <span class="nx-badge">B2B</span></p>
+        <h3>In_Mind Station</h3>
+        <div class="st-photo"><img src="img/next-station.webp" alt="In_Mind Station 부스 안에서 화면을 보며 마음 컨디션을 측정하는 사용자" width="830" height="755" loading="lazy" decoding="async"></div>
+        <p class="st-note">조용한 1인 부스에 앉아 화면을 보는 것만으로 측정하고, 결과 리포트와 케어 제안을 바로 받습니다.</p>
+      </article>
+
+      <!-- NeuroLens Signal Kit -->
+      <article class="nx-card kit">
+        <p class="nx-kind">웹캠 기반 멀티모달 측정 SDK <span class="nx-badge">B2B</span></p>
+        <h3>NeuroLens Signal Kit</h3>
+        <p class="kit-quote"><q>뉴로렌즈의 측정 기술을<br>당신의 서비스 안으로.</q></p>
+        <ul class="kit-list">
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>시선·생체신호 수집 및 분석</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>측정 품질·신뢰도 정보 제공</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>분석 결과를 맞춤형 케어 기능에 연결</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
 <!-- ================= TEAM ================= -->
-<section id="team" style="background:#FAFBFE;border-top:1px solid var(--line)">
+<section id="team" class="has-art" style="background:#FAFBFE;border-top:1px solid var(--line)">
+  <div class="sec-art" aria-hidden="true"><img src="img/004.webp" alt="" width="664" height="590" loading="lazy" decoding="async"></div>
   <div class="wrap">
     <span class="eyebrow">Team Building</span>
     <h2 class="sec">마음을 읽는 사람들, <em>AX오픈랩</em></h2>
@@ -1432,7 +1861,7 @@ footer p{font-size:12.5px;color:var(--gray)}
       <div class="ceo-ava"><img width="404" height="318" src="img/지병석.webp" alt="지병석 대표"></div>
       <div class="ceo-info">
         <div class="nm">지병석<small>대표 · Founder</small><span class="ceo-badge">정책·기술 융합 전문가</span></div>
-        <p class="tagline">"AX 가속 시대, 더 나은 내일을 연구합니다."</p>
+        <p class="tagline">“AX 가속 시대, 더 나은 내일을 연구합니다.”</p>
         <div class="ceo-chips">
           <span>대통령직속 4차산업혁명위원회 사무관</span>
           <span>지식재산처 한국발명진흥회 그룹장</span>
@@ -1442,7 +1871,7 @@ footer p{font-size:12.5px;color:var(--gray)}
           <span>국가공무원인재개발원 AI 외래교수</span>
           <span>중앙경찰학교 AI 외래교수</span>
           <span>아주대 e-business MBA</span>
-          <span>용인시 위촉 AI·전문가</span>
+          <span>용인시 위촉 AI 전문가</span>
           <span>국가신약개발재단 평가위원</span>
           <span>[저서] 거의 모든 것의 산업혁명 등</span>
         </div>
@@ -1560,20 +1989,23 @@ document.querySelectorAll('.ltabs').forEach(bar => {
     });
   }));
 });
-/* 30초 추천: 세 문항 중 다수결 */
+/* 히어로 카드 슬라이드 (›› 로 Eye·休 카드 표시, ‹‹ 로 복귀) */
 {
-  const ans = [], pr = document.getElementById('pickRes'), duo = document.getElementById('duo');
-  document.getElementById('pickBtn').addEventListener('click', () => document.getElementById('picker').classList.toggle('on'));
-  document.querySelectorAll('#picker .po').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-    g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    ans[+g.dataset.q] = b.dataset.v;
-    if (ans.filter(Boolean).length < 3) return;
-    const c = ans.filter(v => v === 'c').length, t = 3 - c;
-    duo.classList.toggle('hl-cond', c > t); duo.classList.toggle('hl-trait', t > c);
-    pr.innerHTML = c > t ? '<b>마인드 AI 컨디션 검사</b>를 추천해요 — 지금의 또렷함·집중·마음·몸 상태를 8분 만에 확인하고 케어로 이어 갈 수 있어요.'
-      : '<b>시선추적 AI 성향검사</b>를 추천해요 — 5분이면 나의 성격·흥미·잘 맞는 일을 알 수 있어요. 컨디션이 궁금해지면 컨디션 검사도 함께 해 보세요.';
-  })));
+  const car = document.getElementById('duoCar'), prev = document.getElementById('duoPrev'), next = document.getElementById('duoNext');
+  const trait = car.querySelector('.dc-trait'), eye = document.getElementById('eyeCard');
+  const go = (pos, focus) => {
+    car.classList.toggle('pos1', pos === 1);
+    prev.hidden = pos !== 1; next.hidden = pos === 1;
+    trait.toggleAttribute('inert', pos === 1); eye.toggleAttribute('inert', pos !== 1);
+    if (focus) (pos === 1 ? prev : next).focus();
+  };
+  next.addEventListener('click', () => go(1, true));
+  prev.addEventListener('click', () => go(0, true));
+  const mq = matchMedia('(max-width:820px)');
+  const sync = () => { if (mq.matches) { car.classList.remove('pos1'); trait.removeAttribute('inert'); eye.removeAttribute('inert'); } else go(car.classList.contains('pos1') ? 1 : 0); };
+  mq.addEventListener('change', sync); sync();
 }
+
 window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'nlAdminResultReady') setStatus('검사가 완료되었습니다. 측정 창에서 결과 리포트를 확인해 주세요.'); });
 
 /* D7 재측정 진입 (report.html → index.html#test):
@@ -2194,7 +2626,7 @@ const io = new IntersectionObserver((entries) => {
     }
   });
 }, { threshold: .12 });
-document.querySelectorAll('.card,.vcard,.pcard,.stage,.step,.more-reports,.field-band,.care-flex,.quad-box,.comp-table,.gloss,.support-box,.data-card,.mile-card,.ceo-band,.adv,.evi-foot').forEach(el => {
+document.querySelectorAll('.card,.vcard,.pcard,.stage,.pipe,.nx-card,.more-reports,.field-band,.care-flex,.quad-box,.comp-table,.gloss,.support-box,.data-card,.mile-card,.ceo-band,.adv,.evi-foot').forEach(el => {
   el.style.opacity = 0;
   el.style.transform = 'translateY(18px)';
   el.style.transition = 'opacity .6s ease, transform .6s ease, box-shadow .25s, border-color .25s';
