@@ -3,6 +3,134 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "e6d90b9733e7c4b9ffc490f544804e76d8f6c220",
+      "parents": [
+        "07cf39e19bc44ce448cb2c020577a3ecee2d0ec0"
+      ],
+      "committedAt": "2026-10-12T17:09:50+09:00",
+      "subject": "홈페이지 개편: How It Works 재구성, NeuroLens Next·Eye·休 추가, 섹션 배경·간격·문구 정리",
+      "url": "https://github.com/jeebs0627/neurolens/commit/e6d90b9733e7c4b9ffc490f544804e76d8f6c220",
+      "files": [
+        {
+          "path": "img/bg-problem.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/bg-tests.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/c-alert.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/c-emotion.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/c-focus.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/c-recovery.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/e-ambient.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/e-distance.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/e-habit.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/e-screen.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/t-big5.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/t-jobfit.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/t-mbti.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/cards/t-riasec.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/next-station.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 590,
+          "deletions": 158
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56123063614",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-12T08:10:04Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/5hDgQTNNTaQG8NdJDfxzifKtyDBg",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "02dfd754c59727c8d609d4feeba5bdc1503dbc94",
       "parents": [
         "2d1ef67bc751d2232a614aa157c296c90fb500f6"
@@ -56,8 +184,8 @@
           "state": "proposed"
         }
       ],
-      "analysisState": "pending",
-      "analysisAttempts": 0,
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
       "deploymentEvents": [
         {
           "key": "check-56109694685",
@@ -117,7 +245,10 @@
           "url": "https://neurolens-p1b1mt2ra-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
         }
-      ]
+      ],
+      "lastAttemptAt": "2026-10-12T08:10:25.143500+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
     },
     {
       "sha": "82921b89fda2ff0540a1cc687af5b82601005e79",
@@ -17937,9 +18068,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "68e09571eeb3ff678b03046eb5b1bb0b40ef1998"
+    "sourceHead": "e6d90b9733e7c4b9ffc490f544804e76d8f6c220"
   },
-  "updatedAt": "2026-10-12T02:22:05.031060+00:00",
-  "aiCooldownUntil": "2026-10-12T03:02:46.348137+00:00",
-  "aiCooldownReason": "GEMINI_RATE_LIMIT"
+  "updatedAt": "2026-10-12T08:11:09.068040+00:00",
+  "aiCooldownUntil": "2026-10-12T08:16:08.311471+00:00",
+  "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
