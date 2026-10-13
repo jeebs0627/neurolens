@@ -230,6 +230,11 @@ html.staging,html.staging body{overflow:hidden}
 .pvt{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center}
 .pvt-box{width:min(260px,60vw);height:120px;border-radius:18px;border:2.5px solid #A9B2C5;display:grid;place-items:center;font-family:var(--font-num);font-size:56px;font-weight:700;color:#FFFFFF;background:#0B0D12}   /* 검은 바탕·흰 숫자(대비 19:1): 연회색·붉은 숫자(4.9:1)는 개시 인식이 늦어 반응시간에 30~50ms 가 섞일 수 있음 — PVT 원판 기기처럼 어두운 바탕. 상자만 어둡게 해 얼굴 조명(심박·눈꺼풀)은 그대로 */
 .pvt-msg{height:26px;margin-top:14px;font-size:15px;color:#59647D}
+/* 기기 반응 맞춤: PVT 상자와 같은 검은 바탕 트랙, 가운데 흰 선, 왼쪽에서 다가오는 노란 점 */
+.lat{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(560px,84vw);text-align:center}
+.lat-track{position:relative;height:72px;border-radius:16px;border:2.5px solid #A9B2C5;background:#0B0D12;overflow:hidden}
+.lat-line{position:absolute;left:50%;top:10px;bottom:10px;width:3px;margin-left:-1.5px;background:#FFFFFF;border-radius:2px}
+.lat-dot{position:absolute;left:0;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#FFD24A;visibility:hidden;will-change:transform}
 .sart{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-family:var(--font-num);font-weight:700;color:#2C3650;line-height:1;min-width:220px;text-align:center;contain:layout}
 .sart span{display:inline-block;font-size:var(--sart-max,120px);transform-origin:center;will-change:transform,opacity}
 .sart-fb{position:absolute;left:50%;top:66%;transform:translateX(-50%);font-size:15px;color:#59647D;height:24px}
@@ -1407,7 +1412,7 @@ function stepEstimateSec(key, d) {
   return {
     /* 측정 시간만 (단계 안내를 읽는 시간 제외) */
     calibration: 60, baseline: d.baseline + 3, pursuit: B.pursuitSec(d) + (d.circle || 0) + 8, saccade: (d.pro + d.anti + d.practice) * 3.1 + 14,
-    freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 2, pvt: d.pvt + d.pvtPractice * 3.5 + 6, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 6,
+    freeview: fvTrials(d) * (trialMs() + FIX_MS) / 1000 + 2, pvt: d.pvt + d.pvtPractice * 3.5 + 6 + 24, sart: (d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8 + 6,
     stress: d.stress + 3, recovery: d.recovery + 3,
     gazeLabel: LABEL_MODE ? (labelCounts().train + labelCounts().internal + labelCounts().holdout) * 3.6 : 0,
   }[key] || 0;
@@ -1929,13 +1934,15 @@ function wait(ms) {
     waiters.add(w);
   });
 }
+/* 입력 장치 종류: 기기 지연은 장치마다 달라(터치 · 내장/무선 키보드 · 마우스) 기기 반응 맞춤과 같은 장치일 때만 보정한다 */
+const inputKind = e => e.type === 'keydown' ? 'key' : (e.pointerType || 'pointer');
 /* 스페이스바·화면 터치 1회 응답 (없으면 null) — 시각은 이벤트 timeStamp (performance.now 와 같은 시계) */
 function respond(ms) {
   return new Promise((res, rej) => {
     if (S.abort) { rej(Abort); return; }
     const w = { rej, cleanup: () => { S.onResp = null; } };
     w.to = setTimeout(() => { waiters.delete(w); S.onResp = null; res(null); }, ms);
-    S.onResp = e => { clearTimeout(w.to); waiters.delete(w); S.onResp = null; res({ t: e.timeStamp }); };
+    S.onResp = e => { clearTimeout(w.to); waiters.delete(w); S.onResp = null; res({ t: e.timeStamp, input: inputKind(e) }); };
     waiters.add(w);
   });
 }
@@ -2170,7 +2177,7 @@ function stepInfo(key) {
       note: S.stimMode === 'photo' ? '일부 사진은 불쾌감을 줄 수 있어요. 불편하면 언제든 ‘이 단계 건너뛰기’를 누르세요.' : null, ref: 'Armstrong & Olatunji, 2012 · 자유 보기 체류 시간' },
     pvt: { tag: 'Domain 1 · 각성', title: '정신운동 경계 과제 (PVT-B)', vis: V.pvt, time: `연습 후 ${d.pvt}초`, resp: '스페이스바 · 화면 터치', trials: `연습 ${d.pvtPractice}회`,
       what: '예측할 수 없는 간격으로 나타나는 자극에 얼마나 빨리, 빠짐없이 반응하는지로 기본 각성 수준을 봅니다. 수면 부족에 가장 민감한 검사이며, 같은 시간 동안 눈꺼풀 감김(PERCLOS)도 함께 잽니다.',
-      how: ['상자에 빨간 숫자가 올라가기 시작하면 <b>스페이스바를 바로</b> 누르세요', '누르면 내 반응시간(ms)이 바로 표시돼요 · 숫자가 나오기 전에는 누르지 마세요', `연습 ${d.pvtPractice}회 후 본 검사 ${d.pvt}초 · 남은 시간이 아래에 표시돼요`],
+      how: ['먼저 약 20초 <b>기기 반응 맞춤</b> — 점이 선에 닿는 순간 누르면, 휴대폰·노트북·무선 키보드마다 다른 화면·입력 지연을 재서 반응시간에서 맞춰 줘요', '상자에 숫자가 올라가기 시작하면 <b>스페이스바를 바로</b> 누르세요 · 누르면 내 반응시간(ms)이 바로 표시돼요', `연습 ${d.pvtPractice}회 후 본 검사 ${d.pvt}초 · 남은 시간이 아래에 표시돼요 · 맞춤과 같은 손·같은 키로`],
       orig: `<b>원판 그대로</b> PVT-B는 ${d.pvt === 180 ? '3분' : '정해진 시간'} 동안 한 가지 과제를 이어 가도록 표준화된 검사예요. 단조로운 과제를 지속할수록 반응이 늦어지는 정도 자체가 각성 지표라, 다른 과제를 섞으면 수면 부족에 대한 민감도가 떨어져요. 짧게 하려면 첫 화면에서 ‘빠른 측정(90초)’을 고르세요.`,
       ref: 'Basner, Mollicone & Dinges, 2011 · PVT-B' },
     sart: { tag: 'Domain 2 · 주의 통제', title: '지속 주의 반응 과제 (SART)', vis: V.sart, time: `약 ${Math.round(((d.sart + d.sartPractice) * 1.15 + d.sartPractice * 0.8) / 6) / 10}분`, resp: '스페이스바 · 화면 터치', trials: `연습 ${d.sartPractice} + 본 검사 ${d.sart}개`,
@@ -2220,7 +2227,7 @@ function stepSummary(key) {
       return { cls: qa.validRate >= 0.6 ? '' : 'warn', text: `사카드 완료 · 유효 프로 ${qp.valid}/${qp.n} · 안티 ${qa.valid}/${qa.n}` };
     }
     if (key === 'freeview') { const v = S.trials.filter(t => N.trialStats(t, W).valid).length; return { cls: v >= S.trials.length * 0.6 ? '' : 'warn', text: `정서 보기 완료 · 유효 ${v}/${S.trials.length}쌍` }; }
-    if (key === 'pvt' && S.pvt) { const r = S.pvt.trials.filter(t => t.rt !== null).length; return { cls: '', text: `PVT 완료 · 반응 ${r}/${S.pvt.trials.length}회` }; }
+    if (key === 'pvt' && S.pvt) { const r = S.pvt.trials.filter(t => t.rt !== null).length, c = S.latencyCal?.stats; return { cls: '', text: `PVT 완료 · 반응 ${r}/${S.pvt.trials.length}회${c ? c.ok ? ` · 기기 보정 ${c.offset > 0 ? '−' : '+'}${Math.abs(c.offset)}ms` : ' · 기기 맞춤 불안정(기본 보정)' : ''}` }; }
     if (key === 'sart' && S.sart) return { cls: '', text: `SART 완료 · ${S.sart.trials.length}개` };
     if (key === 'stress' && S.stressScore) return { cls: '', text: `압박 과제 완료 · 정답 ${S.stressScore.correct}/${S.stressScore.total}` };
     if (key === 'recovery') return { cls: '', text: '회복 호흡 완료' };
@@ -2296,7 +2303,7 @@ async function runStep(key, fn) {
 }
 async function runSession() {
   Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null, phaseEvidence: {} });
-  Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 }, gazeOut: { n: 0, off: 0 } });
+  Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 }, gazeOut: { n: 0, off: 0 }, latencyCal: null });
   S.attemptId=crypto.randomUUID();S.startedAt=now();S.endedAt=null;S.outcome='recording';S.errorCode=null;
   S.researchConsent=!S.demo&&$('rsOpt').checked?{version:NLResearch.CONSENT_VERSION,research:true,phq:$('rsPhq').checked,at:new Date().toISOString()}:null;
   S.telemetry={clock:{...NLLabels.clockInfo(window),start:S.startedAt,onset:'requestAnimationFrame-before-paint',segments:[]},steps:{},stimuli:[],inputs:[],drift:[],layout:[],calibrationFrames:[]};
@@ -2585,11 +2592,12 @@ function looAffineErr(pairs, W, H) {
  * 커서 = N.gazeCursor: 치우침 학습 + 강한 One Euro 평활 + 속도 제한 + 표적 근처 자석 보조 → 떨림이 적고 원하는 곳에 멈추기 쉽다.
  * 머무름 판정은 들어올 때 반경 R, 나갈 때 1.3R (경계에서 깜빡이지 않게), 150ms 미만 이탈은 무시 */
 async function cursorTask(zones, W, H) {
-  const R = Math.max(52, W * 0.065), HOLD = 600, LIMIT = 7000, res = [];
+  /* 크기 기준은 화면 긴 변(core 2.8 gazeCursor 참고): 세로 휴대폰은 폭이 좁아 폭 기준이면 같은 시선 잡음에 2배 엄격하다. 가로 화면은 이전과 같다 */
+  const Lx = Math.max(W, H), R = Math.max(52, Lx * 0.065), ZA = Math.min(Lx * 0.28, W * 0.62), HOLD = 600, LIMIT = 7000, res = [];
   const gc = N.gazeCursor({ W, H });
   for (let i = 0; i < zones.length; i++) {
     const z = zones[i];
-    body.innerHTML = `<div class="zone-a" style="left:${z.x}px;top:${z.y}px;width:${W * 0.28}px;height:${W * 0.28}px"></div><div class="zone" id="zn" style="left:${z.x}px;top:${z.y}px;width:${2 * R}px;height:${2 * R}px"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#D3D9E5" stroke-width="5"/><circle id="znP" cx="50" cy="50" r="46" fill="none" stroke="#2F9E6A" stroke-width="5" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 50 50)"/></svg></div>
+    body.innerHTML = `<div class="zone-a" style="left:${z.x}px;top:${z.y}px;width:${ZA}px;height:${ZA}px"></div><div class="zone" id="zn" style="left:${z.x}px;top:${z.y}px;width:${2 * R}px;height:${2 * R}px"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#D3D9E5" stroke-width="5"/><circle id="znP" cx="50" cy="50" r="46" fill="none" stroke="#2F9E6A" stroke-width="5" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 50 50)"/></svg></div>
       <div class="gcur" id="gc"></div><div class="cue">원 쪽을 편하게 바라보세요 — 가까이 가면 커서(●)가 원 안으로 끌려 들어가요 · 영역 ${i + 1}/${zones.length} · 3단계 시선 이동 확인 (다음은 4단계 정밀 보정)</div>`;
     const zn = $('zn'), gc0 = $('gc'), zp = $('znP');
     const t0 = now();
@@ -2693,7 +2701,7 @@ async function calibrateRounds() {
           if (e1.errPct !== null && (e0.errPct === null || e1.errPct <= e0.errPct + 0.3)) { S.affine = A1; ctl.measuredFit = { before: e0.errPct, after: e1.errPct, zones: ctl.pairs.length }; acc = { ...acc, errPct: e1.errPct, grade: e1.grade }; }
         }
       }
-      if (ctl && !ctl.measuredFit && ctl.bias.n >= 40 && Math.hypot(ctl.bias.x, ctl.bias.y) > W * 0.01) {
+      if (ctl && !ctl.measuredFit && ctl.bias.n >= 40 && Math.hypot(ctl.bias.x, ctl.bias.y) > Math.max(W, H) * 0.01) {
         const A0 = S.affine || { x: { a: 1, b: 0 }, y: { a: 1, b: 0 } };
         const A1 = { x: { a: A0.x.a, b: A0.x.b + ctl.bias.x * 0.5 }, y: { a: A0.y.a, b: A0.y.b + ctl.bias.y * 0.5 } };
         const e0 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A0, p)), W, H), e1 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A1, p)), W, H);
@@ -2739,7 +2747,7 @@ async function calibrateRounds() {
           fine = { chosen: b0.key, before: cand[0].acc.errPct, after: b0.acc.errPct, points: fp.length, candidates: cand.map(c => ({ key: c.key, errPct: c.acc.errPct })) };
           acc = { ...acc, errPct: b0.acc.errPct, grade: b0.acc.grade, fine };
           /* 적응형 안정화: 정밀 보정 점을 바라보는 동안의 시선 흔들림(점별 MAD 중앙값)으로 화면 시선 평활 강도를 정한다 */
-          const noise = N.median(fp.map(p => { const g = p.fs.map(f => N.applyResidual(S.resid, N.applyAffine(S.affine, N.predictGaze(S.model, f)))).filter(Boolean); if (g.length < 4) return NaN; const mx = N.median(g.map(q => q.x)); return N.median(g.map(q => Math.abs(q.x - mx))) * 1.4826 / W; }).filter(Number.isFinite));
+          const noise = N.median(fp.map(p => { const g = p.fs.map(f => N.applyResidual(S.resid, N.applyAffine(S.affine, N.predictGaze(S.model, f)))).filter(Boolean); if (g.length < 4) return NaN; const mx = N.median(g.map(q => q.x)); return N.median(g.map(q => Math.abs(q.x - mx))) * 1.4826 / Math.max(W, H); }).filter(Number.isFinite));   // 긴 변 기준(세로 화면에서 폭으로 나누면 잡음이 2배로 잡혀 화면 시선이 과하게 늦어졌다)
           S.gazeNoise = Number.isFinite(noise) ? Math.round(noise * 1000) / 1000 : null;
         }
       }
@@ -3182,15 +3190,59 @@ async function pvtTrial(P, box, msg) {
   S.cleanup.push(() => cancelAnimationFrame(raf));
   const r = await respond(P.timeoutMs);
   cancelAnimationFrame(raf);
-  const rt = r ? r.t - onset : null;
-  box.textContent = rt === null ? '—' : String(Math.max(0, Math.round(rt)));
-  msg.textContent = rt === null ? '시간 초과' : rt < P.falseMs ? '너무 빨라요' : '';
+  const rt = r ? r.t - onset : null, shown = rt === null ? null : rt - latOffset(r.input);   // 표시는 기기 보정 후 값(기기가 달라도 같은 기준) · 기록은 원값
+  box.textContent = shown === null ? '—' : String(Math.max(0, Math.round(shown)));
+  msg.textContent = shown === null ? '시간 초과' : shown < P.falseMs ? '너무 빨라요' : '';
   await wait(700);
-  return { onset, rt };
+  return { onset, rt, input: r ? r.input : null };
+}
+/* 기기 반응 맞춤 (B.PROTOCOL.latencyCal 주석 참고): 점이 일정한 속도로 다가와 travelMs 뒤에 가운데 선에 닿는다.
+ * 점 위치는 PVT 숫자와 같은 기준(rAF 콜백이 실행된 시각)으로 그리므로, ‘누른 시각 − 선에 닿은 시각’에는 PVT 반응시간에 섞이는
+ * 화면 표시·입력 지연이 같은 방식으로 들어간다. 맞춤 중에는 잘 맞췄는지 알려 주지 않고, 눌러도 점은 끝까지 움직인다 —
+ * 알려 주면 사람이 지연에 적응해(누르는 시점을 당겨) 기기 지연이 가려진다 */
+function latOffset(input) { const c = S.latencyCal?.stats; return c && c.ok && (!input || !c.input || input === c.input) ? c.offset : 0; }
+async function latencySweep(track, dot, L) {
+  const x0 = 24, v = (track.clientWidth / 2 - x0) / L.travelMs, gaps = [];
+  dot.style.transform = `translateX(${x0}px)`; dot.style.visibility = 'visible';
+  await wait(L.leadMin + Math.random() * (L.leadMax - L.leadMin));
+  const t0 = await new Promise(r => requestAnimationFrame(() => r(now())));
+  const tc = t0 + L.travelMs, end = tc + L.tailMs;
+  let raf = 0, last = t0;
+  const tick = () => { const t = now(); gaps.push(t - last); last = t; dot.style.transform = `translateX(${(x0 + v * (t - t0)).toFixed(1)}px)`; if (t < end) raf = requestAnimationFrame(tick); else dot.style.visibility = 'hidden'; };
+  raf = requestAnimationFrame(tick);
+  const stop = () => cancelAnimationFrame(raf);
+  S.cleanup.push(stop);
+  const r = await respond(end - now() + 100);
+  await wait(Math.max(0, end - now()));
+  stop(); dot.style.visibility = 'hidden';
+  await wait(350 + Math.random() * 250);
+  return { err: r ? Math.round((r.t - tc) * 10) / 10 : null, input: r ? r.input : null, frameMs: gaps.length >= 5 ? N.median(gaps) : null };
+}
+async function latencyCalibrate() {
+  if (S.latencyCal) return S.latencyCal;   // 세션당 한 번 (PVT·SART 공용)
+  const L = B.PROTOCOL.latencyCal;
+  await pauseCard('기기 반응 맞춤 · 약 20초', `<p>휴대폰 터치·노트북 키보드·무선 키보드는 화면이 뜨고 입력이 전달되기까지 걸리는 시간이 기기마다 수십 ms 달라요. 이 차이를 먼저 재서 반응시간에서 맞춰 주면 어느 기기로 해도 같은 기준으로 비교할 수 있어요.</p><p style="margin:10px 0 0">노란 점이 왼쪽에서 일정한 속도로 다가와요. <b>점이 가운데 흰 선에 닿는 바로 그 순간</b> ${MOBILE ? '화면을 터치하세요' : '스페이스바를 누르세요'} — 보고 반응하는 게 아니라 <b>타이밍을 맞추는</b> 거예요. ${L.sweeps}번 하고, 맞았는지는 따로 알려 주지 않아요. 본 검사와 <b>같은 손·같은 키</b>로 해 주세요.</p>`, '맞춤 시작');
+  let cal = null;
+  for (let round = 1; round <= 2; round++) {
+    if (document.activeElement) document.activeElement.blur();
+    body.innerHTML = '<div class="pvt-hint">점이 흰 선에 닿는 순간 누르기 · 기기 반응 맞춤</div><div class="lat"><div class="lat-track" id="latT"><i class="lat-line"></i><i class="lat-dot" id="latD"></i></div><div class="pvt-msg"></div></div>';
+    const presses = [];
+    for (let i = 0; i < L.sweeps; i++) { taskSet('기기 반응 맞춤', i, L.sweeps); presses.push({ ...(await latencySweep($('latT'), $('latD'), L)), warmup: i < L.warmup }); }
+    taskHide();
+    const fm = presses.map(p => p.frameMs).filter(Number.isFinite);
+    /* frameMs = 화면 갱신 간격 중앙값(60Hz ≈ 16.7 · 120Hz ≈ 8.3) — 기기 지연 해석용 진단 값 */
+    cal = { version: 1, method: 'coincidence-timing', round, travelMs: L.travelMs, presses, frameMs: fm.length ? Math.round(N.median(fm) * 10) / 10 : null, ...(cal ? { prevPresses: cal.presses } : {}) };
+    cal.stats = B.latencyCalStats(cal);
+    if (cal.stats.ok || round === 2) break;
+    await pauseCard('한 번만 더 맞춰 볼게요', `<p>${cal.stats.reason === 'scattered' ? '누른 시점이 매번 많이 달랐어요.' : '선에 닿는 순간과 멀리 떨어진 입력이 많았어요.'} 점이 선에 <b>닿는 순간을 예상해서</b> 눌러 주세요. 이 단계에서는 반응 속도를 재지 않아요.</p>`, '다시 맞추기');
+  }
+  S.latencyCal = cal;
+  return cal;
 }
 async function phasePvt(d) {
   const P = B.PROTOCOL.pvt, sec = d.pvt;
   await brief('pvt');
+  await latencyCalibrate();
   if (document.activeElement) document.activeElement.blur();
   await countdown('연습 시작');
   body.innerHTML = '<div class="pvt-hint">연습 · 숫자가 나타나면 바로 스페이스바</div><div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
@@ -3201,13 +3253,13 @@ async function phasePvt(d) {
   await countdown('본 검사 시작');
   body.innerHTML = '<div class="pvt-hint">숫자가 나타나면 바로 스페이스바</div><div class="pvt"><div class="pvt-box" id="pvtBox"></div><div class="pvt-msg" id="pvtMsg"></div></div>';
   const box = $('pvtBox'), msg = $('pvtMsg');
-  const data = { trials: [], falseStarts: 0, durationMs: 0 };
+  const data = { trials: [], falseStarts: 0, durationMs: 0, latencyCal: S.latencyCal || null };
   S.pvt = data;
   mark('pvt', 'start');
   const tStart = now(), end = tStart + sec * 1000, stop = task('PVT 본 검사', sec * 1000);
   while (now() < end - 1500) {
     const r = await pvtTrial(P, box, msg);
-    if (r.early) data.falseStarts++; else data.trials.push({ onset: r.onset, rt: r.rt });
+    if (r.early) data.falseStarts++; else data.trials.push({ onset: r.onset, rt: r.rt, input: r.input });
   }
   stop();
   data.durationMs = now() - tStart;
@@ -3228,11 +3280,11 @@ async function sartRun(seq, P, practice, onEach) {
   let ackT = 0;
   const flash = () => { ack.classList.add('on'); clearTimeout(ackT); ackT = setTimeout(() => ack.classList.remove('on'), 160); };
   for (let i = 0; i < seq.length; i++) {
-    const tr = { digit: seq[i], onset: null, rt: null };
+    const tr = { digit: seq[i], onset: null, rt: null, input: null };
     el.style.transform = `scale(${(P.sizes[Math.floor(Math.random() * P.sizes.length)] / maxSize).toFixed(3)})`;   // 크기는 transform 으로(레이아웃 없음)
     el.textContent = seq[i];
     tr.onset = await nextFrame();
-    S.onResp = e => { if (tr.rt === null) { tr.rt = e.timeStamp - tr.onset; flash(); } };
+    S.onResp = e => { if (tr.rt === null) { tr.rt = e.timeStamp - tr.onset; tr.input = inputKind(e); flash(); } };
     await wait(P.digitMs);
     el.textContent = P.mask ? '⊗' : '';                 // 원판 마스크(⊗)는 ‘틀림’ 표시로 오인돼 빈 화면으로 바꿈 — 간격(1.15초)은 그대로
     await wait(P.maskMs);
@@ -3253,6 +3305,7 @@ async function sartRun(seq, P, practice, onEach) {
 async function phaseSart(d) {
   const P = B.PROTOCOL.sart, n = d.sart;
   await brief('sart');
+  await latencyCalibrate();   // PVT 에서 이미 맞췄으면 바로 넘어간다
   const practiceSeq = d.sartPractice > 9 ? [...shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]), ...shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9])].slice(0, d.sartPractice) : shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, d.sartPractice);
   if (document.activeElement) document.activeElement.blur();
   await countdown('연습 시작 · 3에서만 멈추기');
@@ -3264,7 +3317,7 @@ async function phaseSart(d) {
   if (document.activeElement) document.activeElement.blur();
   await countdown('본 검사 시작');
   sartScreen(false, n);
-  S.sart = { trials: [] };
+  S.sart = { trials: [], latencyCal: S.latencyCal || null };
   mark('sart', 'start');
   S.sart.trials = await sartRun(B.sartSequence(n), P, false, i => taskSet('SART 본 검사', i, n));
   mark('sart', 'end');
@@ -3749,7 +3802,7 @@ async function runBio() {
 
 
 /* 검증용: ?debug=1 이면 내부 상태와 일부 단계 함수를 노출 (E2E 테스트용) */
-if (new URLSearchParams(location.search).get('debug') === '1') window.__nl = { S, cursorTask, calPursuit, stage, resetEuro, phaseGazeLabel, labelRingPush, liveRecord, researchPackage, finishLabels, runStep, now, poseGuardStart, poseGuardStop, poseTrack, poseHold, featSampler, calibrate };
+if (new URLSearchParams(location.search).get('debug') === '1') window.__nl = { S, cursorTask, calPursuit, stage, resetEuro, phaseGazeLabel, labelRingPush, liveRecord, researchPackage, finishLabels, runStep, now, poseGuardStart, poseGuardStop, poseTrack, poseHold, featSampler, calibrate, latencyCalibrate };
 
 if (new URLSearchParams(location.search).get('qa') === '1') $('qaBox').hidden = false;
 { const rid = new URLSearchParams(location.search).get('rid'); if (rid) openSaved(rid); }

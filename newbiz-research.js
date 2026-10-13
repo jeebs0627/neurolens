@@ -118,8 +118,9 @@
         levels: rec.pursuit.levels ? rec.pursuit.levels.map(b => ({ freq: b.freq, t0: rel(b.t0, t0), dur: b.dur, s: packSamples(b.samples, t0) })) : undefined,
         reversal: rec.pursuit.reversal ? { t0: rel(rec.pursuit.reversal.t0, t0), end: rel(rec.pursuit.reversal.end, t0), speed: rec.pursuit.reversal.speed, x0: rec.pursuit.reversal.x0, dir0: rec.pursuit.reversal.dir0,
           turns: rec.pursuit.reversal.turns.map(u => ({ ...u, t: rel(u.t, t0) })), s: packSamples(rec.pursuit.reversal.samples, t0) } : undefined, circle: rec.pursuit.circle ? { ...rec.pursuit.circle, samples: undefined, t0: rel(rec.pursuit.circle.t0,t0), s: packSamples(rec.pursuit.circle.samples,t0) } : null } : null,
-      pvt: rec.pvt ? { falseStarts: rec.pvt.falseStarts, durationMs: rec.pvt.durationMs, trials: rec.pvt.trials.map(x => [rel(x.onset, t0), finite(x.rt) ? Math.round(x.rt) : null]) } : null,
-      sart: rec.sart ? { trials: rec.sart.trials.map(x => [x.digit, rel(x.onset, t0), finite(x.rt) ? Math.round(x.rt) : null]) } : null,
+      /* 시행 세 번째 값 = 입력 장치(key·touch·mouse·pen) · latencyCal = 기기 반응 맞춤 원자료(누른 시각 − 선에 닿은 시각, ms) — 재분석 때 보정량을 다시 계산한다 */
+      pvt: rec.pvt ? { falseStarts: rec.pvt.falseStarts, durationMs: rec.pvt.durationMs, trials: rec.pvt.trials.map(x => [rel(x.onset, t0), finite(x.rt) ? Math.round(x.rt) : null, x.input || null]), latencyCal: rec.pvt.latencyCal || null } : null,
+      sart: rec.sart ? { trials: rec.sart.trials.map(x => [x.digit, rel(x.onset, t0), finite(x.rt) ? Math.round(x.rt) : null, x.input || null]), latencyCal: rec.sart.latencyCal || null } : null,
       stress: rec.stressScore || null,
     };
     return { meta, summary, payload };

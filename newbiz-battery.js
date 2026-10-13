@@ -19,7 +19,7 @@
 })(typeof window !== 'undefined' ? window : null, function (N) {
   'use strict';
 
-  const VERSION = 'In_mind battery 1.8';   // 1.8 (2026-10-10): 참고 지표 세션별 자격 심사(ADMIT — 신뢰도·타당 범위를 통과한 세션만 판정 반영), 방향 전환 지연 신뢰도 유효/프로토콜 횟수, 속도 유지율 머리 동조 감점, 회복률·PVT 조기 반응 오차 범위, 수렴 원칙에서 같은 측정값 지표는 1개로 · 1.7 (2026-10-10): 정서 보기 반분 안정성 감점을 우연 기대(z>2) 초과일 때만 · 1.6 (2026-10-10): 사카드 신뢰도 fps 기준 24→12(방향 판정, 실측 솎기 검증) · 압박 상승이 오차보다 작으면 회복률 ‘해당 없음’(분모 제외) · 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
+  const VERSION = 'In_mind battery 1.9';   // 1.9 (2026-10-13): 기기 반응 맞춤(일치 타이밍)으로 PVT·SART 기기 지연 보정 — 빠른 기기는 더하고 느린 기기는 뺀다(양방향), 맞춤이 없거나 불안정하면 이전 fast10 보정 · 1.8 (2026-10-10): 참고 지표 세션별 자격 심사(ADMIT — 신뢰도·타당 범위를 통과한 세션만 판정 반영), 방향 전환 지연 신뢰도 유효/프로토콜 횟수, 속도 유지율 머리 동조 감점, 회복률·PVT 조기 반응 오차 범위, 수렴 원칙에서 같은 측정값 지표는 1개로 · 1.7 (2026-10-10): 정서 보기 반분 안정성 감점을 우연 기대(z>2) 초과일 때만 · 1.6 (2026-10-10): 사카드 신뢰도 fps 기준 24→12(방향 판정, 실측 솎기 검증) · 압박 상승이 오차보다 작으면 회복률 ‘해당 없음’(분모 제외) · 1.5 (2026-10-09): PVT 자극을 검은 바탕·흰 숫자로(이전 연회색·붉은 숫자 — 1.4 이하 PVT 반응시간과 직접 비교 금지) · 1.4 (2026-10-05): SART 변별력 d′·응답 기준 · 1.3: 정밀도 기준 심박 신뢰도 · 1.2: 원활 추적 2판(속도 단계·불규칙 방향 전환·머리 동조) · 1.1: SART 3 비율 +7%p, 압박 전 30초 쉬기 삭제
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;
@@ -118,6 +118,14 @@
     stress: { limitMs: 4000, minMs: 1200, maxMs: 6500, down: 0.08, up: 0.12, startFactor: 0.9, practice: 4, practiceMs: 8000, target: 0.8, hardAt: [0.35, 0.72] },
     /* 개인 기기 지연 보정: 가장 빠른 10% 반응이 이 값보다 느린 만큼을 입력·표시 지연으로 보고 빼 준다 (상한 maxMs) */
     latency: { fastRef: 210, maxMs: 60, minTrials: 10 },
+    /* 기기 반응 맞춤 (2026-10-13): 움직이는 점이 선에 닿는 순간 누르기(일치 타이밍 · Bassin 예측 타이머 방식).
+     * 언제 누를지 미리 알 수 있으므로 사람의 반응 시간은 빠지고 ‘화면 표시 지연 + 입력 장치 지연’(+ 사람마다 일정한 예측 치우침)만 남는다.
+     * PVT 반응시간 = 표시 지연 + 사람 반응 + 입력 지연 이라, 이 값이 기준 기기보다 큰 만큼을 빼면(작으면 더하면) 기기 간 편차가 사라진다.
+     * 위의 fast10 방식은 ‘가장 빠른 반응’ 자체(졸릴수록 느려지는 각성 신호)를 기기 지연으로 오인하고, 빠른 기기(휴대폰 터치)는 보정하지 못했다.
+     * 실측(2026-10-13): 같은 사람 휴대폰 터치 원 중앙값 약 280ms · 노트북+무선 키보드 약 314ms · fast10 보정 뒤에도 16ms 차이.
+     * refMs = 기준 기기(노트북 내장 키보드 · 60Hz 화면)에서의 측정값 — 이 기기는 보정 0. 내장 키보드 실측이 쌓이면 그 중앙값으로 맞춘다.
+     * early/late: 선에 닿기 150ms 전 ~ 250ms 뒤 밖의 입력은 맞추려던 입력이 아니므로 뺀다. 유효 6회 이상 · 흩어짐(MAD) 40ms 이하일 때만 쓴다 */
+    latencyCal: { sweeps: 10, warmup: 2, travelMs: 1000, tailMs: 450, leadMin: 500, leadMax: 1100, early: -150, late: 250, minValid: 6, maxMad: 40, refMs: 40, minOffset: -60, maxOffset: 120 },
   };
   /* ---------- 보정·품질 원칙 (NL-QC) ----------
    * 1) 신뢰도 가중: 지표마다 신호 품질·유효 시행으로 신뢰도 r(0~1)을 매기고, 영역 점수는 (핵심 2배 가중 × r) 가중 평균. r < minR 이면 판정 제외
@@ -267,16 +275,37 @@
   /* PVT-B: trials [{onset, rt|null}] + falseStarts(자극 전 반응 수) + durationMs
    * 기기 지연 보정(NL-QC 5): 가장 빠른 10% 반응이 기준(210ms)보다 느린 만큼(상한 60ms)을 키보드·화면 지연으로 보고
    * 중앙값에서 빼고 경과 반응 기준(355ms)에 더한다. 시행이 10개 미만이면 보정하지 않는다. */
+  /* 기기 반응 맞춤 결과: presses [{err(ms, 선에 닿은 시각 기준 +늦음), input, warmup}] → 기기 지연(sysMs)과 PVT 보정량(offset = sysMs − refMs) */
+  const inputOf = list => { const c = {}; list.forEach(x => { if (x) c[x] = (c[x] || 0) + 1; }); const k = Object.keys(c).sort((a, b) => c[b] - c[a])[0]; return k || null; };
+  function latencyCalStats(cal) {
+    if (!cal || !Array.isArray(cal.presses)) return null;
+    const L = PROTOCOL.latencyCal, measured = cal.presses.filter(p => !p.warmup);
+    const use = measured.filter(p => finite(p.err) && p.err >= L.early && p.err <= L.late), errs = use.map(p => p.err);
+    const sysMs = errs.length ? median(errs) : null, madMs = errs.length ? median(errs.map(e => Math.abs(e - sysMs))) : null;
+    const ok = errs.length >= L.minValid && madMs <= L.maxMad;
+    return { ok, sysMs: round(sysMs), madMs: round(madMs), n: errs.length, of: measured.length, input: inputOf(use.map(p => p.input)), refMs: L.refMs,
+      offset: ok ? Math.round(clamp(sysMs - L.refMs, L.minOffset, L.maxOffset)) : null,
+      reason: ok ? null : errs.length < L.minValid ? 'too-few-timed-presses' : 'scattered' };
+  }
+  /* 응답들의 입력 장치가 맞춤 때와 같을 때만 보정량을 쓴다(터치로 맞추고 키보드로 검사하면 지연이 다르다) */
+  function deviceOffset(cal, inputs) {
+    const c = latencyCalStats(cal), main = inputOf(inputs || []);
+    return c && c.ok && (!main || !c.input || main === c.input) ? c : null;
+  }
   function pvtStats(pvt) {
     if (!pvt || !Array.isArray(pvt.trials) || pvt.trials.length < 5) return null;
     const P = PROTOCOL.pvt, Lc = PROTOCOL.latency, min = (pvt.durationMs || 0) / 60000;
-    const rts = pvt.trials.filter(t => finite(t.rt) && t.rt >= P.falseMs).map(t => t.rt);
+    /* 보정 순서: ① 기기 반응 맞춤이 있으면 그 값(양·음 모두) ② 없거나 신뢰할 수 없으면 이전 fast10 방식(옛 기록 재분석과 같은 결과) */
+    const dev = deviceOffset(pvt.latencyCal, pvt.trials.map(t => t.input));
+    const adj = dev ? dev.offset : 0;
+    const rts = pvt.trials.filter(t => finite(t.rt) && t.rt - adj >= P.falseMs).map(t => t.rt);
     if (min < 0.5 || rts.length < 5) return null;
     const sorted = [...rts].sort((a, b) => a - b), k = Math.max(1, Math.round(sorted.length * 0.1));
     const fast10 = mean(sorted.slice(0, k));
-    const offset = rts.length >= Lc.minTrials ? Math.round(clamp(fast10 - Lc.fastRef, 0, Lc.maxMs)) : 0;
+    const offset = dev ? dev.offset : rts.length >= Lc.minTrials ? Math.round(clamp(fast10 - Lc.fastRef, 0, Lc.maxMs)) : 0;
+    const offsetSource = dev ? 'device-timing' : offset ? 'fast10' : 'none';
     const lapseMs = P.lapseMs + offset;
-    const early = pvt.trials.filter(t => finite(t.rt) && t.rt < P.falseMs).length;
+    const early = pvt.trials.filter(t => finite(t.rt) && t.rt - adj < P.falseMs).length;
     const timeouts = pvt.trials.filter(t => !finite(t.rt)).length;
     const lapses = rts.filter(rt => rt >= lapseMs).length + timeouts;
     const falseStarts = (pvt.falseStarts || 0) + early;
@@ -285,7 +314,7 @@
     return {
       n: pvt.trials.length, valid: rts.length, medianRt: round(median(rts) - offset), rawMedianRt: round(median(rts)), offset, lapseMs, meanSpeed: round(mean(rts.map(r => 1000 / Math.max(100, r - offset))), 2),
       lapses, timeouts, falseStarts, lapsesPer3: round(lapses * 3 / min, 1), falsePer3, invalid,
-      slow10: round(mean(sorted.slice(-k))), fast10: round(fast10), durationMin: round(min, 1),
+      slow10: round(mean(sorted.slice(-k)) - (dev ? offset : 0)), fast10: round(fast10), durationMin: round(min, 1), offsetSource, device: dev || latencyCalStats(pvt.latencyCal),
       rts: pvt.trials.map(t => finite(t.rt) ? Math.round(t.rt) : null),
     };
   }
@@ -654,13 +683,15 @@
     if (T.length < 18) return null;
     const nogo = T.filter(t => t.digit === PROTOCOL.sart.nogo), go = T.filter(t => t.digit !== PROTOCOL.sart.nogo);
     if (nogo.length < 2 || go.length < 10) return null;
-    const rts = go.filter(t => finite(t.rt) && t.rt >= 100).map(t => t.rt);
+    /* 기기 반응 맞춤 보정(PVT 와 같은 값): 평균 반응시간·빠른 반응 기준만 옮긴다 — 편차·실패 전 가속은 일정한 지연에 영향받지 않는다 */
+    const dev = deviceOffset(sart.latencyCal, go.map(t => t.input)), adj = dev ? dev.offset : 0;
+    const rts = go.filter(t => finite(t.rt) && t.rt - adj >= 100).map(t => t.rt - adj);
     const m = mean(rts), sd = std(rts);
     const omission = go.filter(t => !finite(t.rt)).length / go.length;
     /* 실패 전 가속 (Robertson et al., 1997; Cheyne et al., 2009): 억제 실패 직전 반응 4개가 평소(반응 시행 평균)보다 얼마나 빨랐는지.
      * 거부 시행 수보다 훨씬 많은 반응 시행을 쓰므로 실패율보다 안정적이다. 양수 = 실패 직전에 빨라짐(자동 반응) */
     const pre = [];
-    T.forEach((t, i) => { if (t.digit === PROTOCOL.sart.nogo && finite(t.rt)) T.slice(Math.max(0, i - 4), i).forEach(p => { if (p.digit !== PROTOCOL.sart.nogo && finite(p.rt) && p.rt >= 100) pre.push(p.rt); }); });
+    T.forEach((t, i) => { if (t.digit === PROTOCOL.sart.nogo && finite(t.rt)) T.slice(Math.max(0, i - 4), i).forEach(p => { if (p.digit !== PROTOCOL.sart.nogo && finite(p.rt) && p.rt - adj >= 100) pre.push(p.rt - adj); }); });
     const commits = nogo.filter(t => finite(t.rt)).length, hits = go.filter(t => finite(t.rt)).length;
     /* 신호탐지 (Stanislaw & Todorov, 1999; 로그-선형 보정 Hautus, 1995): 반응 숫자에 누른 비율 H, 3에 누른 비율 F.
      * 변별력 d′ = z(H) − z(F) — 억제 실패율만 보면 '빨리 누르는 응답 성향'과 '멈추지 못함'이 섞인다(Helton, 2009; Seli et al., 2012).
@@ -672,7 +703,7 @@
       invalid: omission > QC.sartOmitMax ? `반응해야 할 숫자의 ${Math.round(omission * 100)}%에 반응하지 않았어요 — 과제를 따라가지 못한 것으로 보여 판정에서 뺐어요` : null,
       commission: round(commits / nogo.length, 3),
       omission: round(omission, 3),
-      meanRt: round(m), sdRt: round(sd), cv: rts.length >= 10 ? round(sd / m, 3) : null,
+      meanRt: round(m), sdRt: round(sd), cv: rts.length >= 10 ? round(sd / m, 3) : null, offset: adj,
       rts: T.map(t => ({ rt: finite(t.rt) ? Math.round(t.rt) : null, nogo: t.digit === PROTOCOL.sart.nogo })),
     };
   }
@@ -1108,7 +1139,7 @@
         (rec.trials || []).length ? stepQ('freeview', '정서 자유 보기', rOf.gaze(), a.gazeOk ? null : '시선 신호가 부족해 정서 주의 지표를 판정하지 않았어요') : null,
         rec.stressScore ? stepQ('stress', '압박 과제 · 회복', Math.max(REL.stressDelta(), REL.recoveryResid()), base.stressDelta === null ? '압박 구간 심박 신호가 약해 압박 반응을 계산하지 못했어요' : null) : null,
       ].filter(Boolean),
-      latency: pvt ? { offset: pvt.offset, lapseMs: pvt.lapseMs, fast10: pvt.fast10 } : null,
+      latency: pvt ? { offset: pvt.offset, lapseMs: pvt.lapseMs, fast10: pvt.fast10, source: pvt.offsetSource, sysMs: pvt.device ? pvt.device.sysMs : null, input: pvt.device ? pvt.device.input : null } : null,
       sideBalanced: !!(base.gaze.blocks && base.gaze.blocks.neg && base.gaze.blocks.neg.balanced),
       hrRef: base.hrRef, calib: cal && !cal.sim && !cal.mouse ? { errPct: cal.errPct, before: cal.before ?? null, model: cal.model || null, affine: !!cal.affine, control: cal.control || null } : null,
       borderline: indicators.filter(i => i.borderline).map(i => i.label),
@@ -1127,7 +1158,7 @@
       alert: [
         { label: 'PVT 반응 속도 (1/RT 평균)', value: pv(pvt, 'meanSpeed', 1, 2), unit: '/초', refs: ['basner'] },
         { label: '가장 느린 10% 반응', value: pv(pvt, 'slow10'), unit: 'ms', refs: ['basner'] },
-        { label: '기기 지연 보정 (보정 전 중앙값)', value: pvt && pvt.offset ? `−${pvt.offset}ms (${pvt.rawMedianRt})` : null, unit: '', refs: ['basner'] },
+        { label: '기기 지연 보정 (보정 전 중앙값)', value: pvt && pvt.offset ? `${pvt.offset > 0 ? '−' : '+'}${Math.abs(pvt.offset)}ms (${pvt.rawMedianRt})` : null, unit: '', refs: ['basner'] },
         { label: '깜빡임 빈도 (PVT 중)', value: pv(eye, 'blinkRate', 1, 1), unit: '회/분', refs: ['caffier'] },
         { label: '0.5초 넘는 눈감김', value: pv(eye, 'longPerMin', 1, 1), unit: '회/분', refs: ['caffier'] },
         { label: '기준선 PERCLOS', value: pv(eyeBase, 'perclos', 1, 1), unit: '%', refs: ['wierwille'] },
@@ -1348,6 +1379,6 @@
 
   return {
     VERSION, ADMIT, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,
-    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, mistStart, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, pursuitSec, ladderStats, reversalStats, sartCount, sartSequence, sartStats, integrate, run, simulate,
+    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, mistStart, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, latencyCalStats, deviceOffset, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, pursuitSec, ladderStats, reversalStats, sartCount, sartSequence, sartStats, integrate, run, simulate,
   };
 });

@@ -13,7 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {
   'use strict';
 
-  const VERSION = 'In_mind core 2.7';   // 2.7 (2026-10-11): 시선 모델 u 에 고개 yaw 보상(u + 0.25·yaw) — 세로 휴대폰 가로 오차 −40% · 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
+  const VERSION = 'In_mind core 2.8';   // 2.8 (2026-10-13): 시선 커서·화면 시선 안정화의 거리·속도 허용치를 화면 폭 대신 긴 변 기준으로(세로 휴대폰에서 폭 기준이라 2배 엄격) — 가로 화면은 동일 · 2.7 (2026-10-11): 시선 모델 u 에 고개 yaw 보상(u + 0.25·yaw) — 세로 휴대폰 가로 오차 −40% · 2.6 (2026-10-10): 보정 오차를 화면 긴 변으로 나눔(세로 휴대폰 %W 4배 과대 → 가로 화면은 이전과 동일) · 2.5 (2026-10-10): 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률을 계산하지 않음(recoveryNA) · 2.4 (2026-10-09): 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살림(사카드·자유 보기 잠복기 1프레임 지연 편향 제거) · 2.3 (2026-10-07): 홍채 세로 위치 기준을 눈꺼풀 중점→눈꼬리 축으로(실측 재생 13세션 검증), 클릭 보정·국소 잔차·lookV 후보 삭제, 추적 보정 경로 균형(18초 전 주기) · 2.1~2.2: 심박 고조파 합 피크 선택 · 2.0 (2026-10-06): 150ms 이하 프레임 공백은 보간 표시 안 함(1~2프레임 누락으로 창 전체가 버려지던 문제) · 1.9 (2026-10-05): 심박 창 탈락·건너뜀 진단, 움직임 판정 창 확대 · 1.8: 세션 심박 흐름으로 약한·빠진 구간 보정 · 1.7: 보정 4단계에 세로 점수 후보(여유 기준 선택) · 1.6: 세로 시선 점수(lookV) 기록·그림자 비교(측정 모델 불변) · 1.5: 시선 커서 응시 고정 · 1.4: 0.6초 이하 프레임 공백 보간, 머리 움직임 구간 블랭킹 · 1.3: 시선 제곱항 접선 연장·화면 밖 압축, 심박 영역 합성 유도 후보·국소 사전값 추적
   /* 시선 모델 입력 특징 버전: faceFeatures(u·v 눈꼬리 기준 등)·predictGaze·fitAffine 기본값이 baseX…eyeMode 의 뜻을 바꿀 때만 올린다.
    * 학습 모델 manifest.supports.features 와 비교한다 — 엔진 버전(VERSION)은 심박·판정 변경에도 올라가 모델이 이유 없이 꺼졌다(core 2.4~2.6). 2.3: 홍채 세로 기준 눈꼬리 축 */
   const GAZE_FEATURES = 'gaze-features-2.3';
@@ -652,10 +652,13 @@
    *    (보정 학습에는 쓰지 않고 커서 표시와 사후 평가에만 쓴다 — 커서를 보며 사용자가 시선을 '보상'할 수 있으므로)
    *  - 자석: 표적까지 거리 d 가 보조 반경 Ra 안이면 커서를 표적 + (시선 − 표적) × (0.35 + 0.65·d/Ra) 로 당긴다
    *  - 속도 제한: 화면 폭의 0.9배/초 — 사카드로 커서가 순간 이동해 보이는 것을 막는다 */
+  /* 크기 기준 L = 화면 긴 변(core 2.8): 거리·속도 허용치를 폭(W)으로 잡으면 세로 휴대폰(폭 384px)에서만 같은 시선 잡음이 2배로 커 보여
+   * 자석 보조 반경 54px·최대 속도 346px/s 로 줄었다(가로로 든 같은 휴대폰은 112px·750px/s). 세로 잔여 오차(정밀 점 평균 73px)가 보조 반경 밖이라
+   * 시선 이동 확인이 2/4 에 그쳤다(실측 2026-10-11 세로 3건). 가로 화면은 긴 변 = 폭이라 이전과 같다 */
   function gazeCursor(opt = {}) {
-    const W = opt.W || 1440, H = opt.H || 900, Ra = opt.assist || W * 0.14, vmax = (opt.vmax || 0.9) * W;
+    const W = opt.W || 1440, H = opt.H || 900, L = Math.max(W, H), Ra = opt.assist || L * 0.14, vmax = (opt.vmax || 0.9) * L;
     const fx = oneEuro({ minCutoff: opt.minCutoff ?? 0.35, beta: opt.beta ?? 0.0015 }), fy = oneEuro({ minCutoff: opt.minCutoff ?? 0.35, beta: opt.beta ?? 0.0015 });
-    const bias = { x: 0, y: 0, n: 0 }, maxB = { x: W * 0.08, y: H * 0.08 };
+    const bias = { x: 0, y: 0, n: 0 }, maxB = { x: L * 0.08, y: H * 0.08 };
     let pos = null, last = null, lastT = null;
     /* 응시 고정(opt.lock, 기본 켬): 시선이 반경 R 안에 머무는 동안은 그 응시의 누적 평균(최대 30표본 ≈ 1초)을 보여 준다 —
      * 웹캠 시선의 프레임별 떨림은 평균으로 √n 만큼 줄고, 한 프레임짜리 튐은 무시된다. 반경 밖 표본이 2개 연속이면 새 응시로 바로 옮긴다.
@@ -673,7 +676,7 @@
         last = { x, y }; lastT = t;
         let out = { x, y }, near = false;
         if (lock) {
-          const R = clamp(2.5 * (fix ? fix.dev : W * 0.015), W * 0.025, W * 0.08);
+          const R = clamp(2.5 * (fix ? fix.dev : L * 0.015), L * 0.025, L * 0.08);
           const d = fix ? Math.hypot(cx - fix.x, cy - fix.y) : Infinity;
           if (fix && d <= R) {
             outside = []; fix.n = Math.min(30, fix.n + 1);
@@ -682,7 +685,7 @@
             outside.push({ x: cx, y: cy });
             if (!fix || outside.length >= 2) {
               const mx = mean(outside.map(q => q.x)), my = mean(outside.map(q => q.y));
-              fix = { x: mx, y: my, n: outside.length, dev: fix ? fix.dev : W * 0.015 }; outside = [];
+              fix = { x: mx, y: my, n: outside.length, dev: fix ? fix.dev : L * 0.015 }; outside = [];
               fx.reset?.(mx); fy.reset?.(my); last = { x: mx, y: my };
             }
           }
@@ -694,7 +697,7 @@
             near = true;
             const k = 0.35 + 0.65 * d / Ra;
             out = { x: target.x + (x - target.x) * k, y: target.y + (y - target.y) * k };
-            if (speed < W * 0.25) {                                 // 머무는 중에만 치우침 학습
+            if (speed < L * 0.25) {                                 // 머무는 중에만 치우침 학습
               bias.x = clamp(bias.x + 0.03 * (target.x - x), -maxB.x, maxB.x);
               bias.y = clamp(bias.y + 0.03 * (target.y - y), -maxB.y, maxB.y);
               bias.n++;
@@ -715,7 +718,7 @@
   function gazeStabilizer(opt = {}) {
     const W = opt.W || 1440, H = opt.H || 900, JUMP = opt.jump ?? 0.22, CONF = opt.confirm ?? 0.07, N = opt.n ?? 5, SPAN = opt.span ?? 200;
     let win = [], pend = [], stable = null;
-    const dist = (a, b) => Math.hypot((a.x - b.x) / W, (a.y - b.y) / W);
+    const L = Math.max(W, H), dist = (a, b) => Math.hypot((a.x - b.x) / L, (a.y - b.y) / L);   // 긴 변 기준(core 2.8, gazeCursor 참고) — 가로 화면은 이전과 같다
     return {
       push(g, t) {
         if (!g || !finite(g.x) || !finite(g.y) || !finite(t)) return null;

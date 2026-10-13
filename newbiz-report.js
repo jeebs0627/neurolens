@@ -374,7 +374,8 @@
     const G = { A: ['st-ok', '높음'], B: ['st-ok', '양호'], C: ['st-watch', '보통 · 일부 잠정'], D: ['st-concern', '낮음 · 재측정 권장'] };
     const rows = q.steps.map(x => `<tr><td><b>${esc(x.label)}</b></td><td class="num">${x.r === null ? '—' : Math.round(x.r * 100) + '<small>%</small>'}</td><td>${x.note ? esc(x.note) : '<span class="muted">이상 없음</span>'}</td></tr>`).join('');
     const applied = [
-      q.latency && q.latency.offset ? `기기 입력 지연 보정 −${q.latency.offset}ms (가장 빠른 10% 반응 ${q.latency.fast10}ms 기준, 경과 반응 기준 ${q.latency.lapseMs}ms)` : null,
+      q.latency && q.latency.source === 'device-timing' ? `기기 반응 맞춤 보정 ${q.latency.offset > 0 ? '−' : '+'}${Math.abs(q.latency.offset)}ms (이 기기 표시·입력 지연 ${q.latency.sysMs}ms · 기준 기기 대비, 경과 반응 기준 ${q.latency.lapseMs}ms)`
+        : q.latency && q.latency.offset ? `기기 입력 지연 보정 −${q.latency.offset}ms (가장 빠른 10% 반응 ${q.latency.fast10}ms 기준, 경과 반응 기준 ${q.latency.lapseMs}ms)` : null,
       q.sideBalanced ? '정서 자유 보기: 좌우 균형 가중 적용 (개인의 좌우 시선 치우침 상쇄)' : null,
       q.hidden ? `화면이 가려졌던 구간 ${q.hidden.n}회(${q.hidden.sec}초) — 겹친 시행 ${q.hidden.dropped}개를 판정에서 제외` : null,
       q.lightJumps ? `조명 급변 ${q.lightJumps}회 — 그 전후 심박 계산 구간을 제외` : null,

@@ -365,3 +365,18 @@ console.log('newbiz-core tests passed');
   assert.equal(port.errPct, 7.5); assert.equal(port.grade, 'good');          // 60/800 — 이전 식이면 60/384 = 15.6% 'fair'
   console.log('PASS gaze accuracy: long-side normalisation (landscape unchanged, portrait phone not inflated)');
 }
+
+/* core 2.8: 시선 커서·화면 시선 안정화는 긴 변 기준 — 같은 휴대폰을 세로(384×832)로 들든 가로(832×384)로 들든 같은 px 어긋남에 같은 결과 */
+{
+  const run = (W, H, T, off) => { const gc = N.gazeCursor({ W, H }); let near = 0, last = null; for (let i = 0; i < 60; i++) { const s = gc.step({ x: T.x + off.x, y: T.y + off.y }, i * 33, T); if (i >= 20 && s.near) near++; last = s; } return { near, d: Math.hypot(last.x - T.x, last.y - T.y) }; };
+  const port = run(384, 832, { x: 192, y: 640 }, { x: 0, y: 75 }), land = run(832, 384, { x: 640, y: 192 }, { x: 75, y: 0 });
+  assert.equal(port.near, land.near); assert.ok(port.near >= 35, `portrait assist ${port.near}`);   // 이전(폭 기준 보조 반경 54px)이면 75px 어긋난 세로 시선은 보조 0회
+  assert.ok(Math.abs(port.d - land.d) < 1, `same pull ${port.d.toFixed(1)} vs ${land.d.toFixed(1)}`);
+  const sp = N.gazeStabilizer({ W: 384, H: 832 }), sl = N.gazeStabilizer({ W: 832, H: 384 });
+  sp.push({ x: 192, y: 300 }, 0); sl.push({ x: 300, y: 192 }, 0);
+  const jp = sp.push({ x: 192, y: 420 }, 33), jl = sl.push({ x: 420, y: 192 }, 33);   // 120px 이동: 긴 변 832 의 14% < 22% → 둘 다 바로 따라감
+  assert.equal(jp.held, false); assert.equal(jl.held, false);
+  const big = N.gazeCursor({ W: 1440, H: 900 }); big.step({ x: 100, y: 450 }, 0);
+  assert.ok(big.step({ x: 1300, y: 450 }, 33).x - 100 <= 0.9 * 1440 * 0.033 + 1);              // 가로 화면은 이전과 같음(긴 변 = 폭)
+  console.log('PASS core 2.8: gaze cursor/stabilizer orientation-invariant (long side)');
+}

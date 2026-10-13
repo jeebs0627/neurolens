@@ -556,3 +556,27 @@ console.log('newbiz-battery tests passed');
   if (Number.isFinite(rv.value)) assert.ok(rv.ci && rv.ci[0] < rv.value && rv.value < rv.ci[1], `recovery ci ${rv.ci}`);
   console.log('PASS battery 1.8: recovery CI, shared-source convergence');
 }
+
+/* 기기 반응 맞춤(battery 1.9): 같은 사람이 기기만 바꿔도 보정 뒤 PVT 값이 같아야 한다 · 빠른 기기는 더하고 느린 기기는 뺀다 */
+{
+  const L = B.PROTOCOL.latencyCal, human = Array.from({ length: 40 }, (_, i) => 230 + (i % 10) * 9 + (i === 7 ? 140 : 0));   // 사람 반응(한 번은 경과)
+  const press = (sys, input, jit = [0, 0, -5, 9, -8, 3, 0, -3, 8, 0]) => ({ presses: jit.map((j, i) => ({ err: sys + j, input, warmup: i < L.warmup })) });
+  const session = (sys, input) => ({ trials: human.map((h, i) => ({ onset: i * 4000, rt: h + sys, input })), falseStarts: 0, durationMs: 180000, latencyCal: press(sys, input) });
+  const phone = B.pvtStats(session(25, 'touch')), laptop = B.pvtStats(session(L.refMs, 'key')), wireless = B.pvtStats(session(L.refMs + 30, 'key'));
+  assert.equal(phone.offsetSource, 'device-timing'); assert.equal(phone.offset, 25 - L.refMs);       // 음수 보정(더하기)
+  assert.equal(laptop.offset, 0); assert.equal(wireless.offset, 30);
+  for (const s of [phone, wireless]) { assert.equal(s.medianRt, laptop.medianRt); assert.equal(s.lapses, laptop.lapses); assert.equal(s.slow10, laptop.slow10); }
+  /* 맞춤과 다른 입력 장치로 검사하면 쓰지 않고 이전 방식(fast10)으로 */
+  const mixed = B.pvtStats({ ...session(25, 'key'), latencyCal: press(25, 'touch') });
+  assert.notEqual(mixed.offsetSource, 'device-timing');
+  /* 흩어진 맞춤(MAD > 40ms)·유효 입력 부족은 쓰지 않는다 */
+  const scattered = B.latencyCalStats(press(40, 'key', [0, 0, -90, 120, -70, 95, -100, 80, -60, 110]));
+  assert.equal(scattered.ok, false); assert.equal(scattered.offset, null);
+  const few = B.latencyCalStats({ presses: [{ err: 40, input: 'key' }, { err: 600, input: 'key' }, { err: null, input: null }] });
+  assert.equal(few.ok, false); assert.equal(few.reason, 'too-few-timed-presses');
+  /* SART 평균 반응시간도 같은 보정 */
+  const seq = B.sartSequence(54, () => 0.3);
+  const sart = (sys, input) => B.sartStats({ trials: seq.map((digit, i) => ({ digit, onset: i, rt: digit === 3 ? null : 320 + (i % 5) * 10 + sys, input })), latencyCal: press(sys, input) });
+  assert.equal(sart(25, 'touch').meanRt, sart(L.refMs + 30, 'key').meanRt);
+  console.log('PASS battery 1.9: device timing calibration equalizes PVT/SART across devices');
+}
