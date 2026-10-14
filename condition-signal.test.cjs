@@ -16,12 +16,16 @@ test('12 fps pulse remains usable with an unavailable forehead and changing chee
   assert.ok(wins.length>=20);assert.ok(Math.abs(N.median(wins.map(w=>w.bpm))-72)<3);
   assert.ok(sig.chans.length===2);assert.ok(sig.coverage>.95);assert.equal(JSON.stringify(frames),before);
 });
-test('A 100 ms missing interval is bounded and marked as recovered',()=>{
-  const frames=N.synthFrames(0,22000,()=>78,{noise:.03,seed:5}).filter(f=>!(f.t>10000&&f.t<10100));
-  const sig=N.buildBvp(frames),wins=N.hrWindows(sig);
+test('A 400 ms missing interval is bounded and marked as recovered; 150 ms or less is bridged silently (core 2.0)',()=>{
+  const gap=ms=>N.synthFrames(0,22000,()=>78,{noise:.03,seed:5}).filter(f=>!(f.t>10000&&f.t<10000+ms));
+  const sig=N.buildBvp(gap(400)),wins=N.hrWindows(sig);
   assert.ok(sig.recoveredFraction>0 && sig.recoveredFraction<.03);
   assert.ok(Math.abs(N.median(wins.map(w=>w.bpm))-78)<3);
   const beats=N.beats(sig,0,22000,78);assert.ok(!beats.some(t=>t>9500&&t<10700));
+  /* core 2.0: 1~2프레임 누락(≤150ms)은 맥파 모양이 유지되므로 '보간'으로 표시하지 않는다 — 창이 frame-gaps 로 버려지지 않아야 한다 */
+  const short=N.buildBvp(gap(100)),shortWins=N.hrWindows(short);
+  assert.equal(short.recoveredFraction,0);assert.ok(shortWins.length>=wins.length);
+  assert.ok(Math.abs(N.median(shortWins.map(w=>w.bpm))-78)<3);
 });
 test('A long gap creates no interpolated pulse or HR window crossing the gap',()=>{
   const frames=N.synthFrames(0,42000,()=>72,{noise:.04}).filter(f=>f.t<15000||f.t>19000);
@@ -32,7 +36,10 @@ test('A long gap creates no interpolated pulse or HR window crossing the gap',()
 test('An isolated RGB impulse is repaired without rewriting captured data',()=>{
   const frames=N.synthFrames(0,22000,()=>72,{noise:.01,rois:false});
   const f=frames[300];f.r+=40;f.g+=40;f.b+=40;
-  const raw=f.r,sig=N.buildBvp(frames);assert.equal(f.r,raw);assert.ok(sig.recoveredFraction>0);
+  const raw=f.r,sig=N.buildBvp(frames);assert.equal(f.r,raw);
+  /* 고립 임펄스는 제거되고 그 한 프레임 구멍(≤150ms)은 core 2.0 규칙대로 '보간' 표시 없이 메워진다: 맥파 진폭이 임펄스 없는 기록과 같아야 한다 */
+  const peak=s=>Math.max(...Array.from(s.bvp).filter(Number.isFinite).map(Math.abs)),ref=N.buildBvp(N.synthFrames(0,22000,()=>72,{noise:.01,rois:false}));
+  assert.equal(sig.recoveredFraction,0);assert.ok(Math.abs(peak(sig)-peak(ref))<.05,`impulse leaked: ${peak(sig)} vs ${peak(ref)}`);
   assert.ok(Math.abs(N.median(N.hrWindows(sig).map(w=>w.bpm))-72)<3);
 });
 test('A slower opening segment keeps its pulse windows when the camera later speeds up',()=>{

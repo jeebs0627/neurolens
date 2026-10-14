@@ -2,6 +2,59 @@
   "schema": "condition-engine-log-1",
   "entries": [
     {
+      "date": "2026-10-14",
+      "version": "engine maintenance · motionBursts O(n) · signal test core 2.0 정합",
+      "status": "구현·단위 검증 · 실측 영향 없음(출력 동일)",
+      "change": "분석 엔진 머리 움직임 검출(motionBursts)이 0.25초마다 전체 프레임을 걸러 10분 기록에서 분석 시간의 약 1/3을 차지하던 것을 시각순 창 인덱스로 바꿈(출력 동일). condition-signal.test.cjs 의 100ms 공백 테스트가 core 2.0(150ms 이하 공백은 보간 표시 안 함) 이후 실패 상태였던 것을 400ms 공백 + 150ms 이하 무표시 검증으로 갱신. 10/09~10/13 엔진 변경(core 2.4~2.8 · battery 1.5~1.9 · fusion 8 · camera 7) 이력을 이 로그에 보강.",
+      "evidence": "합성 세션 20건×2 임계값 + 희소 프레임 조건에서 motionBursts 구/신 구현 출력 일치, analyze 전체 출력 일치. 전체 세션 1건 분석 시간 Node 기준 약 11~26초 → 약 6초. condition-signal 12건 통과(고립 임펄스 테스트도 같은 규칙으로 갱신). Gemini 후속 프롬프트 자동 생성은 10/12 09:47Z 이후 gemini-3.6-flash HTTP 503(GEMINI_UNAVAILABLE)로 41개 커밋이 retry-pending — 공급자 측 장애로 판단, 고정 모델 정책에 따라 코드 변경 없음.",
+      "next": "10/13~14 실측 7건은 표준 측정에서 보정·심박 단계를 모두 건너뛴 PVT 단독이라 core 2.7/2.8·battery 1.9 현장 검증 근거가 없음. 보정 자세 지키기 대기(10초×2, 표본 0)로 인한 보정 포기, 기기 반응 맞춤 중단 시 latencyCal 유실, Windows Chrome 11~14fps 를 다음 과제로 둠."
+    },
+    {
+      "date": "2026-10-13",
+      "version": "In_mind core 2.8 / battery 1.9",
+      "status": "배포 · 실측 1건(중단) · 미검증",
+      "change": "battery 1.9: PVT·SART 앞에 '기기 반응 맞춤'(점이 선에 닿는 순간 누르기, 일치 타이밍 10회×최대 2라운드)을 두고 측정한 기기 지연(sysMs−40ms)을 반응시간에서 양방향 보정. 입력 장치 종류(터치·키·포인터)를 시행마다 기록해 같은 장치일 때만 보정. core 2.8: 시선 커서·화면 시선 안정화의 거리·속도 허용치를 화면 폭 대신 긴 변 기준으로(세로 휴대폰에서 2배 엄격하던 문제).",
+      "evidence": "단위 테스트(battery 1.9 기기 간 PVT/SART 동등화, core 2.8 방향 불변). 현장: core 2.8 세션 1건이 기기 반응 맞춤 4회 터치 뒤 18초 만에 비정상 종료 — S.pvt 가 맞춤 완료 후에만 생성되어 latencyCal 이 기록에 남지 않음.",
+      "commit": "dcb2a2924272002dae5cace8e61adc41159d4d4d",
+      "next": "latencyCal 과 진행 중 PVT 시행을 20초 체크포인트에 포함. 휴대폰·노트북·무선 키보드 각 1종 이상에서 맞춤 완료 세션 확보 후 오프셋 분포 확인."
+    },
+    {
+      "date": "2026-10-12",
+      "version": "In_mind battery 1.8 (후속 수정)",
+      "status": "배포",
+      "change": "무효 PVT 반응 지표를 각성 점수에서, 무효 SART 지표를 집중 조절 점수에서 제외.",
+      "evidence": "newbiz-battery.test.js 회귀 추가.",
+      "commit": "02dfd75 · 82921b8",
+      "next": "—"
+    },
+    {
+      "date": "2026-10-11",
+      "version": "In_mind core 2.7",
+      "status": "배포 · 세로 휴대폰 실측 2건(완료 1·중단 1)",
+      "change": "시선 모델 u 에 고개 yaw 보상(u + 0.25·yaw). 세로 휴대폰 가로 오차 −40%(재생 벤치).",
+      "evidence": "engine_bench 재생. 현장: 세로 휴대폰 보정 완료 errPct 4.2(163초 소요 뒤 중단)·평가 8.7%. 독립 표적 검증 없음.",
+      "commit": "19cc0c4",
+      "next": "세로 휴대폰 전체 프로토콜 완주 세션으로 pursuit·freeview 오차 확인."
+    },
+    {
+      "date": "2026-10-10",
+      "version": "In_mind core 2.5~2.6 / battery 1.6~1.8 / gaze-residual-…-r2 / 보정 자세 지키기",
+      "status": "배포 · 실측 19세션 재생 보정",
+      "change": "core 2.5: 압박 상승이 max(3bpm, 2×SE)보다 작으면 회복률 미계산. core 2.6: 보정 오차·영점 기준을 화면 긴 변으로. battery 1.6: 사카드 신뢰도 fps 기준 24→12, 회복률 해당 없음 처리. battery 1.7: 정서 보기 반분 안정성 감점을 우연 기대 초과일 때만. battery 1.8: 참고 지표 세션별 자격 심사(ADMIT), 회복률·PVT 조기 반응 오차 범위, 같은 측정값 지표는 수렴 근거 1개. 그림자 모델을 특징 버전으로 호환 판정해 -r2 재패키지(core 2.4~2.6 에서 unsupported-core 로 꺼지던 문제), 로드 1.5초 초과 시 검사 먼저 시작. 보정 중 기기–얼굴 위치 변화를 감시하는 '보정 자세 지키기' 추가. 카메라 준비 화면의 눈동자 점·피부 영역 어긋남 수정.",
+      "evidence": "실측 19세션 재생: 종합 평균 신뢰도 72→79%. 현장(10/13~14): 자세 지키기 대기가 표적 2개에서 각 10초·표본 0으로 이어져 보정 건너뜀 1건.",
+      "commit": "53b329f · 48be717 · 289d7fc · bf0bed1 · 3dbff99 · 2dca687 · 5960bf9 · db40553",
+      "next": "자세 유지 대기 연속 초과 시 안내·재시도 전환, 재보정 상한."
+    },
+    {
+      "date": "2026-10-09",
+      "version": "In_mind core 2.4 / battery 1.5 / 휴대폰 측정 환경",
+      "status": "배포",
+      "change": "core 2.4: 안정화기가 확인한 큰 시선 이동의 보류 표본을 분석에 되살려 사카드·자유 보기 잠복기 1프레임 지연 편향 제거, 자극 onset 을 rAF 콜백 시각으로. battery 1.5: PVT 자극을 검은 바탕·흰 숫자로(1.4 이하 반응시간과 직접 비교 금지). 휴대폰: CPU 얼굴 인식 우선, 보정 점 가림 제거, 얼굴 인식 모델 미리 준비, 전체 화면 방향 고정. /datacollection 모듈별 단독 실측.",
+      "evidence": "단위 테스트. 현장 fps: Android 16~29, Windows 11~17.",
+      "commit": "35e0dee · 1a79164 · 2914a66 · 443931c · 3a580aa",
+      "next": "Windows Chrome 저fps 원인(추론 15~46ms 대비 fps 절반) 재현."
+    },
+    {
       "date": "2026-10-08",
       "version": "condition timing/camera/telemetry fixes · gaze-features-3 · group-CV selection",
       "status": "현장 실측 4건 분석 · 결함 수정 · 재학습(후보 없음)",

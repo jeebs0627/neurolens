@@ -418,8 +418,13 @@
     const s = (frames || []).filter(f => (f.faceOk ?? f.ok) && finite(f.cx) && finite(f.cy) && f.fw > 0);
     const out = [];
     if (s.length < 60) return out;
-    /* 심박 단계는 얼굴 추론이 10~15Hz 라 ±130ms 안의 얼굴 위치를 쓴다 */
-    const at = t => { const w = s.filter(f => Math.abs(f.t - t) <= 130); return w.length ? { x: median(w.map(f => f.cx)), y: median(w.map(f => f.cy)), w: median(w.map(f => f.fw)) } : null; };
+    /* 심박 단계는 얼굴 추론이 10~15Hz 라 ±130ms 안의 얼굴 위치를 쓴다.
+     * 프레임은 시각순이므로 창의 양 끝을 이분 탐색으로 찾는다 — 매번 전체를 거르면 10분 기록(2만 프레임)에서 분석 시간의 1/3이 여기에 들었다 */
+    const lower = x => { let a = 0, b = s.length; while (a < b) { const m = (a + b) >> 1; if (s[m].t < x) a = m + 1; else b = m; } return a; };
+    const at = t => {
+      const w = s.slice(lower(t - 130), lower(t + 130 + 1e-9));
+      return w.length ? { x: median(w.map(f => f.cx)), y: median(w.map(f => f.cy)), w: median(w.map(f => f.fw)) } : null;
+    };
     for (let t = s[0].t + 250; t <= s.at(-1).t - 250; t += 250) {
       const a = at(t - 250), b = at(t + 250);
       if (!a || !b) continue;
