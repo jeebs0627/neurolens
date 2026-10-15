@@ -9390,28 +9390,28 @@
       "accuracyValidated": false,
       "tasks": [
         {
-          "id": "evo-226cb9a1a034-gaze",
-          "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-226cb9a1a034-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8\n변경 제목: Condition: mobile face-detection auto-recovery and on-screen diagnostics\n관련 파일: condition-camera.js, condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-226cb9a1a034-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
           "id": "evo-226cb9a1a034-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-226cb9a1a034-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8\n변경 제목: Condition: mobile face-detection auto-recovery and on-screen diagnostics\n관련 파일: condition-camera.js, condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-226cb9a1a034-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "모바일 autoRecover 복구 단계별 신호 수집률 및 측정 시스템 연산 부하 평가",
+          "rationale": "condition-camera.js 및 condition.html 변경에서 30회 연속 미검출 시 forceCanvas 및 CPU delegate 전환 로직이 추가되었습니다. 가설적으로 모바일 GPU 미지원으로 인한 인식 불능을 해소할 수 있으나, accuracyValidated가 false이므로 복구 동작이 연산 지연(inferMs) 및 프레임 누락(skipped)을 유발하는지 실측 데이터 기반의 검증이 필요합니다. 임의의 수치를 만들지 않고 실패 시도를 포함한 분모 기반 평가를 수행해야 합니다.",
+          "validationPlan": "1. dataset 내 참가자, 기기(안드로이드 GPU, CPU, iOS), 날짜/세션별 관측 데이터 및 메모를 연계합니다.\n2. 세션 전체 획득 프레임 수(captured)를 분모로 하고, 비검출 프레임, 복구 로직 발동(canvas-input, cpu-delegate), 추론 지연(inferMs), 프레임 스킵(skipped) 비율을 조건별로 측정합니다.\n3. 복구 전후의 유효 신호 수집 비율(Yield)과 측정 불확실성/오차 수치를 분리하여 평가하며, 임의로 정상값을 채워 넣는 보정을 금지합니다.",
+          "prompt": "현재 condition-camera.js 및 condition.html 코드를 확인하고, 모바일 복구 모드(autoRecover) 동작에 따른 측정 안정성 검증 과제를 수행하라.\n\n1. 코드 및 환경 확인:\n - condition-camera.js의 recover(), deliver(), main-thread 추론부와 condition.html의 loadLandmarker(), 진단 출력 로직을 검토하라.\n\n2. 부분 유효 신호 활용량 및 오차 평가:\n - dataset에 수록된 기기별, 참가자별, 날짜별 관측 데이터 및 연구자 메모를 연결하라. (실측 수치를 인위적으로 생성하지 말 것)\n - 전체 시도 프레임(captured)을 분모로 설정하고, 복구 단계(기본 GPU -> forceCanvas -> CPU delegate)에 따른 수집 유효율(Yield)과 지연시간(inferMs), 에러 건수(errors)를 산출하라.\n - 약한 신호 회복 시 강제로 정상값을 채워 넣지 말고, 허용 오차 한계 및 제외 기준을 함께 평가하라.\n\n3. 성공 및 회귀 기준:\n - 성공: autoRecover 발동 후 얼굴 미검출 세션의 유효 프레임 수집률이 유의미하게 향상되고, inferMs가 수용 가능한 수준 내에서 유지됨.\n - 회귀: 복구 로직 발동 후 skipped 프레임 비율 급증, CPU 과열로 인한 연속 에러 발생, 또는 유효 신호 오차 범위 초과.\n\n4. 결과 보고 양식:\n - [기기/환경별 분모 및 활용률 요약 표]\n - [복구 단계별 지연시간(inferMs) 및 스킵 비율 분석]\n - [약한 신호 허용 오차 평가 및 제외 처리 기준]\n - [dataset 관측 메모 연결 및 후속 개선 제안]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8\nDataset-Task: evo-226cb9a1a034-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-226cb9a1a034-gaze",
+          "domain": "gaze",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "GPU-CPU delegate 전환 및 Canvas 경유 시 시선 추적 좌표 정밀도 검증",
+          "rationale": "condition-camera.js에서 forceCanvas 및 CPU delegate 전환 시 랜드마크 스케일링 및 눈 영역 품질(f.eyes.left.q, f.eyes.right.q, blendMap) 평가값이 영향을 받을 수 있습니다. 복구 모드가 얼굴 인식률은 높일 수 있으나 시선 추적(gaze) 오차를 증가시키는지 가설 검증이 필요합니다. 커밋 결과는 accuracyValidated: false 상태이므로 실제 시선 오차 수치를 조작하지 않고 세션별 데이터를 통해 파악해야 합니다.",
+          "validationPlan": "1. dataset의 시선 측정 관측치 및 연구자 메모에서 기기별, 위임자(GPU vs CPU), forceCanvas 유무별 세션을 추출합니다.\n2. 전체 시선 추론 시도 프레임을 분모로 하여, 랜드마크 특징점 실패(featMiss) 수와 눈 영역 품질 지수를 평가합니다.\n3. 복구 모드 전환 전후의 시선 추적 좌표 불확실성 및 오차 변화를 분석하여, 측정 성공률 향상 대비 시선 오차 증가의 트레이드오프를 도출합니다.",
+          "prompt": "현재 condition-camera.js 및 condition.html에 적용된 autoRecover 변경 사항이 시선 추적(gaze) 정밀도에 미치는 영향을 검증하는 과제를 수행하라.\n\n1. 코드 확인:\n - condition-camera.js의 gainS/forceCanvas 캔버스 처리 및 condition.html의 blendMap, f.eyes 품질 계산부를 확인하라.\n\n2. 시선 유효 신호 및 오차 평가:\n - dataset 내 관련 실측 데이터 및 연구자 메모를 연결하여 분석하라. 수치를 새로 만들어내지 마라.\n - 세션 전체 프레임 분모 대비, 랜드마크 추출 성공 프레임 및 특징점 실패(featMiss) 비율을 기기/날짜/참가자별로 구분하여 측정하라.\n - 캔버스 전처리(forceCanvas) 및 CPU delegate 모드에서 눈 좌표 및 blendShape 기반 눈 깜빡임 보정 적용 후 시선 추적 불확실성을 평가하라.\n\n3. 성공 및 회귀 기준:\n - 성공: 모바일 복구 모드에서도 시선 추적 유효 프레임 수집량이 증가하고 시선 좌표 오차가 지정된 허용 한계 내에 위치함.\n - 회귀: CPU 모드 또는 캔버스 리사이징 영향으로 랜드마크 떨림이 심화되어 시선 추적 오차가 크게 증가하거나 featMiss 비율이 과도하게 상승함.\n\n4. 결과 보고 양식:\n - [참가자/기기/위임방식별 시선 유효 프레임 분모 및 수집률]\n - [GPU vs Canvas/CPU 모드 간 눈 품질 지수 및 시선 좌표 변동성 비교]\n - [약한 시선 신호의 허용 오차 및 폐기/포함 판단 기준]\n - [dataset 연계 관측 소평 및 시선 추적 알고리즘 보안점]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8\nDataset-Task: evo-226cb9a1a034-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 3,
+      "analysisState": "generated",
+      "analysisAttempts": 4,
       "deploymentEvents": [
         {
           "key": "check-55571715193",
@@ -9443,9 +9443,81 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-15T20:34:16.656592+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-15T23:18:58.769326+00:00",
+      "analysis": {
+        "summary": "2026년 10월 5일 커밋(226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8)을 통해 condition-camera.js (+26, -6) 및 condition.html (+12, -7) 파일이 변경되었습니다. 관측된 핵심 변경 사항은 안드로이드 등 일부 모바일 GPU 환경에서 비디오 요소 직접 추론 시 빈 결과가 반환되는 문제를 완화하기 위한 자동 복구 로직(autoRecover/recover) 및 화면 진단 정보 표시 기능 추가입니다.\n\n[관측된 변경 내용]\n1. condition-camera.js: 얼굴 미검출 연속 30회 발생 시 1단계 캔버스 렌더링 경유(forceCanvas), 2단계 CPU 위임 모델 교체(loadFallback('CPU'))를 수행하는 recover() 메서드가 추가되었습니다. 또한 deliver() 및 main thread 추론 시 faces, noFace, inferMs, recovery 상태를 기록하고, start/stop 시 콜백 해제 및 안전 종료 검사가 강화되었습니다.\n2. condition.html: loadLandmarker(only) 함수에서 전용 위임자(nlDelegate) 지정 로직을 추가하고, NLCamera 생성 시 autoRecover: MOBILE 옵션을 전달하도록 수정되었습니다. 또한 8초 이상 얼굴 미검출 시 backend, delegate, recovery, 비디오 해상도, 추론 횟수, 검출 횟수, 특징점 추출 실패 횟수(featMiss), 오류 수 등을 실시간 진단 문구로 화면에 표시하도록 변경되었습니다.\n\n[미검증 영향 및 가설]\n1. 커밋 메시지는 모바일 얼굴 검출 자동 복구 및 진단을 명시하고 있으나, accuracyValidated 속성은 false입니다. 즉, 이 구성을 통해 얼굴 인식 성공률이 향상되는지, 시선 추적(gaze) 및 생체 신호 측정(measurement) 오차가 허용 한계 내에 유지되는지는 검증되지 않은 가설입니다.\n2. CPU 대리자 전환 또는 캔버스 복사 과정에서 추론 연산 지연(inferMs)이 증가하거나 프레임 건너넒(skipped)이 늘어날 가능성이 있습니다. 또한 약한 랜드마크 신호가 회복될 때 특징점 품질(eyeQuality, blendMap) 저하가 시선 좌표 오차로 이어지는지 확인이 필요합니다.\n3. 제공된 diff 외의 파일 및 실제 참가자 대상 실측 수치는 포함되어 있지 않으므로, dataset 내 관련 관측 기록과 연계한 분모 기반의 회귀·실측 검증이 요구됩니다. 차이점 요약에 제시된 파일 범위(condition-camera.js, condition.html) 외 변경은 포함되지 않았습니다.",
+        "tasks": [
+          {
+            "id": "evo-226cb9a1a034-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "모바일 autoRecover 복구 단계별 신호 수집률 및 측정 시스템 연산 부하 평가",
+            "rationale": "condition-camera.js 및 condition.html 변경에서 30회 연속 미검출 시 forceCanvas 및 CPU delegate 전환 로직이 추가되었습니다. 가설적으로 모바일 GPU 미지원으로 인한 인식 불능을 해소할 수 있으나, accuracyValidated가 false이므로 복구 동작이 연산 지연(inferMs) 및 프레임 누락(skipped)을 유발하는지 실측 데이터 기반의 검증이 필요합니다. 임의의 수치를 만들지 않고 실패 시도를 포함한 분모 기반 평가를 수행해야 합니다.",
+            "validationPlan": "1. dataset 내 참가자, 기기(안드로이드 GPU, CPU, iOS), 날짜/세션별 관측 데이터 및 메모를 연계합니다.\n2. 세션 전체 획득 프레임 수(captured)를 분모로 하고, 비검출 프레임, 복구 로직 발동(canvas-input, cpu-delegate), 추론 지연(inferMs), 프레임 스킵(skipped) 비율을 조건별로 측정합니다.\n3. 복구 전후의 유효 신호 수집 비율(Yield)과 측정 불확실성/오차 수치를 분리하여 평가하며, 임의로 정상값을 채워 넣는 보정을 금지합니다.",
+            "prompt": "현재 condition-camera.js 및 condition.html 코드를 확인하고, 모바일 복구 모드(autoRecover) 동작에 따른 측정 안정성 검증 과제를 수행하라.\n\n1. 코드 및 환경 확인:\n - condition-camera.js의 recover(), deliver(), main-thread 추론부와 condition.html의 loadLandmarker(), 진단 출력 로직을 검토하라.\n\n2. 부분 유효 신호 활용량 및 오차 평가:\n - dataset에 수록된 기기별, 참가자별, 날짜별 관측 데이터 및 연구자 메모를 연결하라. (실측 수치를 인위적으로 생성하지 말 것)\n - 전체 시도 프레임(captured)을 분모로 설정하고, 복구 단계(기본 GPU -> forceCanvas -> CPU delegate)에 따른 수집 유효율(Yield)과 지연시간(inferMs), 에러 건수(errors)를 산출하라.\n - 약한 신호 회복 시 강제로 정상값을 채워 넣지 말고, 허용 오차 한계 및 제외 기준을 함께 평가하라.\n\n3. 성공 및 회귀 기준:\n - 성공: autoRecover 발동 후 얼굴 미검출 세션의 유효 프레임 수집률이 유의미하게 향상되고, inferMs가 수용 가능한 수준 내에서 유지됨.\n - 회귀: 복구 로직 발동 후 skipped 프레임 비율 급증, CPU 과열로 인한 연속 에러 발생, 또는 유효 신호 오차 범위 초과.\n\n4. 결과 보고 양식:\n - [기기/환경별 분모 및 활용률 요약 표]\n - [복구 단계별 지연시간(inferMs) 및 스킵 비율 분석]\n - [약한 신호 허용 오차 평가 및 제외 처리 기준]\n - [dataset 관측 메모 연결 및 후속 개선 제안]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8\nDataset-Task: evo-226cb9a1a034-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-226cb9a1a034-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "GPU-CPU delegate 전환 및 Canvas 경유 시 시선 추적 좌표 정밀도 검증",
+            "rationale": "condition-camera.js에서 forceCanvas 및 CPU delegate 전환 시 랜드마크 스케일링 및 눈 영역 품질(f.eyes.left.q, f.eyes.right.q, blendMap) 평가값이 영향을 받을 수 있습니다. 복구 모드가 얼굴 인식률은 높일 수 있으나 시선 추적(gaze) 오차를 증가시키는지 가설 검증이 필요합니다. 커밋 결과는 accuracyValidated: false 상태이므로 실제 시선 오차 수치를 조작하지 않고 세션별 데이터를 통해 파악해야 합니다.",
+            "validationPlan": "1. dataset의 시선 측정 관측치 및 연구자 메모에서 기기별, 위임자(GPU vs CPU), forceCanvas 유무별 세션을 추출합니다.\n2. 전체 시선 추론 시도 프레임을 분모로 하여, 랜드마크 특징점 실패(featMiss) 수와 눈 영역 품질 지수를 평가합니다.\n3. 복구 모드 전환 전후의 시선 추적 좌표 불확실성 및 오차 변화를 분석하여, 측정 성공률 향상 대비 시선 오차 증가의 트레이드오프를 도출합니다.",
+            "prompt": "현재 condition-camera.js 및 condition.html에 적용된 autoRecover 변경 사항이 시선 추적(gaze) 정밀도에 미치는 영향을 검증하는 과제를 수행하라.\n\n1. 코드 확인:\n - condition-camera.js의 gainS/forceCanvas 캔버스 처리 및 condition.html의 blendMap, f.eyes 품질 계산부를 확인하라.\n\n2. 시선 유효 신호 및 오차 평가:\n - dataset 내 관련 실측 데이터 및 연구자 메모를 연결하여 분석하라. 수치를 새로 만들어내지 마라.\n - 세션 전체 프레임 분모 대비, 랜드마크 추출 성공 프레임 및 특징점 실패(featMiss) 비율을 기기/날짜/참가자별로 구분하여 측정하라.\n - 캔버스 전처리(forceCanvas) 및 CPU delegate 모드에서 눈 좌표 및 blendShape 기반 눈 깜빡임 보정 적용 후 시선 추적 불확실성을 평가하라.\n\n3. 성공 및 회귀 기준:\n - 성공: 모바일 복구 모드에서도 시선 추적 유효 프레임 수집량이 증가하고 시선 좌표 오차가 지정된 허용 한계 내에 위치함.\n - 회귀: CPU 모드 또는 캔버스 리사이징 영향으로 랜드마크 떨림이 심화되어 시선 추적 오차가 크게 증가하거나 featMiss 비율이 과도하게 상승함.\n\n4. 결과 보고 양식:\n - [참가자/기기/위임방식별 시선 유효 프레임 분모 및 수집률]\n - [GPU vs Canvas/CPU 모드 간 눈 품질 지수 및 시선 좌표 변동성 비교]\n - [약한 시선 신호의 허용 오차 및 폐기/포함 판단 기준]\n - [dataset 연계 관측 소평 및 시선 추적 알고리즘 보안점]\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8\nDataset-Task: evo-226cb9a1a034-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "e56eb856f5216b9e010706dad242fc4111b90e1ed7cf199e9d47ae56e4a16779",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 3,
+          "usage": {
+            "promptTokenCount": 4136,
+            "candidatesTokenCount": 2057,
+            "totalTokenCount": 8778
+          }
+        },
+        "generatedAt": "2026-10-15T23:19:50.187996+00:00",
+        "sourceSha": "226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8",
+        "sourceEvidence": {
+          "sha": "226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8",
+          "parents": [
+            "fc3cf7fd8c786159dc7caf4d97375cd6dc7e1d91"
+          ],
+          "committedAt": "2026-10-05T02:54:51Z",
+          "subject": "Condition: mobile face-detection auto-recovery and on-screen diagnostics",
+          "url": "https://github.com/jeebs0627/neurolens/commit/226cb9a1a034b0f9032a23ae7c0a0fd824ab62e8",
+          "files": [
+            {
+              "path": "condition-camera.js",
+              "status": "modified",
+              "additions": 26,
+              "deletions": 6
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 12,
+              "deletions": 7
+            }
+          ],
+          "domains": [
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-camera.js\n@@ -40,7 +40,7 @@\n       this.info.backend='loading-fallback';\n       const detector=await this.opt.loadFallback();\n       if(this.stopped){detector.close();return;}\n-      this.detector=detector;\n+      this.detector=detector;this.info.delegate=detector.nlDelegate||null;\n       this.inferCanvas=document.createElement('canvas');this.inferCtx=this.inferCanvas.getContext('2d',{willReadFrequently:true});\n       this.info.backend='main-thread';\n     }\n@@ -50,9 +50,26 @@\n       this.geometry=null;this.info.errors++;this.info.fallbackReason=reason;\n       try {await this.loadFallback();}catch(e){this.info.backend='unavailable';this.opt.onError?.(e);}\n     }\n+    /* 휴대폰 자동 복구: 일부 안드로이드 GPU 에서는 영상 요소를 바로 넣으면 결과가 빈 채로 온다.\n+     * 얼굴 없는 추론이 연속 30회면 ① 캔버스로 옮겨 넣기 → ② CPU 인식기로 교체 순으로 바꾼다 */\n+    async recover(){\n+      this.noFace=0;\n+      if(this.stopped||this.recovering)return;\n+      if(!this.forceCanvas){this.forceCanvas=true;this.info.recovery='canvas-input';return;}\n+      if(this.info.delegate!=='GPU'||this.info.recovery==='cpu-failed')return;\n+      this.recovering=true;\n+      try{\n+        const d=await this.opt.loadFallback('CPU');\n+        if(this.stopped){d.close();return;}\n+        const old=this.detector;this.detector=d;this.info.delegate='CPU';this.info.recovery='cpu-delegate';old.close();\n+      }catch(e){\n+        if(!this.stopped){this.info.errors++;this.info.recovery='cpu-failed';this.info.fallbackReason='cpu-recovery-failed:'+String(e.message||e);}\n+      }finally{this.recovering=false;}\n+    }\n     deliver(pending,m){\n       if(this.stopped)return;\n       const lm=m.result.faceLandmarks?.[0];\n+      if(lm)this.info.faces=(this.info.faces||0)+1;\n       this.geometry=lm?{lm,t:m.t}:null;this.info.inferred++;\n       this.opt.onResult(pending.fr,m,pending.context);\n     }\n@@ -76,7 +93,8 @@\n         callbackLateMs:Number.isFinite(meta?.expectedDisplayTime)?Math.max(0,tp-meta.expectedDisplayTime):null,\n         mediaTimeMs:Number.isFinite(meta?.mediaTime)?meta.mediaTime*1000:null,presentedFrames:meta?.presentedFrames??null};\n       this.info.captured++;const context=this.opt.onFrame(fr);\n-      if(this.busy||this.info.backend==='loading-fallback'||this.info.backend==='unavailable'){this.info.skipped++;return;}\n+      if(this.stopped)return;\n+      if(this.busy||this.recovering||this.info.backend==='loading-fallback'||this.info.backend==='unavailable'){this.info.skipped++;return;}\n       if(this.worker){\n         this.busy=true;this.pending={fr,context};\n         this.watchdog=setTimeout(()=>this.fallback('inference-timeout'),this.info.inferred ? 2500 : 10000);\n@@ -94,12 +112,13 @@\n         try{\n           const g0=NLSignal.exposureGain(this.ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20;\n           let result;\n-          if(gain>1.05){\n+          if(gain>1.05||this.forceCanvas){\n             const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n             if(c.width!==w||c.height!==h){c.width=w;c.height=h;}\n             ctx.drawImage(this.video,0,0,w,h);NLSignal.enhance(ctx,gain);result=this.detector.detectForVideo(c,t);\n           } else result=this.detector.detectForVideo(this.video,t);\n           const lm=result.faceLandmarks?.[0];\n+          if(lm)this.noFace=0;else if(this.opt.autoRecover&&(this.noFace=(this.noFace||0)+1)>=30)this.recover();\n           const eyes=lm?{left:NLSignal.eyeQuality(this.ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(this.ctx,lm,[33,133,159,145])}:null;\n           const took=Math.min(150,performance.now()-i0);this.inferN=(this.inferN||0)+1;   // 처음 3번(GPU 준비)은 간격 계산에서 뺀다\n           if(this.inferN>3){this.inferMs=this.inferMs==null?took:this.inferMs+.2*(took-this.inferMs);this.info.inferMs=Math.round(this.inferMs);}\n@@ -112,12 +131,13 @@\n       }\n     }\n     start(){\n+      if(this.stopped)return;\n       const v=this.video;\n       const capture=meta=>{try{this.capture(meta);}catch(e){this.info.errors++;this.opt.onError?.(e);}};\n-      if(v.requestVideoFrameCallback){const cb=(_,meta)=>{if(this.stopped)return;capture(meta);this.callback=v.requestVideoFrameCallback(cb);};this.callback=v.requestVideoFrameCallback(cb);}\n-      else{let last=-1;const cb=()=>{if(this.stopped)return;if(v.currentTime!==last){last=v.currentTime;capture();}this.callback=requestAnimationFrame(cb);};this.callback=requestAnimationFrame(cb);}\n+      if(v.requestVideoFrameCallback){const cb=(_,meta)=>{if(this.stopped)return;capture(meta);if(!this.stopped)this.callback=v.requestVideoFrameCallback(cb);};this.callback=v.requestVideoFrameCallback(cb);}\n+      else{let last=-1;const cb=()=>{if(this.stopped)return;if(v.currentTime!==last){last=v.currentTime;capture();}if(!this.stopped)this.callback=requestAnimationFrame(cb);};this.callback=requestAnimationFrame(cb);}\n     }\n-    stop(){this.stopped=true;clearTimeout(this.watchdog);this.worker?.terminate();this.detector?.close();\n+    stop(){if(this.stopped)return;this.stopped=true;clearTimeout(this.watchdog);this.worker?.terminate();this.detector?.close();\n       if(this.video.cancelVideoFrameCallback)this.video.cancelVideoFrameCallback(this.callback);else cancelAnimationFrame(this.callback);\n     }\n   }\nFILE condition.html\n@@ -1435,12 +1435,13 @@ <h2>결과를 정리하고 있어요</h2>\n if (cameraOrientation.addEventListener) cameraOrientation.addEventListener('change', resizeCamera);\n else cameraOrientation.addListener(resizeCamera); // 구형 iOS Safari의 MediaQueryList\n \n-async function loadLandmarker() {\n+async function loadLandmarker(only) {\n   const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);\n   const vision = await FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);\n-  const opts = d => ({ baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, ...FACE_CONF });\n-  try { return await FaceLandmarker.createFromOptions(vision, opts('GPU')); }\n-  catch (_) { return await FaceLandmarker.createFromOptions(vision, opts('CPU')); }\n+  const make = async d => Object.assign(await FaceLandmarker.createFromOptions(vision, { baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, ...FACE_CONF }), { nlDelegate: d });\n+  if (only) return make(only);\n+  try { return await make('GPU'); }\n+  catch (_) { return make('CPU'); }\n }\n \n $('camStart').addEventListener('click', async () => {\n@@ -1465,15 +1466,15 @@ <h2>결과를 정리하고 있어요</h2>\n     fitPreview(); prevVideo.onresize = fitPreview;   // 휴대폰 회전 시 영상 비율이 바뀐다\n     phase = 'model';\n     S.camera = new NLCamera(procVideo, {\n-      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n+      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, autoRecover: MOBILE, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },\n       onResult: processResult,\n       onError(e) {\n         st.className = 'status err'; st.textContent = '얼굴 인식 연결을 확인해 주세요. 카메라를 다시 켤 수 있어요.';\n         if (S.camera?.info.backend === 'unavailable') { $('camStart').disabled = false; $('camStart').hidden = false; }\n       }\n     });\n-    await S.camera.init();\n+    await S.camera.init(); S.camT0 = now(); S.featMiss = 0;\n     st.textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';\n     startLoop(); if (!S.setupLoops) { S.setupLoops = true; drawOverlay(); setupTicker(); }\n   } catch (e) {\n@@ -1500,7 +1501,7 @@ <h2>결과를 정리하고 있어요</h2>\n   S.lastLm = lm || null;\n   if (!lm) { Object.assign(fr, { ok: false, ppgOk: false, skinOk: false, reason: 'face-missing' }); return; }\n   const f = N.faceFeatures(lm);\n-  if (!f) return;\n+  if (!f) { S.featMiss = (S.featMiss || 0) + 1; return; }\n   const bs = blendMap(res);\n   f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));\n   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));\n@@ -1628,6 +1629,10 @@ <h2>결과를 정리하고 있어요</h2>\n     const fps = S.fpsTimes.length / 2;\n     const motion = N.motionIndex(S.buf.filter(f => f.faceOk ?? f.ok), t - 5000, t);\n     setDot('dFace', faceOk ? 'ok' : 'bad'); $('vFace').textContent = faceOk ? '인식됨' : '찾는 중';\n+    /* 얼굴을 8초 넘게 못 찾으면 진단 정보를 보여 준다(원인 파악용: 처리 방식·추론 횟수·랜드마크 검출·특징 실패) */\n+    const ci = S.camera?.info;\n+    if (ci && !faceOk && S.camT0 && t - Math.max(S.camT0, S.lastFace) > 8000) $('setupStatus').textContent = `얼굴을 찾지 못하고 있어요. 밝은 곳에서 휴대폰을 눈높이로 들어 주세요. (진단: ${ci.backend}·${ci.delegate || '-'}·${ci.recovery || '-'} · 영상 ${procVideo.videoWidth}×${procVideo.videoHeight} · 추론 ${ci.inferred} · 검출 ${ci.faces || 0} · 특징실패 ${S.featMiss || 0} · 오류 ${ci.errors})`;\n+    else if (faceOk && $('setupStatus').textContent.startsWith('얼굴을 찾지')) $('setupStatus').textContent = '얼굴이 인식되면 시작할 수 있어요. 조명·움직임 안내를 참고하면 더 많은 신호를 활용할 수 있어요.';\n     const pos = posCheck(), gm = $('guideMsg');\n     setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';\n     gm.hidden = !S.stream;",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38822800179"
+      }
     },
     {
       "sha": "a1d6821f8524790cf7ef68756d467ed5488973c3",
@@ -9476,16 +9548,16 @@
         {
           "id": "evo-a1d6821f8524-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-a1d6821f8524-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: a1d6821f8524790cf7ef68756d467ed5488973c3\n변경 제목: Condition: retry camera without size constraints, name the failing stage in camera errors\n관련 파일: condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-a1d6821f8524-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "getUserMedia 폴백 스트림의 해상도·프레임률 변동에 따른 측정 알고리즘 유효 신호 활용률 및 오차 평가",
+          "rationale": "관측된 변경사항에서 condition.html은 카메라 권한 및 해상도 제약 실패 시 비제약 getUserMedia로 재시도합니다. 이는 카메라 진입 성공률을 높이려는 개발자 가설에 기반하지만, accuracyValidated가 false인 상태입니다. 해상도 및 프레임률이 저하된 폴백 스트림에서 측정 알고리즘이 유효 신호를 얼마나 수집할 수 있는지, 오차가 허용 범위 내에 있는지 실측 데이터셋 메모 및 수집 데이터와 연계해 검증해야 합니다.",
+          "validationPlan": "1. 회귀 테스트: 지원 환경 및 제한 환경(구형 iOS, 특정 모바일 브라우저)에서 카메라 진입 phase별 상태 전환 및 에러 메시지 표출 동작을 검증합니다.\n2. 실측 및 연계 평가: 기존 수집 데이터셋(dataset)의 참가자/기기/날짜별 측정 기록과 연결하여, 정상 제약 스트림과 폴백 제약 스트림 간의 유효 프레임 수집 비율(활용률) 및 랜드마크/측정 오차 변화를 산출합니다.\n3. 분모 기준 평가: 단일 성공 세션에 의존하지 않고, 전체 시도 횟수(실패 및 폴백 전환 시도 포함)를 분모로 설정하여 기기별/환경별 진입 성공률, 부분 유효 신호 활용량, 오차 수치 산출 기준을 정립합니다.\n4. 절대 기준 센서 없이 자체 합성/웹캠 테스트 결과만을 근거로 '임상 진단 정답'으로 표기하지 않도록 검증 보고서를 통제합니다.",
+          "prompt": "현재 condition.html에 반영된 카메라 초기화 및 폴백 로직을 확인하고, 폴백 비디오 스트림 환경에서의 측정 알고리즘 영향성을 평가하는 개발 및 검증 작업을 수행하세요.\n\n[작업 목표]\n1. condition.html의 getUserMedia 폴백 및 phase별 예외 처리 흐름 분석.\n2. 폴백 스트림(해상도/프레임률 미지정) 입력 시 측정 파이프라인의 프레임 수집률, 약한 신호 추출 비율, 그리고 신호 오차 수준을 함께 평가하는 모듈 및 검증 스크립트 작성.\n3. 임의의 수치를 만들어내지 말고, 기존 dataset 내 참가자/기기/날짜 분리 데이터와 실측 메모를 연결하여 판정할 수 있도록 검증 연동 구조를 설계할 것.\n\n[성공 및 회귀 기준]\n- 성공 기준: 폴백 진입 시 전체 세션 진입 실패율이 감소하면서, 수집된 프레임 중 활용 가능한 부분 유효 신호의 비중이 기준치 이상을 유지하고 오차 증가폭이 허용 오차 이내일 것.\n- 회귀 기준: 폴백 스트림의 낮은 프레임률/해상도로 인해 랜드마크 추정 실패가 급증하거나 신호 오차가 크게 증가하여 측정 신뢰도 범주를 벗어나는 경우.\n\n[결과 보고 양식]\n- 환경별/기기별 시도 분모 및 진입 성공률 (기본 제약 vs 폴백 제약)\n- 조건별 프레임 수집량 대비 부분 유효 신호 활용률 (%)\n- 데이터셋 실측 메모 연계 오차 및 불확실성 평가 결과\n- 검증된 사실(Fact), 개발자 가설(Hypothesis), 미검증 위험 요인 구분 정리\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: a1d6821f8524790cf7ef68756d467ed5488973c3\nDataset-Task: evo-a1d6821f8524-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55571074475",
@@ -9517,9 +9589,64 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-05T07:42:33.061606+00:00",
-      "analysisError": "HTTP_502",
-      "analysisErrorCode": "EVOLUTION_ANALYSIS_FAILED"
+      "lastAttemptAt": "2026-10-15T23:19:50.193479+00:00",
+      "analysis": {
+        "summary": "publicCodeChange 레포지토리의 커밋 a1d6821f8524790cf7ef68756d467ed5488973c3(2026-10-05T02:32:28Z) 분석 결과입니다. 파일 변경은 condition.html 1건(추가 17, 삭제 5)이며, 파일 및 패치 생략은 없습니다(filesTruncated: false, patchTruncated: false).\n\n[관측된 소스코드 변경 Fact]\n1. 구형 iOS Safari의 MediaQueryList 호환성을 위해 cameraOrientation.addEventListener 유무를 확인하고 addListener 폴백을 적용했습니다.\n2. 카메라 진입, 비디오 재생, 모델 로딩 과정을 구분하는 phase 변수('camera', 'video', 'model')를 도입하여 예외 발생 단계와 에러 이름(NotAllowedError, NotReadableError 등)에 맞춘 세부 안내 문구를 구성했습니다.\n3. navigator.mediaDevices?.getUserMedia 존재 여부 검사 및 NoMediaDevices 예외 처리를 추가했습니다.\n4. getUserMedia 호출 시 카메라 해상도 및 프레임률 제약조건(cameraSize(), frameRate)이 포함된 요청이 실패할 경우(NotAllowedError 제외), 기본 제약조건인 { video: { facingMode: 'user' }, audio: false }로 2차 재시도하는 폴백 제어 흐름을 구현했습니다.\n\n[개발 의도 및 연구 가설]\n커밋 메시지(\"Condition: retry camera without size constraints, name the failing stage in camera errors\")에 명시된 바와 같이, 제약조건 완화를 통해 카메라 스트림 생성 실패율을 낮추고 오인 유발 에러 메시지를 개선하려는 개발자 시도가 확인됩니다. 하지만 커밋 제목은 검증된 임상/측정 성과가 아닙니다.\n\n[미검증 영향 및 위험요인]\n해당 변경에 대한 정확도 검증 여부(accuracyValidated)는 false입니다. 제약조건 없이 획득한 폴백 비디오 스트림은 기기 디폴트에 따라 의도치 않게 낮은 해상도나 불규칙한 프레임률(FPS)을 전달할 수 있습니다. 이는 일상 웹캠 및 모바일 환경에서 약한 신호를 추출하는 NeuroLens 측정 알고리즘의 프레임 간 격차, 랜드마크 정밀도 및 신뢰도 평가에 회귀를 일으킬 가능성이 있습니다. 따라서 실제 데이터셋과 연계한 신호 활용량 및 오차 평가 과제가 요구됩니다.",
+        "tasks": [
+          {
+            "id": "evo-a1d6821f8524-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "getUserMedia 폴백 스트림의 해상도·프레임률 변동에 따른 측정 알고리즘 유효 신호 활용률 및 오차 평가",
+            "rationale": "관측된 변경사항에서 condition.html은 카메라 권한 및 해상도 제약 실패 시 비제약 getUserMedia로 재시도합니다. 이는 카메라 진입 성공률을 높이려는 개발자 가설에 기반하지만, accuracyValidated가 false인 상태입니다. 해상도 및 프레임률이 저하된 폴백 스트림에서 측정 알고리즘이 유효 신호를 얼마나 수집할 수 있는지, 오차가 허용 범위 내에 있는지 실측 데이터셋 메모 및 수집 데이터와 연계해 검증해야 합니다.",
+            "validationPlan": "1. 회귀 테스트: 지원 환경 및 제한 환경(구형 iOS, 특정 모바일 브라우저)에서 카메라 진입 phase별 상태 전환 및 에러 메시지 표출 동작을 검증합니다.\n2. 실측 및 연계 평가: 기존 수집 데이터셋(dataset)의 참가자/기기/날짜별 측정 기록과 연결하여, 정상 제약 스트림과 폴백 제약 스트림 간의 유효 프레임 수집 비율(활용률) 및 랜드마크/측정 오차 변화를 산출합니다.\n3. 분모 기준 평가: 단일 성공 세션에 의존하지 않고, 전체 시도 횟수(실패 및 폴백 전환 시도 포함)를 분모로 설정하여 기기별/환경별 진입 성공률, 부분 유효 신호 활용량, 오차 수치 산출 기준을 정립합니다.\n4. 절대 기준 센서 없이 자체 합성/웹캠 테스트 결과만을 근거로 '임상 진단 정답'으로 표기하지 않도록 검증 보고서를 통제합니다.",
+            "prompt": "현재 condition.html에 반영된 카메라 초기화 및 폴백 로직을 확인하고, 폴백 비디오 스트림 환경에서의 측정 알고리즘 영향성을 평가하는 개발 및 검증 작업을 수행하세요.\n\n[작업 목표]\n1. condition.html의 getUserMedia 폴백 및 phase별 예외 처리 흐름 분석.\n2. 폴백 스트림(해상도/프레임률 미지정) 입력 시 측정 파이프라인의 프레임 수집률, 약한 신호 추출 비율, 그리고 신호 오차 수준을 함께 평가하는 모듈 및 검증 스크립트 작성.\n3. 임의의 수치를 만들어내지 말고, 기존 dataset 내 참가자/기기/날짜 분리 데이터와 실측 메모를 연결하여 판정할 수 있도록 검증 연동 구조를 설계할 것.\n\n[성공 및 회귀 기준]\n- 성공 기준: 폴백 진입 시 전체 세션 진입 실패율이 감소하면서, 수집된 프레임 중 활용 가능한 부분 유효 신호의 비중이 기준치 이상을 유지하고 오차 증가폭이 허용 오차 이내일 것.\n- 회귀 기준: 폴백 스트림의 낮은 프레임률/해상도로 인해 랜드마크 추정 실패가 급증하거나 신호 오차가 크게 증가하여 측정 신뢰도 범주를 벗어나는 경우.\n\n[결과 보고 양식]\n- 환경별/기기별 시도 분모 및 진입 성공률 (기본 제약 vs 폴백 제약)\n- 조건별 프레임 수집량 대비 부분 유효 신호 활용률 (%)\n- 데이터셋 실측 메모 연계 오차 및 불확실성 평가 결과\n- 검증된 사실(Fact), 개발자 가설(Hypothesis), 미검증 위험 요인 구분 정리\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: a1d6821f8524790cf7ef68756d467ed5488973c3\nDataset-Task: evo-a1d6821f8524-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "da8b5d2f73703335cad1867829a8b236fe16316eee5db01a14728465e678505e",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 2085,
+            "candidatesTokenCount": 1424,
+            "totalTokenCount": 5945
+          }
+        },
+        "generatedAt": "2026-10-15T23:20:12.895404+00:00",
+        "sourceSha": "a1d6821f8524790cf7ef68756d467ed5488973c3",
+        "sourceEvidence": {
+          "sha": "a1d6821f8524790cf7ef68756d467ed5488973c3",
+          "parents": [
+            "4925fbf2e72ed894d12c16d583326598b74d4de0"
+          ],
+          "committedAt": "2026-10-05T02:32:28Z",
+          "subject": "Condition: retry camera without size constraints, name the failing stage in camera errors",
+          "url": "https://github.com/jeebs0627/neurolens/commit/a1d6821f8524790cf7ef68756d467ed5488973c3",
+          "files": [
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 17,
+              "deletions": 5
+            }
+          ],
+          "domains": [
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n@@ -1426,12 +1426,14 @@ <h2>결과를 정리하고 있어요</h2>\n   const portrait = MOBILE && cameraOrientation.matches;\n   return { width: { ideal: portrait ? 480 : 640 }, height: { ideal: portrait ? 640 : 480 } };\n }\n-cameraOrientation.addEventListener('change', () => {\n+const resizeCamera = () => {\n   const track = S.stream?.getVideoTracks()[0];\n   if (!MOBILE || !track || $('sSetup').hidden) return;\n   /* 준비 화면에서만 방향을 다시 요청한다. 실패하면 현재 스트림을 유지한다. */\n   track.applyConstraints({ ...track.getConstraints(), ...cameraSize() }).catch(() => {});\n-});\n+};\n+if (cameraOrientation.addEventListener) cameraOrientation.addEventListener('change', resizeCamera);\n+else cameraOrientation.addListener(resizeCamera); // 구형 iOS Safari의 MediaQueryList\n \n async function loadLandmarker() {\n   const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);\n@@ -1445,14 +1447,23 @@ <h2>결과를 정리하고 있어요</h2>\n   const st = $('setupStatus');\n   st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';\n   $('camStart').disabled = true; $('camStart').hidden = true;\n+  let phase = 'camera';\n   try {\n-    S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop());\n+    S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); S.stream = null;\n     /* 세로로 든 휴대폰에 가로형(640×480)을 요청하면 브라우저가 세로 영상을 잘라 맞춘다(실측: 480×480) → 방향에 맞춰 요청 */\n-    S.stream = await navigator.mediaDevices.getUserMedia({ video: { ...cameraSize(), frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false });\n+    if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('HTTPS 주소에서 Chrome 또는 Safari로 열어 주세요. 이 환경에서는 카메라를 사용할 수 없어요'), { name: 'NoMediaDevices' });\n+    try { S.stream = await navigator.mediaDevices.getUserMedia({ video: { ...cameraSize(), frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false }); }\n+    catch (e) {\n+      /* 권한 거부는 그대로 알린다. 그 밖은 해상도·프레임률 조건을 빼고 한 번 더 요청한다 */\n+      if (e && e.name === 'NotAllowedError') throw e;\n+      S.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });\n+    }\n+    phase = 'video';\n     procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;\n     procVideo.classList.add('on');\n     await Promise.all([procVideo.play(), prevVideo.play()]);\n     fitPreview(); prevVideo.onresize = fitPreview;   // 휴대폰 회전 시 영상 비율이 바뀐다\n+    phase = 'model';\n     S.camera = new NLCamera(procVideo, {\n       base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },\n@@ -1468,7 +1479,8 @@ <h2>결과를 정리하고 있어요</h2>\n   } catch (e) {\n     S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); S.stream = null;\n     st.className = 'status err';\n-    st.textContent = e && e.name === 'NotAllowedError' ? '카메라 권한이 거부됐어요. 주소창의 카메라 아이콘에서 허용해 주세요.' : '카메라 또는 모델을 불러오지 못했어요: ' + (e && e.message || e);\n+    st.textContent = (phase === 'camera' && e && e.name === 'NotAllowedError' ? '카메라 접근이 차단됐어요. 브라우저·기기의 카메라 권한과 HTTPS 주소를 확인해 주세요.' : phase === 'camera' && e && e.name === 'NotReadableError' ? '카메라를 시작하지 못했어요. 다른 앱·탭이 카메라를 쓰고 있다면 닫고 다시 켜 주세요.'\n+      : phase === 'model' ? '얼굴 인식 모델을 불러오지 못했어요' : phase === 'video' ? '카메라 영상을 재생하지 못했어요' : '카메라를 켜지 못했어요') + ` (${e && e.name || 'Error'}: ${e && e.message || e})`;\n     $('camStart').disabled = false; $('camStart').hidden = false; $('camStart').textContent = '카메라 다시 켜기';\n   }\n });",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38822800179"
+      }
     },
     {
       "sha": "926caf66558a3a7b7c22ce158e606368e8c148c3",
@@ -9563,26 +9690,26 @@
         {
           "id": "evo-926caf66558a-gaze",
           "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-926caf66558a-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 926caf66558a3a7b7c22ce158e606368e8c148c3\n변경 제목: Condition: mobile camera setup — lower face confidence, orientation-matched capture, aligned overlay\n관련 파일: condition-camera-worker.js, condition-camera.js, condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-926caf66558a-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "모바일 신뢰도 문턱값 하향(0.3)에 따른 시선 추적 랜드마크 지터 및 오차 검증",
+          "rationale": "[관측 사실] condition.html 및 관련 워커/카메라 모듈에서 MOBILE 조건일 때 FaceLandmarker 신뢰도 옵션을 0.3으로 하향 조정함.\n[연구자 가설] 모바일 전면 카메라의 잡음 및 역광 환경에서 얼굴 유발 신호의 유실을 줄여 프레임 수집율을 높일 수 있음.\n[미검증 영향] 신뢰도 문턱값이 낮아짐에 따라 시선 추적용 눈 랜드마크의 미세 떨림(Jitter)이나 잘못된 랜드마크 매핑이 발생하여 시선 측정 각도 오차가 증가하거나 불확실성이 커질 위험이 있음.",
+          "validationPlan": "1. 테스트 분모 정의: 전체 세션 수, 실패/중단 세션, 드롭된 프레임을 모두 분모에 포함하여 수율 산출.\n2. 조건별 비교: 기본 문턱값(0.5) vs 모바일 설정값(0.3) 환경을 다수 참가자(최소 15명 이상), 디바이스 종류(iOS/Android), 관측 날짜/조도 조건별로 분리 평가.\n3. 평가 지표: 부분 유효 프레임 수율(Valid Frame Yield)과 시선 추적 좌표의 평균 제곱근 오차(RMSE) 및 불확실성 구간 산출.\n4. 실측 dataset 연결: dataset 내 기존 시선 검증용 벤치마크 메타데이터와 연동하여 회귀 여부 평가.",
+          "prompt": "NeuroLens 시선 추적(Gaze) 모듈 개발 AI 프롬프트:\n\n1. 현재 코드 및 변경사항 확인:\n- `condition-camera-worker.js`, `condition-camera.js`, `condition.html`의 최근 변경 사항(FACE_CONF 신뢰도 0.3 적용)을 확인하고, 신뢰도 파라미터가 시선 추적 파이프라인으로 전달되는 경로를 파악하세요.\n\n2. 개발 및 검증 과제 내용:\n- 모바일 환경에서 FaceLandmarker 신뢰도 문턱값(0.3) 적용 시 검출된 눈 영역 랜드마크의 지터(Jitter) 및 프레임별 시선 벡터 변동성을 측정하는 검증 스크립트/로그 수집 로직을 구현하세요.\n- 약한 신호(저신뢰도 프레임)를 무조건 폐기하지 않고, 부분 유효 신호로 분류하여 활용률을 측정함과 동시에 해당 프레임에서의 시선 오차 범위를 정량 평가하세요.\n- 실제 관측 성능 수치를 임의로 생성하지 말고, dataset에 등록된 실제 기기/사용자 세션 기록 및 메타데이터 메모리와 연결하여 평가를 수행하도록 연동 구조를 설계하세요.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 0.5 문턱값 대비 프레임 취득 유효 수율이 상승하면서도, 수집된 전체 시선 추적 오차의 상한선이 용인 가능한 범위 내에 유지되는 경우.\n- 회귀 기준: 저신뢰도 프레임 수용으로 인해 전체 세션의 시선 추적 RMSE가 유의미하게 악화되거나, 오검출로 인한 시선 탈락/튀김 현상이 빈번하게 발생하는 경우.\n\n4. 결과 보고 양식:\n- 전체 세션 및 프레임 분모(총 시도, 실패 시도 포함)\n- 기기별/참가자별/조도 환경별 활용률(Yield) 및 오차(RMSE, 허용 오차 범주)\n- 0.5 vs 0.3 문턱값 조건별 비교표 및 결론 요약\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 926caf66558a3a7b7c22ce158e606368e8c148c3\nDataset-Task: evo-926caf66558a-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-926caf66558a-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-926caf66558a-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 926caf66558a3a7b7c22ce158e606368e8c148c3\n변경 제목: Condition: mobile camera setup — lower face confidence, orientation-matched capture, aligned overlay\n관련 파일: condition-camera-worker.js, condition-camera.js, condition.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-926caf66558a-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "모바일 세로/가로 해상도 가변 수집 및 오버레이 정렬에 따른 측정 신호 좌표 안정성 검증",
+          "rationale": "[관측 사실] condition.html에서 세로 방향 카메라 요청 해상도(480×640), orientationchange 대응 constraint 재적용, fitPreview() 기반 오버레이 캔버스 비율 정렬 및 fwRef 거리 계산 보정이 추가됨.\n[연구자 가설] 카메라 화상 비율과 미리보기/캔버스 비율의 불일치로 인한 오버레이 및 랜드마크 좌표 왜곡을 방지하여 사용자 가이드 준수율과 생체 측정 신호 신뢰도를 높일 수 있음.\n[미검증 영향] 회전 및 해상도 재지정 과정에서 브라우저별(iOS Safari, Android Chrome) 렌더링 스트림 잘림 현상이 발생하거나, 캔버스 좌표 변환 오차로 인해 ROI(피부, 홍채 영역) 추출 시 좌표 편향이 생길 위험이 존재함.",
+          "validationPlan": "1. 테스트 분모 정의: 디바이스 회전 이벤트 발생 세션 및 가로/세로 모드별 전체 시도 세션 분모 확보.\n2. 환경별 분리 평가: iOS Safari 및 Android Chrome, 단말기 화면 비(Ratio)별, 사용자별, 실험 날짜별로 분리하여 좌표 정확도 평가.\n3. 평가 지표: fitPreview 적용 전후 ROI 좌표 일치율, 카메라 회전 전환 시 프레임 손실율, 거리 안내(fwRef) 정확도 및 수집 신호의 SNR(신호 대 잡음비).\n4. 실측 dataset 연결: dataset의 생체 신호 측정 메타데이터 및 영상 영역 추출 로그와 연동하여 정밀 검증.",
+          "prompt": "NeuroLens 측정(Measurement) 모듈 개발 AI 프롬프트:\n\n1. 현재 코드 및 변경사항 확인:\n- `condition.html`에 추가된 `cameraSize()`, `fitPreview()`, `fwRef`, `cameraOrientation` 이벤트 처리 로직 및 캔버스 DPR 스케일링 코드를 확인하세요.\n\n2. 개발 및 검증 과제 내용:\n- 화면 회전(orientationchange) 및 해상도 재설정 시 발생할 수 있는 비디오 스트림과 캔버스 오버레이 간의 좌표 불일치 여부를 정량적으로 검증하는 테스트 코드를 작성하세요.\n- 비디오 비율 보정에 따라 추출되는 안면/피부/눈 영역 ROI의 좌표 변환 정확도를 평가하고, 신호 수집 시 약한 신호 프레임의 활용률과 좌표 편향에 따른 오차를 측정하세요.\n- 없는 실측 성능 수치를 지어내지 말고, dataset에 수집된 기기별 실제 화상 및 ROI 추출 메모리를 연동하여 검증 결과를 도출하세요.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 다양한 화면 비율 및 회전 상황에서 캔버스 오버레이와 실제 비디오 안면 영역의 misalignment가 허용 오차 이내로 유지되고, 측정 세션의 유효 ROI 수득률이 증가하는 경우.\n- 회귀 기준: 회전 시 스트림 재생 중단/크래시가 발생하거나, fitPreview 계산 오류로 인해 ROI 좌표가 왜곡되어 생체 신호 데이터 추출에 오차가 발생하는 경우.\n\n4. 결과 보고 양식:\n- 기기 종류 / 브라우저 / 회전 모드(Portrait, Landscape)별 테스트 분모 및 성공률\n- 비디오-캔버스 좌표 일치 오차(픽셀 단위) 및 ROI 신호 수율/SNR 변화 비교\n- 제외 기준, 불확실성 평가 및 향후 개선 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 926caf66558a3a7b7c22ce158e606368e8c148c3\nDataset-Task: evo-926caf66558a-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55570335988",
@@ -9614,9 +9741,87 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-05T02:08:00.934054+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-15T23:20:12.898310+00:00",
+      "analysis": {
+        "summary": "커밋 926caf66558a3a7b7c22ce158e606368e8c148c3(Condition: mobile camera setup — lower face confidence, orientation-matched capture, aligned overlay)에서는 condition-camera-worker.js, condition-camera.js, condition.html 파일이 수정되었습니다. 주요 관측 변경 사항은 1) 터치/소형 화면(MOBILE) 환경에서 MediaPipe FaceLandmarker 신뢰도 문턱값(minFaceDetectionConfidence, minFacePresenceConfidence, minTrackingConfidence)을 기본값(0.5)에서 0.3으로 하향 전달하는 옵션 구조 추가, 2) 모바일 세로(Portrait) 및 가로(Landscape) 화면 방향에 맞춘 카메라 수집 해상도(ideal: 480×640 vs 640×480) 및 회전 이벤트 대응(orientationchange), 3) 캔버스 DPR(devicePixelRatio) 대응, z-index 조정 및 미리보기 비디오 비율(aspectRatio) 맞춤 함수(fitPreview) 추가, 4) 영상 비례 얼굴 폭(fwRef) 보정을 포함한 가이드 메시지/타원 렌더링 수정입니다. 커밋 내 accuracyValidated는 false로 명시되어 있으며 실측 데이터는 이번 차트에 포함되어 있지 않습니다. 신뢰도 하향으로 인해 저도도/역광 환경에서 얼굴 검출 성공률이 향상될 것이라는 가설이 있으나, 오검출(False Positive) 증가, 랜드마크 지터(Jitter)로 인한 시선 추적 및 생체 신호 측정 오차 증가 가능성은 검증되지 않았습니다.",
+        "tasks": [
+          {
+            "id": "evo-926caf66558a-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "모바일 신뢰도 문턱값 하향(0.3)에 따른 시선 추적 랜드마크 지터 및 오차 검증",
+            "rationale": "[관측 사실] condition.html 및 관련 워커/카메라 모듈에서 MOBILE 조건일 때 FaceLandmarker 신뢰도 옵션을 0.3으로 하향 조정함.\n[연구자 가설] 모바일 전면 카메라의 잡음 및 역광 환경에서 얼굴 유발 신호의 유실을 줄여 프레임 수집율을 높일 수 있음.\n[미검증 영향] 신뢰도 문턱값이 낮아짐에 따라 시선 추적용 눈 랜드마크의 미세 떨림(Jitter)이나 잘못된 랜드마크 매핑이 발생하여 시선 측정 각도 오차가 증가하거나 불확실성이 커질 위험이 있음.",
+            "validationPlan": "1. 테스트 분모 정의: 전체 세션 수, 실패/중단 세션, 드롭된 프레임을 모두 분모에 포함하여 수율 산출.\n2. 조건별 비교: 기본 문턱값(0.5) vs 모바일 설정값(0.3) 환경을 다수 참가자(최소 15명 이상), 디바이스 종류(iOS/Android), 관측 날짜/조도 조건별로 분리 평가.\n3. 평가 지표: 부분 유효 프레임 수율(Valid Frame Yield)과 시선 추적 좌표의 평균 제곱근 오차(RMSE) 및 불확실성 구간 산출.\n4. 실측 dataset 연결: dataset 내 기존 시선 검증용 벤치마크 메타데이터와 연동하여 회귀 여부 평가.",
+            "prompt": "NeuroLens 시선 추적(Gaze) 모듈 개발 AI 프롬프트:\n\n1. 현재 코드 및 변경사항 확인:\n- `condition-camera-worker.js`, `condition-camera.js`, `condition.html`의 최근 변경 사항(FACE_CONF 신뢰도 0.3 적용)을 확인하고, 신뢰도 파라미터가 시선 추적 파이프라인으로 전달되는 경로를 파악하세요.\n\n2. 개발 및 검증 과제 내용:\n- 모바일 환경에서 FaceLandmarker 신뢰도 문턱값(0.3) 적용 시 검출된 눈 영역 랜드마크의 지터(Jitter) 및 프레임별 시선 벡터 변동성을 측정하는 검증 스크립트/로그 수집 로직을 구현하세요.\n- 약한 신호(저신뢰도 프레임)를 무조건 폐기하지 않고, 부분 유효 신호로 분류하여 활용률을 측정함과 동시에 해당 프레임에서의 시선 오차 범위를 정량 평가하세요.\n- 실제 관측 성능 수치를 임의로 생성하지 말고, dataset에 등록된 실제 기기/사용자 세션 기록 및 메타데이터 메모리와 연결하여 평가를 수행하도록 연동 구조를 설계하세요.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 0.5 문턱값 대비 프레임 취득 유효 수율이 상승하면서도, 수집된 전체 시선 추적 오차의 상한선이 용인 가능한 범위 내에 유지되는 경우.\n- 회귀 기준: 저신뢰도 프레임 수용으로 인해 전체 세션의 시선 추적 RMSE가 유의미하게 악화되거나, 오검출로 인한 시선 탈락/튀김 현상이 빈번하게 발생하는 경우.\n\n4. 결과 보고 양식:\n- 전체 세션 및 프레임 분모(총 시도, 실패 시도 포함)\n- 기기별/참가자별/조도 환경별 활용률(Yield) 및 오차(RMSE, 허용 오차 범주)\n- 0.5 vs 0.3 문턱값 조건별 비교표 및 결론 요약\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 926caf66558a3a7b7c22ce158e606368e8c148c3\nDataset-Task: evo-926caf66558a-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-926caf66558a-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "모바일 세로/가로 해상도 가변 수집 및 오버레이 정렬에 따른 측정 신호 좌표 안정성 검증",
+            "rationale": "[관측 사실] condition.html에서 세로 방향 카메라 요청 해상도(480×640), orientationchange 대응 constraint 재적용, fitPreview() 기반 오버레이 캔버스 비율 정렬 및 fwRef 거리 계산 보정이 추가됨.\n[연구자 가설] 카메라 화상 비율과 미리보기/캔버스 비율의 불일치로 인한 오버레이 및 랜드마크 좌표 왜곡을 방지하여 사용자 가이드 준수율과 생체 측정 신호 신뢰도를 높일 수 있음.\n[미검증 영향] 회전 및 해상도 재지정 과정에서 브라우저별(iOS Safari, Android Chrome) 렌더링 스트림 잘림 현상이 발생하거나, 캔버스 좌표 변환 오차로 인해 ROI(피부, 홍채 영역) 추출 시 좌표 편향이 생길 위험이 존재함.",
+            "validationPlan": "1. 테스트 분모 정의: 디바이스 회전 이벤트 발생 세션 및 가로/세로 모드별 전체 시도 세션 분모 확보.\n2. 환경별 분리 평가: iOS Safari 및 Android Chrome, 단말기 화면 비(Ratio)별, 사용자별, 실험 날짜별로 분리하여 좌표 정확도 평가.\n3. 평가 지표: fitPreview 적용 전후 ROI 좌표 일치율, 카메라 회전 전환 시 프레임 손실율, 거리 안내(fwRef) 정확도 및 수집 신호의 SNR(신호 대 잡음비).\n4. 실측 dataset 연결: dataset의 생체 신호 측정 메타데이터 및 영상 영역 추출 로그와 연동하여 정밀 검증.",
+            "prompt": "NeuroLens 측정(Measurement) 모듈 개발 AI 프롬프트:\n\n1. 현재 코드 및 변경사항 확인:\n- `condition.html`에 추가된 `cameraSize()`, `fitPreview()`, `fwRef`, `cameraOrientation` 이벤트 처리 로직 및 캔버스 DPR 스케일링 코드를 확인하세요.\n\n2. 개발 및 검증 과제 내용:\n- 화면 회전(orientationchange) 및 해상도 재설정 시 발생할 수 있는 비디오 스트림과 캔버스 오버레이 간의 좌표 불일치 여부를 정량적으로 검증하는 테스트 코드를 작성하세요.\n- 비디오 비율 보정에 따라 추출되는 안면/피부/눈 영역 ROI의 좌표 변환 정확도를 평가하고, 신호 수집 시 약한 신호 프레임의 활용률과 좌표 편향에 따른 오차를 측정하세요.\n- 없는 실측 성능 수치를 지어내지 말고, dataset에 수집된 기기별 실제 화상 및 ROI 추출 메모리를 연동하여 검증 결과를 도출하세요.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 다양한 화면 비율 및 회전 상황에서 캔버스 오버레이와 실제 비디오 안면 영역의 misalignment가 허용 오차 이내로 유지되고, 측정 세션의 유효 ROI 수득률이 증가하는 경우.\n- 회귀 기준: 회전 시 스트림 재생 중단/크래시가 발생하거나, fitPreview 계산 오류로 인해 ROI 좌표가 왜곡되어 생체 신호 데이터 추출에 오차가 발생하는 경우.\n\n4. 결과 보고 양식:\n- 기기 종류 / 브라우저 / 회전 모드(Portrait, Landscape)별 테스트 분모 및 성공률\n- 비디오-캔버스 좌표 일치 오차(픽셀 단위) 및 ROI 신호 수율/SNR 변화 비교\n- 제외 기준, 불확실성 평가 및 향후 개선 과제\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 926caf66558a3a7b7c22ce158e606368e8c148c3\nDataset-Task: evo-926caf66558a-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "03ca25bba34e175435ec55d568f2fddd9fd35d29fe5f22466d86d4587c6af095",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 5259,
+            "candidatesTokenCount": 2124,
+            "totalTokenCount": 8568
+          }
+        },
+        "generatedAt": "2026-10-15T23:20:46.798632+00:00",
+        "sourceSha": "926caf66558a3a7b7c22ce158e606368e8c148c3",
+        "sourceEvidence": {
+          "sha": "926caf66558a3a7b7c22ce158e606368e8c148c3",
+          "parents": [
+            "d481f3a174bf5d6d8149c344a045661eb8e268e3"
+          ],
+          "committedAt": "2026-10-05T02:07:42Z",
+          "subject": "Condition: mobile camera setup — lower face confidence, orientation-matched capture, aligned overlay",
+          "url": "https://github.com/jeebs0627/neurolens/commit/926caf66558a3a7b7c22ce158e606368e8c148c3",
+          "files": [
+            {
+              "path": "condition-camera-worker.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "condition-camera.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 40,
+              "deletions": 11
+            }
+          ],
+          "domains": [
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-camera-worker.js\n@@ -6,7 +6,7 @@ self.onmessage = async ({data:m}) => {\n     if(m.type==='init') {\n       const {FaceLandmarker,FilesetResolver}=await import(m.base+'/vision_bundle.mjs');\n       const files=await FilesetResolver.forVisionTasks(m.base+'/wasm');\n-      const opts=delegate=>({baseOptions:{modelAssetPath:m.model,delegate},runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:true});\n+      const opts=delegate=>({baseOptions:{modelAssetPath:m.model,delegate},runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:true,...(m.conf||{})});\n       try { detector=await FaceLandmarker.createFromOptions(files,opts('GPU')); }\n       catch (_) { detector=await FaceLandmarker.createFromOptions(files,opts('CPU')); }\n       canvas=new OffscreenCanvas(640,480);ctx=canvas.getContext('2d',{willReadFrequently:true});\nFILE condition-camera.js\n@@ -22,7 +22,7 @@\n             const timer=setTimeout(()=>reject(new Error('worker-init-timeout')),20000);\n             this.worker.onerror=e=>{clearTimeout(timer);reject(new Error(e.message||'worker-init-error'));};\n             this.worker.onmessage=({data:m})=>{if(m.type==='ready'){clearTimeout(timer);resolve();}else if(m.type==='error'){clearTimeout(timer);reject(new Error(m.message));}};\n-            this.worker.postMessage({type:'init',base:this.opt.base,model:this.opt.model});\n+            this.worker.postMessage({type:'init',base:this.opt.base,model:this.opt.model,conf:this.opt.conf});\n           });\n           this.worker.onmessage=({data:m})=>{\n             if(m.type==='error'){this.fallback(m.message);return;}\nFILE condition.html\n@@ -139,6 +139,7 @@\n .setup{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:start}\n .preview{position:relative;border-radius:16px;overflow:hidden;background:#0E1A33;aspect-ratio:4/3}\n .preview video,.preview canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}\n+.preview canvas{z-index:1}   /* iOS Safari: 재생 중인 video 레이어가 뒤 형제(기준선 캔버스)를 덮지 않게 */\n .checks{list-style:none;padding:0;margin:0 0 6px}\n .checks li{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}\n .checks li b{font-family:var(--font-num);font-weight:600}\n@@ -243,6 +244,7 @@\n .breath-lbl{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:22px;font-weight:700;color:#3A4560}\n .selfcam{position:fixed;left:12px;bottom:12px;width:120px;height:90px;border-radius:10px;object-fit:cover;transform:scaleX(-1);opacity:.5;z-index:70;background:#000;display:none}\n .selfcam.on{display:block}\n+@media (max-width:820px), (pointer:coarse) and (max-height:820px){.selfcam{width:60px;height:auto;left:8px;bottom:8px;opacity:.4}}   /* 휴대폰: 영상 비율을 유지하며 회전 후에도 작게 */\n /* 안내 카드 데모 애니메이션 */\n @keyframes swing{0%,100%{transform:translateX(-95px)}50%{transform:translateX(95px)}}\n .a-swing{animation:swing 4s ease-in-out infinite}\n@@ -546,7 +548,8 @@\n .roadmap b{font-size:14px;color:var(--care)}\n .roadmap p{margin:4px 0 0;font-size:12.5px;color:var(--ink-2);word-break:keep-all}\n /* 카메라 준비: 기준선 안내 */\n-.preview .guide-msg{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(14,26,51,.72);color:#fff;font-size:12.5px;font-weight:700;border-radius:999px;padding:5px 12px;white-space:nowrap;z-index:2}\n+.preview .guide-msg{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(14,26,51,.72);color:#fff;font-size:12.5px;font-weight:700;border-radius:999px;padding:5px 12px;white-space:nowrap;z-index:2;max-width:94%;overflow:hidden;text-overflow:ellipsis}\n+@media (max-width:820px), (pointer:coarse) and (max-height:820px){.preview .guide-msg{white-space:normal;text-align:center;border-radius:12px;width:max-content;line-height:1.35}}\n .preview .guide-msg.ok{background:rgba(31,122,90,.85)}\n \n /* ---------- 측정 무대 고도화 ---------- */\n@@ -1183,6 +1186,9 @@ <h2>결과를 정리하고 있어요</h2>\n const MP_VER = '0.10.14';\n const MP_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`;\n const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';\n+/* 휴대폰: 전면 카메라 잡음·역광으로 기본 신뢰도(0.5)에서는 얼굴을 자주 놓친다. 얼굴은 1개만 찾으므로 문턱을 낮춰도 오검출 위험이 작다 */\n+const MOBILE = matchMedia('(pointer:coarse)').matches && Math.min(screen.width, screen.height) < 820;\n+const FACE_CONF = MOBILE ? { minFaceDetectionConfidence: 0.3, minFacePresenceConfidence: 0.3, minTrackingConfidence: 0.3 } : {};\n const STORE_KEY = 'nlNewbiz:v2';\n const STIM_URL = 'newbiz-stim/manifest.json';\n /* 연구 데이터 저장소 (Supabase · RLS + newbiz_research_* RPC 만 허용, publishable 키) */\n@@ -1415,11 +1421,22 @@ <h2>결과를 정리하고 있어요</h2>\n \n /* ---------- 카메라 + MediaPipe ---------- */\n const procVideo = $('camProc'), prevVideo = $('camPreview');\n+const cameraOrientation = matchMedia('(orientation: portrait)');\n+function cameraSize() {\n+  const portrait = MOBILE && cameraOrientation.matches;\n+  return { width: { ideal: portrait ? 480 : 640 }, height: { ideal: portrait ? 640 : 480 } };\n+}\n+cameraOrientation.addEventListener('change', () => {\n+  const track = S.stream?.getVideoTracks()[0];\n+  if (!MOBILE || !track || $('sSetup').hidden) return;\n+  /* 준비 화면에서만 방향을 다시 요청한다. 실패하면 현재 스트림을 유지한다. */\n+  track.applyConstraints({ ...track.getConstraints(), ...cameraSize() }).catch(() => {});\n+});\n \n async function loadLandmarker() {\n   const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);\n   const vision = await FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);\n-  const opts = d => ({ baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true });\n+  const opts = d => ({ baseOptions: { modelAssetPath: MODEL_URL, delegate: d }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, ...FACE_CONF });\n   try { return await FaceLandmarker.createFromOptions(vision, opts('GPU')); }\n   catch (_) { return await FaceLandmarker.createFromOptions(vision, opts('CPU')); }\n }\n@@ -1430,12 +1447,14 @@ <h2>결과를 정리하고 있어요</h2>\n   $('camStart').disabled = true; $('camStart').hidden = true;\n   try {\n     S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop());\n-    S.stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false });\n+    /* 세로로 든 휴대폰에 가로형(640×480)을 요청하면 브라우저가 세로 영상을 잘라 맞춘다(실측: 480×480) → 방향에 맞춰 요청 */\n+    S.stream = await navigator.mediaDevices.getUserMedia({ video: { ...cameraSize(), frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false });\n     procVideo.srcObject = S.stream; prevVideo.srcObject = S.stream;\n     procVideo.classList.add('on');\n     await Promise.all([procVideo.play(), prevVideo.play()]);\n+    fitPreview(); prevVideo.onresize = fitPreview;   // 휴대폰 회전 시 영상 비율이 바뀐다\n     S.camera = new NLCamera(procVideo, {\n-      base: MP_BASE, model: MODEL_URL, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n+      base: MP_BASE, model: MODEL_URL, conf: FACE_CONF, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },\n       onResult: processResult,\n       onError(e) {\n@@ -1523,16 +1542,17 @@ <h2>결과를 정리하고 있어요</h2>\n   const cv = $('overlay'), ctx = cv.getContext('2d');\n   const draw = () => {\n     if ($('sSetup').hidden) { requestAnimationFrame(draw); return; }\n-    const W = cv.clientWidth, H = cv.clientHeight;\n-    if (cv.width !== W) { cv.width = W; cv.height = H; }\n+    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(3, devicePixelRatio || 1);\n+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }\n+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);\n     ctx.clearRect(0, 0, W, H);\n     /* 가로·세로 기준선 + 얼굴 타원 (캔버스는 화면에서 좌우 반전되지만 기준선은 대칭) */\n     const pos = posCheck(), okc = pos && pos.ok;\n     ctx.save();\n     ctx.setLineDash([7, 6]); ctx.lineWidth = 1.5; ctx.strokeStyle = okc ? 'rgba(59,227,138,.85)' : 'rgba(255,255,255,.6)';\n     ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.moveTo(0, H * POS.cy); ctx.lineTo(W, H * POS.cy); ctx.stroke();\n     ctx.setLineDash([4, 6]); ctx.lineWidth = 2.5;\n-    ctx.beginPath(); ctx.ellipse(W / 2, H * POS.cy, W * POS.rx, H * POS.ry, 0, 0, Math.PI * 2); ctx.stroke();\n+    ctx.beginPath(); ctx.ellipse(W / 2, H * POS.cy, H * (4 / 3) * POS.rx, H * POS.ry, 0, 0, Math.PI * 2); ctx.stroke();\n     ctx.setLineDash([]);\n     if (S.feat && now() - S.lastFace < 500) {\n       const fx = S.feat.cx * W, fy = S.feat.cy * H;\n@@ -1555,14 +1575,21 @@ <h2>결과를 정리하고 있어요</h2>\n   requestAnimationFrame(draw);\n }\n /* 얼굴 위치·거리 판정: 화면은 거울처럼 보이므로 안내 방향도 거울 기준 */\n+/* 얼굴 폭·타원은 영상 높이에 비례하되 4:3 기준값을 그대로 보존한다. */\n const POS = { cy: 0.48, rx: 0.17, ry: 0.32, tol: 0.08, fwMin: 0.17, fwMax: 0.38 };\n+const videoAspect = (video = procVideo) => (video.videoWidth > 0 && video.videoHeight > 0) ? video.videoWidth / video.videoHeight : 4 / 3;\n+/* 미리보기 칸을 실제 영상 비율에 맞춘다: 잘림(object-fit:cover)이 없어야 기준선·홍채·피부 영역이 얼굴 위에 정확히 겹친다 */\n+function fitPreview() {\n+  const ar = videoAspect(prevVideo), pv = prevVideo.parentElement;\n+  pv.style.aspectRatio = String(ar); pv.style.maxWidth = MOBILE ? `calc(62vh * ${ar.toFixed(3)})` : ''; pv.style.margin = '0 auto';\n+}\n function posCheck() {\n   const f = S.feat;\n   if (!f || now() - S.lastFace > 500) return null;\n-  const dx = (1 - f.cx) - 0.5, dy = f.cy - POS.cy;\n+  const dx = (1 - f.cx) - 0.5, dy = f.cy - POS.cy, fwRef = f.fw * (videoAspect() / (4 / 3));\n   let msg = null;\n-  if (f.fw < POS.fwMin) msg = '조금 더 가까이 앉아 주세요';\n-  else if (f.fw > POS.fwMax) msg = '조금 뒤로 물러나 주세요';\n+  if (fwRef < POS.fwMin) msg = MOBILE ? '휴대폰을 조금 더 가까이 들어 주세요' : '조금 더 가까이 앉아 주세요';\n+  else if (fwRef > POS.fwMax) msg = MOBILE ? '휴대폰을 조금 멀리 들어 주세요' : '조금 뒤로 물러나 주세요';\n   else if (Math.abs(dx) > POS.tol) msg = dx > 0 ? '← 왼쪽으로 조금 이동' : '오른쪽으로 조금 이동 →';\n   else if (Math.abs(dy) > POS.tol) msg = dy > 0 ? '↑ 얼굴을 조금 위로 (또는 화면을 아래로)' : '↓ 얼굴을 조금 아래로';\n   else if (Math.abs(f.yaw) > 0.09) msg = '고개를 돌리지 말고 정면을 봐 주세요';\n@@ -1591,7 +1618,9 @@ <h2>결과를 정리하고 있어요</h2>\n     setDot('dFace', faceOk ? 'ok' : 'bad'); $('vFace').textContent = faceOk ? '인식됨' : '찾는 중';\n     const pos = posCheck(), gm = $('guideMsg');\n     setDot('dPos', !pos ? '' : pos.ok ? 'ok' : 'warn'); $('vPos').textContent = !pos ? '—' : pos.ok ? '중앙 · 적정' : '조정 필요';\n-    gm.hidden = !pos; if (pos) { gm.textContent = pos.msg; gm.className = 'guide-msg' + (pos.ok ? ' ok' : ''); }\n+    gm.hidden = !S.stream;\n+    gm.textContent = pos ? pos.msg : MOBILE ? '얼굴을 찾는 중 · 휴대폰을 눈높이로, 타원 안에 얼굴 전체가 보이게' : '얼굴을 찾는 중 · 타원 안에 얼굴 전체가 보이게 해 주세요';\n+    gm.className = 'guide-msg' + (pos && pos.ok ? ' ok' : '');\n     const lightOk = lum >= 70 && lum <= 215;\n     setDot('dLight', !Number.isFinite(lum) ? '' : lightOk ? 'ok' : 'warn');\n     $('vLight').textContent = !Number.isFinite(lum) ? '—' : lum < 70 ? '어두움' : lum > 215 ? '너무 밝음' : '적정';",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38822800179"
+      }
     },
     {
       "sha": "66ebdd1be7c8a99c7cf64864573b3a9e5d1f3207",
@@ -18825,9 +19030,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "8f601f84eb35965132a853083e9b0c04f4ce3e7a"
+    "sourceHead": "789c65d45a4b599ae63e7514c719c74eddf9351a"
   },
-  "updatedAt": "2026-10-15T20:34:36.893414+00:00",
-  "aiCooldownUntil": "2026-10-15T20:39:35.605144+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-15T23:20:47.327333+00:00"
 }
