@@ -11585,16 +11585,16 @@
         {
           "id": "evo-45237e249601-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-45237e249601-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 45237e249601fddd2f4e6d391a9416d9d59103d3\n변경 제목: Retry transient dataset Gemini failures and distinguish error causes\n관련 파일: DATASET_RUNBOOK.md, api/neurolens_dataset.py, dataset-engine-log.json, dataset-workflow.js, tools/dataset_ai_test.py\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-45237e249601-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "Gemini API 재시도 로직 도입에 따른 측정 세션 유효 신호 활용률 및 오차 분석 후속 검증",
+          "rationale": "관측 사실: api/neurolens_dataset.py에 Gemini API 일시 오류 재시도 및 에러 분류 체계가 추가되었고 tools/dataset_ai_test.py에 관련 단위 테스트가 구현됨 (DATASET_RUNBOOK.md 및 dataset-engine-log.json diff 생략). \n\n가설 및 구분: API 백오프 재시도 조치가 연구 메모 작성 시 데이터 손실을 막아 수집 성공률을 높일 것이라는 개발 가설이 존재하지만, 이것이 측정 알고리즘의 임상/실측 정확도 향상을 의미하지는 않는다. accuracyValidated=false 상태이므로 임의의 정상값을 생성하여 채우지 않고, 실제 dataset의 관측 데이터 및 연구자 메모와 연결하여 측정 오차와 유효 신호 활용률을 검증해야 한다.",
+          "validationPlan": "1. 회귀 검증: tools/dataset_ai_test.py에 추가된 단위 테스트(일시적 503 재시도 성공, 영구 오류 비재시도, 데드라인 및 타임아웃 제어)를 실행하여 기존 파이프라인의 예외 처리 회귀 여부를 검증한다.\n2. 실측 데이터 연계 평가: dataset 내 저장된 참가자, 기기, 날짜별 관측 데이터를 분리하여 평가하며, 실측 성능 수치를 임의로 만들어내지 않고 dataset 내 메모 및 관련 측정 지표를 결합한다.\n3. 활용률 및 오차 평가: 실패 시도를 포함한 전체 요청 건수를 분모로 설정하고, 일반/열악 조명, 안경 착용, 부분 가림 등 조건별로 분류한다. 약한 신호를 전량 폐기하지 않고 유효 구간 활용률과 허용 오차/불확실성 범주를 함께 측정한다.",
+          "prompt": "당신은 NeuroLens 측정 알고리즘 연구 개발 AI입니다. 공개 코드 변경사항(api/neurolens_dataset.py, dataset-workflow.js, tools/dataset_ai_test.py 및 diff가 생략된 DATASET_RUNBOOK.md, dataset-engine-log.json)을 바탕으로 후속 개발 및 검증 과제를 수행하십시오.\n\n[수행 단계]\n1. 현재 코드 확인:\n   - api/neurolens_dataset.py의 generate, provider_error, retry_delay 함수 및 tools/dataset_ai_test.py의 테스트 케이스를 점검하십시오.\n2. 약한 신호 활용 및 오차 평가 개발:\n   - 일상 웹캠 제한 환경에서 수집된 약한 신호(부분 가림, 시선 튐 등)를 무작정 정상값으로 채우거나 전량 폐기하지 마십시오.\n   - dataset에 보관된 참가자/기기/날짜별 실측 데이터 및 연구자 메모를 연계하여 평가 구조를 설계하십시오.\n3. 성공 및 회귀 기준 설정:\n   - 성공 기준: API 일시 오류 시 재시도로 연구 메모/데이터 보존 성공, 실패 시도를 분모에 포함한 조건별 활용률 산출, 테스트 케이스 100% 통과.\n   - 회귀 기준: 타임아웃 발생 시 중복 생성 발생, 비재시도 에러의 불필요한 재시도, 조건별 측정 오차 범위의 비정상적 확대.\n4. 결과 보고 양식:\n   - 관측 변경사항 및 diff 생략 파일 명시\n   - 단위 테스트 검증 결과\n   - 참가자/기기/날짜 분리 평가 결과 (분모: 전체 시도 횟수, 조건별 활용률 및 불확실성/오차 포함)\n   - 미검증 한계점 및 향후 실측 데이터셋 연계 계획\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 45237e249601fddd2f4e6d391a9416d9d59103d3\nDataset-Task: evo-45237e249601-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 3,
+      "analysisState": "generated",
+      "analysisAttempts": 4,
       "deploymentEvents": [
         {
           "key": "check-55543732726",
@@ -11626,9 +11626,88 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-16T16:41:38.810370+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-16T19:43:18.003676+00:00",
+      "analysis": {
+        "summary": "공개 커밋(45237e249601fddd2f4e6d391a9416d9d59103d3)의 코드 변경을 확인한 결과, api/neurolens_dataset.py, dataset-workflow.js, tools/dataset_ai_test.py 파일이 수정되었으며 DATASET_RUNBOOK.md 및 dataset-engine-log.json의 변경사항은 패치 추출문(patchExcerpt)에서 생략되었습니다.\n\n주요 관측 변경사항:\n1. api/neurolens_dataset.py: Gemini API 호출 중 발생할 수 있는 일시적 503/429 오류에 대해 최대 2회 자동 재시도(지수 백오프 및 Retry-After 헤더 준수, 80초 데드라인 설정) 로직이 도입되었습니다. provider_error 및 retry_delay 함수가 추가되어 HTTP 에러 코드를 GEMINI_UNAVAILABLE, GEMINI_RATE_LIMIT, GEMINI_ACCESS_DENIED, GEMINI_MODEL_NOT_FOUND, GEMINI_REQUEST_REJECTED, GEMINI_TIMEOUT 등으로 세분화하였고, provenance에 시도 횟수(attempts)를 포함시켰습니다.\n2. dataset-workflow.js: 사용자 UI에 일시적 오류 자동 재시도 안내 문구가 추가되었습니다.\n3. tools/dataset_ai_test.py: 일시적 503 복구, 지속적 503 예외 처리, 비재시도 에러(400, 403, 404), Retry-After/데드라인 준수, 타임아웃 비재시도 등 5가지 단위 테스트 케이스가 구현되었습니다.\n\n미검증 영향 및 한계:\n자료 내 accuracyValidated는 false로 명시되어 있어, 커밋 제목('Retry transient dataset Gemini failures and distinguish error causes')을 검증된 성능 개선으로 간주할 수 없습니다. 백엔드 네트워크 재시도 로직 안정화가 실제 일상 웹캠 측정 환경에서 수집되는 약한 신호(가림, 조명 변화 등)의 회복률, 오차 범위 및 측정 완수율에 미치는 실측 영향은 아직 입증되지 않았습니다.",
+        "tasks": [
+          {
+            "id": "evo-45237e249601-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "Gemini API 재시도 로직 도입에 따른 측정 세션 유효 신호 활용률 및 오차 분석 후속 검증",
+            "rationale": "관측 사실: api/neurolens_dataset.py에 Gemini API 일시 오류 재시도 및 에러 분류 체계가 추가되었고 tools/dataset_ai_test.py에 관련 단위 테스트가 구현됨 (DATASET_RUNBOOK.md 및 dataset-engine-log.json diff 생략). \n\n가설 및 구분: API 백오프 재시도 조치가 연구 메모 작성 시 데이터 손실을 막아 수집 성공률을 높일 것이라는 개발 가설이 존재하지만, 이것이 측정 알고리즘의 임상/실측 정확도 향상을 의미하지는 않는다. accuracyValidated=false 상태이므로 임의의 정상값을 생성하여 채우지 않고, 실제 dataset의 관측 데이터 및 연구자 메모와 연결하여 측정 오차와 유효 신호 활용률을 검증해야 한다.",
+            "validationPlan": "1. 회귀 검증: tools/dataset_ai_test.py에 추가된 단위 테스트(일시적 503 재시도 성공, 영구 오류 비재시도, 데드라인 및 타임아웃 제어)를 실행하여 기존 파이프라인의 예외 처리 회귀 여부를 검증한다.\n2. 실측 데이터 연계 평가: dataset 내 저장된 참가자, 기기, 날짜별 관측 데이터를 분리하여 평가하며, 실측 성능 수치를 임의로 만들어내지 않고 dataset 내 메모 및 관련 측정 지표를 결합한다.\n3. 활용률 및 오차 평가: 실패 시도를 포함한 전체 요청 건수를 분모로 설정하고, 일반/열악 조명, 안경 착용, 부분 가림 등 조건별로 분류한다. 약한 신호를 전량 폐기하지 않고 유효 구간 활용률과 허용 오차/불확실성 범주를 함께 측정한다.",
+            "prompt": "당신은 NeuroLens 측정 알고리즘 연구 개발 AI입니다. 공개 코드 변경사항(api/neurolens_dataset.py, dataset-workflow.js, tools/dataset_ai_test.py 및 diff가 생략된 DATASET_RUNBOOK.md, dataset-engine-log.json)을 바탕으로 후속 개발 및 검증 과제를 수행하십시오.\n\n[수행 단계]\n1. 현재 코드 확인:\n   - api/neurolens_dataset.py의 generate, provider_error, retry_delay 함수 및 tools/dataset_ai_test.py의 테스트 케이스를 점검하십시오.\n2. 약한 신호 활용 및 오차 평가 개발:\n   - 일상 웹캠 제한 환경에서 수집된 약한 신호(부분 가림, 시선 튐 등)를 무작정 정상값으로 채우거나 전량 폐기하지 마십시오.\n   - dataset에 보관된 참가자/기기/날짜별 실측 데이터 및 연구자 메모를 연계하여 평가 구조를 설계하십시오.\n3. 성공 및 회귀 기준 설정:\n   - 성공 기준: API 일시 오류 시 재시도로 연구 메모/데이터 보존 성공, 실패 시도를 분모에 포함한 조건별 활용률 산출, 테스트 케이스 100% 통과.\n   - 회귀 기준: 타임아웃 발생 시 중복 생성 발생, 비재시도 에러의 불필요한 재시도, 조건별 측정 오차 범위의 비정상적 확대.\n4. 결과 보고 양식:\n   - 관측 변경사항 및 diff 생략 파일 명시\n   - 단위 테스트 검증 결과\n   - 참가자/기기/날짜 분리 평가 결과 (분모: 전체 시도 횟수, 조건별 활용률 및 불확실성/오차 포함)\n   - 미검증 한계점 및 향후 실측 데이터셋 연계 계획\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 45237e249601fddd2f4e6d391a9416d9d59103d3\nDataset-Task: evo-45237e249601-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "ab0c63cb19b79f0b208b7c5fe9fbcd888d314496e02bed46feb262fcef867841",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 4876,
+            "candidatesTokenCount": 1377,
+            "totalTokenCount": 9014
+          }
+        },
+        "generatedAt": "2026-10-16T19:43:41.931816+00:00",
+        "sourceSha": "45237e249601fddd2f4e6d391a9416d9d59103d3",
+        "sourceEvidence": {
+          "sha": "45237e249601fddd2f4e6d391a9416d9d59103d3",
+          "parents": [
+            "e875f1340c672f795a51600afb5ad89c462a2b19"
+          ],
+          "committedAt": "2026-10-04T09:54:59Z",
+          "subject": "Retry transient dataset Gemini failures and distinguish error causes",
+          "url": "https://github.com/jeebs0627/neurolens/commit/45237e249601fddd2f4e6d391a9416d9d59103d3",
+          "files": [
+            {
+              "path": "DATASET_RUNBOOK.md",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "api/neurolens_dataset.py",
+              "status": "modified",
+              "additions": 52,
+              "deletions": 9
+            },
+            {
+              "path": "dataset-engine-log.json",
+              "status": "modified",
+              "additions": 8,
+              "deletions": 0
+            },
+            {
+              "path": "dataset-workflow.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "tools/dataset_ai_test.py",
+              "status": "modified",
+              "additions": 46,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE api/neurolens_dataset.py\n@@ -2,11 +2,14 @@\n import hashlib\n import json\n import os\n+import random\n import re\n+import time\n import urllib.error\n import urllib.request\n import uuid\n from datetime import datetime, timezone\n+from email.utils import parsedate_to_datetime\n from http.server import BaseHTTPRequestHandler\n \n MODEL = 'gemini-3.6-flash'\n@@ -27,8 +30,9 @@\n \n \n class RequestError(Exception):\n-    def __init__(self, status, message):\n+    def __init__(self, status, message, code='DATASET_REQUEST_ERROR', retryable=False):\n         self.status, self.message = status, message\n+        self.code, self.retryable = code, retryable\n \n \n def canonical(value):\n@@ -116,6 +120,32 @@ def compose(detail, operation, source_id):\n     return context, instruction, memo, source\n \n \n+def provider_error(status):\n+    if status in (500, 502, 503, 504):\n+        return RequestError(503, f'Gemini 서버가 일시적으로 요청을 처리하지 못했습니다(HTTP {status}). 이번 요청을 완료하지 못했습니다. 잠시 후 같은 버튼으로 다시 시도하세요. 저장된 원문은 유지됩니다.', 'GEMINI_UNAVAILABLE', True)\n+    if status == 429:\n+        return RequestError(429, 'Gemini 요청 한도에 도달했습니다(HTTP 429). 잠시 후 재시도하거나 Google AI Studio에서 해당 API 키의 할당량·결제를 확인하세요.', 'GEMINI_RATE_LIMIT', True)\n+    if status in (401, 403):\n+        return RequestError(502, f'Gemini 키 또는 API 접근 권한을 확인하세요(HTTP {status}). Vercel의 neurolens_dataset 값과 Google 프로젝트의 API 설정을 확인해야 합니다.', 'GEMINI_ACCESS_DENIED')\n+    if status == 404:\n+        return RequestError(502, f'현재 키에서 {MODEL} 모델을 찾지 못했습니다(HTTP 404). 모델 제공 여부와 프로젝트 접근 권한을 확인하세요.', 'GEMINI_MODEL_NOT_FOUND')\n+    return RequestError(502, f'Gemini가 요청을 거절했습니다(HTTP {status}). 저장한 메모와 개발 결과는 유지됩니다.', 'GEMINI_REQUEST_REJECTED')\n+\n+\n+def retry_delay(error, attempt):\n+    delay = 2 ** attempt + random.uniform(0, 0.5)\n+    value = error.headers.get('Retry-After', '') if error.headers else ''\n+    if value:\n+        try:\n+            delay = max(delay, float(value))\n+        except ValueError:\n+            try:\n+                delay = max(delay, (parsedate_to_datetime(value) - datetime.now(timezone.utc)).total_seconds())\n+            except (ValueError, TypeError, OverflowError):\n+                pass\n+    return delay\n+\n+\n def generate(context, instruction, api_key):\n     payload = {'systemInstruction': {'parts': [{'text': SYSTEM}]},\n                'contents': [{'role': 'user', 'parts': [{'text': instruction + '\\n\\n[연구 자료 JSON]\\n' + canonical(context)}]}],\n@@ -124,11 +154,24 @@ def generate(context, instruction, api_key):\n         'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent',\n         data=canonical(payload).encode('utf-8'),\n         headers={'Content-Type': 'application/json', 'x-goog-api-key': api_key}, method='POST')\n-    try:\n-        with urllib.request.urlopen(req, timeout=55) as response:\n-            data = json.load(response)\n-    except urllib.error.HTTPError as error:\n-        raise RequestError(502, f'Gemini 호출 실패(HTTP {error.code}). 모델 접근 권한·키·할당량을 확인하세요. 저장한 메모와 개발 결과는 유지됩니다.') from None\n+    # Reserve time for the two Supabase RPCs within the 120-second function limit.\n+    deadline, attempts = time.monotonic() + 80, 0\n+    for attempt in range(3):\n+        attempts += 1\n+        try:\n+            with urllib.request.urlopen(req, timeout=max(1, min(55, deadline - time.monotonic()))) as response:\n+                data = json.load(response)\n+            break\n+        except urllib.error.HTTPError as error:\n+            failure = provider_error(error.code)\n+            delay = retry_delay(error, attempt)\n+            error.close()\n+            if not failure.retryable or attempt == 2 or deadline - time.monotonic() < delay + 5:\n+                raise failure from None\n+            time.sleep(delay)\n+        except (urllib.error.URLError, TimeoutError):\n+            # A timed-out generation may have run upstream. Avoid automatically repeating it.\n+            raise RequestError(504, 'Gemini 응답을 시간 내에 확인하지 못했습니다. 잠시 후 재시도하세요. 저장된 원문은 유지됩니다.', 'GEMINI_TIMEOUT', True) from None\n     candidates = data.get('candidates') or []\n     candidate = candidates[0] if candidates else {}\n     if candidate.get('finishReason') != 'STOP':\n@@ -137,7 +180,7 @@ def generate(context, instruction, api_key):\n     if not text or len(text) > 40000:\n         raise RequestError(502, 'Gemini 응답의 길이 또는 형식이 올바르지 않습니다.')\n     usage = data.get('usageMetadata') or {}\n-    return text, {'model': MODEL, 'modelVersion': data.get('modelVersion'),\n+    return text, {'model': MODEL, 'modelVersion': data.get('modelVersion'), 'attempts': attempts,\n                   'usage': {k: usage[k] for k in ('promptTokenCount', 'candidatesTokenCount', 'totalTokenCount') if k in usage}}\n \n \n@@ -163,7 +206,7 @@ def process(body, token):\n         return {'annotation': prior, 'reused': True}\n     api_key = os.environ.get('neurolens_dataset', '').strip()\n     if not api_key:\n-        raise RequestError(503, 'Vercel 환경변수 neurolens_dataset을 설정하고 다시 배포하세요.')\n+        raise RequestError(503, '현재 배포에 neurolens_dataset 키가 없습니다. Vercel 환경변수 이름과 Production 적용 여부를 확인한 뒤 재배포하세요.', 'DATASET_KEY_MISSING')\n     text, provenance = generate(context, instruction, api_key)\n     created_at = datetime.now(timezone.utc).isoformat()\n     measurement_hash = digest(context['measurement'])\n@@ -203,7 +246,7 @@ def do_POST(self):\n                 raise RequestError(400, '잘못된 JSON입니다.') from None\n             self.send_json(200, process(body, authorization[7:]))\n         except RequestError as error:\n-            self.send_json(error.status, {'error': error.message})\n+            self.send_json(error.status, {'error': error.message, 'code': error.code, 'retryable': error.retryable})\n         except Exception:\n             # Never log tokens, provider bodies or research data.\n             self.send_json(502, {'error': 'AI 처리 또는 기록 저장에 실패했습니다. 원본 메모·개발 결과는 유지됩니다. 새로고침 후 재시도하세요.'})\nFILE dataset-workflow.js\n@@ -32,6 +32,7 @@\n     hooks={...hooks,tell:(message,error=false)=>{messages.set(row.id,{message,error});tell(message,error);const status=host.querySelector('[data-workflow-status]');if(status){status.textContent=message;status.classList.toggle('error',error);}}};\n     const testOptions='<option value=\"session\">검사 전체</option>'+Object.entries(NLDataset.LABELS).map(([k,v])=>`<option value=\"${k}\">${esc(v)}</option>`).join('');\n     host.innerHTML=`<div class=\"workflow-head\"><p class=\"eyebrow\">MEMO → PROMPT → ACTION → VALIDATION</p><h3>내 메모와 알고리즘 개선</h3><p>측정 결과에 관찰한 문제와 보정 지표를 연결하세요. 프롬프트를 개발 AI에 전달하고, 작업 결과를 돌아와 붙여넣으면 해당 메모의 조치란에 요약이 쌓입니다.</p><p class=\"muted\">AI 버튼을 누르면 해당 검사의 수치 요약·메모·관련 개발 기록을 Google Gemini에 전송합니다. 영상·원시 프레임·계정 정보는 보내지 않습니다. 메모에 개인정보나 비밀 키를 넣지 마세요.</p></div>\n+      <p class=\"muted\">Gemini의 일시적인 혼잡 오류는 최대 2회 자동 재시도합니다. 처리 중에는 버튼이 잠시 비활성화됩니다.</p>\n       <p class=\"notice workflow-status ${messages.get(row.id)?.error?'error':''}\" data-workflow-status role=\"status\" aria-live=\"polite\">${esc(messages.get(row.id)?.message||'메모를 저장한 뒤 AI 개선 프롬프트를 만들 수 있습니다.')}</p>\n       <form class=\"stack subpanel\" id=\"memoForm\"><div class=\"grid\"><label>메모 제목<input id=\"memoTitle\" maxlength=\"160\" required placeholder=\"예: 안경 착용 시 시선 튐\"></label><label>대상 검사<select id=\"memoTarget\">${testOptions}</select></label></div><label>관찰한 상황과 개선 요청<textarea id=\"memoText\" maxlength=\"6000\" required placeholder=\"조명, 안경·모자 착용, 움직임, 실제 경험과 결과의 차이, 개선할 사항\"></textarea></label><label>보정할 지표와 기대 결과<textarea id=\"memoMetrics\" maxlength=\"2000\" required placeholder=\"예: 시선 흔들림·유효 표본 비율. 부분 가림에서 사용 가능한 구간을 더 유지하고 싶음.\"></textarea></label><label>재검증 방법·관련 검사 코드<input id=\"memoValidation\" maxlength=\"2000\" placeholder=\"예: 같은 기기에서 안경 착용 전후 비교, 기준 장비 동시 측정\"></label><button class=\"primary\">메모 저장</button><p class=\"muted\">${row.local?'로컬 메모는 내보내기로 보관하세요. AI 생성은 서버 검사에서 사용할 수 있습니다.':'메모와 조치는 추가 이력으로 저장됩니다.'}</p></form>\n       <div class=\"workflow-cases\">${current.map(c=>caseHTML(c,row.local)).join('')||'<p class=\"muted\">저장한 메모가 여기에 표시됩니다.</p>'}</div>`;\nFILE tools/dataset_ai_test.py\n@@ -130,6 +130,52 @@ def failing_rpc(token, name, args):\n                 self.run_operation()\n             self.assertEqual(len(self.detail['annotations']), 1)\n \n+    def test_transient_503_recovers_without_duplicate_annotation(self):\n+        response = {'candidates': [{'finishReason': 'STOP', 'content': {'parts': [{'text': 'recovered'}]}}]}\n+        errors = [urllib.error.HTTPError('https://provider.invalid', 503, 'busy', {}, io.BytesIO(b'private provider body')) for _ in range(2)]\n+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}), patch.object(api.urllib.request, 'urlopen', side_effect=[*errors, io.BytesIO(json.dumps(response).encode())]) as request, patch.object(api.time, 'sleep') as sleep, patch.object(api.random, 'uniform', return_value=0):\n+            result = self.run_operation()\n+            self.assertEqual(result['annotation']['body']['provenance']['attempts'], 3)\n+            self.assertEqual(request.call_count, 3)\n+            self.assertEqual([x.args[0] for x in sleep.call_args_list], [1, 2])\n+            self.assertEqual(len(self.detail['annotations']), 2)\n+            self.assertNotIn('private provider body', api.canonical(result))\n+\n+    def test_persistent_503_preserves_memo_and_reports_retryable(self):\n+        errors = [urllib.error.HTTPError('https://provider.invalid', 503, 'busy', {}, io.BytesIO()) for _ in range(3)]\n+        with patch.object(api, 'rpc', side_effect=self.rpc), patch.dict(os.environ, {'neurolens_dataset': 'fixture'}), patch.object(api.urllib.request, 'urlopen', side_effect=errors) as request, patch.object(api.time, 'sleep'):\n+            with self.assertRaises(api.RequestError) as caught:\n+                self.run_operation()\n+            self.assertEqual(caught.exception.code, 'GEMINI_UNAVAILABLE')\n+            self.assertEqual(caught.exception.status, 503)\n+            self.assertTrue(caught.exception.retryable)\n+            self.assertEqual(request.call_count, 3)\n+            self.assertEqual(self.detail['annotations'], [self.memo])\n+\n+    def test_permanent_errors_not_retried(self):\n+        for status, code in [(400, 'GEMINI_REQUEST_REJECTED'), (403, 'GEMINI_ACCESS_DENIED'), (404, 'GEMINI_MODEL_NOT_FOUND')]:\n+            with patch.object(api.urllib.request, 'urlopen', side_effect=urllib.error.HTTPError('https://provider.invalid', status, 'error', {}, io.BytesIO())) as request, patch.object(api.time, 'sleep') as sleep:\n+                with self.assertRaises(api.RequestError) as caught:\n+                    api.generate({}, 'test', 'fixture')\n+                self.assertEqual(caught.exception.code, code)\n+                self.assertEqual(request.call_count, 1)\n+                sleep.assert_not_called()\n+\n+    def test_retry_after_and_deadline_are_respected(self):\n+        for status, headers, times in [(429, {'Retry-After': '120'}, [0, 0, 0]), (503, {}, [0, 0, 77])]:\n+            with patch.object(api.urllib.request, 'urlopen', side_effect=urllib.error.HTTPError('https://provider.invalid', status, 'busy', headers, io.BytesIO())) as request, patch.object(api.time, 'monotonic', side_effect=times), patch.object(api.time, 'sleep') as sleep, patch.object(api.random, 'uniform', return_value=0):\n+                with self.assertRaises(api.RequestError):\n+                    api.generate({}, 'test', 'fixture')\n+                self.assertEqual(request.call_count, 1)\n+                sleep.assert_not_called()\n+\n+    def test_timeout_not_automatically_repeated(self):\n+        with patch.object(api.urllib.request, 'urlopen', side_effect=TimeoutError()) as request:\n+            with self.assertRaises(api.RequestError) as caught:\n+                api.generate({}, 'test', 'fixture')\n+            self.assertEqual(caught.exception.code, 'GEMINI_TIMEOUT')\n+            self.assertEqual(request.call_count, 1)\n+\n     def test_handler_no_auth_and_body_size(self):\n         handler = object.__new__(api.handler)\n         handler.headers = {}",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38956942767"
+      }
     },
     {
       "sha": "e875f1340c672f795a51600afb5ad89c462a2b19",
@@ -11672,26 +11751,26 @@
         {
           "id": "evo-e875f1340c67-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-e875f1340c67-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: e875f1340c672f795a51600afb5ad89c462a2b19\n변경 제목: Bump engine versions: core 0.7, condition-fusion-2, condition-camera-3\n관련 파일: condition-camera.js, condition-fusion.js, newbiz-core.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-e875f1340c67-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "newbiz-core v0.7 기반 맥박(pulse) 신호 회복성 및 품질-오차 트레이드오프 검증 과제",
+          "rationale": "관측 사실: newbiz-core.js 및 condition-camera.js의 버전 버전 문자열이 각각 'In_mind core 0.7', 'condition-camera-3'으로 변경되었습니다(패치 범위 전체 확인 완료). 연구자 가설: 버전 변경에 수반되는 내부 rPPG 신호 처리 패러미터나 SNR Threshold 판정 로직의 조정이 존재할 수 있으며, 이에 따라 저품질 환경에서의 맥박 신호 회복량이 달라질 수 있습니다. 구별: 단순 버전 문자열 수정은 성능 검증을 의미하지 않으므로, 커밋 메시지를 검증된 성과로 간주하지 않고 실제 PPG 신호 활용률과 오차를 실측 데이터 기반으로 평가해야 합니다.",
+          "validationPlan": "1. dataset에 저장된 기준 센서(ECG/PPG) 동기화 실측 데이터 및 수집 메모 연계.\n2. 참가자(다양한 피부톤/움직임), 기기(다양한 웹캠), 수집 날짜를 분리하여 단일 세션 편향을 방지한 평가 세트 구성.\n3. 전체 시도 횟수(실패 및 중단 시도 포함)를 분모로 설정하여 측정 성공률 계산.\n4. 약한 SNR 신호를 폐기하지 않고 포함할 때의 '신호 활용률' 대비 'HR 오차(MAE, RMSE)'의 트레이드오프 평가.\n5. 임의의 정상값 대체나 조작 없이 제외 기준 및 불확실성 범위를 명시적 수치로 보고.",
+          "prompt": "## 과제 목적\nnewbiz-core.js (In_mind core 0.7) 및 condition-camera.js (v3) 변경과 관련하여, 웹캠 기반 rPPG 맥박(pulse) 측정 로직의 현재 구현을 점검하고 약한 신호 회복량과 오차율을 평가하는 검증 및 개선 파이프라인을 구축하라.\n\n## 수행 단계\n1. 현재 코드 확인:\n   - `newbiz-core.js`, `condition-camera.js`의 실제 내부 구현 상태를 검토하여 버전 변경 외에 HR_BAND, SNR_GOOD, SNR_FAIR 등 파라미터나 신호 처리 로직 변경이 있는지 확인하라.\n2. 신호 활용량 및 오차 평가:\n   - 조명 변화, 미세 움직임 등 저품질 환경에서 수집된 프레임 중 노이즈가 섞인 '부분 유효 신호'를 모두 폐기하지 않고 회복하여 활용할 때의 신호 활용률(%)을 측정하라.\n   - 이때 발생하는 맥박수(HR) 오차(MAE, RMSE) 변화를 함께 평가하여 활용률 증가에 따른 오차 상승폭을 분석하라.\n3. dataset 실측 데이터 연계:\n   - 이 작업은 코드/알고리즘 분석 작업이므로 임의로 실측 성능 수치를 창작해내지 말라.\n   - dataset 디렉터리의 기준 센서(ECG/PPG) 데이터 및 연구자 메모를 연결하여 Ground Truth 기반 오차 계산을 수행하도록 구성을 설계하라.\n   - 참가자, 기기, 측정 날짜별로 분리된 평가 분모(실패 시도 포함)를 사용하라.\n\n## 성공 및 회귀 기준\n- 성공 기준: 기존 v0.6 대비 약한 신호 구간의 활용률이 증가하면서도, 허용 오차 범위를 넘어서는 이상치 발생 비율이 증가하지 않음.\n- 회귀 기준: 신호 활용률을 높이는 과정에서 정상값을 임의로 만들어 채우거나, 반대로 약한 신호를 과도하게 폐기하여 측정 성공률(분모 대비 완수율)이 하락하는 경우 회귀로 판단.\n\n## 결과 보고 양식\n- [코드 검토 결과]: 파일별 실제 로직 변경 여부\n- [평가 데이터셋 구성]: 참가자 수 / 기기 종류 / 날짜 / 총 시도 건수(실패 포함)\n- [신호 활용률 vs 오차]: SNR 구간별 신호 활용 비율 및 대응 MAE/RMSE (dataset 연계 측정치)\n- [불확실성 및 제외 기준]: 미측정/제외 프레임의 사유 및 판정 기준\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: e875f1340c672f795a51600afb5ad89c462a2b19\nDataset-Task: evo-e875f1340c67-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-e875f1340c67-gaze",
           "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-e875f1340c67-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: e875f1340c672f795a51600afb5ad89c462a2b19\n변경 제목: Bump engine versions: core 0.7, condition-fusion-2, condition-camera-3\n관련 파일: condition-camera.js, condition-fusion.js, newbiz-core.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-e875f1340c67-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "condition-fusion v2 모듈의 시선(gaze) 추적 데이터 융합 및 실측 정밀도 검증 과제",
+          "rationale": "관측 사실: condition-fusion.js의 VERSION이 'condition-fusion-2'로 상향 변경되었습니다. 제공된 patchExcerpt는 전체 변경 사항(patchTruncated: false)이며 단순 식별자 변경만 포함합니다. 가설: 멀티 스레드/웹워커 추론 경로와 주 스레드 간 시선 좌표 융합 로직(weightedQuantile 등)의 후속 개선이 예정되어 있거나 적용되었을 수 있습니다. 구별: 커밋 제목을 검증된 정확도로 해석할 수 없으며, 시선 추적의 각도 오차 및 프레임 드랍 환경에서의 융합 안정성은 dataset 실측을 통해서만 증명될 수 있습니다.",
+          "validationPlan": "1. dataset 내 응시점(Gaze target) 좌표 실측 데이터 및 사용자 헤드포즈 메모를 연계한 벤치마크 수행.\n2. 다양한 해상도 및 프레임레이트(초당 7회 수준 떨어짐 조건 포함) 환경에서 실패 시도를 포함한 전체 프레임 분모 설정.\n3. 불완전한 시선 추정 프레임(부분 유효 신호)을 융합 연산에 포함시켰을 때의 신호 활용률과 시선 각도 오차(Degree Error) 측정.\n4. 참가자 간 개별 차이, 기기별 카메라 왜곡 특성, 측정 날짜별 환경 변화에 대한 분리 평가 실시.",
+          "prompt": "## 과제 목적\ncondition-fusion.js (VERSION 'condition-fusion-2') 및 condition-camera.js (v3) 모듈을 대상으로, 저사양 웹캠 환경 및 프레임 드롭 발생 시 시선(gaze) 추적 융합 알고리즘의 동작을 확인하고 실측 기반 후속 검증을 수행하라.\n\n## 수행 단계\n1. 현재 코드 확인:\n   - `condition-fusion.js` 내 weightedQuantile, clamp 등 융합 관련 함수의 실제 로직을 점검하고 버전 변경 외 기능적 수정 사항이 존재하는지 조사하라.\n2. 부분 유효 신호 활용 및 오차 평가:\n   - 저사양 기기나 저조도 조건에서 일부 랜드마크가 손실된 프레임(부분 유효 신호)을 폐기하지 않고 시선 추정에 활용하는 로직을 평가하라.\n   - 약한 신호 활용에 따른 시선 추정 각도 오차(Angular Error, deg)와 데이터 산출 성공률(유효 프레임 비율)을 동시에 측정하라.\n3. dataset 실측 데이터 연계:\n   - 수치를 임의로 만들어내지 말고, dataset에 등록된 실제 시선 좌표 Target 및 연구자 관측 메모와 연동하여 오차를 산출하는 구조를 작성하라.\n   - 평가 시 단일 세션에 국한하지 말고 참가자, 기기, 측정 날짜별로 실패 시도를 포함한 전체 분모를 명시하라.\n\n## 성공 및 회귀 기준\n- 성공 기준: 초당 프레임 수 하락 환경에서도 융합 모듈이 가중치를 적절히 조정하여 시선 추적 단절 없이 유효 신호 활용량을 늘리고, 오차가 허용 기준 내에 유지됨.\n- 회귀 기준: 신호 수용 기준을 무리하게 완화하여 허위 시선 좌표(정상값 보정 형태)를 생성하거나, 프레임 이탈 시 불확실성을 판정하지 못해 오차가 급증하는 현상 발생.\n\n## 결과 보고 양식\n- [융합 로직 점검]: condition-fusion.js 변경점 및 가중치 계산 방식\n- [실측 연계 평가]: dataset 기반 참가자/기기/날짜별 데이터 분모 및 측정 결과\n- [활용률 및 오차]: 프레임 레이트별 부분 신호 활용률 및 Average Angular Error\n- [예외 및 제외 기준]: 추론 실패/중단 프레임에 대한 제외 기준 및 불확실성 평가 결과\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: e875f1340c672f795a51600afb5ad89c462a2b19\nDataset-Task: evo-e875f1340c67-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55542000669",
@@ -11723,8 +11802,87 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-04T10:14:42.561817+00:00",
-      "analysisError": "HTTP_403"
+      "lastAttemptAt": "2026-10-16T19:43:41.956922+00:00",
+      "analysis": {
+        "summary": "제공된 커밋(sha: e875f1340c672f795a51600afb5ad89c462a2b19)에서는 condition-camera.js('condition-camera-2' -> 'condition-camera-3'), condition-fusion.js('condition-fusion-1' -> 'condition-fusion-2'), newbiz-core.js('In_mind core 0.6' -> 'In_mind core 0.7') 파일 내 엔진 버전 식별용 문자열만 각각 1줄씩 수정되었습니다. 이번 diff의 제공 범위는 patchTruncated: false, filesTruncated: false로 전체 패치가 포함되어 있으며, 버전 번호 수정 외의 알고리즘 수식이나 로직 변경은 패치상에 나타나지 않았습니다. 메타데이터상 accuracyValidated는 false이며, 커밋 제목('Bump engine versions...')을 측정 정확도 향상의 증거로 취급할 수 없습니다. 따라서 이번 버전 변경이 실제 맥박(pulse) 및 시선(gaze) 추적의 약한 신호 회복력, 융합 가중치 처리, 신호 활용률 및 오차율에 미치는 실질적 영향은 미검증 상태입니다. 후속 과제로서 실제 코드 베이스 확인과 더불어 dataset 내 기준 센서 실측 데이터 및 연구자 메모와 연계한 다각도 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-e875f1340c67-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "newbiz-core v0.7 기반 맥박(pulse) 신호 회복성 및 품질-오차 트레이드오프 검증 과제",
+            "rationale": "관측 사실: newbiz-core.js 및 condition-camera.js의 버전 버전 문자열이 각각 'In_mind core 0.7', 'condition-camera-3'으로 변경되었습니다(패치 범위 전체 확인 완료). 연구자 가설: 버전 변경에 수반되는 내부 rPPG 신호 처리 패러미터나 SNR Threshold 판정 로직의 조정이 존재할 수 있으며, 이에 따라 저품질 환경에서의 맥박 신호 회복량이 달라질 수 있습니다. 구별: 단순 버전 문자열 수정은 성능 검증을 의미하지 않으므로, 커밋 메시지를 검증된 성과로 간주하지 않고 실제 PPG 신호 활용률과 오차를 실측 데이터 기반으로 평가해야 합니다.",
+            "validationPlan": "1. dataset에 저장된 기준 센서(ECG/PPG) 동기화 실측 데이터 및 수집 메모 연계.\n2. 참가자(다양한 피부톤/움직임), 기기(다양한 웹캠), 수집 날짜를 분리하여 단일 세션 편향을 방지한 평가 세트 구성.\n3. 전체 시도 횟수(실패 및 중단 시도 포함)를 분모로 설정하여 측정 성공률 계산.\n4. 약한 SNR 신호를 폐기하지 않고 포함할 때의 '신호 활용률' 대비 'HR 오차(MAE, RMSE)'의 트레이드오프 평가.\n5. 임의의 정상값 대체나 조작 없이 제외 기준 및 불확실성 범위를 명시적 수치로 보고.",
+            "prompt": "## 과제 목적\nnewbiz-core.js (In_mind core 0.7) 및 condition-camera.js (v3) 변경과 관련하여, 웹캠 기반 rPPG 맥박(pulse) 측정 로직의 현재 구현을 점검하고 약한 신호 회복량과 오차율을 평가하는 검증 및 개선 파이프라인을 구축하라.\n\n## 수행 단계\n1. 현재 코드 확인:\n   - `newbiz-core.js`, `condition-camera.js`의 실제 내부 구현 상태를 검토하여 버전 변경 외에 HR_BAND, SNR_GOOD, SNR_FAIR 등 파라미터나 신호 처리 로직 변경이 있는지 확인하라.\n2. 신호 활용량 및 오차 평가:\n   - 조명 변화, 미세 움직임 등 저품질 환경에서 수집된 프레임 중 노이즈가 섞인 '부분 유효 신호'를 모두 폐기하지 않고 회복하여 활용할 때의 신호 활용률(%)을 측정하라.\n   - 이때 발생하는 맥박수(HR) 오차(MAE, RMSE) 변화를 함께 평가하여 활용률 증가에 따른 오차 상승폭을 분석하라.\n3. dataset 실측 데이터 연계:\n   - 이 작업은 코드/알고리즘 분석 작업이므로 임의로 실측 성능 수치를 창작해내지 말라.\n   - dataset 디렉터리의 기준 센서(ECG/PPG) 데이터 및 연구자 메모를 연결하여 Ground Truth 기반 오차 계산을 수행하도록 구성을 설계하라.\n   - 참가자, 기기, 측정 날짜별로 분리된 평가 분모(실패 시도 포함)를 사용하라.\n\n## 성공 및 회귀 기준\n- 성공 기준: 기존 v0.6 대비 약한 신호 구간의 활용률이 증가하면서도, 허용 오차 범위를 넘어서는 이상치 발생 비율이 증가하지 않음.\n- 회귀 기준: 신호 활용률을 높이는 과정에서 정상값을 임의로 만들어 채우거나, 반대로 약한 신호를 과도하게 폐기하여 측정 성공률(분모 대비 완수율)이 하락하는 경우 회귀로 판단.\n\n## 결과 보고 양식\n- [코드 검토 결과]: 파일별 실제 로직 변경 여부\n- [평가 데이터셋 구성]: 참가자 수 / 기기 종류 / 날짜 / 총 시도 건수(실패 포함)\n- [신호 활용률 vs 오차]: SNR 구간별 신호 활용 비율 및 대응 MAE/RMSE (dataset 연계 측정치)\n- [불확실성 및 제외 기준]: 미측정/제외 프레임의 사유 및 판정 기준\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: e875f1340c672f795a51600afb5ad89c462a2b19\nDataset-Task: evo-e875f1340c67-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-e875f1340c67-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "condition-fusion v2 모듈의 시선(gaze) 추적 데이터 융합 및 실측 정밀도 검증 과제",
+            "rationale": "관측 사실: condition-fusion.js의 VERSION이 'condition-fusion-2'로 상향 변경되었습니다. 제공된 patchExcerpt는 전체 변경 사항(patchTruncated: false)이며 단순 식별자 변경만 포함합니다. 가설: 멀티 스레드/웹워커 추론 경로와 주 스레드 간 시선 좌표 융합 로직(weightedQuantile 등)의 후속 개선이 예정되어 있거나 적용되었을 수 있습니다. 구별: 커밋 제목을 검증된 정확도로 해석할 수 없으며, 시선 추적의 각도 오차 및 프레임 드랍 환경에서의 융합 안정성은 dataset 실측을 통해서만 증명될 수 있습니다.",
+            "validationPlan": "1. dataset 내 응시점(Gaze target) 좌표 실측 데이터 및 사용자 헤드포즈 메모를 연계한 벤치마크 수행.\n2. 다양한 해상도 및 프레임레이트(초당 7회 수준 떨어짐 조건 포함) 환경에서 실패 시도를 포함한 전체 프레임 분모 설정.\n3. 불완전한 시선 추정 프레임(부분 유효 신호)을 융합 연산에 포함시켰을 때의 신호 활용률과 시선 각도 오차(Degree Error) 측정.\n4. 참가자 간 개별 차이, 기기별 카메라 왜곡 특성, 측정 날짜별 환경 변화에 대한 분리 평가 실시.",
+            "prompt": "## 과제 목적\ncondition-fusion.js (VERSION 'condition-fusion-2') 및 condition-camera.js (v3) 모듈을 대상으로, 저사양 웹캠 환경 및 프레임 드롭 발생 시 시선(gaze) 추적 융합 알고리즘의 동작을 확인하고 실측 기반 후속 검증을 수행하라.\n\n## 수행 단계\n1. 현재 코드 확인:\n   - `condition-fusion.js` 내 weightedQuantile, clamp 등 융합 관련 함수의 실제 로직을 점검하고 버전 변경 외 기능적 수정 사항이 존재하는지 조사하라.\n2. 부분 유효 신호 활용 및 오차 평가:\n   - 저사양 기기나 저조도 조건에서 일부 랜드마크가 손실된 프레임(부분 유효 신호)을 폐기하지 않고 시선 추정에 활용하는 로직을 평가하라.\n   - 약한 신호 활용에 따른 시선 추정 각도 오차(Angular Error, deg)와 데이터 산출 성공률(유효 프레임 비율)을 동시에 측정하라.\n3. dataset 실측 데이터 연계:\n   - 수치를 임의로 만들어내지 말고, dataset에 등록된 실제 시선 좌표 Target 및 연구자 관측 메모와 연동하여 오차를 산출하는 구조를 작성하라.\n   - 평가 시 단일 세션에 국한하지 말고 참가자, 기기, 측정 날짜별로 실패 시도를 포함한 전체 분모를 명시하라.\n\n## 성공 및 회귀 기준\n- 성공 기준: 초당 프레임 수 하락 환경에서도 융합 모듈이 가중치를 적절히 조정하여 시선 추적 단절 없이 유효 신호 활용량을 늘리고, 오차가 허용 기준 내에 유지됨.\n- 회귀 기준: 신호 수용 기준을 무리하게 완화하여 허위 시선 좌표(정상값 보정 형태)를 생성하거나, 프레임 이탈 시 불확실성을 판정하지 못해 오차가 급증하는 현상 발생.\n\n## 결과 보고 양식\n- [융합 로직 점검]: condition-fusion.js 변경점 및 가중치 계산 방식\n- [실측 연계 평가]: dataset 기반 참가자/기기/날짜별 데이터 분모 및 측정 결과\n- [활용률 및 오차]: 프레임 레이트별 부분 신호 활용률 및 Average Angular Error\n- [예외 및 제외 기준]: 추론 실패/중단 프레임에 대한 제외 기준 및 불확실성 평가 결과\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: e875f1340c672f795a51600afb5ad89c462a2b19\nDataset-Task: evo-e875f1340c67-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "70e4eec4dd84651984749687902442e30fd61676f0a283f6546ea296d372d4cc",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 1450,
+            "candidatesTokenCount": 2303,
+            "totalTokenCount": 6432
+          }
+        },
+        "generatedAt": "2026-10-16T19:44:11.185199+00:00",
+        "sourceSha": "e875f1340c672f795a51600afb5ad89c462a2b19",
+        "sourceEvidence": {
+          "sha": "e875f1340c672f795a51600afb5ad89c462a2b19",
+          "parents": [
+            "537333a33e3d9a38c5cae42033faa37197799a5f"
+          ],
+          "committedAt": "2026-10-04T08:38:54Z",
+          "subject": "Bump engine versions: core 0.7, condition-fusion-2, condition-camera-3",
+          "url": "https://github.com/jeebs0627/neurolens/commit/e875f1340c672f795a51600afb5ad89c462a2b19",
+          "files": [
+            {
+              "path": "condition-camera.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "condition-fusion.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-camera.js\n@@ -6,7 +6,7 @@\n     constructor(video,opt){\n       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;\n       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});\n-      this.info={version:'condition-camera-2',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n+      this.info={version:'condition-camera-3',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n     }\n     async init(){\n       /* 기본은 주 스레드 GPU 추론(동영상 프레임마다 직접 추론). 워커 경로는 기기에 따라 초당 7회 수준까지 떨어져\nFILE condition-fusion.js\n@@ -5,7 +5,7 @@\n   if(root)root.NLFusionFactory=factory;\n })(typeof globalThis!=='undefined'?globalThis:null,function(N){\n   'use strict';\n-  const VERSION='condition-fusion-1',finite=Number.isFinite;\n+  const VERSION='condition-fusion-2',finite=Number.isFinite;\n   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));\n   function weightedQuantile(rows,key,q=.5){\n     const sorted=rows.filter(r=>finite(r[key])&&r.weight>0).slice().sort((a,b)=>a[key]-b[key]);\nFILE newbiz-core.js\n@@ -13,7 +13,7 @@\n })(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 0.6';\n+  const VERSION = 'In_mind core 0.7';\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38956942767"
+      }
     },
     {
       "sha": "537333a33e3d9a38c5cae42033faa37197799a5f",
@@ -11787,36 +11945,36 @@
         {
           "id": "evo-537333a33e3d-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-537333a33e3d-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 537333a33e3d9a38c5cae42033faa37197799a5f\n변경 제목: Condition: restore pulse coverage and gaze sample rate, smooth calibration cursor, single antisaccade practice\n관련 파일: condition-camera.js, condition-camera.test.cjs, condition-fusion.js, condition.html, newbiz-core.js, tools/condition_regression_bench.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-537333a33e3d-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "rPPG 약한 신호 복원 알고리즘(weak-signal recovery)의 위양성 검증 및 역량 평가",
+          "rationale": "[관측 사실] condition-fusion.js에서 유효 창(usable)이 0개일 때, 색차 방식(POS/CHROM)과 2개 이상 피부 영역 동의 조건(agreement>=0.5, SNR>=-7)을 만족하는 후보 창을 모아 status: 'weak-signal' 및 quality: 'poor'/'fair'로 BPM과 SNR을 계산하도록 변경되었습니다.\n[연구자 주장/가설] 화면 밝기 유동으로 인한 조명 변동은 색차 축에서 상쇄되므로, 저SNR 환경에서도 맥박 신호를 버리지 않고 안정적으로 회복할 수 있을 것이라 가설을 세웠습니다.\n[구분 및 과제 정의] 본 알고리즘이 저조도·움직임 환경에서 실제 맥박 신호를 유의미하게 구출하는지, 아니면 노이즈를 맥박으로 오인하여 위양성 오차를 만드는지 검증이 필요합니다.",
+          "validationPlan": "1. 기준 센서(PPG/ECG) 실측 데이터셋과 연동하여 참가자/기기/환경(조명변화, 움직임)별 분리 평가를 수행합니다.\n2. 전체 세션 분모(총 창 개수) 대비 정상 채택, 약한 신호 복원, 미측정(unavailable) 비율을 집계합니다.\n3. 약한 신호 복원이 활성화된 구간의 실측 대비 BPM Absolute Error(MAE) 및 SNR 개선량을 측정하여 오차 허용 범위(예: MAE <= 5 bpm) 내 활용률을 평가합니다.\n4. 단일 세션 결과를 일반화하지 않고, 환경 조건별 회귀 평가 벤치마크를 실행합니다.",
+          "prompt": "NeuroLens 측정 알고리즘 개발 AI 담당자로서 아래 요구사항에 따라 rPPG 약한 신호 복원 알고리즘 검증 및 보정 코드 작업을 수행하라.\n\n1. 현재 코드 확인:\n- `condition-fusion.js`의 `weak-signal` 산출 로직(색차 기반 추정법 조건, agreement, region 수, 가중 백분위수 및 spreadBpm 계산)을 분석하라.\n\n2. 부분 유효 신호 활용량과 오차 평가 검증 과제:\n- 실측 PPG/ECG 라벨이 포함된 데이터셋과 연결하여, 약한 신호 복원이 동작한 구간(`status === 'weak-signal'`)에서의 실제 BPM 오차(MAE, RMSE)와 신호 활용 비율을 산출하는 검증 모듈을 작성하라.\n- 조명 변화, 피부색, 기기 카메라 성능 조건별로 분모(전체 측정 시도 및 창 수) 대비 'weak-signal' 전환율 및 이때의 MAE 분포를 계산하라.\n- 복원 기준(agreement threshold, SNR threshold) 변경 시 유효 신호 확보량과 위양성 오차 간의 트레이드오프를 평가하라.\n\n3. 성공 / 회귀 기준:\n- 성공: 정상 채택 불가 구간에서 MAE <= 6 bpm 이내인 약한 신호를 전체 미채택 구간의 20% 이상 복원하며, 위양성(오차 > 12 bpm) 발생률이 복원 구간의 15% 이하를 유지함.\n- 회귀: 정상 맥박 측정 구간(`quality: 'good'|'fair'`)의 SNR이나 정확도를 저하시키거나, 노이즈 구간을 잘못 복원하여 전체 MAE를 확증적으로 증가시킴.\n\n4. 결과 보고 양식:\n- JSON 구조로 보고할 것:\n{\n  \"evaluationSummary\": {\n    \"totalWindows\": 0,\n    \"normalValidRatio\": 0.0,\n    \"weakSignalRecoveredRatio\": 0.0,\n    \"unavailableRatio\": 0.0\n  },\n  \"performanceMetrics\": {\n    \"weakSignalMAE\": 0.0,\n    \"weakSignalRMSE\": 0.0,\n    \"falsePositiveRate\": 0.0\n  },\n  \"conditionBreakdown\": [\n    { \"condition\": \"string\", \"recoveredRatio\": 0.0, \"mae\": 0.0 }\n  ],\n  \"recommendations\": \"string\"\n}\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 537333a33e3d9a38c5cae42033faa37197799a5f\nDataset-Task: evo-537333a33e3d-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-537333a33e3d-gaze",
           "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-537333a33e3d-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 537333a33e3d9a38c5cae42033faa37197799a5f\n변경 제목: Condition: restore pulse coverage and gaze sample rate, smooth calibration cursor, single antisaccade practice\n관련 파일: condition-camera.js, condition-camera.test.cjs, condition-fusion.js, condition.html, newbiz-core.js, tools/condition_regression_bench.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-537333a33e3d-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "양안 오차 역제곱 가중 결합 및 프레임 레이트 단축에 따른 시선 추적 정확도 및 안정성 검증",
+          "rationale": "[관측 사실] condition-camera.js에서 추론 간격 상한을 65ms(약 15Hz)에서 28ms(약 33Hz)로 단축하고 gain<=1.05 시 오프스크린 캔버스 복사를 생략했습니다. condition.html 및 newbiz-core.js에서는 검증 오차가 정상이면 양안 오차의 역제곱(1/errPct^2) 가중치 결합(model.combine)을 적용하고 렌더링 시 지수 이동평활(시간상수 90ms)을 추가했습니다.\n[연구자 주장/가설] 추론 주기를 늘리고 양안 중 오차가 작은 눈에 고정 가중치를 적용하면 커서 들썩임이 줄고 시선 표본 수집량과 정확도가 향상될 것이라 가설을 세웠습니다.\n[구분 및 과제 정의] 프리뷰/추론 프레임 레이트 향상이 CPU/GPU 과부하를 일으키지 않는지, 양안 가중 결합이 특정 안구 편향 환경에서 오차를 증폭시키지 않는지 검증합니다.",
+          "validationPlan": "1. 다양한 기기(저사양 모바일, 고사양 PC 웹캠) 및 조명 조건에서 초당 수집된 시선 표본 수(Hz)와 프레임 드랍률을 측정합니다.\n2. 양안 가중 결합(`model.combine`) 적용 전후의 화면 영역별 시선 추정 오차(Pixel Error 및 Degree Error)를 비교 검증합니다.\n3. 커서 UI 지수 평활(90ms) 적용에 따른 렌더링 지연시간(lag)과 체감 반응성을 프레임 타임스탬프 기록 기반으로 평가합니다.",
+          "prompt": "NeuroLens 시선 추적 알고리즘 개발 AI 담당자로서 아래 요구사항에 따라 시선 추적 정확도 및 가중 결합 알고리즘 검증·개선 작업을 수행하라.\n\n1. 현재 코드 확인:\n- `condition-camera.js`의 `lastInfer` 28ms 제어 로직, `condition.html`의 `S.model.combine` 생성 및 `newbiz-core.js`의 `predictGaze` 양안 가중 합산 로직, `condition.html` 커서 `disp` 지수 이동평활(a = 1 - exp(-dtF/90))을 확인하라.\n\n2. 부분 유효 신호 활용량과 오차 평가 검증 과제:\n- 단안/양안 유효 프레임 비율(okL, okR) 및 양안 가중 결합 적용 비율을 분모 대비 산출하라.\n- 원출력 좌표(`px, py`), 보정 좌표(`rx, ry`), 화면 안정화 좌표(`x, y`)를 비교하여, 가중 결합 및 지수 평활이 지연시간(Lag)과 추정 오차(Mean Degree Error)에 미치는 영향을 구분 평가하라.\n- 저사양 기기에서 28ms 간격 추론 시 프레임 스킵/지연 발생률을 측정하고, 주 스레드 병목 시 fallback 동작을 검증하라.\n\n3. 성공 / 회귀 기준:\n- 성공: 표본 수집률이 기존 대비 50% 이상 증가(20Hz 이상 확보)하면서, 양안 가중 결합 시 평균 시선 오차(errPct)가 단안 대비 회귀하지 않고 같거나 개선됨.\n- 회귀: 지수 평활로 인한 시선 추적 지연(Lag)이 150ms를 초과하거나, 주 스레드 점유율 상승으로 동영상 프레임 이탈이 증가함.\n\n4. 결과 보고 양식:\n- JSON 구조로 보고할 것:\n{\n  \"samplingRateMetrics\": {\n    \"targetHz\": 33,\n    \"achievedAvgHz\": 0.0,\n    \"frameSkipRatio\": 0.0\n  },\n  \"accuracyComparison\": {\n    \"singleEyeMAE\": 0.0,\n    \"weightedCombineMAE\": 0.0,\n    \"improvementPercentage\": 0.0\n  },\n  \"latencyMetrics\": {\n    \"smoothingLagMs\": 0.0,\n    \"totalPipelineLatencyMs\": 0.0\n  },\n  \"devicePerformanceBreakdown\": [\n    { \"deviceClass\": \"string\", \"avgHz\": 0.0, \"cpuUsageAlert\": false }\n  ]\n}\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 537333a33e3d9a38c5cae42033faa37197799a5f\nDataset-Task: evo-537333a33e3d-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-537333a33e3d-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-537333a33e3d-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 537333a33e3d9a38c5cae42033faa37197799a5f\n변경 제목: Condition: restore pulse coverage and gaze sample rate, smooth calibration cursor, single antisaccade practice\n관련 파일: condition-camera.js, condition-camera.test.cjs, condition-fusion.js, condition.html, newbiz-core.js, tools/condition_regression_bench.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-537333a33e3d-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "중앙 고정 영점 보정 평활화 및 안티사카드 프로토콜 개편 검증",
+          "rationale": "[관측 사실] condition.html에서 안내 표적 중앙 고정(instructed-center-fixation) 영점 보정 시 표본 수 기준을 >=8개에서 >=4개로 완화하고, 표본 수에 따른 지수 평활 가중치 k = min(1, 0.35 + samples/30)를 도입하여 이전 영점 오프셋과 섞이도록 수정했습니다. 또한 안티사카드 절차에서 본 연습 전 영점 재측정(`driftCheck`, `sacCalibrate`) 단계를 제거하였습니다.\n[연구자 주장/가설] 영점 보정 시 한 번의 요동으로 영점이 크게 틀어지는 것을 방지하고, 검사 절차의 불필요한 중복 안내를 줄여 피험자 피로도 및 측정이탈을 방지할 수 있다고 설명합니다.\n[구분 및 과제 정의] 영점 보정 가중치 k와 완화된 표본 수 기준이 영점 바이어스(Drift Offset)를 안정화하는지, 안티사카드 시행 간 시선 범위 재측정 생략이 반응 시간 및 사카드 오인식률에 영향을 주지 않는지 검증합니다.",
+          "validationPlan": "1. 중앙 고정 검사 시 수집된 표본 개수(4~30개) 및 튀는 값(Outlier) 존재 유무에 따른 영점 이동량(`dx`, `dy`)의 변동성을 평가합니다.\n2. 지수 평활 k값 적용 전후의 전체 테스트 세션 동안의 시선 영점 누적 드리프트 오차를 측정합니다.\n3. 안티사카드 측정 프로토콜 개편 전후의 검사 완료율(Completion Rate), 연습/본시행 간 반응시간(Latency) 및 안구 운동 정밀도를 세션별로 비교합니다.",
+          "prompt": "NeuroLens 측정 프로토콜 및 영점 보정 알고리즘 개발 AI 담당자로서 아래 요구사항에 따라 검증 및 코드 개선 과제를 수행하라.\n\n1. 현재 코드 확인:\n- `condition.html` 내 `instructed-center-fixation` 구간의 `samples >= 4`, `k = Math.min(1, 0.35 + xs.length / 30)`, 지수 평활 영점 갱신 로직 및 안티사카드 시작 로직을 확인하라.\n\n2. 부분 유효 신호 활용량과 오차 평가 검증 과제:\n- 영점 보정 세션 중 표본 개수 부족(samples < 4)으로 미적용된 비율, 4~7개 표본으로 가중 적용된 비율, 8개 이상 완충 적용된 비율을 전체 시도 분모 기준으로 집계하라.\n- 완화된 영점 보정이 적용된 세션에서의 후속 타겟 응답 정확도(Fixation Accuracy)와 영점 재조정 빈도를 분석하라.\n- 안티사카드 프로토콜 단순화가 참가자의 중간 이탈율 및 반사적 사카드(Pro-saccade) 오류 측정 정확도에 미치는 영향을 평가하라.\n\n3. 성공 / 회귀 기준:\n- 성공: 표본 수 4~7개 구간에서도 영점 튀임 현상이 억제되며, 단일 고정 오차에 의한 영점 붕괴 비율이 기존 대비 30% 이상 감소함.\n- 회귀: 안티사카드 진입 전 영점 오프셋 미갱신으로 인해 시선 위치 오인식이 증가하거나 사카드 시작점 추정에 편향이 발생함.\n\n4. 결과 보고 양식:\n- JSON 구조로 보고할 것:\n{\n  \"driftCorrectionAnalysis\": {\n    \"totalDriftChecks\": 0,\n    \"appliedWithLowSamplesRatio\": 0.0,\n    \"appliedWithFullSamplesRatio\": 0.0,\n    \"rejectedRatio\": 0.0,\n    \"avgDxErrorPx\": 0.0\n  },\n  \"protocolImpact\": {\n    \"antisaccadeCompletionRate\": 0.0,\n    \"saccadeLatencyMs\": 0.0,\n    \"fixationStabilityScore\": 0.0\n  },\n  \"riskAssessment\": \"string\"\n}\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 537333a33e3d9a38c5cae42033faa37197799a5f\nDataset-Task: evo-537333a33e3d-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55541991601",
@@ -11848,8 +12006,116 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-04T10:14:42.766329+00:00",
-      "analysisError": "HTTP_403"
+      "lastAttemptAt": "2026-10-16T19:44:11.212684+00:00",
+      "analysis": {
+        "summary": "commit 537333a33e3d9a38c5cae42033faa37197799a5f의 공개 코드 변경사항을 분석한 결과, 맥박(pulse), 시선(gaze), 프로토콜/측정(measurement) 영역에서 약한 신호 회복 및 샘플링·보정 프로세스 개선이 이뤄졌습니다. 주요 변경점은 다음과 같습니다:\n1. condition-camera.js: 메인 스레드 직접 추론 병행(preferMain), 추론 주기 상한 단축(65ms->28ms, 최대 ~33Hz), 노출 이득(gain <= 1.05) 조건 시 video 직접 전달로 캔버스 복사 비용 제거, 얼굴 랜드마크 지연 시 피부 영역 가중치 감쇄(age <= 600ms까지 ageW 부여).\n2. condition-fusion.js: 유효한 맥박 창이 없을 때 POS·CHROM 등 색차 기반 추정법 동의 및 2개 이상 피부 영역의 동의(agreement >= 0.5, SNR >= -7)를 만족하는 후보 창을 모아 status: 'weak-signal', quality: 'poor'|'fair'의 약한 신호 보정치를 복원 산출하도록 변경.\n3. condition.html & newbiz-core.js: 시선 예측 시 양안 검증 오차 기반 역제곱 가중치 결합(model.combine) 도입, 중앙 고정(instructed-center-fixation) 영점 이동 시 지수 평활 적용, 커서 UI 표시 부드러움 처리(시간상수 90ms 지수 이동 및 1.2s 타임아웃 오파시티 적용), 원출력(px,py)·보정후(rx,ry)·안정화후(x,y) 좌표 분리 기록, 안티사카드 안내 및 연습 흐름 단순화.\n4. 신규 벤치마크 및 테스트 파일(tools/condition_regression_bench.cjs, condition-camera.test.cjs) 추가.\n\n[미검증 영향 및 주의사항]\n커밋 메시지 상의 주장('coverage restoration', 'smooth cursor' 등) 및 임의 수치는 검증된 임상/실측 성과가 아닙니다. 실제 실측 데이터셋(dataset)과의 연동 검증이 수행되지 않았으므로, 약한 신호 복원이 노이즈에 의한 위양성(False Positive) 맥박 추정을 유발하는지, 영점 평활 및 양안 가중 결합이 특정 기기/조명 조건에서 편향을 발생하는지 분모(전체 시도 수) 대비 활용률과 오차를 분리하여 평가해야 합니다. 본 diff 패치 및 관련 파일 스니펫은 오미 없이 완전 전달되었습니다(filesTruncated: false, patchTruncated: false).",
+        "tasks": [
+          {
+            "id": "evo-537333a33e3d-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "rPPG 약한 신호 복원 알고리즘(weak-signal recovery)의 위양성 검증 및 역량 평가",
+            "rationale": "[관측 사실] condition-fusion.js에서 유효 창(usable)이 0개일 때, 색차 방식(POS/CHROM)과 2개 이상 피부 영역 동의 조건(agreement>=0.5, SNR>=-7)을 만족하는 후보 창을 모아 status: 'weak-signal' 및 quality: 'poor'/'fair'로 BPM과 SNR을 계산하도록 변경되었습니다.\n[연구자 주장/가설] 화면 밝기 유동으로 인한 조명 변동은 색차 축에서 상쇄되므로, 저SNR 환경에서도 맥박 신호를 버리지 않고 안정적으로 회복할 수 있을 것이라 가설을 세웠습니다.\n[구분 및 과제 정의] 본 알고리즘이 저조도·움직임 환경에서 실제 맥박 신호를 유의미하게 구출하는지, 아니면 노이즈를 맥박으로 오인하여 위양성 오차를 만드는지 검증이 필요합니다.",
+            "validationPlan": "1. 기준 센서(PPG/ECG) 실측 데이터셋과 연동하여 참가자/기기/환경(조명변화, 움직임)별 분리 평가를 수행합니다.\n2. 전체 세션 분모(총 창 개수) 대비 정상 채택, 약한 신호 복원, 미측정(unavailable) 비율을 집계합니다.\n3. 약한 신호 복원이 활성화된 구간의 실측 대비 BPM Absolute Error(MAE) 및 SNR 개선량을 측정하여 오차 허용 범위(예: MAE <= 5 bpm) 내 활용률을 평가합니다.\n4. 단일 세션 결과를 일반화하지 않고, 환경 조건별 회귀 평가 벤치마크를 실행합니다.",
+            "prompt": "NeuroLens 측정 알고리즘 개발 AI 담당자로서 아래 요구사항에 따라 rPPG 약한 신호 복원 알고리즘 검증 및 보정 코드 작업을 수행하라.\n\n1. 현재 코드 확인:\n- `condition-fusion.js`의 `weak-signal` 산출 로직(색차 기반 추정법 조건, agreement, region 수, 가중 백분위수 및 spreadBpm 계산)을 분석하라.\n\n2. 부분 유효 신호 활용량과 오차 평가 검증 과제:\n- 실측 PPG/ECG 라벨이 포함된 데이터셋과 연결하여, 약한 신호 복원이 동작한 구간(`status === 'weak-signal'`)에서의 실제 BPM 오차(MAE, RMSE)와 신호 활용 비율을 산출하는 검증 모듈을 작성하라.\n- 조명 변화, 피부색, 기기 카메라 성능 조건별로 분모(전체 측정 시도 및 창 수) 대비 'weak-signal' 전환율 및 이때의 MAE 분포를 계산하라.\n- 복원 기준(agreement threshold, SNR threshold) 변경 시 유효 신호 확보량과 위양성 오차 간의 트레이드오프를 평가하라.\n\n3. 성공 / 회귀 기준:\n- 성공: 정상 채택 불가 구간에서 MAE <= 6 bpm 이내인 약한 신호를 전체 미채택 구간의 20% 이상 복원하며, 위양성(오차 > 12 bpm) 발생률이 복원 구간의 15% 이하를 유지함.\n- 회귀: 정상 맥박 측정 구간(`quality: 'good'|'fair'`)의 SNR이나 정확도를 저하시키거나, 노이즈 구간을 잘못 복원하여 전체 MAE를 확증적으로 증가시킴.\n\n4. 결과 보고 양식:\n- JSON 구조로 보고할 것:\n{\n  \"evaluationSummary\": {\n    \"totalWindows\": 0,\n    \"normalValidRatio\": 0.0,\n    \"weakSignalRecoveredRatio\": 0.0,\n    \"unavailableRatio\": 0.0\n  },\n  \"performanceMetrics\": {\n    \"weakSignalMAE\": 0.0,\n    \"weakSignalRMSE\": 0.0,\n    \"falsePositiveRate\": 0.0\n  },\n  \"conditionBreakdown\": [\n    { \"condition\": \"string\", \"recoveredRatio\": 0.0, \"mae\": 0.0 }\n  ],\n  \"recommendations\": \"string\"\n}\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 537333a33e3d9a38c5cae42033faa37197799a5f\nDataset-Task: evo-537333a33e3d-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-537333a33e3d-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "양안 오차 역제곱 가중 결합 및 프레임 레이트 단축에 따른 시선 추적 정확도 및 안정성 검증",
+            "rationale": "[관측 사실] condition-camera.js에서 추론 간격 상한을 65ms(약 15Hz)에서 28ms(약 33Hz)로 단축하고 gain<=1.05 시 오프스크린 캔버스 복사를 생략했습니다. condition.html 및 newbiz-core.js에서는 검증 오차가 정상이면 양안 오차의 역제곱(1/errPct^2) 가중치 결합(model.combine)을 적용하고 렌더링 시 지수 이동평활(시간상수 90ms)을 추가했습니다.\n[연구자 주장/가설] 추론 주기를 늘리고 양안 중 오차가 작은 눈에 고정 가중치를 적용하면 커서 들썩임이 줄고 시선 표본 수집량과 정확도가 향상될 것이라 가설을 세웠습니다.\n[구분 및 과제 정의] 프리뷰/추론 프레임 레이트 향상이 CPU/GPU 과부하를 일으키지 않는지, 양안 가중 결합이 특정 안구 편향 환경에서 오차를 증폭시키지 않는지 검증합니다.",
+            "validationPlan": "1. 다양한 기기(저사양 모바일, 고사양 PC 웹캠) 및 조명 조건에서 초당 수집된 시선 표본 수(Hz)와 프레임 드랍률을 측정합니다.\n2. 양안 가중 결합(`model.combine`) 적용 전후의 화면 영역별 시선 추정 오차(Pixel Error 및 Degree Error)를 비교 검증합니다.\n3. 커서 UI 지수 평활(90ms) 적용에 따른 렌더링 지연시간(lag)과 체감 반응성을 프레임 타임스탬프 기록 기반으로 평가합니다.",
+            "prompt": "NeuroLens 시선 추적 알고리즘 개발 AI 담당자로서 아래 요구사항에 따라 시선 추적 정확도 및 가중 결합 알고리즘 검증·개선 작업을 수행하라.\n\n1. 현재 코드 확인:\n- `condition-camera.js`의 `lastInfer` 28ms 제어 로직, `condition.html`의 `S.model.combine` 생성 및 `newbiz-core.js`의 `predictGaze` 양안 가중 합산 로직, `condition.html` 커서 `disp` 지수 이동평활(a = 1 - exp(-dtF/90))을 확인하라.\n\n2. 부분 유효 신호 활용량과 오차 평가 검증 과제:\n- 단안/양안 유효 프레임 비율(okL, okR) 및 양안 가중 결합 적용 비율을 분모 대비 산출하라.\n- 원출력 좌표(`px, py`), 보정 좌표(`rx, ry`), 화면 안정화 좌표(`x, y`)를 비교하여, 가중 결합 및 지수 평활이 지연시간(Lag)과 추정 오차(Mean Degree Error)에 미치는 영향을 구분 평가하라.\n- 저사양 기기에서 28ms 간격 추론 시 프레임 스킵/지연 발생률을 측정하고, 주 스레드 병목 시 fallback 동작을 검증하라.\n\n3. 성공 / 회귀 기준:\n- 성공: 표본 수집률이 기존 대비 50% 이상 증가(20Hz 이상 확보)하면서, 양안 가중 결합 시 평균 시선 오차(errPct)가 단안 대비 회귀하지 않고 같거나 개선됨.\n- 회귀: 지수 평활로 인한 시선 추적 지연(Lag)이 150ms를 초과하거나, 주 스레드 점유율 상승으로 동영상 프레임 이탈이 증가함.\n\n4. 결과 보고 양식:\n- JSON 구조로 보고할 것:\n{\n  \"samplingRateMetrics\": {\n    \"targetHz\": 33,\n    \"achievedAvgHz\": 0.0,\n    \"frameSkipRatio\": 0.0\n  },\n  \"accuracyComparison\": {\n    \"singleEyeMAE\": 0.0,\n    \"weightedCombineMAE\": 0.0,\n    \"improvementPercentage\": 0.0\n  },\n  \"latencyMetrics\": {\n    \"smoothingLagMs\": 0.0,\n    \"totalPipelineLatencyMs\": 0.0\n  },\n  \"devicePerformanceBreakdown\": [\n    { \"deviceClass\": \"string\", \"avgHz\": 0.0, \"cpuUsageAlert\": false }\n  ]\n}\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 537333a33e3d9a38c5cae42033faa37197799a5f\nDataset-Task: evo-537333a33e3d-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-537333a33e3d-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "중앙 고정 영점 보정 평활화 및 안티사카드 프로토콜 개편 검증",
+            "rationale": "[관측 사실] condition.html에서 안내 표적 중앙 고정(instructed-center-fixation) 영점 보정 시 표본 수 기준을 >=8개에서 >=4개로 완화하고, 표본 수에 따른 지수 평활 가중치 k = min(1, 0.35 + samples/30)를 도입하여 이전 영점 오프셋과 섞이도록 수정했습니다. 또한 안티사카드 절차에서 본 연습 전 영점 재측정(`driftCheck`, `sacCalibrate`) 단계를 제거하였습니다.\n[연구자 주장/가설] 영점 보정 시 한 번의 요동으로 영점이 크게 틀어지는 것을 방지하고, 검사 절차의 불필요한 중복 안내를 줄여 피험자 피로도 및 측정이탈을 방지할 수 있다고 설명합니다.\n[구분 및 과제 정의] 영점 보정 가중치 k와 완화된 표본 수 기준이 영점 바이어스(Drift Offset)를 안정화하는지, 안티사카드 시행 간 시선 범위 재측정 생략이 반응 시간 및 사카드 오인식률에 영향을 주지 않는지 검증합니다.",
+            "validationPlan": "1. 중앙 고정 검사 시 수집된 표본 개수(4~30개) 및 튀는 값(Outlier) 존재 유무에 따른 영점 이동량(`dx`, `dy`)의 변동성을 평가합니다.\n2. 지수 평활 k값 적용 전후의 전체 테스트 세션 동안의 시선 영점 누적 드리프트 오차를 측정합니다.\n3. 안티사카드 측정 프로토콜 개편 전후의 검사 완료율(Completion Rate), 연습/본시행 간 반응시간(Latency) 및 안구 운동 정밀도를 세션별로 비교합니다.",
+            "prompt": "NeuroLens 측정 프로토콜 및 영점 보정 알고리즘 개발 AI 담당자로서 아래 요구사항에 따라 검증 및 코드 개선 과제를 수행하라.\n\n1. 현재 코드 확인:\n- `condition.html` 내 `instructed-center-fixation` 구간의 `samples >= 4`, `k = Math.min(1, 0.35 + xs.length / 30)`, 지수 평활 영점 갱신 로직 및 안티사카드 시작 로직을 확인하라.\n\n2. 부분 유효 신호 활용량과 오차 평가 검증 과제:\n- 영점 보정 세션 중 표본 개수 부족(samples < 4)으로 미적용된 비율, 4~7개 표본으로 가중 적용된 비율, 8개 이상 완충 적용된 비율을 전체 시도 분모 기준으로 집계하라.\n- 완화된 영점 보정이 적용된 세션에서의 후속 타겟 응답 정확도(Fixation Accuracy)와 영점 재조정 빈도를 분석하라.\n- 안티사카드 프로토콜 단순화가 참가자의 중간 이탈율 및 반사적 사카드(Pro-saccade) 오류 측정 정확도에 미치는 영향을 평가하라.\n\n3. 성공 / 회귀 기준:\n- 성공: 표본 수 4~7개 구간에서도 영점 튀임 현상이 억제되며, 단일 고정 오차에 의한 영점 붕괴 비율이 기존 대비 30% 이상 감소함.\n- 회귀: 안티사카드 진입 전 영점 오프셋 미갱신으로 인해 시선 위치 오인식이 증가하거나 사카드 시작점 추정에 편향이 발생함.\n\n4. 결과 보고 양식:\n- JSON 구조로 보고할 것:\n{\n  \"driftCorrectionAnalysis\": {\n    \"totalDriftChecks\": 0,\n    \"appliedWithLowSamplesRatio\": 0.0,\n    \"appliedWithFullSamplesRatio\": 0.0,\n    \"rejectedRatio\": 0.0,\n    \"avgDxErrorPx\": 0.0\n  },\n  \"protocolImpact\": {\n    \"antisaccadeCompletionRate\": 0.0,\n    \"saccadeLatencyMs\": 0.0,\n    \"fixationStabilityScore\": 0.0\n  },\n  \"riskAssessment\": \"string\"\n}\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 537333a33e3d9a38c5cae42033faa37197799a5f\nDataset-Task: evo-537333a33e3d-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "cd922806520b174b1ae679e142883f4a572ebf70ba79c123cc4ba7adaaa7e218",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 7655,
+            "candidatesTokenCount": 3739,
+            "totalTokenCount": 12739
+          }
+        },
+        "generatedAt": "2026-10-16T19:44:50.734060+00:00",
+        "sourceSha": "537333a33e3d9a38c5cae42033faa37197799a5f",
+        "sourceEvidence": {
+          "sha": "537333a33e3d9a38c5cae42033faa37197799a5f",
+          "parents": [
+            "fe5b940f824a9d39d5421ecf6f3e6c46bb31b172"
+          ],
+          "committedAt": "2026-10-04T08:38:29Z",
+          "subject": "Condition: restore pulse coverage and gaze sample rate, smooth calibration cursor, single antisaccade practice",
+          "url": "https://github.com/jeebs0627/neurolens/commit/537333a33e3d9a38c5cae42033faa37197799a5f",
+          "files": [
+            {
+              "path": "condition-camera.js",
+              "status": "modified",
+              "additions": 21,
+              "deletions": 11
+            },
+            {
+              "path": "condition-camera.test.cjs",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "condition-fusion.js",
+              "status": "modified",
+              "additions": 16,
+              "deletions": 1
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 36,
+              "deletions": 18
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 6,
+              "deletions": 0
+            },
+            {
+              "path": "tools/condition_regression_bench.cjs",
+              "status": "added",
+              "additions": 39,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-camera.js\n@@ -9,6 +9,12 @@\n       this.info={version:'condition-camera-2',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n     }\n     async init(){\n+      /* 기본은 주 스레드 GPU 추론(동영상 프레임마다 직접 추론). 워커 경로는 기기에 따라 초당 7회 수준까지 떨어져\n+       * 시선 표본과 피부 영역 위치가 부족해지는 것이 실측 세션에서 확인돼, 명시적으로 요청할 때(?camworker=1)만 쓴다 */\n+      if(this.opt.preferMain!==false){\n+        try{await this.loadFallback();this.info.fallbackReason='main-thread-preferred';return;}\n+        catch(e){this.info.fallbackReason='main-thread-failed:'+String(e.message||e);}\n+      }\n       if(typeof Worker==='function' && typeof createImageBitmap==='function' && typeof OffscreenCanvas==='function'){\n         try {\n           await new Promise((resolve,reject)=>{\n@@ -61,9 +67,11 @@\n       if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}\n       this.ctx.drawImage(this.video,0,0,w,h);\n       const age=this.geometry?t-this.geometry.t:Infinity;\n-      const skin=NLSignal.sampleSkin(this.ctx,age<=180?this.geometry.lm:null);\n+      /* 얼굴 위치(랜드마크)가 조금 묵어도(≤600ms) 피부 영역은 거의 그대로이므로 버리지 않고 나이만큼 품질을 낮춘다 */\n+      const ageW=age<=100?1:age<=600?1-(age-100)/650:0;\n+      const skin=NLSignal.sampleSkin(this.ctx,ageW>0?this.geometry.lm:null);\n       const fr={t,ok:skin.n>=12,ppgOk:skin.n>=12,skinOk:skin.n>=12,faceOk:false,eyeOk:false,gazeOk:false,\n-        ...skin,skinQ:skin.q*(age<=80?1:.6),roiAge:Number.isFinite(age)?age:null,source:'tracked-roi',\n+        ...skin,skinQ:skin.q*ageW,roiWeight:ageW,roiAge:Number.isFinite(age)?age:null,source:'tracked-roi',\n         clockSource:captured?'capture':'callback',intervalMs,captureDelayMs:captured?tp-meta.captureTime:null,\n         callbackLateMs:Number.isFinite(meta?.expectedDisplayTime)?Math.max(0,tp-meta.expectedDisplayTime):null,\n         mediaTimeMs:Number.isFinite(meta?.mediaTime)?meta.mediaTime*1000:null,presentedFrames:meta?.presentedFrames??null};\n@@ -77,16 +85,18 @@\n           this.worker.postMessage({type:'frame',t,bitmap},[bitmap]);\n         }).catch(e=>this.fallback(String(e.message||e)));\n       }else if(this.detector){\n-        // Compatibility path: acquisition keeps its own cadence; inference is capped at 15 Hz.\n-        if(t-(this.lastInfer||0)<65){this.info.skipped++;return;}this.lastInfer=t;\n+        // 주 스레드: 카메라 프레임마다 추론(최대 약 33Hz). 밝기가 충분하면 영상 요소를 그대로 넣어 복사 비용을 없앤다\n+        if(t-(this.lastInfer||0)<28){this.info.skipped++;return;}this.lastInfer=t;\n         try{\n-          const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n-          if(c.width!==w||c.height!==h){c.width=w;c.height=h;}\n-          ctx.drawImage(this.video,0,0,w,h);const g0=NLSignal.exposureGain(ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20,raw=gain>1.05?ctx.getImageData(0,0,w,h):null;\n-          NLSignal.enhance(ctx,gain);\n-          const result=this.detector.detectForVideo(c,t),lm=result.faceLandmarks?.[0];\n-          if(raw)ctx.putImageData(raw,0,0);\n-          const eyes=lm?{left:NLSignal.eyeQuality(ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(ctx,lm,[33,133,159,145])}:null;\n+          const g0=NLSignal.exposureGain(this.ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20;\n+          let result;\n+          if(gain>1.05){\n+            const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n+            if(c.width!==w||c.height!==h){c.width=w;c.height=h;}\n+            ctx.drawImage(this.video,0,0,w,h);NLSignal.enhance(ctx,gain);result=this.detector.detectForVideo(c,t);\n+          } else result=this.detector.detectForVideo(this.video,t);\n+          const lm=result.faceLandmarks?.[0];\n+          const eyes=lm?{left:NLSignal.eyeQuality(this.ctx,lm,[362,263,386,374]),right:NLSignal.eyeQuality(this.ctx,lm,[33,133,159,145])}:null;\n           this.deliver({fr,context},{t,result,skin:NLSignal.sampleSkin(this.ctx,lm),eyes,gain});\n           this.consecutiveErrors=0;\n         }catch(e){\nFILE condition-fusion.js\n@@ -163,7 +163,22 @@\n     const inside=wins.filter(w=>(w.start??w.t)>=start-.01&&(w.end??w.t)<=end+.01&&finite(w.bpm));\n     const valid=inside.filter(w=>w.usable??w.snr>=-2),s=support(valid,start,end);\n     const empty={bpm:null,snr:null,quality:'none',n:0,validSeconds:0,effectiveSeconds:0,coverage:0,confidence:0,spreadBpm:null,rangeBpm:null,recovered:0,status:'unavailable',candidateWindows:inside.length};\n-    if(!valid.length)return empty;\n+    if(!valid.length){\n+      /* 약한 신호(weak-signal): 후보 창은 있으나 채택 기준에 못 미친 경우 버리지 않고, 두 영역 이상이 동의한 창들로\n+       * 낮은 신뢰도의 추정치를 따로 보고한다. 판정용 품질은 'poor'로 두고(판정에서 제외), 보정 근거를 함께 남긴다 */\n+      // 색차 기반 추정법(POS·CHROM)이 함께 지지한 창만: 밝기만 깜빡이는 화면·조명은 색차에서 상쇄되므로 맥박으로 오인하지 않는다\n+      const weak=inside.filter(w=>(w.methods||[]).some(m=>m!=='green')&&(w.recoverable||(w.agreement>=.5&&w.snr>=-7&&(w.regions||[]).length>=2)));\n+      if(!weak.length)return empty;\n+      const sw=support(weak.map(w=>({...w,confidence:Math.min(.29,w.candidateConfidence??w.confidence??.2)})),start,end);\n+      const rowsW=sw.weighted.length?sw.weighted:weak.map(w=>({...w,weight:.2}));\n+      const bpmW=weightedQuantile(rowsW,'bpm'),spreadW=Math.sqrt(avgSquared(rowsW,bpmW));\n+      const snrW=rowsW.reduce((a,r)=>a+(r.snr||0)*r.weight,0)/rowsW.reduce((a,r)=>a+r.weight,0);\n+      const consistent=spreadW<=6&&weak.length>=3;\n+      return {...empty,bpm:bpmW,snr:snrW,quality:consistent?'fair':'poor',n:weak.length,validSeconds:sw.seconds,effectiveSeconds:sw.effective,\n+        coverage:clamp(sw.seconds/Math.max(.001,(end-start)/1000)),confidence:Math.min(consistent?.45:.29,sw.seconds?sw.effective/sw.seconds:.2),\n+        spreadBpm:spreadW,status:'weak-signal',candidateWindows:inside.length,\n+        correction:{kind:'weak-signal-recovery',rule:consistent?'≥3 windows, ≥2 skin regions agreeing, spread ≤6 bpm':'regions agree but windows inconsistent',windows:weak.length}};\n+    }\n     // Legacy callers may provide only window centres; retain their existing summary contract.\n     const rows=s.weighted.length?s.weighted:valid.map(w=>({...w,weight:w.confidence??.65}));\n     const avg=key=>rows.reduce((a,r)=>a+(r[key]||0)*r.weight,0)/rows.reduce((a,r)=>a+r.weight,0);\nFILE condition.html\n@@ -606,7 +606,7 @@\n .zone.miss{background:rgba(201,60,92,.10)}\n .zone-a{position:absolute;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(47,158,106,.07),transparent 70%);pointer-events:none}\n .gcur.near{background:rgba(47,158,106,.9);box-shadow:0 0 0 6px rgba(47,158,106,.2)}\n-.gcur{transition:background .2s;position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(31,79,216,.85);box-shadow:0 0 0 6px rgba(31,79,216,.18);display:none;pointer-events:none}\n+.gcur{transition:background .2s,opacity .3s;left:0;top:0;will-change:transform;position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(31,79,216,.85);box-shadow:0 0 0 6px rgba(31,79,216,.18);display:none;pointer-events:none}\n .calsum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}\n .calsum div{background:#EDF0F5;border-radius:10px;padding:8px 10px}\n .calsum span{display:block;font-size:11.5px;color:var(--muted)}\n@@ -1425,7 +1425,7 @@ <h2>결과를 정리하고 있어요</h2>\n     procVideo.classList.add('on');\n     await Promise.all([procVideo.play(), prevVideo.play()]);\n     S.camera = new NLCamera(procVideo, {\n-      base: MP_BASE, model: MODEL_URL, loadFallback: loadLandmarker,\n+      base: MP_BASE, model: MODEL_URL, loadFallback: loadLandmarker, preferMain: new URLSearchParams(location.search).get('camworker') !== '1',\n       onFrame(fr) { pushFrame(fr); return { trial: S.curTrial, feature: S.onFeature }; },\n       onResult: processResult,\n       onError(e) {\n@@ -1491,7 +1491,8 @@ <h2>결과를 정리하고 있어요</h2>\n     if (st) S.gaze = { x: st.x, y: st.y };\n     if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };\n     if (!bl && S.onGaze) S.onGaze({ x: st.x, y: st.y, rx: g.x, ry: g.y }, t);\n-    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});\n+    /* 좌표 분리 저장: px,py = 시선 모델 원출력(보정 전 raw) · rx,ry = 영점·축별 보정 후(calibrated) · x,y = 화면 안정화 후 */\n+    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,px:pred.x,py:pred.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});\n   }\n }\n function pushFrame(fr) {\n@@ -1951,13 +1952,15 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   await wait(450);\n   const xs = [], ys = [];\n   let lastSample = -1;\n-  const stop = every(33, () => { if (S.rawG && S.rawG.t > lastSample && now() - S.rawG.t < 200 && !S.rawG.bl) { lastSample = S.rawG.t; xs.push(S.rawG.x); ys.push(S.rawG.y); } });\n-  await wait(900);\n+  const stop = every(33, () => { if (S.rawG && S.rawG.t > lastSample && now() - S.rawG.t < 250 && !S.rawG.bl) { lastSample = S.rawG.t; xs.push(S.rawG.x); ys.push(S.rawG.y); } });\n+  await wait(1200);\n   stop();\n-  if (xs.length >= 8) {\n-    const dx = N.median(xs) - W / 2, dy = N.median(ys) - H / 2;\n-    const applied=Math.abs(dx) < W * 0.25 && Math.abs(dy) < H * 0.3;\n-    S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,dx,dy,applied,source:'instructed-center-fixation'});\n+  /* 표본 4개 이상이면 적용하되, 표본이 적을수록 직전 영점과 더 많이 섞는다(지수 평활) — 한 번의 흔들린 측정이 영점을 크게 옮기지 않게 */\n+  if (xs.length >= 4) {\n+    const mdx = N.median(xs) - W / 2, mdy = N.median(ys) - H / 2;\n+    const applied=Math.abs(mdx) < W * 0.25 && Math.abs(mdy) < H * 0.3;\n+    const k = Math.min(1, 0.35 + xs.length / 30), dx = S.drift.dx + k * (mdx - S.drift.dx), dy = S.drift.dy + k * (mdy - S.drift.dy);\n+    S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,measuredDx:mdx,measuredDy:mdy,dx,dy,weight:k,applied,source:'instructed-center-fixation'});\n     if (applied) { S.drift = { dx, dy }; S.gaze = null; }\n   } else {\n     S.telemetry?.drift.push({t:now(),key:S.cur,samples:xs.length,dx:null,dy:null,applied:false,source:'insufficient-observations'});\n@@ -2049,22 +2052,31 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n       <div class=\"gcur\" id=\"gc\"></div><div class=\"cue\">원 쪽을 편하게 바라보세요 — 가까이 가면 커서(●)가 원 안으로 끌려 들어가요 · 영역 ${i + 1}/${zones.length} · 3단계 시선 이동 확인</div>`;\n     const zn = $('zn'), gc0 = $('gc'), zp = $('znP');\n     const t0 = now();\n-    let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0;\n+    let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0, disp = null, lastTick = null;\n     const held = [];\n     S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; if (inside && inSince !== null && t - inSince > 150) held.push({ x: g.x, y: g.y }); };\n     await new Promise((res2, rej) => {\n       const w = { rej, cleanup: () => { cancelAnimationFrame(raf); S.onGaze = null; } };\n       waiters.add(w);\n       const tick = () => {\n         const t = now();\n-        if (cur && t - cur.t < 250) {\n-          gc0.style.display = 'block'; gc0.style.left = cur.x + 'px'; gc0.style.top = cur.y + 'px';\n-          const d = Math.hypot(cur.x - z.x, cur.y - z.y);\n+        /* 시선 표본은 초당 15~30회로 들어오므로, 화면 표시는 매 프레임 목표 위치로 부드럽게 다가가게(시간 상수 90ms) 한다.\n+         * 표본이 잠깐 끊겨도(깜빡임·튐 차단) 1.2초까지는 마지막 위치에 머물며, 그 뒤에만 흐리게 표시한다 */\n+        const dtF = lastTick === null ? 16 : Math.min(100, t - lastTick); lastTick = t;\n+        if (cur) {\n+          if (!disp) disp = { x: cur.x, y: cur.y };\n+          const a = 1 - Math.exp(-dtF / 90);\n+          disp.x += a * (cur.x - disp.x); disp.y += a * (cur.y - disp.y);\n+          gc0.style.display = 'block'; gc0.style.opacity = t - cur.t < 1200 ? '1' : '.35';\n+          gc0.style.transform = 'translate3d(' + disp.x + 'px,' + disp.y + 'px,0)';\n+        }\n+        if (cur && t - cur.t < 1200) {\n+          const d = Math.hypot(disp.x - z.x, disp.y - z.y);\n           const nowIn = inside ? d <= R * 1.3 : d <= R;\n           if (nowIn) { outSince = null; if (!inside) { inside = true; inSince = t; } }\n           else if (inside) { if (outSince === null) outSince = t; if (t - outSince > 150) { inside = false; inSince = null; } }\n           gc0.classList.toggle('near', cur.near);\n-        } else gc0.style.display = 'none';\n+        }\n         zn.classList.toggle('in', inside);\n         zp.style.strokeDashoffset = 289 * (1 - Math.min(1, inside && inSince !== null ? (t - inSince) / HOLD : 0));\n         if (inside && inSince !== null && t - inSince >= HOLD) done = { ok: true, ms: Math.round(inSince - t0) };\n@@ -2100,6 +2112,14 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     let acc = { grade: 'poor', errPct: null }, info = '';\n     if (cands.length) {\n       S.model = cands[0].m;\n+      /* 눈별 신뢰도 결합 후보: 두 눈 모델이 모두 검증을 통과하면 가중 1/오차²로 결합한 예측을 같은 검증점으로 비교해, 더 정확할 때만 쓴다 */\n+      const ev = S.model.eyes && S.model.eyes.left && S.model.eyes.right ? [S.model.eyes.left.validation, S.model.eyes.right.validation] : null;\n+      if (ev && ev.every(v => v && Number.isFinite(v.errPct) && v.grade !== 'poor')) {\n+        const il = 1 / Math.max(1, ev[0].errPct) ** 2, ir = 1 / Math.max(1, ev[1].errPct) ** 2;\n+        const combine = { left: il / (il + ir), right: ir / (il + ir), from: { left: ev[0].errPct, right: ev[1].errPct } };\n+        const accW = N.gazeAccuracy(val.map(p => predAt({ ...S.model, combine }, null, p)), W, H);\n+        if (accW.errPct !== null && accW.errPct < cands[0].acc.errPct) { S.model = { ...S.model, combine }; cands[0] = { ...cands[0], key: cands[0].key + '·눈별 가중', acc: accW }; }\n+      }\n       const before = cands[0].acc;\n       /* 영점 조정: 화면 다섯 영역(가운데·네 모서리 안쪽)을 커서 없이 바라본 자료 + 검증점으로 축별 보정 */\n       const zones = [[0.5, 0.5], [0.2, 0.22], [0.8, 0.22], [0.8, 0.8], [0.2, 0.8]].map(([fx, fy]) => ({ x: fx * W, y: fy * H }));\n@@ -2310,10 +2330,8 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     if (c === 1) break;\n   }\n   S.saccade.push(...pro);\n-  /* 안티사카드 준비는 한 가지 흐름으로: ① (점을 ‘바라보는’) 시선 범위 맞추기는 반대쪽 보기 안내 전에 끝내고\n-   * ② 안내 → ③ 반대쪽 보기 연습 → ④ 곧바로 본 시행. 연습과 본 시행 사이에 ‘점을 바라보라’는 지시가 끼어들지 않게 한다 */\n-  await driftCheck();\n-  { const cal2 = await sacCalibrate(); if (cal2) S.sacCal = cal2; }\n+  /* 안티사카드: 안내 → 반대쪽 보기 연습(시범 1회) → 곧바로 본 시행. 시선 범위는 프로사카드 앞에서 잰 값을 그대로 쓰고,\n+   * 연습 앞에 ‘점을 바라보는’ 범위 맞추기나 영점 점을 다시 넣지 않는다(시범이 두 번 섞이지 않게). 다시 하기를 고를 때만 다시 잰다 */\n   await pauseCard('이번에는 반대쪽을 보세요', `빨간 점이 나타나면 <b>점을 보지 말고, 반대쪽 같은 거리</b>를 최대한 빨리 바라보세요. 점에 눈이 먼저 가도 괜찮아요 — 바로 반대쪽으로 옮기면 돼요.${V.anti}<br>${d.practice ? `연습 ${d.practice}회 후 바로 본 시행 ${d.anti}회가 이어져요.` : `본 시행 ${d.anti}회를 진행해요.`}`, d.practice ? '연습 시작' : '시작');\n   if (d.practice) {\n     S.saccade.push(...await sacBlock('anti', d.practice, true));\nFILE newbiz-core.js\n@@ -469,6 +469,12 @@\n     if (f.eyes) {\n       const okL = f.eyes.left && f.eyes.left.q >= EYE_OK, okR = f.eyes.right && f.eyes.right.q >= EYE_OK;\n       if (!okL && !okR) return null;                                   // 두 눈 모두 불안정(깜빡임·반사) → 이 프레임은 쓰지 않는다\n+      /* 눈별 신뢰도 결합: 보정 검증에서 오차가 작은 눈에 더 큰 고정 가중(1/오차²)을 준다. 가중은 측정 내내 바뀌지 않아 좌표가 들썩이지 않는다 */\n+      const cw = model.combine;\n+      if (cw && okL && okR && model.eyes && model.eyes.left && model.eyes.right) {\n+        const pl = predictGaze(model.eyes.left, { ...f, eyes: null, u: f.eyes.left.u, v: f.eyes.left.v }), pr = predictGaze(model.eyes.right, { ...f, eyes: null, u: f.eyes.right.u, v: f.eyes.right.v });\n+        if (pl && pr) return { x: cw.left * pl.x + cw.right * pr.x, y: cw.left * pl.y + cw.right * pr.y, mode: 'weighted' };\n+      }\n       if (!(okL && okR)) {\n         const side = okL ? 'left' : 'right', e = f.eyes[side], m = model.eyes && model.eyes[side];\n         if (m && !['poor', 'none'].includes(m.validation && m.validation.grade)) return { ...predictGaze(m, { ...f, eyes: null, u: e.u, v: e.v }), mode: side };",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "38956942767"
+      }
     },
     {
       "sha": "fe5b940f824a9d39d5421ecf6f3e6c46bb31b172",
@@ -19123,9 +19389,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "b9d974156111ebead21f3baa2480d43050db302d"
+    "sourceHead": "0787446890f8f5181347e99f5dab96e2061c2630"
   },
-  "updatedAt": "2026-10-16T16:41:47.090887+00:00",
-  "aiCooldownUntil": "2026-10-16T16:46:46.408403+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-16T19:44:51.719014+00:00"
 }
