@@ -12294,36 +12294,36 @@
         {
           "id": "evo-d61afb939c00-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-d61afb939c00-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: d61afb939c0002c4469f41f4cdb2efd65daca5bf\n변경 제목: Condition: heart rate shown from ~3 s, stable gaze coordinates with measured-value correction\n관련 파일: condition-camera-worker.js, condition-camera.js, condition.html, newbiz-core.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-d61afb939c00-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "조명 보정 평활화 및 예비 심박(quickHr) 신호의 활용률과 오차 검증 과제",
+          "rationale": "condition-camera-worker.js 및 condition-camera.js에서 exposure gain에 지수 평활화(gainS)를 적용하고, newbiz-core.js에 quickHr 및 liveHrNow를 도입하여 3초 시점부터 예비 심박을 표시하도록 변경됨. 커밋 주석의 조명 보정 안정화 및 신호 포착 시간 단축은 연구자의 가설일 뿐 실제 신호 왜곡 및 부정확한 심박 표시 위험이 존재하므로 실측 데이터를 통한 활용량과 오차 분리 평가가 필수적임.",
+          "validationPlan": "실제 참가자, 촬영 기기, 날짜, 조명 조건(어두움/적정/밝음)별 데이터셋을 연결하여 평가함. 전체 세션 분모(측정 실패/중단 포함) 대비 3~10초 사이 예비 심박 유출 비율, 센서 정답 대비 MAE/RMSE, 오차 기준(±5bpm) 초과율을 측정하고 기존 liveHr 단독 방식과 비교 검증함.",
+          "prompt": "현재 condition-camera-worker.js, condition-camera.js 및 newbiz-core.js의 exposureGain 평활화 및 quickHr 구현 코드를 확인하라.\n\n[개발 및 검증 과제]\n1. exposureGain 평활화(gainS)가 프레임별 PPG 신호 파형의 진폭 및 SNR에 미치는 영향을 평가하고, 노출 급변 시 신호 회복 지연 시간을 산출하라.\n2. quickHr 알고리즘이 2.8~8초 구간의 약한 PPG 신호에서 산출하는 예비 심박(provisional)의 활용량(유효 신호 생성 비율)과 센서 정답 대비 절대 오차(MAE)를 함께 평가하라.\n3. liveHrNow의 지수 이동 평균 보충 로직이 심박 급변 구간에서 실시간 추적 지연을 유발하는지 확인하라.\n\n[성공 및 회귀 기준]\n- 성공: 조명 변동 환경에서 PPG SNR이 하강하지 않으며, 3~9초 구간의 심박 측정 유효 분모가 30% 이상 증가하고, 정답 대비 MAE가 기존 대비 악화되지 않음 (0.5bpm 이내 허용 오차).\n- 회귀: 노출 변경 직후 심박 추정 오차가 ±8bpm을 초과하거나, quickHr 일치성(spectral peak vs IBI) 미달로 인한 poor 등급 비율이 20% 이상 증가하는 경우.\n\n[보고 양식]\n- 분석 조건: 평가 대상 파일 패치 명세, 데이터셋 참가자/기기/날짜 분할 기준\n- 평가 결과: [전체 분모 | quickHr 생성 성공률 | MAE(bpm) | RMSE(bpm) | 노출 적응 지연(ms)]\n- 결론 및 제안: 약한 신호 수용 기준 조정 및 exposure gain 평활화 계수 최적화 제안\n* 주의: 실측 성능 수치를 자의적으로 생성하지 말고 dataset 내 실제 관측 기록 및 동시 측정 메모를 연동하여 결과 표를 작성하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d61afb939c0002c4469f41f4cdb2efd65daca5bf\nDataset-Task: evo-d61afb939c00-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-d61afb939c00-gaze",
           "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-d61afb939c00-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: d61afb939c0002c4469f41f4cdb2efd65daca5bf\n변경 제목: Condition: heart rate shown from ~3 s, stable gaze coordinates with measured-value correction\n관련 파일: condition-camera-worker.js, condition-camera.js, condition.html, newbiz-core.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-d61afb939c00-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "단안 모델 전환·gazeStabilizer 및 2차 아핀 보정의 시선 추적 오차 및 지연 검증",
+          "rationale": "newbiz-core.js 및 condition.html에서 gazeValid 기준(EYE_OK = 0.15, blinkAvg < 0.45) 신설, 단안 모델 예외 처리, gazeStabilizer(22% 점프 차단 및 5표본 중앙값), robustFeatures, ctl.pairs 기반 2차 아핀 보정(composeAffine)이 반영됨. 시선 좌표의 떨림 감소 가설과 달리 과도한 억제로 인한 반응 지연 또는 보정 오차가 발생할 수 있으므로 독립된 검증점 데이터셋으로 오차와 반응성을 다각도로 검증해야 함.",
+          "validationPlan": "참가자/기기/날짜별 시선 수집 데이터셋에서 검증점 오차(errPct), 응답 지연(lag ms), 깜빡임 전후 시선 좌표 튀임 횟수를 측정함. 커서 과제 2차 보정(composeAffine) 적용 전후의 errPct 변화를 비교하고 e1.errPct <= e0.errPct + 0.3 조건에 따른 채택률 및 오차 감소 효과를 평가함.",
+          "prompt": "현재 condition.html 및 newbiz-core.js에 적용된 gazeValid, gazeStabilizer, robustFeatures, composeAffine 구현 코드를 분석하라.\n\n[개발 및 검증 과제]\n1. EYE_OK(0.15) 및 blinkAvg(0.45) 기준 도입에 따른 프레임별 gazeOk 유효 비율과, 한쪽 눈 블러/반사 시 단안 모델 이행 성공률 및 오차 변화를 평가하라.\n2. gazeStabilizer의 22% 점프 차단(JUMP) 및 5표본 중앙값 필터링이 실제 빠른 안구 운동(saccade) 상황에서 발생하는 응답 지연(lag)과 좌표 고정(held) 오류를 측정하라.\n3. robustFeatures의 변형 절사 알고리즘이 보정 표적 특징량 추출 시 이상치를 올바르게 제거하는지, ctl.pairs 기반 2차 아핀 보정이 검증점 오차(errPct)를 실질적으로 개선하는지 검증하라.\n\n[성공 및 회귀 기준]\n- 성공: 눈 감음/반사 구간 시선 좌표 튐 빈도가 50% 이상 감소하고, 2차 아핀 보정 채택 세션에서 검증점 평균 오차(errPct)가 유의미하게 개선됨.\n- 회귀: gazeStabilizer 도입으로 인한 시선 추적 시차 지연이 100ms를 초과하거나, 유효한 빠른 시선 이동이 차단(held)되는 비율이 전체 안구 이동의 5%를 초과하는 경우.\n\n[보고 양식]\n- 분석 조건: 평가 대상 알고리즘 모듈, 기기/환경/참가자 데이터셋 구성\n- 평가 결과: [전체 세션 분모 | gazeOk 유효율(%) | 검증점 평균 errPct | 안구 이동 지연(ms) | 2차 보정 채택률(%)]\n- 결론 및 개선점: 단안 모델 전환 품질 임계값 및 gazeStabilizer 매개변수(jump, span) 조정 권고\n* 주의: 실측 성능 수치를 임의로 작성하지 말고 dataset의 실제 시선 로그와 검증점 기록을 기반으로 분석 보고를 작성하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d61afb939c0002c4469f41f4cdb2efd65daca5bf\nDataset-Task: evo-d61afb939c00-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-d61afb939c00-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-d61afb939c00-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: d61afb939c0002c4469f41f4cdb2efd65daca5bf\n변경 제목: Condition: heart rate shown from ~3 s, stable gaze coordinates with measured-value correction\n관련 파일: condition-camera-worker.js, condition-camera.js, condition.html, newbiz-core.js\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-d61afb939c00-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "맥박·시선 복합 측정 환경에서의 조건별 신호 활용률 및 성공률 종합 평가",
+          "rationale": "condition.html 및 newbiz-core.js 전반에서 맥박(quickHr)과 시선(gazeValid, gazeStabilizer)의 신호 판정 기준이 동시에 개편됨. 특정 단일 세션이나 합성 데이터 결과에 의존하지 않고, 다양한 웹캠 환경(조명, FPS, 움직임)에서 실패 세션을 포함한 전체 분모 기반의 복합 측정 완수율과 불확실성을 평가하는 종합 검증 과제가 요구됨.",
+          "validationPlan": "조명 상태(어두움/적정/밝음), 프레임 레이트(15fps 미만/15~24fps/24fps 이상), 머리 움직임(안정/움직임 많음) 조건별로 수집된 멀티모달 데이터셋을 구성함. 전체 시도 세션 분모 대비 유효 신호 확보 비율, 맥박-시선 동시 정밀 측정 성공률, 오차 범위를 기기/참가자/날짜별로 분리 평가함.",
+          "prompt": "현재 condition.html 전반의 측정 루프(pushFrame, setupTicker, calibrate, liveHrNow 등) 및 newbiz-core.js의 융합 추정 코드를 확인하라.\n\n[개발 및 검증 과제]\n1. 환경 조건(조명, FPS, 머리 움직임)에 따른 맥박 및 시선 부분 유효 신호의 전체 세션 대비 활용량과 측정 성공률을 통합 산출하라.\n2. 약한 신호(poor/provisional 등급)가 인위적으로 정제되거나 무조건 폐기되지 않고, 불확실성 지표와 함께 측정 결과 보고에 정당하게 반영되는지 평가하라.\n3. 참가자별, 기기 종류별, 수집 날짜별 분할 평가를 통해 특정 환경에 치우치지 않는 안정성을 검증하라.\n\n[성공 및 회귀 기준]\n- 성공: 제한적 환경(어두움, 15~24fps)에서 전체 세션 대비 최소 측정 성공률이 기존 대비 15%p 이상 향상되고, 오차 평가가 명확히 병행됨.\n- 회귀: 신호 노이즈로 인해 잘못된 정상값(fake normal)이 생성되거나, 유효 신호 판정 기준 강화로 인해 전체 측정 완수율이 10%p 이상 감소하는 경우.\n\n[보고 양식]\n- 평가 데이터셋: 참가자 수, 기기 다양성, 수집 날짜 범위, 실패 포함 전체 세션 수\n- 종합 평가표: [환경 조건 | 전체 시도 분모 | 맥박 유효 활용률 | 시선 유효 활용률 | 복합 측정 성공률 | 평균 오차 및 불확실성]\n- 종합 제안: 사용자 환경별 가이드 텍스트 및 신호 수용 래치 로직 개선안\n* 주의: 실측 수치를 위조하지 말고 dataset 내 실측 파라미터 및 메모를 연결하여 검증 결과를 기술하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d61afb939c0002c4469f41f4cdb2efd65daca5bf\nDataset-Task: evo-d61afb939c00-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisState": "generated",
+      "analysisAttempts": 3,
       "deploymentEvents": [
         {
           "key": "check-55541271531",
@@ -12355,9 +12355,104 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-17T13:15:05.437134+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-17T16:29:18.522249+00:00",
+      "analysis": {
+        "summary": "본 연구 보고서는 2026년 10월 4일 커밋(sha: d61afb939c0002c4469f41f4cdb2efd65daca5bf)에 반영된 웹캠 기반 맥박 및 시선 측정 파이프라인의 공개 GitHub 코드 변경 내역을 바탕으로 작성되었습니다. 제공된 연구 자료에서 파일 목록 생략 여부(filesTruncated)는 false이며 패치 추출 생략 여부(patchTruncated)도 false로, 모든 변경 파일과 패치 내용이 완전하게 포함되어 있습니다. 커밋 제목('Condition: heart rate shown from ~3 s, stable gaze coordinates with measured-value correction') 및 내부에 작성된 주석은 개발자의 의도 및 가설일 뿐이며, accuracyValidated 항목이 false로 명시되어 있으므로 검증된 임상적/기술적 성과로 다루지 않습니다.\n\n관측된 주요 변경 사항은 다음과 같습니다:\n1. 조명 보정 및 영상 전처리 (condition-camera-worker.js, condition-camera.js): 노출 보정 이득(exposure gain)에 지수 평활화(gainS, 계수 0.12) 및 0.05 단위 양자화를 적용하여 프레임 간 랜드마크 흔들림을 완화하고자 함.\n2. 실시간 예비 심박 수집 및 정교화 (newbiz-core.js, condition.html): spectralPeak에 minSec 매개변수(기본 4초, quickHr에서는 2.5초)를 도입하고, 스펙트럼 피크와 박동 간격(IBI) 중앙값 간 일치 여부를 검증하는 quickHr 함수를 추가. UI에서는 3초 시점부터 예비 심박(provisional) 상태를 디스플레이에 부드럽게 지수 이동 평균(liveHrNow)으로 표시하도록 변경함.\n3. 단안 시선 모델 이행 및 정화 (newbiz-core.js, condition.html): 눈 품질 임계값(EYE_OK = 0.15)과 깜빡임 평균(blinkAvg < 0.45)을 조합하여 gazeValid 기준을 신설. 두 눈 중 한쪽만 유효할 경우 단안 모델로 이행하되, 검증 등급이 poor/none인 단안 모델 사용은 차단. 고정 표적 측정 시 중앙값 기반 변형 절사(robustFeatures)를 적용함.\n4. 시선 좌표 안정화 및 2차 보정 (newbiz-core.js, condition.html): 22% 이상 점프 시 2표본 연속 확인 전까지 이전 위치를 유지(held)하고 5표본 중앙값을 적용하는 gazeStabilizer 추가. 커서 과제 중 원 내 머무른 구간(held)의 시선쌍(pairs)을 수집하여 2차 아핀 보정(fitAffine, composeAffine)을 시도하고, 검증점 오차(errPct)가 악화되지 않을 때만 S.affine에 반영하도록 변경함.\n\n미검증 영향 및 가설:\n- 노출 보정 평활화 및 예비 심박(quickHr) 도입이 미세 맥동 신호의 SNR을 낮추거나 빠른 오판을 유발하지 않는지 검증이 필요함.\n- 시선 좌표 안정화(gazeStabilizer) 및 단안 모델 이행 기준 변화가 실제 시선 추적 지연(latency)을 증가시키거나, 불특정 환경에서 오차 수치(errPct)를 왜곡하지 않는지 실측 데이터셋 기반 검증이 필수적임. 본 연구 자료에는 실측 성능 수치가 포함되어 있지 않으므로, 후속 과제 수행 시 수집된 데이터셋 및 임상 메모와의 연동 평가가 요구됩니다.",
+        "tasks": [
+          {
+            "id": "evo-d61afb939c00-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "조명 보정 평활화 및 예비 심박(quickHr) 신호의 활용률과 오차 검증 과제",
+            "rationale": "condition-camera-worker.js 및 condition-camera.js에서 exposure gain에 지수 평활화(gainS)를 적용하고, newbiz-core.js에 quickHr 및 liveHrNow를 도입하여 3초 시점부터 예비 심박을 표시하도록 변경됨. 커밋 주석의 조명 보정 안정화 및 신호 포착 시간 단축은 연구자의 가설일 뿐 실제 신호 왜곡 및 부정확한 심박 표시 위험이 존재하므로 실측 데이터를 통한 활용량과 오차 분리 평가가 필수적임.",
+            "validationPlan": "실제 참가자, 촬영 기기, 날짜, 조명 조건(어두움/적정/밝음)별 데이터셋을 연결하여 평가함. 전체 세션 분모(측정 실패/중단 포함) 대비 3~10초 사이 예비 심박 유출 비율, 센서 정답 대비 MAE/RMSE, 오차 기준(±5bpm) 초과율을 측정하고 기존 liveHr 단독 방식과 비교 검증함.",
+            "prompt": "현재 condition-camera-worker.js, condition-camera.js 및 newbiz-core.js의 exposureGain 평활화 및 quickHr 구현 코드를 확인하라.\n\n[개발 및 검증 과제]\n1. exposureGain 평활화(gainS)가 프레임별 PPG 신호 파형의 진폭 및 SNR에 미치는 영향을 평가하고, 노출 급변 시 신호 회복 지연 시간을 산출하라.\n2. quickHr 알고리즘이 2.8~8초 구간의 약한 PPG 신호에서 산출하는 예비 심박(provisional)의 활용량(유효 신호 생성 비율)과 센서 정답 대비 절대 오차(MAE)를 함께 평가하라.\n3. liveHrNow의 지수 이동 평균 보충 로직이 심박 급변 구간에서 실시간 추적 지연을 유발하는지 확인하라.\n\n[성공 및 회귀 기준]\n- 성공: 조명 변동 환경에서 PPG SNR이 하강하지 않으며, 3~9초 구간의 심박 측정 유효 분모가 30% 이상 증가하고, 정답 대비 MAE가 기존 대비 악화되지 않음 (0.5bpm 이내 허용 오차).\n- 회귀: 노출 변경 직후 심박 추정 오차가 ±8bpm을 초과하거나, quickHr 일치성(spectral peak vs IBI) 미달로 인한 poor 등급 비율이 20% 이상 증가하는 경우.\n\n[보고 양식]\n- 분석 조건: 평가 대상 파일 패치 명세, 데이터셋 참가자/기기/날짜 분할 기준\n- 평가 결과: [전체 분모 | quickHr 생성 성공률 | MAE(bpm) | RMSE(bpm) | 노출 적응 지연(ms)]\n- 결론 및 제안: 약한 신호 수용 기준 조정 및 exposure gain 평활화 계수 최적화 제안\n* 주의: 실측 성능 수치를 자의적으로 생성하지 말고 dataset 내 실제 관측 기록 및 동시 측정 메모를 연동하여 결과 표를 작성하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d61afb939c0002c4469f41f4cdb2efd65daca5bf\nDataset-Task: evo-d61afb939c00-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-d61afb939c00-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "단안 모델 전환·gazeStabilizer 및 2차 아핀 보정의 시선 추적 오차 및 지연 검증",
+            "rationale": "newbiz-core.js 및 condition.html에서 gazeValid 기준(EYE_OK = 0.15, blinkAvg < 0.45) 신설, 단안 모델 예외 처리, gazeStabilizer(22% 점프 차단 및 5표본 중앙값), robustFeatures, ctl.pairs 기반 2차 아핀 보정(composeAffine)이 반영됨. 시선 좌표의 떨림 감소 가설과 달리 과도한 억제로 인한 반응 지연 또는 보정 오차가 발생할 수 있으므로 독립된 검증점 데이터셋으로 오차와 반응성을 다각도로 검증해야 함.",
+            "validationPlan": "참가자/기기/날짜별 시선 수집 데이터셋에서 검증점 오차(errPct), 응답 지연(lag ms), 깜빡임 전후 시선 좌표 튀임 횟수를 측정함. 커서 과제 2차 보정(composeAffine) 적용 전후의 errPct 변화를 비교하고 e1.errPct <= e0.errPct + 0.3 조건에 따른 채택률 및 오차 감소 효과를 평가함.",
+            "prompt": "현재 condition.html 및 newbiz-core.js에 적용된 gazeValid, gazeStabilizer, robustFeatures, composeAffine 구현 코드를 분석하라.\n\n[개발 및 검증 과제]\n1. EYE_OK(0.15) 및 blinkAvg(0.45) 기준 도입에 따른 프레임별 gazeOk 유효 비율과, 한쪽 눈 블러/반사 시 단안 모델 이행 성공률 및 오차 변화를 평가하라.\n2. gazeStabilizer의 22% 점프 차단(JUMP) 및 5표본 중앙값 필터링이 실제 빠른 안구 운동(saccade) 상황에서 발생하는 응답 지연(lag)과 좌표 고정(held) 오류를 측정하라.\n3. robustFeatures의 변형 절사 알고리즘이 보정 표적 특징량 추출 시 이상치를 올바르게 제거하는지, ctl.pairs 기반 2차 아핀 보정이 검증점 오차(errPct)를 실질적으로 개선하는지 검증하라.\n\n[성공 및 회귀 기준]\n- 성공: 눈 감음/반사 구간 시선 좌표 튐 빈도가 50% 이상 감소하고, 2차 아핀 보정 채택 세션에서 검증점 평균 오차(errPct)가 유의미하게 개선됨.\n- 회귀: gazeStabilizer 도입으로 인한 시선 추적 시차 지연이 100ms를 초과하거나, 유효한 빠른 시선 이동이 차단(held)되는 비율이 전체 안구 이동의 5%를 초과하는 경우.\n\n[보고 양식]\n- 분석 조건: 평가 대상 알고리즘 모듈, 기기/환경/참가자 데이터셋 구성\n- 평가 결과: [전체 세션 분모 | gazeOk 유효율(%) | 검증점 평균 errPct | 안구 이동 지연(ms) | 2차 보정 채택률(%)]\n- 결론 및 개선점: 단안 모델 전환 품질 임계값 및 gazeStabilizer 매개변수(jump, span) 조정 권고\n* 주의: 실측 성능 수치를 임의로 작성하지 말고 dataset의 실제 시선 로그와 검증점 기록을 기반으로 분석 보고를 작성하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d61afb939c0002c4469f41f4cdb2efd65daca5bf\nDataset-Task: evo-d61afb939c00-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-d61afb939c00-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "맥박·시선 복합 측정 환경에서의 조건별 신호 활용률 및 성공률 종합 평가",
+            "rationale": "condition.html 및 newbiz-core.js 전반에서 맥박(quickHr)과 시선(gazeValid, gazeStabilizer)의 신호 판정 기준이 동시에 개편됨. 특정 단일 세션이나 합성 데이터 결과에 의존하지 않고, 다양한 웹캠 환경(조명, FPS, 움직임)에서 실패 세션을 포함한 전체 분모 기반의 복합 측정 완수율과 불확실성을 평가하는 종합 검증 과제가 요구됨.",
+            "validationPlan": "조명 상태(어두움/적정/밝음), 프레임 레이트(15fps 미만/15~24fps/24fps 이상), 머리 움직임(안정/움직임 많음) 조건별로 수집된 멀티모달 데이터셋을 구성함. 전체 시도 세션 분모 대비 유효 신호 확보 비율, 맥박-시선 동시 정밀 측정 성공률, 오차 범위를 기기/참가자/날짜별로 분리 평가함.",
+            "prompt": "현재 condition.html 전반의 측정 루프(pushFrame, setupTicker, calibrate, liveHrNow 등) 및 newbiz-core.js의 융합 추정 코드를 확인하라.\n\n[개발 및 검증 과제]\n1. 환경 조건(조명, FPS, 머리 움직임)에 따른 맥박 및 시선 부분 유효 신호의 전체 세션 대비 활용량과 측정 성공률을 통합 산출하라.\n2. 약한 신호(poor/provisional 등급)가 인위적으로 정제되거나 무조건 폐기되지 않고, 불확실성 지표와 함께 측정 결과 보고에 정당하게 반영되는지 평가하라.\n3. 참가자별, 기기 종류별, 수집 날짜별 분할 평가를 통해 특정 환경에 치우치지 않는 안정성을 검증하라.\n\n[성공 및 회귀 기준]\n- 성공: 제한적 환경(어두움, 15~24fps)에서 전체 세션 대비 최소 측정 성공률이 기존 대비 15%p 이상 향상되고, 오차 평가가 명확히 병행됨.\n- 회귀: 신호 노이즈로 인해 잘못된 정상값(fake normal)이 생성되거나, 유효 신호 판정 기준 강화로 인해 전체 측정 완수율이 10%p 이상 감소하는 경우.\n\n[보고 양식]\n- 평가 데이터셋: 참가자 수, 기기 다양성, 수집 날짜 범위, 실패 포함 전체 세션 수\n- 종합 평가표: [환경 조건 | 전체 시도 분모 | 맥박 유효 활용률 | 시선 유효 활용률 | 복합 측정 성공률 | 평균 오차 및 불확실성]\n- 종합 제안: 사용자 환경별 가이드 텍스트 및 신호 수용 래치 로직 개선안\n* 주의: 실측 수치를 위조하지 말고 dataset 내 실측 파라미터 및 메모를 연결하여 검증 결과를 기술하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: d61afb939c0002c4469f41f4cdb2efd65daca5bf\nDataset-Task: evo-d61afb939c00-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "0cb17cb5ca0ff553f3c4dff269d28d2b9f5d9da2993da03012744aeb0ae714b6",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 10460,
+            "candidatesTokenCount": 3087,
+            "totalTokenCount": 16150
+          }
+        },
+        "generatedAt": "2026-10-17T16:29:59.204992+00:00",
+        "sourceSha": "d61afb939c0002c4469f41f4cdb2efd65daca5bf",
+        "sourceEvidence": {
+          "sha": "d61afb939c0002c4469f41f4cdb2efd65daca5bf",
+          "parents": [
+            "bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e"
+          ],
+          "committedAt": "2026-10-04T08:06:54Z",
+          "subject": "Condition: heart rate shown from ~3 s, stable gaze coordinates with measured-value correction",
+          "url": "https://github.com/jeebs0627/neurolens/commit/d61afb939c0002c4469f41f4cdb2efd65daca5bf",
+          "files": [
+            {
+              "path": "condition-camera-worker.js",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 2
+            },
+            {
+              "path": "condition-camera.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 54,
+              "deletions": 23
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 78,
+              "deletions": 14
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-camera-worker.js\n@@ -1,6 +1,6 @@\n /* Classic worker: MediaPipe's WASM loader may use importScripts internally. */\n importScripts('condition-signal.js');\n-let detector, canvas, ctx, skinCanvas, skinCtx;\n+let detector, canvas, ctx, skinCanvas, skinCtx, gainS = null;\n self.onmessage = async ({data:m}) => {\n   try {\n     if(m.type==='init') {\n@@ -19,7 +19,8 @@ self.onmessage = async ({data:m}) => {\n       const w=Math.min(640,bmp.width),h=Math.round(bmp.height*w/bmp.width);\n       if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}\n       ctx.drawImage(bmp,0,0,w,h);\n-      const gain=NLSignal.exposureGain(ctx);\n+      // 노출 보정 이득을 부드럽게: 프레임마다 밝기 보정이 달라지면 홍채 랜드마크가 흔들린다\n+      const g0=NLSignal.exposureGain(ctx);gainS=gainS===null?g0:gainS+.12*(g0-gainS);const gain=Math.round(gainS*20)/20;\n       // Keep the original pixels for quality and pulse extraction.\n       const raw=gain>1.05?ctx.getImageData(0,0,w,h):null;\n       NLSignal.enhance(ctx,gain);\nFILE condition-camera.js\n@@ -82,7 +82,7 @@\n         try{\n           const c=this.inferCanvas,ctx=this.inferCtx,w=Math.min(640,this.video.videoWidth),h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n           if(c.width!==w||c.height!==h){c.width=w;c.height=h;}\n-          ctx.drawImage(this.video,0,0,w,h);const gain=NLSignal.exposureGain(ctx),raw=gain>1.05?ctx.getImageData(0,0,w,h):null;\n+          ctx.drawImage(this.video,0,0,w,h);const g0=NLSignal.exposureGain(ctx);this.gainS=this.gainS==null?g0:this.gainS+.12*(g0-this.gainS);const gain=Math.round(this.gainS*20)/20,raw=gain>1.05?ctx.getImageData(0,0,w,h):null;\n           NLSignal.enhance(ctx,gain);\n           const result=this.detector.detectForVideo(c,t),lm=result.faceLandmarks?.[0];\n           if(raw)ctx.putImageData(raw,0,0);\nFILE condition.html\n@@ -1102,7 +1102,7 @@ <h2>얼굴이 화면 가운데에 오도록 앉아 주세요</h2>\n           <li><span><i class=\"dot\" id=\"dStill\"></i>머리 안정</span><b id=\"vStill\">—</b></li>\n         </ul>\n         <div class=\"livehr\"><svg class=\"heart\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.4 5c2 0 3.3 1 4 2.1h3.2C14.3 6 15.6 5 17.6 5 21 5 23.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z\"/></svg>\n-          <div><b id=\"vLiveHr\">--</b> <span class=\"small\">bpm</span><div class=\"small\" id=\"vLiveQ\">얼굴을 10초 정도 비추면 카메라만으로 심박이 잡혀요</div></div></div>\n+          <div><b id=\"vLiveHr\">--</b> <span class=\"small\">bpm</span><div class=\"small\" id=\"vLiveQ\">얼굴을 비추면 3초 정도부터 카메라만으로 심박이 잡혀요</div></div></div>\n         <div class=\"status\" id=\"setupStatus\"></div>\n       </div>\n     </div>\n@@ -1205,7 +1205,7 @@ <h2>결과를 정리하고 있어요</h2>\n NLResearchStore.flush().catch(()=>{});\n const MOD_ORDER = ['alert', 'oculo', 'sustain', 'core'];\n /* One Euro 필터: 머물 때 떨림↓(minCutoff), 움직일 때 지연↓(beta). 시선 커서가 너무 떨리지도, 굼뜨지도 않게 */\n-const resetEuro = () => { S.euro = { x: N.oneEuro({ minCutoff: 0.6, beta: 0.004 }), y: N.oneEuro({ minCutoff: 0.6, beta: 0.004 }) }; S.view = null; };\n+const resetEuro = () => { S.euro = { x: N.oneEuro({ minCutoff: 0.5, beta: 0.004 }), y: N.oneEuro({ minCutoff: 0.5, beta: 0.004 }) }; S.view = null; S.gstab = null; };\n resetEuro();\n const GAZE_STEPS = ['pursuit', 'saccade', 'freeview'];\n const FIX_MS = 700;\n@@ -1463,10 +1463,12 @@ <h2>결과를 정리하고 있어요</h2>\n   const bs = blendMap(res);\n   f.eyes.left.q *= (eyes?.left ?? 1) * (1 - (bs.eyeBlinkLeft || 0));\n   f.eyes.right.q *= (eyes?.right ?? 1) * (1 - (bs.eyeBlinkRight || 0));\n-  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q);\n+  const eyeQ = Math.max(f.eyes.left.q, f.eyes.right.q), blinkAvg = ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2;\n+  /* 시선 유효: 적어도 한 눈이 또렷하고(품질 0.15 이상) 깜빡이는 중이 아닐 때만. 반쯤 감긴 눈의 홍채 위치는 크게 튄다 */\n+  const gazeValid = eyeQ >= 0.15 && blinkAvg < 0.45;\n   Object.assign(fr, roi, {\n     ok: roi.n >= 12, ppgOk: roi.n >= 12, skinOk: roi.n >= 12, faceOk: true,\n-    eyeOk: Math.max(eyes?.left ?? 1,eyes?.right ?? 1) > .035, gazeOk: eyeQ > .035, skinQ: roi.q, eyeQ, qLeft: f.eyes.left.q, qRight: f.eyes.right.q,\n+    eyeOk: Math.max(eyes?.left ?? 1,eyes?.right ?? 1) > .035, gazeOk: gazeValid, skinQ: roi.q, eyeQ, qLeft: f.eyes.left.q, qRight: f.eyes.right.q,\n     uLeft: f.eyes.left.u, vLeft: f.eyes.left.v, uRight: f.eyes.right.u, vRight: f.eyes.right.v,\n     source: 'observed', roiAge: 0, exposureGain: gain, cx: f.cx, cy: f.cy, fw: f.fw, open: f.open,\n     blink: ((bs.eyeBlinkLeft || 0) + (bs.eyeBlinkRight || 0)) / 2,\n@@ -1480,13 +1482,16 @@ <h2>결과를 정리하고 있어요</h2>\n   if (S.model) {\n     const pred = N.predictGaze(S.model, f), g0 = N.applyAffine(S.affine, pred);\n     if (!g0 || !Number.isFinite(g0.x) || !Number.isFinite(g0.y)) return;\n-    const bl = !fr.gazeOk;\n-    S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };\n     const g = { x: g0.x - S.drift.dx, y: g0.y - S.drift.dy };\n-    S.gaze = g; // Display filtering cannot change measured latency or dwell.\n-    if (!bl) S.view = { x: S.euro.x(g.x, t), y: S.euro.y(g.y, t), t };\n-    if (!bl && S.onGaze) S.onGaze(g, t);\n-    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:g.x,y:g.y,rx:g.x,ry:g.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});\n+    /* 안정화: 화면 밖 제한 → 확인되지 않은 큰 점프 차단 → 5표본 중앙값. 차단된 튐은 분석에서도 뺀다(bl) */\n+    if (!S.gstab) S.gstab = N.gazeStabilizer({ W: stage.clientWidth || innerWidth, H: stage.clientHeight || innerHeight });\n+    const st = fr.gazeOk ? S.gstab.push(g, t) : null;\n+    const bl = !fr.gazeOk || !st || st.held;\n+    S.rawG = { t, x: g0.x, y: g0.y, bl, q: eyeQ, mode: pred.mode };\n+    if (st) S.gaze = { x: st.x, y: st.y };\n+    if (!bl) S.view = { x: S.euro.x(st.x, t), y: S.euro.y(st.y, t), t };\n+    if (!bl && S.onGaze) S.onGaze({ x: st.x, y: st.y, rx: g.x, ry: g.y }, t);\n+    if (context.trial && context.trial === S.curTrial) context.trial.samples.push({t,x:st?st.x:g.x,y:st?st.y:g.y,rx:g.x,ry:g.y,bl,q:eyeQ,mode:pred.mode,lag:fr.lag});\n   }\n }\n function pushFrame(fr) {\n@@ -1551,6 +1556,17 @@ <h2>결과를 정리하고 있어요</h2>\n   return { ok: !msg, msg: msg || '좋아요 · 이 자세를 유지하세요' };\n }\n function setDot(id, state) { $(id).className = 'dot ' + (state || ''); }\n+/* 화면 표시용 실시간 심박: 융합 추정(약 6~10초 이후)이 나오기 전에는 짧은 창 예비값을 바로 보여 준다.\n+ * 숫자가 튀지 않게 직전 표시값과 부드럽게 섞는다 (측정·판정에는 쓰지 않음) */\n+function liveHrNow(frames, key = 'setup') {\n+  const full = N.liveHr(frames), est = full && full.quality !== 'poor' ? full : N.quickHr(frames);\n+  if (!est || !Number.isFinite(est.bpm)) return null;\n+  S.hrShow = S.hrShow || {};\n+  const prev = S.hrShow[key];\n+  const v = prev && Math.abs(est.bpm - prev) < 25 ? prev + (est.provisional ? 0.4 : 0.6) * (est.bpm - prev) : est.bpm;\n+  S.hrShow[key] = v;\n+  return { ...est, bpm: Math.round(v) };\n+}\n function setupTicker() {\n   setInterval(() => {\n     if ($('sSetup').hidden) return;\n@@ -1568,10 +1584,11 @@ <h2>결과를 정리하고 있어요</h2>\n     $('vLight').textContent = !Number.isFinite(lum) ? '—' : lum < 70 ? '어두움' : lum > 215 ? '너무 밝음' : '적정';\n     setDot('dFps', fps >= 24 ? 'ok' : fps >= 15 ? 'warn' : 'bad'); $('vFps').textContent = Math.round(fps) + ' fps';\n     setDot('dStill', motion === null ? '' : motion < 3 ? 'ok' : 'warn'); $('vStill').textContent = motion === null ? '—' : motion < 3 ? '안정' : '움직임 많음';\n-    const live = N.liveHr(S.buf);\n-    if (live && S.buf.length && S.buf[S.buf.length - 1].t - S.buf[0].t > 9000) {\n-      $('vLiveHr').textContent = live.quality === 'poor' ? '--' : live.bpm;\n-      $('vLiveQ').textContent = live.quality === 'good' ? '카메라만으로 심박이 안정적으로 잡히고 있어요' : live.quality === 'fair' ? '심박 신호를 읽는 중이에요. 움직임을 줄여 주세요' : '신호가 약해요. 조명을 밝게 하고 정면을 봐 주세요';\n+    const live = liveHrNow(S.buf);\n+    if (live) {\n+      $('vLiveHr').textContent = live.bpm;\n+      $('vLiveQ').textContent = live.provisional ? `심박을 읽는 중이에요 · 예비값 (${Math.round(live.validSeconds)}초 측정)`\n+        : live.quality === 'good' ? '카메라만으로 심박이 안정적으로 잡히고 있어요' : live.quality === 'fair' ? '심박 신호를 읽는 중이에요. 움직임을 줄여 주세요' : '신호가 약해요. 조명을 밝게 하고 정면을 봐 주세요';\n     }\n     $('goRun').disabled = !faceOk;\n   }, 1000);\n@@ -1960,8 +1977,11 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   for (const [x, y] of pts) {\n     dot.style.left = x + 'px'; dot.style.top = y + 'px';\n     if (S.calibLog) S.calibLog.targets.push({ t: now(), x, y, kind: 'fix9' });\n-    S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), samples);\n+    const pt = [];\n+    S.onFeature = featSampler(now(), 650, 1700, () => ({ x, y }), pt);\n     await wait(1700);\n+    const keep = new Set(N.robustFeatures(pt.map(s => s.f)));\n+    samples.push(...pt.filter(s => keep.has(s.f)));\n   }\n   S.onFeature = null;\n   return samples;\n@@ -1998,7 +2018,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     await wait(500); fs.length = 0;\n     await wait(800);\n     S.onFeature = null;\n-    out.push({ ...p, fs: fs.slice() });\n+    out.push({ ...p, fs: N.robustFeatures(fs.slice()) });\n   }\n   return out;\n }\n@@ -2030,7 +2050,8 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n     const zn = $('zn'), gc0 = $('gc'), zp = $('znP');\n     const t0 = now();\n     let cur = null, inside = false, inSince = null, outSince = null, done = null, raf = 0;\n-    S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; };\n+    const held = [];\n+    S.onGaze = (g, t) => { cur = gc.step(g, t, z); cur.t = t; if (inside && inSince !== null && t - inSince > 150) held.push({ x: g.x, y: g.y }); };\n     await new Promise((res2, rej) => {\n       const w = { rej, cleanup: () => { cancelAnimationFrame(raf); S.onGaze = null; } };\n       waiters.add(w);\n@@ -2055,11 +2076,12 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n       S.cleanup.push(w.cleanup);\n     });\n     zn.classList.add(done.ok ? 'hit' : 'miss');\n+    if (held.length >= 6) done.pair = { x: z.x, y: z.y, gx: N.median(held.map(p => p.x)), gy: N.median(held.map(p => p.y)) };\n     res.push(done);\n     await wait(350);\n   }\n   S.onGaze = null;\n-  return { n: res.length, hit: res.filter(r => r.ok).length, meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };\n+  return { n: res.length, hit: res.filter(r => r.ok).length, pairs: res.filter(r => r.pair).map(r => r.pair), meanMs: res.some(r => r.ok) ? Math.round(N.mean(res.filter(r => r.ok).map(r => r.ms))) : null, bias: { x: Math.round(gc.bias.x), y: Math.round(gc.bias.y), n: gc.bias.n } };\n }\n async function calibrate() {\n   await brief('calibration');\n@@ -2090,7 +2112,16 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n       const ctl = acc.grade === 'poor' ? null : await cursorTask(shuffle(zones.slice()).slice(0, 4), W, H);\n       /* 커서 과제에서 학습한 치우침이 영역 전체에 일관되면(학습 표본 충분), 커서 없이 바라본 자료로 다시 평가해\n        * 오차가 실제로 줄어들 때만 측정용 영점에 더한다 (보정 학습 자료가 아니라 평가 자료로만 판단) */\n-      if (ctl && ctl.bias.n >= 40 && Math.hypot(ctl.bias.x, ctl.bias.y) > W * 0.01) {\n+      /* 측정값 보정: 커서 과제에서 원 안에 머문 동안의 실제 시선(3곳 이상)으로 축별 보정을 한 번 더 맞추고,\n+       * 커서 없이 바라본 자료(검증점·영점)의 오차가 줄어들 때만 반영한다 */\n+      if (ctl && ctl.pairs.length >= 3) {\n+        const A0 = S.affine, A2 = N.fitAffine(ctl.pairs), A1 = A2 && N.composeAffine(A0, A2);\n+        if (A1) {\n+          const e0 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A0, p)), W, H), e1 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A1, p)), W, H);\n+          if (e1.errPct !== null && (e0.errPct === null || e1.errPct <= e0.errPct + 0.3)) { S.affine = A1; ctl.measuredFit = { before: e0.errPct, after: e1.errPct, zones: ctl.pairs.length }; acc = { ...acc, errPct: e1.errPct, grade: e1.grade }; }\n+        }\n+      }\n+      if (ctl && !ctl.measuredFit && ctl.bias.n >= 40 && Math.hypot(ctl.bias.x, ctl.bias.y) > W * 0.01) {\n         const A0 = S.affine || { x: { a: 1, b: 0 }, y: { a: 1, b: 0 } };\n         const A1 = { x: { a: A0.x.a, b: A0.x.b + ctl.bias.x * 0.5 }, y: { a: A0.y.a, b: A0.y.b + ctl.bias.y * 0.5 } };\n         const e0 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A0, p)), W, H), e1 = N.gazeAccuracy([...val, ...zc].map(p => predAt(S.model, A1, p)), W, H);\n@@ -2813,7 +2844,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   const bio = $('bio');\n   const fmt = (v, d = 0, sign = false) => v === null || v === undefined || !Number.isFinite(v) ? '—' : (sign && v > 0 ? '+' : '') + v.toFixed(d);\n   const synthetic = S.demo || !S.stream;\n-  S.bioFrames = []; bio.classList.add('on');\n+  S.bioFrames = []; bio.classList.add('on'); if (S.hrShow) S.hrShow.bio = null;\n   const hist = [];\n   const t0 = now();\n   const demoFn = t => 79 - Math.min(7, (t - t0) / 7000) + 3.5 * Math.sin(2 * Math.PI * 0.1 * (t - t0) / 1000 - Math.PI / 2);\n@@ -2825,9 +2856,9 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   while (now() - t0 < SEC * 1000 && !closed) {\n     await new Promise(r => setTimeout(r, 1000));\n     const frames = synthetic ? N.synthFrames(now() - 10000, now(), demoFn, { seed: Math.floor(now()) % 997, noise: 0.35 }) : S.bioFrames;\n-    const live = now() - t0 > 9000 ? N.liveHr(frames) : null;\n-    if (live && live.quality !== 'poor') { $('bioHr').textContent = live.bpm; hist.push(live.bpm); }\n-    $('bioQ').textContent = live ? `실시간 심박 · ${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함' }[live.quality]}${synthetic ? ' · 시뮬레이션' : ''}` : '심박 측정 준비 중… (약 10초)';\n+    const live = liveHrNow(frames, 'bio');\n+    if (live) { $('bioHr').textContent = live.bpm; if (!live.provisional && live.quality !== 'poor') hist.push(live.bpm); }\n+    $('bioQ').textContent = live ? (live.provisional ? '실시간 심박 · 예비값 (신호를 모으는 중)' : `실시간 심박 · ${{ good: '신호 양호', fair: '신호 보통', poor: '신호 약함' }[live.quality]}`) + (synthetic ? ' · 시뮬레이션' : '') : '심박 측정 준비 중… (3초 정도)';\n     if (hist.length > 1) {\n       const lo = Math.min(...hist) - 3, hi = Math.max(...hist) + 3;\n       const pts = hist.map((v, i) => `${(i / Math.max(1, SEC - 10)) * 520},${70 - (v - lo) / (hi - lo) * 66 - 2}`).join(' ');\nFILE newbiz-core.js\n@@ -160,9 +160,9 @@\n   }\n \n   /* 대역 안 최대 피크 주파수(포물선 보간) + SNR(1·2차 고조파 ±0.1Hz 대 나머지, dB) */\n-  function spectralPeak(x, fs, lo = HR_BAND[0], hi = HR_BAND[1]) {\n+  function spectralPeak(x, fs, lo = HR_BAND[0], hi = HR_BAND[1], minSec = 4) {\n     const n = x.length;\n-    if (n < fs * 4) return null;\n+    if (n < fs * minSec) return null;\n     const w = Float64Array.from(x, (v, i) => v * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1))));\n     const nfft = Math.max(2048, nextPow2(n * 4));\n     const p = powerSpectrum(w, nfft), df = fs / nfft;\n@@ -460,19 +460,21 @@\n     if(model.eyes && !Object.values(model.eyes).some(Boolean))delete model.eyes;\n     return model;\n   }\n+  /* 시선 예측: 두 눈이 모두 또렷하면 두 눈 평균 특징으로 학습한 기본(양안) 모델을 쓴다.\n+   * 프레임마다 눈별 품질 가중을 바꾸면 두 눈 모델의 미세한 치우침 차이 때문에 좌표가 들썩이므로,\n+   * 한쪽 눈이 감기거나 반사로 흐려졌을 때만 검증을 통과한 나머지 한쪽 눈 모델로 넘어간다 */\n+  const EYE_OK = 0.15;\n   function predictGaze(model, f) {\n     if (!model || !f) return null;\n-    if(model.eyes && f.eyes){\n-      const predictions=['left','right'].map(side=>{\n-        const eye=f.eyes[side],m=model.eyes[side];\n-        if(!m||!eye||eye.q<=.035)return null;\n-        return {...predictGaze(m,{...f,u:eye.u,v:eye.v}),w:eye.q*eye.q,side};\n-      }).filter(Boolean);\n-      if(predictions.length===1 && ['poor','none'].includes(model.eyes[predictions[0].side].validation?.grade))return null;\n-      const total=predictions.reduce((s,p)=>s+p.w,0);\n-      if(total>0)return {x:predictions.reduce((s,p)=>s+p.x*p.w,0)/total,y:predictions.reduce((s,p)=>s+p.y*p.w,0)/total,\n-        mode:predictions.length===2?'binocular':predictions[0].side};\n-      return null;\n+    if (f.eyes) {\n+      const okL = f.eyes.left && f.eyes.left.q >= EYE_OK, okR = f.eyes.right && f.eyes.right.q >= EYE_OK;\n+      if (!okL && !okR) return null;                                   // 두 눈 모두 불안정(깜빡임·반사) → 이 프레임은 쓰지 않는다\n+      if (!(okL && okR)) {\n+        const side = okL ? 'left' : 'right', e = f.eyes[side], m = model.eyes && model.eyes[side];\n+        if (m && !['poor', 'none'].includes(m.validation && m.validation.grade)) return { ...predictGaze(m, { ...f, eyes: null, u: e.u, v: e.v }), mode: side };\n+        if (m) return null;                                              // 검증에 실패한 한쪽 눈 모델로는 시선을 만들지 않는다\n+        f = { ...f, eyes: null, u: e.u, v: e.v };                      // 한쪽 눈 모델이 없으면 그 눈 특징으로 양안 모델 사용\n+      }\n     }\n     const v = gazeVec(f, model.mu, model.sd, model.quad);\n     const dot = w => w.reduce((s, x, i) => s + x * v[i], 0);\n@@ -553,6 +555,44 @@\n     };\n   }\n \n+  /* 시선 좌표 안정화 (화면 표시·커서·과제 판정용)\n+   * ① 화면 밖으로 크게 벗어난 값은 가장자리로 제한 ② 화면 폭의 22% 넘게 한 번에 뛰는 값은 다음 표본들이 같은 곳을 가리킬 때만\n+   * 진짜 시선 이동으로 받아들이고(그 전에는 직전 위치 유지) ③ 최근 5표본(200ms 이내) 중앙값으로 한 프레임짜리 튐을 지운다.\n+   * 400ms 넘게 표본이 끊기면(깜빡임·얼굴 이탈) 새로 시작한다 */\n+  function gazeStabilizer(opt = {}) {\n+    const W = opt.W || 1440, H = opt.H || 900, JUMP = opt.jump ?? 0.22, CONF = opt.confirm ?? 0.07, N = opt.n ?? 5, SPAN = opt.span ?? 200;\n+    let win = [], pend = [], stable = null;\n+    const dist = (a, b) => Math.hypot((a.x - b.x) / W, (a.y - b.y) / W);\n+    return {\n+      push(g, t) {\n+        if (!g || !finite(g.x) || !finite(g.y) || !finite(t)) return null;\n+        const p = { x: clamp(g.x, -0.1 * W, 1.1 * W), y: clamp(g.y, -0.1 * H, 1.1 * H), t };\n+        if (stable && t - stable.t > 400) { win = []; pend = []; stable = null; }\n+        if (stable && dist(p, stable) > JUMP) {\n+          pend = pend.filter(q => t - q.t <= SPAN); pend.push(p);\n+          const ok = pend.length >= 2 && pend.every(q => dist(q, p) <= CONF);\n+          if (!ok) return { x: stable.x, y: stable.y, t, held: true };\n+          win = pend.slice(); pend = [];\n+        } else { pend = []; win.push(p); }\n+        win = win.filter(q => t - q.t <= SPAN).slice(-N);\n+        stable = { x: median(win.map(q => q.x)), y: median(win.map(q => q.y)), t };\n+        return { ...stable, held: false };\n+      },\n+      reset() { win = []; pend = []; stable = null; },\n+      get stable() { return stable; },\n+    };\n+  }\n+  /* 보정 표본 정리: 한 표적을 보는 동안 모은 눈 특징 중 중앙값에서 크게 벗어난 프레임(반쯤 감김·반사·순간 오검출)을 뺀다 */\n+  function robustFeatures(fs) {\n+    if (!fs || fs.length < 6) return fs || [];\n+    const mu = median(fs.map(f => f.u)), mv = median(fs.map(f => f.v));\n+    const su = Math.max(0.006, 1.4826 * median(fs.map(f => Math.abs(f.u - mu)))), sv = Math.max(0.006, 1.4826 * median(fs.map(f => Math.abs(f.v - mv))));\n+    const kept = fs.filter(f => Math.abs(f.u - mu) <= 3 * su && Math.abs(f.v - mv) <= 3 * sv);\n+    return kept.length >= Math.max(4, fs.length * 0.4) ? kept : fs;\n+  }\n+  /* 축별 1차 보정 두 개를 겹친다: 먼저 A, 그다음 B */\n+  const composeAffine = (A, Bm) => (!A ? Bm : !Bm ? A : { x: { a: Bm.x.a * A.x.a, b: Bm.x.a * A.x.b + Bm.x.b }, y: { a: Bm.y.a * A.y.a, b: Bm.y.a * A.y.b + Bm.y.b } });\n+\n   /* 검증점 오차 → 화면 폭 대비 비율과 등급 */\n   function gazeAccuracy(points, W, H) {\n     const errs = points.filter(p => finite(p.gx) && finite(p.gy)).map(p => Math.hypot(p.gx - p.x, (p.gy - p.y) * 0.6));\n@@ -805,6 +845,30 @@\n     return pk && end-pk.t<5000 ? { bpm: round(pk.bpm, 0), snr: round(pk.snr, 1), quality: pk.quality, confidence:pk.confidence, validSeconds:pk.windowSec, status:pk.status } : null;\n   }\n \n+  /* 예비 심박 (화면 표시 전용): 카메라를 켜고 약 3초부터 바로 보여 주기 위한 짧은 창 추정.\n+   * 스펙트럼 피크와 박동 간격(피크 사이 시간)을 함께 보고, 둘이 어긋나면 품질을 낮춘다.\n+   * 융합 추정(liveHr)이 나오기 전까지만 쓰며, 측정·판정에는 쓰지 않는다 */\n+  function quickHr(frames, fs = 30) {\n+    const ok = frames.filter(f => (f.ppgOk ?? f.ok) && [f.t, f.r, f.g, f.b].every(finite));\n+    if (ok.length < 2) return null;\n+    const end = ok[ok.length - 1].t, use = ok.filter(f => f.t >= end - 8000);\n+    const sec = (end - use[0].t) / 1000;\n+    if (sec < 2.8 || use.length < fs * 2.2) return null;\n+    const rs = resample(use.map(f => f.t), [use.map(f => f.r), use.map(f => f.g), use.map(f => f.b)], fs);\n+    const x = bandpass(pos(rs.data[0], rs.data[1], rs.data[2], fs), fs);\n+    if (std(Array.from(x)) < 1e-9) return null;\n+    const pk = spectralPeak(x, fs, HR_BAND[0], HR_BAND[1], 2.5);\n+    if (!pk) return null;\n+    /* 박동 간격: 0.33초 이상 떨어진 양(+)의 국소 최대 */\n+    const peaks = [];\n+    for (let i = 1; i < x.length - 1; i++) if (x[i] > 0 && x[i] >= x[i - 1] && x[i] > x[i + 1] && (!peaks.length || i - peaks[peaks.length - 1] >= fs * 0.33)) peaks.push(i);\n+    const ibi = peaks.slice(1).map((p, i) => (p - peaks[i]) / fs).filter(v => v >= 0.33 && v <= 1.5);\n+    const bpmI = ibi.length >= 2 ? 60 / median(ibi) : null;\n+    const agree = bpmI !== null && Math.abs(bpmI - pk.bpm) <= 8;\n+    const bpm = agree ? (pk.bpm + bpmI) / 2 : pk.bpm;\n+    return { bpm: round(bpm, 0), snr: round(pk.snrDb, 1), quality: agree && pk.snrDb >= -2 ? 'fair' : 'poor', provisional: true, validSeconds: round(sec, 1) };\n+  }\n+\n   /* ---------- 시뮬레이션 (카메라 없는 데모·테스트용) ----------\n    * hrAt(t) 로 정한 심박을 따라 피부색에 맥동을 섞은 프레임을 만든다. 데모 결과는 반드시 '시뮬레이션'으로 표시한다. */\n   function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; }; }\n@@ -841,7 +905,7 @@\n     mean, median, std, quantile, resample, biquad, filtfilt, bandpass, pos, powerSpectrum, spectralPeak, quality,\n     buildBvp, hrWindows, phaseHr, measureEvidence, beats, ibis, rmssd, breathingCoupling,\n     faceFeatures, fitGaze, predictGaze, gazeAccuracy, validateGazeEyes, fitAffine, applyAffine, oneEuro, gazeCursor,\n-    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, synthFrames,\n+    respiration, lumJumps, sideOf, trialStats, blockStats, blinkRate, motionIndex, expression, analyze, liveHr, quickHr, gazeStabilizer, robustFeatures, composeAffine, synthFrames,\n   };\n   const Fusion = createFusion(api); api.Fusion = Fusion;\n   return api;",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "39049591840"
+      }
     },
     {
       "sha": "bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e",
@@ -12514,38 +12609,38 @@
       "accuracyValidated": false,
       "tasks": [
         {
-          "id": "evo-bcfe292618bb-gaze",
-          "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-bcfe292618bb-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\n변경 제목: Add CONDITION dataset research ledger and reference validation tools\n관련 파일: DATASET_RUNBOOK.md, NEWBIZ_RESEARCH_DATA.md, admin.html, condition-camera.js, condition-camera.test.cjs, condition-dataset.browser.test.cjs, condition-dataset.js, condition-dataset.test.cjs, condition-reference.js, condition-research-store.js, condition.html, dataset-engine-log.json, dataset-replay-worker.js, dataset.css, dataset.html, dataset.js, newbiz-research.js, robots.txt, supabase/migrations/20261004_condition_dataset.sql, tools/condition_dataset_sql_test.cjs, tools/newbiz_research_export.py, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-bcfe292618bb-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
           "id": "evo-bcfe292618bb-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-bcfe292618bb-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\n변경 제목: Add CONDITION dataset research ledger and reference validation tools\n관련 파일: DATASET_RUNBOOK.md, NEWBIZ_RESEARCH_DATA.md, admin.html, condition-camera.js, condition-camera.test.cjs, condition-dataset.browser.test.cjs, condition-dataset.js, condition-dataset.test.cjs, condition-reference.js, condition-research-store.js, condition.html, dataset-engine-log.json, dataset-replay-worker.js, dataset.css, dataset.html, dataset.js, newbiz-research.js, robots.txt, supabase/migrations/20261004_condition_dataset.sql, tools/condition_dataset_sql_test.cjs, tools/newbiz_research_export.py, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-bcfe292618bb-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "웹캠 획득 시간 지표 기반 타임스탬프 보정 및 부분 유효 PPG 신호 회복 과제",
+          "rationale": "관측된 사실: `condition-camera.js`에서 `clockSource`, `captureDelayMs`, `callbackLateMs` 등의 정밀 타임스탬프 메타데이터를 프레임 객체에 수집하도록 변경되었습니다.\n연구자 가설: 콜백 지연이나 프레임 간격 불균일이 발생하더라도 캡처 시점 타임스탬프를 보정하면 불연속 프레임 구간의 신호 자진 폐기를 줄이고 유효 PPG 신호 활용률을 높일 수 있을 것입니다.\n주의: 이 가설은 아직 실제 카메라 하드웨어 환경에서 정답 센서 대비 오차 검증이 완료되지 않은 상태입니다.",
+          "validationPlan": "1. 실측 데이터셋(dataset)에 기록된 참가자·기기·날짜별 프레임 획득 기록 연동.\n2. 실패 시도 및 중단 세션을 분모에 포함하여 프레임 간격 200ms 초과 구간 발생 비율과 측정 완수율 계산.\n3. 타임스탬프 보정 전후의 유효 신호 활용률(coverage)과 기준 심박 센서 대비 MAE/RMSE 오차 비교 평가.",
+          "prompt": "현재 repository의 `condition-camera.js` 및 `condition-dataset.js` 코드를 확인하고, 프레임 획득 타임스탬프(`captureDelayMs`, `callbackLateMs`, `intervalMs`)를 활용해 지연 발생 구간의 PPG 신호 유효성을 재평가하는 모듈을 개선하라.\n\n[개발 및 검증 요구사항]\n1. 기존 완전 프레임 제외 방식 대신 부분 유효 신호(부분 ROI 피부 검출)의 활용량을 측정하고 이에 따른 오차 변동을 평가할 것.\n2. 실측 데이터 수치는 임의로 생성하지 말고, dataset 및 연구 기록 메타데이터에서 실제 연결된 측정값을 추출하여 사용할 것.\n3. 검증 시 단일 세션 성공 사례만 제시하지 말고, 실패/중단 시도를 포함한 전체 분모 기준의 측정 성공률, 조건별 활용률(coverage), 기준 장비 대비 오차(MAE, RMSE)를 참가자/기기/일자별로 분리 평가할 것.\n\n[성공 및 회귀 기준]\n- 프레임 지연 구간 회복으로 전체 유효 신호 길이(coverage)가 증가하면서, 기준 심박 대비 MAE 오차가 악화되지 않을 것.\n- 타임스탬프 부재 시 fallback 로직 작동 정확성 유지.\n\n[결과 보고 양식]\n- 평가 분모 (전체 시도 수, 실패/중단 포함)\n- 기기/참가자/일자별 유효 신호 활용률 및 오차 비교표\n- 주요 회귀 발생 조건 분석\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\nDataset-Task: evo-bcfe292618bb-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-bcfe292618bb-gaze",
+          "domain": "gaze",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "단안 가림 및 반사 조건에서의 시선 보정 데이터 회복 및 오차 평가 과제",
+          "rationale": "관측된 사실: `condition-dataset.js`에서 `monocularFraction > 0.2` 조건 발생 시 `one-eye` 액션 규칙이 생성되도록 구현되었습니다.\n연구자 가설: 한쪽 눈 품질(`qLeft`, `qRight`)이 저하되는 단안 가림/반사 조건에서 양안 신호 전체를 폐기하지 않고 우수 단안 신호 및 기하 ROI 연령(`roiAge`)을 활용하면 시선 추적 연속성을 유지할 수 있을 것입니다.\n주의: 자체 시선 보정 등급(`calibration.grade`)이나 모델 선택 결과는 독립적인 정답 정밀도가 아니므로 별도 평가 기준이 필요합니다.",
+          "validationPlan": "1. `condition-dataset.js` 내 단안 프레임 비율(`monocularFraction`)이 높게 기록된 실험 데이터 그룹 추출.\n2. 참가자별, 기기 환경별, 환경 조도 조건별로 시도 분모를 구성하여 양안 미확보 시 단안 추적 전환 로직 적용.\n3. 시선 추적 성공 프레임 비율(yield)과 보정 오차(errPct)의 상관관계를 분리 검증.",
+          "prompt": "현재 `condition-dataset.js` 및 `condition-camera.js`의 눈 품질 측정(`qLeft`, `qRight`) 및 ROI 관리 코드를 점검하고, 단안 가림 및 품질 저하 환경에서 시선 추적 신호를 회복하는 후속 로직을 구현하라.\n\n[개발 및 검증 요구사항]\n1. `monocularFraction` 상태에서 단안 품질 기준을 적용하여 가용 프레임을 회복하고, 이때 발생하는 시선 추적 오차 증가량을 정량 평가하라.\n2. dataset 내 연구 기록 연동을 통해 실측 검증을 수행하되, 존재하지 않는 정확도 수치를 가공하여 채우지 말 것.\n3. 참가자, 기기, 측정 일자별로 데이터를 분리하고 중단된 세션을 포함한 분모 전체 대비 회복률과 오차를 보고하라.\n\n[성공 및 회귀 기준]\n- 단안 가림 조건에서 시선 데이터 유효 프레임 수 증가.\n- 보정 평가 오차(`errPct`)가 허용 범위 내 유지되며 정상 양안 조건 신호에 회귀 영향이 없을 것.\n\n[결과 보고 양식]\n- 조건별(양안 정상 vs 단안 우수) 검사 완수율 및 활용 프레임 비율\n- 기기/참가자 분리 오차 산출표\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\nDataset-Task: evo-bcfe292618bb-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-bcfe292618bb-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-bcfe292618bb-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\n변경 제목: Add CONDITION dataset research ledger and reference validation tools\n관련 파일: DATASET_RUNBOOK.md, NEWBIZ_RESEARCH_DATA.md, admin.html, condition-camera.js, condition-camera.test.cjs, condition-dataset.browser.test.cjs, condition-dataset.js, condition-dataset.test.cjs, condition-reference.js, condition-research-store.js, condition.html, dataset-engine-log.json, dataset-replay-worker.js, dataset.css, dataset.html, dataset.js, newbiz-research.js, robots.txt, supabase/migrations/20261004_condition_dataset.sql, tools/condition_dataset_sql_test.cjs, tools/newbiz_research_export.py, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-bcfe292618bb-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "기준 심박 장비 동기화 불확실성 검증 및 코호트 정확 수율 산출 과제",
+          "rationale": "관측된 사실: `condition-dataset.js`에 기준 심박 데이터 비교 기능(`compare`) 및 동기화 지표(`sync.uncertaintyMs`, `verified`), 코호트 집계(`cohort`) 로직이 도입되었고, `condition-research-store.js`를 통해 전송 대기 및 철회 기능이 구현되었습니다.\n연구자 가설: Bluetooth HR 기준 장비 수신 시각 동기화 오프셋과 드리프트를 보정하고 불확실성이 100ms 이내인 건만 'paired' 상태로 엄격히 분류하면, 탐색적 데이터와 검증된 데이터를 명확히 분리하여 코호트 신뢰도를 높일 수 있을 것입니다.\n주의: 커밋에 포함된 동기화 코드 및 백엔드 RPC 변경은 데이터 수집 구조 개선일 뿐, 그 자체로 임상적 진단 정확성을 보장하지 않습니다.",
+          "validationPlan": "1. `condition-research-store.js` 및 `condition-dataset.js` 동기화 매칭 기능을 실측 세션 데이터셋에 적용.\n2. 기준 장비 동기화 오차 범위(`uncertaintyMs`)별로 'paired' 및 'exploratory' 세션을 자동 분류하고, 미완료/오류 시도를 포함한 동의 시도 전체 분모 산출.\n3. 10초 에포크 기준 오차 5 BPM 이내의 accurateYield 수치를 코호트 수준에서 평가.",
+          "prompt": "현재 `condition-dataset.js`의 `compare`, `metrics`, `cohort` 함수와 `condition-research-store.js` 전송/동기화 로직을 검토하고, 기준 장비 동기화 불확실성을 검증하는 자동 평가 파이프라인을 작성하라.\n\n[개발 및 검증 요구사항]\n1. 기준 장비 동기화 오차(`sync.uncertaintyMs`) 검증 기준을 강제하고, 미검증 탐색적 동기화 신호가 검증된 정답으로 오인되지 않도록 차단하라.\n2. 실제 dataset의 CSV 및 동기화 기록을 연결하여 평가하되, 없는 측정 수치나 실험 결과를 생성하지 말 것.\n3. 전체 참가 신청/동의 시도 수(completed + interrupted + failed)를 분모로 한 수율(accurateYield)과, 오차 수용 한계(5 BPM) 내 세션 비율을 산출하라. 참가자/기기/날짜별 분리 평가를 포함하라.\n\n[성공 및 회귀 기준]\n- 동기화 불확실성 기준 초과 시 정밀 평가 수치 자동 제외 및 'exploratory' 분류 플래그 정상 작동.\n- 전송 대기열(`NLResearchStore`)에서 철회 및 만료 처리 시 로컬 원자료 보호 규정 준수.\n\n[결과 보고 양식]\n- 코호트 요약 (전체 시도 분모, 완수율, paired 세션 비율, accurateYield)\n- 동기화 오차 범위별 MAE/RMSE/p95 오차 분포 표\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\nDataset-Task: evo-bcfe292618bb-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55540252087",
@@ -12577,8 +12672,212 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-04T10:15:31.874435+00:00",
-      "analysisError": "HTTP_403"
+      "lastAttemptAt": "2026-10-17T16:29:59.214547+00:00",
+      "analysis": {
+        "summary": "공개 커밋(bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e)에서 `condition-camera.js`가 버전 2로 변경되며 `clockSource`, `intervalMs`, `captureDelayMs`, `callbackLateMs`, `mediaTimeMs`, `presentedFrames` 등 프레임 획득 및 시간 지표 추적 기능이 추가된 사실이 관측되었습니다. 또한 데이터셋 분석·검증 모듈인 `condition-dataset.js`, 로컬 연구 전송 대기열 모듈인 `condition-research-store.js`, 기준 심박 연결 UI를 포함한 `condition.html` 및 Supabase 마이그레이션 파일 등이 신규 추가되었습니다.\n\n다만 제공된 diff는 일부 생략(`patchTruncated: true`)되어 있으며, 커밋 메시지의 연구 장부 및 기준 검증 도구 추가 주장은 코드 변경 사실일 뿐 독자적인 외부 실측 정답이나 임상 진단 정확도가 검증된 것은 아닙니다. `accuracyValidated: false` 상태로, 획득 지연·프레임 누락 및 기준 장비 동기화 오차가 실제 신호 품질 및 측정 성공률에 미치는 영향은 dataset에 연동될 실측 데이터 기반으로 추가 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-bcfe292618bb-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "웹캠 획득 시간 지표 기반 타임스탬프 보정 및 부분 유효 PPG 신호 회복 과제",
+            "rationale": "관측된 사실: `condition-camera.js`에서 `clockSource`, `captureDelayMs`, `callbackLateMs` 등의 정밀 타임스탬프 메타데이터를 프레임 객체에 수집하도록 변경되었습니다.\n연구자 가설: 콜백 지연이나 프레임 간격 불균일이 발생하더라도 캡처 시점 타임스탬프를 보정하면 불연속 프레임 구간의 신호 자진 폐기를 줄이고 유효 PPG 신호 활용률을 높일 수 있을 것입니다.\n주의: 이 가설은 아직 실제 카메라 하드웨어 환경에서 정답 센서 대비 오차 검증이 완료되지 않은 상태입니다.",
+            "validationPlan": "1. 실측 데이터셋(dataset)에 기록된 참가자·기기·날짜별 프레임 획득 기록 연동.\n2. 실패 시도 및 중단 세션을 분모에 포함하여 프레임 간격 200ms 초과 구간 발생 비율과 측정 완수율 계산.\n3. 타임스탬프 보정 전후의 유효 신호 활용률(coverage)과 기준 심박 센서 대비 MAE/RMSE 오차 비교 평가.",
+            "prompt": "현재 repository의 `condition-camera.js` 및 `condition-dataset.js` 코드를 확인하고, 프레임 획득 타임스탬프(`captureDelayMs`, `callbackLateMs`, `intervalMs`)를 활용해 지연 발생 구간의 PPG 신호 유효성을 재평가하는 모듈을 개선하라.\n\n[개발 및 검증 요구사항]\n1. 기존 완전 프레임 제외 방식 대신 부분 유효 신호(부분 ROI 피부 검출)의 활용량을 측정하고 이에 따른 오차 변동을 평가할 것.\n2. 실측 데이터 수치는 임의로 생성하지 말고, dataset 및 연구 기록 메타데이터에서 실제 연결된 측정값을 추출하여 사용할 것.\n3. 검증 시 단일 세션 성공 사례만 제시하지 말고, 실패/중단 시도를 포함한 전체 분모 기준의 측정 성공률, 조건별 활용률(coverage), 기준 장비 대비 오차(MAE, RMSE)를 참가자/기기/일자별로 분리 평가할 것.\n\n[성공 및 회귀 기준]\n- 프레임 지연 구간 회복으로 전체 유효 신호 길이(coverage)가 증가하면서, 기준 심박 대비 MAE 오차가 악화되지 않을 것.\n- 타임스탬프 부재 시 fallback 로직 작동 정확성 유지.\n\n[결과 보고 양식]\n- 평가 분모 (전체 시도 수, 실패/중단 포함)\n- 기기/참가자/일자별 유효 신호 활용률 및 오차 비교표\n- 주요 회귀 발생 조건 분석\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\nDataset-Task: evo-bcfe292618bb-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-bcfe292618bb-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "단안 가림 및 반사 조건에서의 시선 보정 데이터 회복 및 오차 평가 과제",
+            "rationale": "관측된 사실: `condition-dataset.js`에서 `monocularFraction > 0.2` 조건 발생 시 `one-eye` 액션 규칙이 생성되도록 구현되었습니다.\n연구자 가설: 한쪽 눈 품질(`qLeft`, `qRight`)이 저하되는 단안 가림/반사 조건에서 양안 신호 전체를 폐기하지 않고 우수 단안 신호 및 기하 ROI 연령(`roiAge`)을 활용하면 시선 추적 연속성을 유지할 수 있을 것입니다.\n주의: 자체 시선 보정 등급(`calibration.grade`)이나 모델 선택 결과는 독립적인 정답 정밀도가 아니므로 별도 평가 기준이 필요합니다.",
+            "validationPlan": "1. `condition-dataset.js` 내 단안 프레임 비율(`monocularFraction`)이 높게 기록된 실험 데이터 그룹 추출.\n2. 참가자별, 기기 환경별, 환경 조도 조건별로 시도 분모를 구성하여 양안 미확보 시 단안 추적 전환 로직 적용.\n3. 시선 추적 성공 프레임 비율(yield)과 보정 오차(errPct)의 상관관계를 분리 검증.",
+            "prompt": "현재 `condition-dataset.js` 및 `condition-camera.js`의 눈 품질 측정(`qLeft`, `qRight`) 및 ROI 관리 코드를 점검하고, 단안 가림 및 품질 저하 환경에서 시선 추적 신호를 회복하는 후속 로직을 구현하라.\n\n[개발 및 검증 요구사항]\n1. `monocularFraction` 상태에서 단안 품질 기준을 적용하여 가용 프레임을 회복하고, 이때 발생하는 시선 추적 오차 증가량을 정량 평가하라.\n2. dataset 내 연구 기록 연동을 통해 실측 검증을 수행하되, 존재하지 않는 정확도 수치를 가공하여 채우지 말 것.\n3. 참가자, 기기, 측정 일자별로 데이터를 분리하고 중단된 세션을 포함한 분모 전체 대비 회복률과 오차를 보고하라.\n\n[성공 및 회귀 기준]\n- 단안 가림 조건에서 시선 데이터 유효 프레임 수 증가.\n- 보정 평가 오차(`errPct`)가 허용 범위 내 유지되며 정상 양안 조건 신호에 회귀 영향이 없을 것.\n\n[결과 보고 양식]\n- 조건별(양안 정상 vs 단안 우수) 검사 완수율 및 활용 프레임 비율\n- 기기/참가자 분리 오차 산출표\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\nDataset-Task: evo-bcfe292618bb-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-bcfe292618bb-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "기준 심박 장비 동기화 불확실성 검증 및 코호트 정확 수율 산출 과제",
+            "rationale": "관측된 사실: `condition-dataset.js`에 기준 심박 데이터 비교 기능(`compare`) 및 동기화 지표(`sync.uncertaintyMs`, `verified`), 코호트 집계(`cohort`) 로직이 도입되었고, `condition-research-store.js`를 통해 전송 대기 및 철회 기능이 구현되었습니다.\n연구자 가설: Bluetooth HR 기준 장비 수신 시각 동기화 오프셋과 드리프트를 보정하고 불확실성이 100ms 이내인 건만 'paired' 상태로 엄격히 분류하면, 탐색적 데이터와 검증된 데이터를 명확히 분리하여 코호트 신뢰도를 높일 수 있을 것입니다.\n주의: 커밋에 포함된 동기화 코드 및 백엔드 RPC 변경은 데이터 수집 구조 개선일 뿐, 그 자체로 임상적 진단 정확성을 보장하지 않습니다.",
+            "validationPlan": "1. `condition-research-store.js` 및 `condition-dataset.js` 동기화 매칭 기능을 실측 세션 데이터셋에 적용.\n2. 기준 장비 동기화 오차 범위(`uncertaintyMs`)별로 'paired' 및 'exploratory' 세션을 자동 분류하고, 미완료/오류 시도를 포함한 동의 시도 전체 분모 산출.\n3. 10초 에포크 기준 오차 5 BPM 이내의 accurateYield 수치를 코호트 수준에서 평가.",
+            "prompt": "현재 `condition-dataset.js`의 `compare`, `metrics`, `cohort` 함수와 `condition-research-store.js` 전송/동기화 로직을 검토하고, 기준 장비 동기화 불확실성을 검증하는 자동 평가 파이프라인을 작성하라.\n\n[개발 및 검증 요구사항]\n1. 기준 장비 동기화 오차(`sync.uncertaintyMs`) 검증 기준을 강제하고, 미검증 탐색적 동기화 신호가 검증된 정답으로 오인되지 않도록 차단하라.\n2. 실제 dataset의 CSV 및 동기화 기록을 연결하여 평가하되, 없는 측정 수치나 실험 결과를 생성하지 말 것.\n3. 전체 참가 신청/동의 시도 수(completed + interrupted + failed)를 분모로 한 수율(accurateYield)과, 오차 수용 한계(5 BPM) 내 세션 비율을 산출하라. 참가자/기기/날짜별 분리 평가를 포함하라.\n\n[성공 및 회귀 기준]\n- 동기화 불확실성 기준 초과 시 정밀 평가 수치 자동 제외 및 'exploratory' 분류 플래그 정상 작동.\n- 전송 대기열(`NLResearchStore`)에서 철회 및 만료 처리 시 로컬 원자료 보호 규정 준수.\n\n[결과 보고 양식]\n- 코호트 요약 (전체 시도 분모, 완수율, paired 세션 비율, accurateYield)\n- 동기화 오차 범위별 MAE/RMSE/p95 오차 분포 표\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e\nDataset-Task: evo-bcfe292618bb-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "f3ca7ac33287ca0ac625cc8e0c3d45e98ff9e5f52bbe72a72aee86686eecd6b7",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 3,
+          "usage": {
+            "promptTokenCount": 10280,
+            "candidatesTokenCount": 2352,
+            "totalTokenCount": 14110
+          }
+        },
+        "generatedAt": "2026-10-17T16:30:46.477827+00:00",
+        "sourceSha": "bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e",
+        "sourceEvidence": {
+          "sha": "bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e",
+          "parents": [
+            "3df0a657cff15ebe000a8fa9321617626313a807"
+          ],
+          "committedAt": "2026-10-04T07:20:00Z",
+          "subject": "Add CONDITION dataset research ledger and reference validation tools",
+          "url": "https://github.com/jeebs0627/neurolens/commit/bcfe292618bbbffe4b6f6dc9ce2f9d1f2d0a2e3e",
+          "files": [
+            {
+              "path": "DATASET_RUNBOOK.md",
+              "status": "added",
+              "additions": 93,
+              "deletions": 0
+            },
+            {
+              "path": "NEWBIZ_RESEARCH_DATA.md",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 1
+            },
+            {
+              "path": "admin.html",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "condition-camera.js",
+              "status": "modified",
+              "additions": 8,
+              "deletions": 3
+            },
+            {
+              "path": "condition-camera.test.cjs",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 0
+            },
+            {
+              "path": "condition-dataset.browser.test.cjs",
+              "status": "added",
+              "additions": 71,
+              "deletions": 0
+            },
+            {
+              "path": "condition-dataset.js",
+              "status": "added",
+              "additions": 138,
+              "deletions": 0
+            },
+            {
+              "path": "condition-dataset.test.cjs",
+              "status": "added",
+              "additions": 22,
+              "deletions": 0
+            },
+            {
+              "path": "condition-reference.js",
+              "status": "added",
+              "additions": 31,
+              "deletions": 0
+            },
+            {
+              "path": "condition-research-store.js",
+              "status": "added",
+              "additions": 75,
+              "deletions": 0
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 60,
+              "deletions": 28
+            },
+            {
+              "path": "dataset-engine-log.json",
+              "status": "added",
+              "additions": 22,
+              "deletions": 0
+            },
+            {
+              "path": "dataset-replay-worker.js",
+              "status": "added",
+              "additions": 14,
+              "deletions": 0
+            },
+            {
+              "path": "dataset.css",
+              "status": "added",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "dataset.html",
+              "status": "added",
+              "additions": 18,
+              "deletions": 0
+            },
+            {
+              "path": "dataset.js",
+              "status": "added",
+              "additions": 128,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-research.js",
+              "status": "modified",
+              "additions": 16,
+              "deletions": 8
+            },
+            {
+              "path": "robots.txt",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "supabase/migrations/20261004_condition_dataset.sql",
+              "status": "added",
+              "additions": 122,
+              "deletions": 0
+            },
+            {
+              "path": "tools/condition_dataset_sql_test.cjs",
+              "status": "added",
+              "additions": 42,
+              "deletions": 0
+            },
+            {
+              "path": "tools/newbiz_research_export.py",
+              "status": "modified",
+              "additions": 2,
+              "deletions": 2
+            },
+            {
+              "path": "vercel.json",
+              "status": "modified",
+              "additions": 6,
+              "deletions": 2
+            }
+          ],
+          "domains": [
+            "gaze",
+            "measurement",
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-camera.js\n@@ -6,7 +6,7 @@\n     constructor(video,opt){\n       this.video=video;this.opt=opt;this.busy=false;this.stopped=false;this.lastT=0;this.geometry=null;\n       this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});\n-      this.info={version:'condition-camera-1',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n+      this.info={version:'condition-camera-2',backend:'initializing',captured:0,inferred:0,skipped:0,errors:0,fallbackReason:null};\n     }\n     async init(){\n       if(typeof Worker==='function' && typeof createImageBitmap==='function' && typeof OffscreenCanvas==='function'){\n@@ -53,15 +53,20 @@\n     capture(meta){\n       if(this.stopped||!this.video.videoWidth)return;\n       const tp=performance.now();\n-      let t=Number.isFinite(meta?.captureTime)&&meta.captureTime<=tp&&tp-meta.captureTime<400?meta.captureTime:tp;\n+      const captured=Number.isFinite(meta?.captureTime)&&meta.captureTime<=tp&&tp-meta.captureTime<400;\n+      let t=captured?meta.captureTime:tp;\n+      const intervalMs=this.lastT?t-this.lastT:null;\n       t=Math.max(t,this.lastT+.01);this.lastT=t;\n       const w=320,h=Math.round(w*this.video.videoHeight/this.video.videoWidth);\n       if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}\n       this.ctx.drawImage(this.video,0,0,w,h);\n       const age=this.geometry?t-this.geometry.t:Infinity;\n       const skin=NLSignal.sampleSkin(this.ctx,age<=180?this.geometry.lm:null);\n       const fr={t,ok:skin.n>=12,ppgOk:skin.n>=12,skinOk:skin.n>=12,faceOk:false,eyeOk:false,gazeOk:false,\n-        ...skin,skinQ:skin.q*(age<=80?1:.6),roiAge:Number.isFinite(age)?age:null,source:'tracked-roi'};\n+        ...skin,skinQ:skin.q*(age<=80?1:.6),roiAge:Number.isFinite(age)?age:null,source:'tracked-roi',\n+        clockSource:captured?'capture':'callback',intervalMs,captureDelayMs:captured?tp-meta.captureTime:null,\n+        callbackLateMs:Number.isFinite(meta?.expectedDisplayTime)?Math.max(0,tp-meta.expectedDisplayTime):null,\n+        mediaTimeMs:Number.isFinite(meta?.mediaTime)?meta.mediaTime*1000:null,presentedFrames:meta?.presentedFrames??null};\n       this.info.captured++;const context=this.opt.onFrame(fr);\n       if(this.busy||this.info.backend==='loading-fallback'||this.info.backend==='unavailable'){this.info.skipped++;return;}\n       if(this.worker){\nFILE condition-dataset.js\n@@ -0,0 +1,138 @@\n+/* Research evidence, never ground-truth labels generated from our own predictions. */\n+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.NLDataset=api;})(typeof globalThis!=='undefined'?globalThis:null,function(){\n+  'use strict';\n+  const VERSION='condition-dataset-1',finite=Number.isFinite;\n+  const mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:null;\n+  const quantile=(a,q)=>{const s=a.filter(finite).sort((x,y)=>x-y);return s.length?s[Math.round((s.length-1)*q)]:null;};\n+  const round=v=>finite(v)?Math.round(v*1000)/1000:null;\n+  const stats=a=>({n:a.filter(finite).length,median:round(quantile(a,.5)),p95:round(quantile(a,.95))});\n+  const LABELS={calibration:'시선 보정',baseline:'안정 기준선',pvt:'각성·반응',sart:'지속 주의·억제',pursuit:'시선 추적',saccade:'사카드',freeview:'정서 주의',stress:'압박 과제',recovery:'회복 호흡'};\n+  const KEYS={pvt:/^(pvt|perclos|blinkDur)/,sart:/^(sart|motion)/,pursuit:/^(pursuit|circ)/,saccade:/^anti/,freeview:/^(bias|lateNeg|firstNeg|posBias|negHr)/,stress:/^stress/,recovery:/^(recovery|coupling|resp)/};\n+  function coverage(rows,start,end){let ms=0;for(let i=1;i<rows.length;i++){const a=rows[i-1].t,b=rows[i].t;if(b>a&&b-a<=200)ms+=Math.max(0,Math.min(end,b)-Math.max(start,a));}return end>start?ms/(end-start):0;}\n+  function acquisition(frames){\n+    const F=frames.filter(f=>finite(f.t)).slice().sort((a,b)=>a.t-b.t),dt=F.slice(1).map((f,i)=>f.t-F[i].t).filter(v=>v>0),span=F.length>1?F.at(-1).t-F[0].t:0;\n+    const lum=F.map(f=>f.lum).filter(finite),gain=F.map(f=>f.exposureGain).filter(finite),eyes=F.filter(f=>finite(f.qLeft)&&finite(f.qRight));\n+    const clocks={};F.forEach(f=>{const k=f.clockSource||'unknown';clocks[k]=(clocks[k]||0)+1;});\n+    const pose=F.filter(f=>[f.cx,f.cy,f.fw].every(finite)&&f.fw>0),motion=pose.slice(1).flatMap((f,i)=>{const p=pose[i],dt=f.t-p.t;return dt>0&&dt<=200?[Math.hypot(f.cx-p.cx,f.cy-p.cy)/f.fw*100000/dt]:[];});\n+    let lumJumps=0;for(let i=1;i<F.length;i++)if(F[i].t-F[i-1].t<=200&&finite(F[i].lum)&&finite(F[i-1].lum)&&Math.abs(F[i].lum-F[i-1].lum)>12)lumJumps++;\n+    return {frames:F.length,durationSec:round(span/1000),fps:span?round((F.length-1)*1000/span):null,intervalMs:stats(dt),gapsOver200ms:dt.filter(v=>v>200).length,\n+      captureDelayMs:stats(F.map(f=>f.captureDelayMs)),callbackLateMs:stats(F.map(f=>f.callbackLateMs)),inferenceLagMs:stats(F.map(f=>f.lag)),roiAgeMs:stats(F.map(f=>f.roiAge)),\n+      luminance:stats(lum),dimFraction:lum.length?round(lum.filter(v=>v<40).length/lum.length):null,illuminationJumps:lumJumps,inferenceGain:stats(gain),clockSources:clocks,\n+      monocularFraction:eyes.length?round(eyes.filter(f=>(f.qLeft>.035)!==(f.qRight>.035)).length/eyes.length):null,\n+      skinCoverage:span?round(coverage(F.filter(f=>f.ppgOk??f.ok),F[0].t,F.at(-1).t)):0,\n+      observedEyeFrames:eyes.length,eyeQuality:stats(eyes.map(f=>Math.max(f.qLeft,f.qRight))),leftEyeQuality:stats(eyes.map(f=>f.qLeft)),rightEyeQuality:stats(eyes.map(f=>f.qRight)),headMotionPctPerSec:stats(motion),\n+      regions:[0,1,2].map(k=>({region:['forehead','cheek-1','cheek-2'][k],observedFrames:F.filter(f=>f.rr?.[k]?.every(finite)).length,quality:stats(F.map(f=>f.rq?.[k]))}))};\n+  }\n+  function actions(audit){\n+    const out=[],add=(key,test,priority,evidence,next)=>out.push({key,test,priority,evidence,next,status:'proposed',ruleVersion:VERSION});\n+    if(audit.outcome!=='complete')add('incomplete','session','high',{outcome:audit.outcome},'중단 단계와 오류·획득 경로를 재현하고 완료 실패 원인을 확인');\n+    const a=audit.acquisition;\n+    if(a.gapsOver200ms||a.intervalMs.p95>100)add('frame-gaps','capture','high',{gaps:a.gapsOver200ms,p95Ms:a.intervalMs.p95},'프레임 누락·추론 지연을 분리해 재현하고 동일 시간의 유효 관측량 비교');\n+    if(a.dimFraction>.3||a.illuminationJumps>3)add('lighting','capture','medium',{dimFraction:a.dimFraction,jumps:a.illuminationJumps},'저조도와 노출 변화를 구분해 피부 영역·추정법별 오차 비교');\n+    if((a.clockSources.callback||0)||(a.clockSources.unknown||0))add('clock-fallback','capture','medium',a.clockSources,'촬영 시각 미제공 구간의 지연 불확실성 평가');\n+    if(a.monocularFraction>.2)add('one-eye','gaze','medium',{fraction:a.monocularFraction},'반사·가림 조건에서 단안 보정 오차와 활용률 비교');\n+    if(audit.timing.onsetDelayMs.p95>50||audit.timing.inputDispatchMs.p95>50)add('timing-delay','response','high',audit.timing,'자극 예약 지연과 입력 처리 지연을 확인; 물리적 화면 지연과 구분');\n+    for(const t of audit.tests){\n+      if(['off','not-started'].includes(t.status))continue;\n+      if(t.pulse&&(!finite(t.pulse.bpm)||t.pulse.coverage<.5))add('pulse-support:'+t.key,t.key,'medium',{coverage:t.pulse.coverage,seconds:t.pulse.validSeconds},'짧은 유효 구간과 추정법별 후보를 기준 장비로 비교');\n+      if(t.indicators.some(i=>i.excluded))add('partial:'+t.key,t.key,'medium',{excluded:t.indicators.filter(i=>i.excluded).map(i=>i.key)},'제외 원인을 검토하고 활용 가능한 부분 지표를 유지');\n+    }\n+    if(!audit.reference||!audit.reference.metrics?.pairs)add('reference-needed','pulse','medium',{status:audit.reference?.status||'missing'},'기준 장비 동시 측정 또는 동기화 근거가 있는 기준 CSV 연결');\n+    else if(audit.reference.metrics.mae>5)add('reference-error','pulse','high',{mae:audit.reference.metrics.mae,pairs:audit.reference.metrics.pairs},'기준 신호 품질과 시간 정렬을 먼저 확인한 뒤 보정 후보 비교');\n+    if(audit.reference?.status==='exploratory')add('reference-provenance','pulse','medium',{sync:audit.reference.sync,source:audit.reference.source},'기준 장비와 동기화 불확실성을 검증한 뒤 정확도 평가에 포함');\n+    return out;\n+  }\n+  function build(rec,res=null,opt={}){\n+    const F=[...(rec.telemetry?.calibrationFrames||[]),...(rec.frames||[])],t0=finite(rec.startedAt)?rec.startedAt:(F[0]?.t??0),end=finite(rec.endedAt)?rec.endedAt:(F.at(-1)?.t??t0),hidden=rec.hidden||[];\n+    const visible=F.filter(f=>!hidden.some(h=>f.t>=h.start-500&&f.t<=(h.end??end)+1500));\n+    const b=res?.battery,events=rec.telemetry?.stimuli||[];\n+    const tests=Object.keys(LABELS).map(key=>{\n+      const step=rec.steps?.[key],span=rec.telemetry?.steps?.[key]||rec.phases?.[key];\n+      const start=span?.start,stop=span?.end??end,rows=finite(start)?visible.filter(f=>f.t>=start&&f.t<=stop):[];\n+      const phase=res?.evidence?.phases?.[key];\n+      return {key,label:LABELS[key],status:step?.status||'not-started',start:finite(start)?start-t0:null,end:finite(start)?stop-t0:null,\n+        acquisition:acquisition(rows),pulse:phase||null,indicators:(b?.indicators||[]).filter(i=>KEYS[key]?.test(i.key)).map(i=>({key:i.key,label:i.label,value:i.value,unit:i.unit,r:i.r,excluded:!!i.excluded,status:i.status}))};\n+    });\n+    const audit={schema:VERSION,attemptId:rec.attemptId||null,outcome:opt.outcome||rec.outcome||'complete',errorCode:opt.errorCode||rec.errorCode||null,\n+      measuredAt:rec.measuredAt||null,durationSec:round(Math.max(0,end-t0)/1000),versions:{core:res?.version||null,battery:b?.version||null,fusion:res?.evidence?.version||null},\n+      acquisition:acquisition(visible),timing:{onsetDelayMs:stats(events.map(e=>e.onset-e.requested)),inputDispatchMs:stats((rec.telemetry?.inputs||[]).map(e=>e.dispatchMs)),stimuli:events.length,physicalDisplayLatency:'unmeasured'},\n+      gaze:{calibration:rec.calibration?{grade:rec.calibration.grade,errPct:rec.calibration.errPct,samples:rec.calibration.samples}:null,evaluation:rec.calibLog?.evaluation||null,drift:(rec.telemetry?.drift||[]).map(d=>({...d,t:d.t-t0})),validation:'model-selection-or-internal; not independent ground truth'},\n+      tests,interpretation:{status:'not-externally-validated',domains:b?Object.fromEntries(Object.entries(b.domains).map(([k,d])=>[k,{score:d.score,status:d.status,confidence:d.confidence}])):{}},\n+      hiddenSeconds:round(hidden.reduce((s,h)=>s+Math.max(0,(h.end??end)-h.start),0)/1000),reference:null};\n+    if(rec.reference?.samples?.length&&res?.evidence?.windows){\n+      audit.reference=compare(res.evidence.windows.map(w=>({...w,start:w.start-t0,end:w.end-t0})),{...rec.reference,samples:rec.reference.samples.map(p=>({...p,t:p.t-t0}))},{start:(rec.frames?.[0]?.t??t0)-t0,end:(rec.frames?.at(-1)?.t??end)-t0});\n+    }\n+    audit.actions=actions(audit);return audit;\n+  }\n+  function parseCSV(text){\n+    const lines=String(text).replace(/^\\uFEFF/,'').trim().split(/\\r?\\n/);if(lines.length<3||lines.length>100001)throw Error('CSV는 헤더와 2~100000개 표본이 필요합니다.');\n+    const head=lines.shift().split(',').map(s=>s.trim());if(head.join(',')!=='t_ms,bpm,quality')throw Error('CSV 헤더: t_ms,bpm,quality');\n+    const samples=lines.map((l,i)=>{const c=l.split(',').map(s=>s.trim());if(c.length!==3||c.some(s=>s===''))throw Error('CSV '+(i+2)+'행의 열을 확인하세요.');const [t,bpm,quality]=c.map(Number);if(![t,bpm,quality].every(finite)||bpm<20||bpm>250||![0,1].includes(quality))throw Error('CSV '+(i+2)+'행: 시각·심박·품질(0/1)을 확인하세요.');return {t,bpm,quality};});\n+    for(let i=1;i<samples.length;i++)if(samples[i].t<=samples[i-1].t)throw Error('CSV 시각은 중복 없이 증가해야 합니다.');return samples;\n+  }\n+  function align(samples,sync){\n+    const {offsetMs=0,driftPpm=0}=sync||{};\n+    if(!finite(offsetMs)||!finite(driftPpm)||Math.abs(driftPpm)>5000)throw Error('동기화 오프셋 또는 드리프트 범위를 확인하세요.');\n+    return samples.map(s=>({...s,t:s.t*(1+driftPpm/1e6)+offsetMs}));\n+  }\n+  function anchors(a,b){\n+    if(!a||!b||![a.referenceMs,a.sessionMs,b.referenceMs,b.sessionMs].every(finite)||b.referenceMs<=a.referenceMs)throw Error('서로 다른 두 동기화 표식이 필요합니다.');\n+    const scale=(b.sessionMs-a.sessionMs)/(b.referenceMs-a.referenceMs);\n+    const sync={offsetMs:a.sessionMs-a.referenceMs*scale,driftPpm:(scale-1)*1e6};align([],sync);return sync;\n+  }\n+  function intervalReference(samples,start,end){\n+    let area=0,ms=0;\n+    for(let i=1;i<samples.length;i++){\n+      const a=samples[i-1],b=samples[i],dt=b.t-a.t;\n+      if(a.quality!==1||b.quality!==1||dt<=0||dt>2500)continue;\n+      const l=Math.max(start,a.t),r=Math.min(end,b.t);if(r<=l)continue;\n+      const value=t=>a.bpm+(b.bpm-a.bpm)*(t-a.t)/dt;area+=(value(l)+value(r))/2*(r-l);ms+=r-l;\n+    }\n+    return {bpm:ms?area/ms:null,coverage:end>start?ms/(end-start):0};\n+  }\n+  function metrics(pairs,threshold=5){\n+    if(!pairs.length)return {pairs:0,mae:null,rmse:null,bias:null,p95AbsoluteError:null,withinTolerance:null,toleranceBpm:threshold};\n+    const e=pairs.map(p=>p.bpm-p.referenceBpm);\n+    return {pairs:e.length,mae:round(mean(e.map(Math.abs))),rmse:round(Math.sqrt(mean(e.map(v=>v*v)))),bias:round(mean(e)),p95AbsoluteError:round(quantile(e.map(Math.abs),.95)),withinTolerance:round(e.filter(v=>Math.abs(v)<=threshold).length/e.length),toleranceBpm:threshold};\n+  }\n+  function estimateInterval(windows,start,end){\n+    const rows=windows.filter(w=>(w.usable??w.snr>=-2)&&finite(w.bpm)&&w.start<end&&w.end>start);\n+    const edges=[...new Set([start,end,...rows.flatMap(w=>[Math.max(start,w.start),Math.min(end,w.end)])])].sort((a,b)=>a-b);\n+    let ms=0,weighted=0,total=0,quality=0;\n+    for(let i=1;i<edges.length;i++){const a=edges[i-1],b=edges[i],active=rows.filter(w=>w.start<=a&&w.end>=b).sort((x,y)=>(y.confidence??.65)-(x.confidence??.65));\n+      if(!active.length)continue;const w=active[0],q=w.confidence??.65,dt=b-a;ms+=dt;quality+=dt*q;weighted+=dt*q*w.bpm;total+=dt*q;\n+    }\n+    return {bpm:total?weighted/total:null,coverage:end>start?ms/(end-start):0,confidence:ms?quality/ms:0};\n+  }\n+  function compare(windows,reference,bounds={}){\n+    const sync=reference.sync||{offsetMs:0,driftPpm:0,uncertaintyMs:null,method:'receipt-time'};\n+    const raw=reference.samples||[];\n+    if(raw.some((s,i)=>![s.t,s.bpm].every(finite)||s.bpm<20||s.bpm>250||![0,1].includes(s.quality)||(i&&s.t<=raw[i-1].t)))throw Error('기준 표본의 시각·범위·품질을 확인하세요.');\n+    const samples=align(raw,sync);let eligible=0;\n+    const pairs=[];\n+    // Fixed disjoint ten-second epochs shared across engine versions. Reference-observed\n+    // epochs with NO pulse output remain in the denominator. Overlap adds no sample count.\n+    const valid=windows.filter(w=>finite(w.start)&&finite(w.end)&&w.end>w.start);\n+    const start=finite(bounds.start)?bounds.start:(valid.length?Math.min(...valid.map(w=>w.start)):0),end=finite(bounds.end)?bounds.end:(valid.length?Math.max(...valid.map(w=>w.end)):start);\n+    if(end-start>7200000)throw Error('비교 범위는 2시간 이하여야 합니다.');\n+    for(let t=start;t+10000<=end+1;t+=10000){\n+      const ref=intervalReference(samples,t,t+10000);if(ref.coverage<.8)continue;eligible++;\n+      const w=estimateInterval(valid,t,t+10000);if(w.coverage<.8||!finite(w.bpm))continue;\n+      pairs.push({start:t,end:t+10000,bpm:w.bpm,referenceBpm:ref.bpm,confidence:w.confidence,error:round(w.bpm-ref.bpm)});\n+    }\n+    const verified=reference.verified===true&&finite(sync.uncertaintyMs)&&sync.uncertaintyMs>=0&&sync.uncertaintyMs<=100;\n+    return {status:pairs.length?(verified?'paired':'exploratory'):'no-overlap',source:reference.source||'unspecified',verified:reference.verified===true,sync,bounds:{start,end},epochSeconds:10,\n+      metrics:metrics(pairs),eligibleWindows:eligible,acceptedFraction:eligible?round(pairs.length/eligible):null,\n+      riskCoverage:[0,.5,.65,.8].map(c=>{const use=pairs.filter(p=>p.confidence>=c);return {minConfidence:c,coverage:eligible?round(use.length/eligible):null,...metrics(use)};}),pairs};\n+  }\n+  function cohort(rows){\n+    const completed=rows.filter(r=>r.outcome==='complete'),paired=rows.filter(r=>r.reference?.status==='paired'&&r.reference.metrics.pairs);\n+    return {attempts:rows.length,completed:completed.length,completionRate:rows.length?round(completed.length/rows.length):null,\n+      pairedSessions:paired.length,exploratorySessions:rows.filter(r=>r.reference?.status==='exploratory').length,\n+      sessionMeanMae:round(mean(paired.map(r=>r.reference.metrics.mae))),within5BpmSessions:paired.filter(r=>r.reference.metrics.p95AbsoluteError<=5).length,\n+      accurateYield:rows.length?round(paired.filter(r=>r.reference.metrics.p95AbsoluteError<=5).length/rows.length):null,\n+      // This is evaluated yield among recorded, consented attempts, not population diagnostic accuracy.\n+      scope:'loaded-consented-attempts',pendingActions:rows.reduce((s,r)=>s+(r.actions||[]).length,0)};\n+  }\n+  return {VERSION,LABELS,acquisition,build,actions,parseCSV,align,anchors,compare,metrics,cohort};\n+});\nFILE condition-research-store.js\n@@ -0,0 +1,75 @@\n+/* Durable, consent-only outbox. No raw camera images; no administrator credential. */\n+(function(root){\n+  'use strict';\n+  const DB='nl-condition-research-v1',STORE='outbox',RECEIPTS='nlNewbiz:research';let opening;\n+  const open=()=>opening||(opening=new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:'id'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>{opening=null;reject(r.error);};}));\n+  async function transaction(mode,fn){const db=await open();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,mode),req=fn(tx.objectStore(STORE));tx.oncomplete=()=>resolve(req?.result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('local-storage-aborted'));});}\n+  const all=()=>transaction('readonly',s=>s.getAll()),get=id=>transaction('readonly',s=>s.get(id)),put=v=>transaction('readwrite',s=>s.put(v)),remove=id=>transaction('readwrite',s=>s.delete(id));\n+  const randomToken=()=>Array.from(crypto.getRandomValues(new Uint8Array(24)),v=>v.toString(16).padStart(2,'0')).join('');\n+  function receipts(){try{return JSON.parse(localStorage.getItem(RECEIPTS)||'[]');}catch(_){return [];}}\n+  async function saveRecord(pk,consent,{draft=false}={}){\n+    if(consent?.research!==true||pk.meta?.demo)throw Error('research-consent-required');\n+    const id=pk.meta.attemptId;if(!id)throw Error('attempt-id-required');\n+    const old=await get(id);if(old?.status==='sent'||old?.status==='withdrawing')return old;\n+    if(draft&&old&&old.status!=='draft')return old;\n+    const rows=await all();if(!old&&rows.filter(r=>r.pk&&r.status!=='sent').length>=20)throw Error('연구 전송 대기 저장소가 가득 찼습니다. dataset.html에서 내 대기 기록을 확인해 주세요.');\n+    const row={...old,id,token:old?.token||randomToken(),pk,consent,status:draft?'draft':'pending',updatedAt:Date.now(),createdAt:old?.createdAt||Date.now(),error:null};\n+    await put(row);return row;\n+  }\n+  const save=(...args)=>navigator.locks?navigator.locks.request(DB,()=>saveRecord(...args)):saveRecord(...args);\n+  async function rpc(fn,body){\n+    const cfg=root.NL_SUPABASE,ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),20000);\n+    try{if(!cfg?.url||!cfg.anonKey)throw Error('research-server-not-configured');\n+      const r=await fetch(cfg.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.anonKey,Authorization:'Bearer '+cfg.anonKey},body:JSON.stringify(body),signal:ctl.signal});\n+      if(!r.ok){const error=Error(fn+' HTTP '+r.status);error.status=r.status;throw error;}return await r.json();\n+    }finally{clearTimeout(timer);}\n+  }\n+  let flushing=null;\n+  async function process(){\n+    const result=[];\n+    for(const snapshot of await all()){\n+      let row=await get(snapshot.id);if(!row||row.status==='sent'||row.status==='withdrawing')continue;\n+      if(row.status==='draft'){\n+        if(Date.now()-row.updatedAt<10*60*1000)continue;\n+        row.pk.summary.dataset.outcome='interrupted';row.pk.summary.dataset.actions=root.NLDataset.actions(row.pk.summary.dataset);\n+        row.pk.meta.outcome='interrupted';row.status='pending';await put(row);\n+      }\n+      // Old unsent biometric payloads expire locally; nothing is silently sent after this window.\n+      if(Date.now()-row.createdAt>7*86400000){row.error='보관 기한 초과 · 로컬 원자료 삭제됨';row.pk=null;row.status='expired';await put(row);continue;}\n+      if(row.status==='expired')continue;\n+      try{\n+        const enc=await root.NLResearch.encode(row.pk.payload);\n+        const meta={...row.pk.meta,payloadBytes:enc.bytes,rawBytes:enc.rawBytes};let start;\n+        try{start=await rpc('dataset_research_begin',{p_attempt:row.id,p_token:row.token,p_consent:row.consent,p_meta:meta,p_summary:row.pk.summary});}\n+        catch(e){\n+          if(e.status!==404)throw e;\n+          // Preserve existing collection while the reviewer migration is being deployed.\n+          // A persisted legacy receipt is always reused, never duplicated on retry.\n+          if(row.serverId&&row.legacy)start={session_id:row.serverId,code:row.code,status:'uploading'};\n+          else{const old=await rpc('newbiz_research_begin',{p_consent:row.consent,p_meta:meta,p_summary:row.pk.summary});row.token=old.upload_token;row.legacy=true;start={...old,status:'uploading'};}\n+        }\n+        row.serverId=start.session_id;row.code=start.code;await put(row);\n+        if(start.status!=='complete'){\n+          for(let i=0;i<enc.chunks.length;i++)await rpc('newbiz_research_chunk',{p_session:row.serverId,p_token:row.token,p_idx:i,p_data:enc.chunks[i]});\n+          await rpc('newbiz_research_finish',{p_session:row.serverId,p_token:row.token,p_chunks:enc.chunks.length,p_bytes:enc.bytes,p_sha256:enc.sha256});\n+        }\n+        row.status='sent';row.error=null;row.bytes=enc.bytes;\n+        // Retain only a receipt after sending. Browser data cannot expose the central dataset.\n+        row.pk=null;await put(row);\n+        try{const list=receipts().filter(v=>v.id!==row.serverId);list.unshift({id:row.serverId,code:row.code,token:row.token,at:row.consent.at});localStorage.setItem(RECEIPTS,JSON.stringify(list.slice(0,50)));}catch(_){}\n+        result.push({id:row.id,status:'sent',code:row.code});\n+      }catch(e){row.error=String(e.message||e);row.status='pending';await put(row);result.push({id:row.id,status:'pending',error:row.error});}\n+    }\n+    root.dispatchEvent?.(new Event('nl-research-change'));return result;\n+  }\n+  function flush(){if(flushing)return flushing;flushing=(navigator.locks?navigator.locks.request(DB,process):process()).finally(()=>{flushing=null;});return flushing;}\n+  async function withdraw(id){\n+    // The same lock as uploads avoids deletion racing with an in-flight begin/finish.\n+    const work=async()=>{const row=await get(id);if(!row)return;\n+      if(row.serverId)await rpc('newbiz_research_withdraw',{p_session:row.serverId,p_token:row.token});\n+      await remove(id);try{localStorage.setItem(RECEIPTS,JSON.stringify(receipts().filter(r=>r.id!==row.serverId)));}catch(_){}\n+    };\n+    return navigator.locks?navigator.locks.request(DB,work):work();\n+  }\n+  root.NLResearchStore={save,all,get,flush,withdraw};\n+})(typeof window!=='undefined'?window:globalThis);\nFILE condition.html\n@@ -1020,6 +1020,8 @@ <h2 style=\"margin-bottom:4px\">시작하기 전에</h2>\n         <p><b>보내지 않는 것</b> 카메라 영상·사진, 이름·연락처·계정. 최근 2주 기분(PHQ) 응답은 아래에서 따로 동의한 경우에만.</p>\n         <p><b>보관과 철회</b> 연구 목적으로만 쓰고 5년 보관 후 파기합니다. 제출 후 리포트에 나오는 <b>참가 코드</b>로 언제든 철회할 수 있고, 이 기기에서는 ‘제출 철회’ 버튼으로 즉시 삭제됩니다. 동의하지 않아도 검사와 결과에는 아무 영향이 없습니다.</p>\n         <label class=\"rs-phq\"><input type=\"checkbox\" id=\"rsPhq\"> 최근 2주 기분(PHQ) 응답도 연구에 포함 (선택)</label>\n+        <p>동의한 검사의 완료·중단·오류와 측정 품질을 연구 기록에 함께 남기고, 보정 검토 과제를 자동 생성합니다. 전송 실패 시 이 기기에서 최대 7일간 재시도합니다. <a href=\"dataset.html#local\">내 전송 대기·철회 기록</a></p>\n+        <details><summary>기준 장비 동시 측정 (연구용 선택)</summary><p>Bluetooth Heart Rate Service 지원 장비를 연결하면 검사 중 심박을 함께 기록합니다. 수신 시각으로 비교하므로 장비 지연을 검증하기 전에는 탐색적 비교로 표시합니다. 장비가 없어도 검사는 그대로 진행됩니다.</p><button type=\"button\" class=\"sbtn\" id=\"refConnect\">기준 심박 장비 연결</button> <button type=\"button\" class=\"sbtn\" id=\"refDisconnect\">연결 해제</button> <span id=\"refStatus\" role=\"status\">연결 안 됨</span></details>\n       </div>\n     </details>\n     <div class=\"btns\">\n@@ -1164,6 +1166",
+          "patchTruncated": true,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "39049591840"
+      }
     },
     {
       "sha": "3df0a657cff15ebe000a8fa9321617626313a807",
@@ -12684,12 +12983,32 @@
         {
           "id": "evo-3df0a657cff1-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-3df0a657cff1-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3df0a657cff15ebe000a8fa9321617626313a807\n변경 제목: Accumulate and fuse supported webcam pulse evidence\n관련 파일: CONDITION_FUSION_BENCHMARK.json, NEWBIZ_RESEARCH_DATA.md, condition-analysis-worker.js, condition-camera.test.cjs, condition-fusion.js, condition-fusion.test.cjs, condition-signal.test.cjs, condition.html, newbiz-battery.js, newbiz-core.js, newbiz-report.js, newbiz-research.js, tools/condition_fusion_benchmark.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3df0a657cff1-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "웹캠 rPPG 다중 ROI·기법 융합 및 시구간 축적 알고리즘의 오차·활용률 평가",
+          "rationale": "`condition-fusion.js` 모듈 도입을 통해 단일 영역/기법 관측 한계를 극복하고, 10초 이상 지속되는 약한 신호를 지원 증거(`accumulated-weak-evidence`)로 수용하여 맥박 측정 수율을 높이려는 개발 가설이 반영되었다. 그러나 신호 수용 기준 완화가 저품질 노이즈를 유효 신호로 오인하여 심박수(BPM) 측정 오차를 증가시킬 위험이 존재한다. 이는 실제 임상적 정답이 검증된 결과가 아닌 공학적 융합 시도이므로, 신호 활용량 증가와 심박수 오차 간의 트레이드오프를 정밀 평가해야 한다.",
+          "validationPlan": "1. 기존 단일 파형 알고리즘 대비 `condition-fusion.js` 적용 시의 세션별 활용 가능 시간(validSeconds) 및 usable 윈도우 비중 변화 집계.\n2. 전체 측정 시도 횟수(실패 및 중도 포기 세션 포함)를 분모로 명시하고, 신호 수용률 증가 대비 심박수 오차(MAE, RMSE) 변동 폭 측정.\n3. 단일 관측 세션으로 일반화하지 않도록 참가자별, 웹캠 기기 종류별, 촬영 날짜/조명 조건별로 분리하여 평가 수행.\n4. 실측 데이터셋(`dataset`) 메모 및 기준 센서 동기화 기록을 결합하여, 유효 판정을 받은 약한 신호 구간의 오차가 허용 범위(예: ±5 BPM 이내)를 준수하는지 회귀 검증.",
+          "prompt": "당신은 NeuroLens 알고리즘 개발 AI입니다. 최신 커밋 `3df0a657cff15ebe000a8fa9321617626313a807`에서 추가된 `condition-fusion.js` 및 연관 코드를 분석하고 다음 과제를 수행하세요.\n\n1. 코드 구조 확인:\n   - `condition-fusion.js` 내 `fuse()`, `windows()`, `support()`, `summarize()` 함수의 가중치 산출 방식과 약한 신호 수용 조건(`accumulated-weak-evidence`)을 검토하세요.\n   - `condition-analysis-worker.js` 및 `condition.html`의 `pulseSupport()` 호출 구조를 확인하세요.\n\n2. 변경 및 검증 과제 작성:\n   - 약한 신호 복원 및 시구간 축적 로직이 노이즈를 과도하게 유효 신호로 판정하지 않도록 수용 기준을 정밀화하는 로직을 점검하세요.\n   - 약한 신호 활용량(유효 초, coverage)과 오차(MAE, RMSE)를 함께 평가하는 검증 스크립트 작성 및 실행 계획을 수립하세요.\n   - 실측 성능 수치를 임의로 만들어내지 말고, `dataset`에 저장된 실측 레퍼런스 기록 및 연구자 메모를 결합하여 평가하도록 구현하세요.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 전체 시도 세션 분모 대비 usable 신호 확보율이 향상되면서, 레퍼런스 대비 심박수 MAE가 기존 대비 악화되지 않음.\n   - 회귀 기준: 약한 신호 수용으로 인해 무효 노이즈 구간이 'supported' 상태로 오판정되어 심박수 오차가 8 BPM 이상 발생하는 세션 비율이 증가함.\n\n4. 결과 보고 양식:\n   - 평가 세션 분모 통계 (총 세션, 성공, 제한, 불가 분류)\n   - 조건별(기기, 참가자, 날짜) 활용률-오차 매트릭스\n   - 레퍼런스 데이터셋 연동 오차 분석 및 회귀 여부 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3df0a657cff15ebe000a8fa9321617626313a807\nDataset-Task: evo-3df0a657cff1-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-3df0a657cff1-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "비동기 pulseSupport 워커 도입에 따른 컨디션 배터리 QC 산출 및 안전성 검증",
+          "rationale": "`condition.html`에서 백그라운드 Web Worker(`pulseSupport`)를 통해 실시간 맥박 신호 지원 유효성을 계산하고, `newbiz-battery.js`에서 QC 지표(`hq`)에 `confidence`와 `effectiveSeconds`를 가중 반영하도록 QC v1.4로 업데이트되었다. 비동기 워커 응답 지연, 메인 스레드 데이터 동기화 실패 또는 Worker 미지원 환경에서 배터리 QC 점수가 왜곡되거나 측정 프로세스가 중단되지 않는지 안전성 및 산출 타당성을 검증해야 한다.",
+          "validationPlan": "1. Web Worker 차단, 강제 종료(terminate), 통신 지연 환경에서의 메인 스레드 폴백(Fallback) 작동 여부 및 예외 처리 검증.\n2. `newbiz-battery.js` 내 QC Grade(A~D) 산출 로직에 `effectiveSeconds` 가중치 반영 전후의 등급 변화 분포 비교 분석.\n3. 전체 세션 분모(정상 완료, 프레임 드롭 세션, 비동기 연산 실패 세션 포함)를 바탕으로 QC 등급 판정 성공률 및 오류율 측정.\n4. 다양한 디바이스 및 브라우저 환경에서 메인 루프 프레임 레이트 영향도 평가.",
+          "prompt": "당신은 NeuroLens 측정 파이프라인 개발 AI입니다. 커밋 `3df0a657cff15ebe000a8fa9321617626313a807`의 `newbiz-battery.js` 및 `condition.html` 변경 사항을 바탕으로 측정 배터리 QC 안정성 과제를 수행하세요.\n\n1. 코드 구조 확인:\n   - `condition.html` 내 `pulseSupport()` 및 `S.supportWorker` 비동기 메시지 처리, 예외 발생 시 terminate 및 폴백 흐름을 점검하세요.\n   - `newbiz-battery.js` 내 `QC` 객체(v1.4) 및 `hq` 평가 함수에서 `confidence`와 `effectiveSeconds`가 최종 배터리 신뢰도에 미치는 영향을 분석하세요.\n\n2. 변경 및 검증 과제 작성:\n   - 비동기 분석 워커가 예외로 종료되더라도 측정 진행 및 결과 생성이 차단되지 않는 예외 처리 강화를 수행하세요.\n   - `effectiveSeconds` 수치가 세션 품질을 올바르게 반영하는지 `dataset` 세션 로그와 연계하여 검증하세요.\n   - 가상의 정답 수치를 생성하지 말고, 실제 수집된 프레임 품질(`skinQ`, `lum`)과 신호 유효 시간 데이터를 기반으로 QC 지표의 적정성을 평가하세요.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: Worker 예외 발생 시 100% 안전하게 메인 스레드 계산으로 폴백되며, QC 등급 오판정률 감소.\n   - 회귀 기준: 신호 유효 시간이 짧은 고노이즈 세션이 높은 QC 점수를 받아 C/D 등급이 A/B 등급으로 오판정되는 경우 발생.\n\n4. 결과 보고 양식:\n   - 환경별(Worker 정상, 지연, 미지원) 폴백 테스트 결과\n   - 전체 분모 대비 QC 등급(A/B/C/D) 분포 및 변동 분석 표\n   - 실측 데이터셋 메모 연계 QC 타당성 검토 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3df0a657cff15ebe000a8fa9321617626313a807\nDataset-Task: evo-3df0a657cff1-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+        },
+        {
+          "id": "evo-3df0a657cff1-research",
+          "domain": "research",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "condition_fusion_benchmark 연계 실측 데이터셋 기반 평가 체계 수립",
+          "rationale": "커밋에 `tools/condition_fusion_benchmark.cjs` 및 `CONDITION_FUSION_BENCHMARK.json`이 신규 도입되었으나, 스크립트 내부 가중치는 공학적 점수일 뿐이며 실제 연구 정답으로 간주할 수 없다. 신규 벤치마크 도구가 합성 수치나 자체 융합 결과를 임상 진단 정확도나 독립 정답으로 오해하지 않도록, 실제 관측 데이터셋(`NEWBIZ_RESEARCH_DATA.md` 및 데이터셋 메모)을 정합성 있게 연계하는 검증 체계를 마련해야 한다.",
+          "validationPlan": "1. `tools/condition_fusion_benchmark.cjs`가 임의 생성된 수치를 독립 정답으로 출력하는지 검토하고, 실제 레퍼런스 데이터셋 파일 경로와 메모를 연결하도록 파이프라인 수정.\n2. 날짜별, 참가자별, 촬영 환경(밝기 변동, 머리 움직임)별로 분리된 실측 데이터셋을 기반으로 벤치마크 수행.\n3. 단일 세션 성공 결과에 치우치지 않고 실패 세션을 포함한 분모 전체의 수율-오차 프로파일 생성.\n4. 알고리즘 파라미터(SNR threshold, periodicity threshold) 변화에 따른 융합 수율 및 오차 추이 분석.",
+          "prompt": "당신은 NeuroLens 연구 검증 개발 AI입니다. 커밋 `3df0a657cff15ebe000a8fa9321617626313a807`에 추가된 `tools/condition_fusion_benchmark.cjs` 및 `CONDITION_FUSION_BENCHMARK.json`을 검토하고 연구 과제를 수행하세요.\n\n1. 코드 구조 확인:\n   - `tools/condition_fusion_benchmark.cjs` 스크립트의 입출력 구조 및 벤치마크 메트릭 산출 방식을 확인하세요.\n   - `NEWBIZ_RESEARCH_DATA.md` 및 프로젝트 내 연구 데이터 연동 지점을 파악하세요.\n\n2. 변경 및 검증 과제 작성:\n   - 벤치마크 도구가 가상 수치나 공학적 점수를 '임상 진단 정확도' 또는 '독립 정답'으로 표기하지 않도록 정정하세요.\n   - 실제 관측 데이터셋(`dataset`)의 메모 및 정답 라벨을 직접 읽어와 융합 알고리즘의 오차를 계산하도록 도구를 개편하세요.\n   - 관측 사실, 연구자 주장, 개발 가설을 명확히 구분하여 리포트를 작성하도록 벤치마크 출력 양식을 정비하세요.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 실측 데이터셋 연동을 통해 참가자/기기/날짜별로 분리된 수율-오차 매트릭스가 검증 가능하게 출력됨.\n   - 회귀 기준: 기준 센서 정답 없이 합성/자체 결과만으로 정확도를 확정하거나, 실패 시도를 분모에서 제외하여 수율을 과장 보고함.\n\n4. 결과 보고 양식:\n   - 벤치마크 도구 개편 및 데이터셋 연동 현황\n   - 분모(전체 시도) 기반 수율 및 오차 분포 표\n   - 개발 가설 vs 실측 검증 증거 비교 리포트\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3df0a657cff15ebe000a8fa9321617626313a807\nDataset-Task: evo-3df0a657cff1-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-3df0a657cff1-gaze",
@@ -12700,30 +13019,10 @@
           "prompt": "NeuroLens 알고리즘 후속 과제 evo-3df0a657cff1-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3df0a657cff15ebe000a8fa9321617626313a807\n변경 제목: Accumulate and fuse supported webcam pulse evidence\n관련 파일: CONDITION_FUSION_BENCHMARK.json, NEWBIZ_RESEARCH_DATA.md, condition-analysis-worker.js, condition-camera.test.cjs, condition-fusion.js, condition-fusion.test.cjs, condition-signal.test.cjs, condition.html, newbiz-battery.js, newbiz-core.js, newbiz-report.js, newbiz-research.js, tools/condition_fusion_benchmark.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3df0a657cff1-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
           "generator": "rule",
           "state": "proposed"
-        },
-        {
-          "id": "evo-3df0a657cff1-measurement",
-          "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-3df0a657cff1-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3df0a657cff15ebe000a8fa9321617626313a807\n변경 제목: Accumulate and fuse supported webcam pulse evidence\n관련 파일: CONDITION_FUSION_BENCHMARK.json, NEWBIZ_RESEARCH_DATA.md, condition-analysis-worker.js, condition-camera.test.cjs, condition-fusion.js, condition-fusion.test.cjs, condition-signal.test.cjs, condition.html, newbiz-battery.js, newbiz-core.js, newbiz-report.js, newbiz-research.js, tools/condition_fusion_benchmark.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3df0a657cff1-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
-        },
-        {
-          "id": "evo-3df0a657cff1-research",
-          "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-3df0a657cff1-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3df0a657cff15ebe000a8fa9321617626313a807\n변경 제목: Accumulate and fuse supported webcam pulse evidence\n관련 파일: CONDITION_FUSION_BENCHMARK.json, NEWBIZ_RESEARCH_DATA.md, condition-analysis-worker.js, condition-camera.test.cjs, condition-fusion.js, condition-fusion.test.cjs, condition-signal.test.cjs, condition.html, newbiz-battery.js, newbiz-core.js, newbiz-report.js, newbiz-research.js, tools/condition_fusion_benchmark.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3df0a657cff1-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55538277327",
@@ -12755,8 +13054,169 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-04T10:15:32.337516+00:00",
-      "analysisError": "HTTP_403"
+      "lastAttemptAt": "2026-10-17T16:30:46.486727+00:00",
+      "analysis": {
+        "summary": "공개 GitHub 커밋 `3df0a657cff15ebe000a8fa9321617626313a807` 변경 사항 분석 결과, 웹캠 환경에서 약한 rPPG 맥박 신호의 활용률을 높이고 신호 증거를 축적·합성하기 위해 `condition-fusion.js`, `condition-analysis-worker.js`, `tools/condition_fusion_benchmark.cjs`, `CONDITION_FUSION_BENCHMARK.json` 파일이 신규 추가되었고 `condition.html`, `newbiz-battery.js`, `newbiz-core.js`, `NEWBIZ_RESEARCH_DATA.md` 등 다수 파일이 수정되었습니다. 차분 데이터 중 `patchExcerpt`는 `patchTruncated: true` 상태로 일부 생략되어 있습니다.\n\n주요 변경 내용은 `condition-fusion.js`를 신규 작성하여 다중 관심 영역(ROI) 및 파형 추출 기법 간 가중 quantiles, 주기성 검사(`periodicity`), 공간 응집도(`spatialCoherence`) 및 6초·10초·16초 멀티 윈도우 지원 평가를 수행하고, 10초 이상의 시구간 교차 관측 시 약한 신호도 활용 가능한 맥박 증거로 복원하는 연산(`accumulated-weak-evidence`)을 구현한 점입니다. 또한 `condition.html`에 Web Worker(`pulseSupport`)를 신규 연동하여 안정 기준선(baseline) 및 회복 호흡(recovery) 구간 동안 백그라운드에서 신호 유효성을 실시간 집계하도록 변경하였으며, `newbiz-battery.js`에서는 QC 버전(v1.4) 및 QC 산출식(`hq`)에 신뢰도(`confidence`)와 유효 신호 초(`effectiveSeconds`) 가중치를 반영하였습니다.\n\n다만, 커밋 제목('Accumulate and fuse supported webcam pulse evidence')이나 코드 내 공학적 산출 가중치(engineering scores)는 노이즈 회복을 위한 개발자의 설계 가설 및 공학적 지표일 뿐, 독립적인 기준 센서(ECG/PPG)로 입증된 사람 대상 검증 결과나 임상 진단 정확도가 아닙니다. 실제 일상 웹캠 환경에서의 측정 성공률 향상과 정확도 유지 여부는 실측 데이터셋과의 결합 검증이 필수적입니다.",
+        "tasks": [
+          {
+            "id": "evo-3df0a657cff1-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "웹캠 rPPG 다중 ROI·기법 융합 및 시구간 축적 알고리즘의 오차·활용률 평가",
+            "rationale": "`condition-fusion.js` 모듈 도입을 통해 단일 영역/기법 관측 한계를 극복하고, 10초 이상 지속되는 약한 신호를 지원 증거(`accumulated-weak-evidence`)로 수용하여 맥박 측정 수율을 높이려는 개발 가설이 반영되었다. 그러나 신호 수용 기준 완화가 저품질 노이즈를 유효 신호로 오인하여 심박수(BPM) 측정 오차를 증가시킬 위험이 존재한다. 이는 실제 임상적 정답이 검증된 결과가 아닌 공학적 융합 시도이므로, 신호 활용량 증가와 심박수 오차 간의 트레이드오프를 정밀 평가해야 한다.",
+            "validationPlan": "1. 기존 단일 파형 알고리즘 대비 `condition-fusion.js` 적용 시의 세션별 활용 가능 시간(validSeconds) 및 usable 윈도우 비중 변화 집계.\n2. 전체 측정 시도 횟수(실패 및 중도 포기 세션 포함)를 분모로 명시하고, 신호 수용률 증가 대비 심박수 오차(MAE, RMSE) 변동 폭 측정.\n3. 단일 관측 세션으로 일반화하지 않도록 참가자별, 웹캠 기기 종류별, 촬영 날짜/조명 조건별로 분리하여 평가 수행.\n4. 실측 데이터셋(`dataset`) 메모 및 기준 센서 동기화 기록을 결합하여, 유효 판정을 받은 약한 신호 구간의 오차가 허용 범위(예: ±5 BPM 이내)를 준수하는지 회귀 검증.",
+            "prompt": "당신은 NeuroLens 알고리즘 개발 AI입니다. 최신 커밋 `3df0a657cff15ebe000a8fa9321617626313a807`에서 추가된 `condition-fusion.js` 및 연관 코드를 분석하고 다음 과제를 수행하세요.\n\n1. 코드 구조 확인:\n   - `condition-fusion.js` 내 `fuse()`, `windows()`, `support()`, `summarize()` 함수의 가중치 산출 방식과 약한 신호 수용 조건(`accumulated-weak-evidence`)을 검토하세요.\n   - `condition-analysis-worker.js` 및 `condition.html`의 `pulseSupport()` 호출 구조를 확인하세요.\n\n2. 변경 및 검증 과제 작성:\n   - 약한 신호 복원 및 시구간 축적 로직이 노이즈를 과도하게 유효 신호로 판정하지 않도록 수용 기준을 정밀화하는 로직을 점검하세요.\n   - 약한 신호 활용량(유효 초, coverage)과 오차(MAE, RMSE)를 함께 평가하는 검증 스크립트 작성 및 실행 계획을 수립하세요.\n   - 실측 성능 수치를 임의로 만들어내지 말고, `dataset`에 저장된 실측 레퍼런스 기록 및 연구자 메모를 결합하여 평가하도록 구현하세요.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 전체 시도 세션 분모 대비 usable 신호 확보율이 향상되면서, 레퍼런스 대비 심박수 MAE가 기존 대비 악화되지 않음.\n   - 회귀 기준: 약한 신호 수용으로 인해 무효 노이즈 구간이 'supported' 상태로 오판정되어 심박수 오차가 8 BPM 이상 발생하는 세션 비율이 증가함.\n\n4. 결과 보고 양식:\n   - 평가 세션 분모 통계 (총 세션, 성공, 제한, 불가 분류)\n   - 조건별(기기, 참가자, 날짜) 활용률-오차 매트릭스\n   - 레퍼런스 데이터셋 연동 오차 분석 및 회귀 여부 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3df0a657cff15ebe000a8fa9321617626313a807\nDataset-Task: evo-3df0a657cff1-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-3df0a657cff1-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "비동기 pulseSupport 워커 도입에 따른 컨디션 배터리 QC 산출 및 안전성 검증",
+            "rationale": "`condition.html`에서 백그라운드 Web Worker(`pulseSupport`)를 통해 실시간 맥박 신호 지원 유효성을 계산하고, `newbiz-battery.js`에서 QC 지표(`hq`)에 `confidence`와 `effectiveSeconds`를 가중 반영하도록 QC v1.4로 업데이트되었다. 비동기 워커 응답 지연, 메인 스레드 데이터 동기화 실패 또는 Worker 미지원 환경에서 배터리 QC 점수가 왜곡되거나 측정 프로세스가 중단되지 않는지 안전성 및 산출 타당성을 검증해야 한다.",
+            "validationPlan": "1. Web Worker 차단, 강제 종료(terminate), 통신 지연 환경에서의 메인 스레드 폴백(Fallback) 작동 여부 및 예외 처리 검증.\n2. `newbiz-battery.js` 내 QC Grade(A~D) 산출 로직에 `effectiveSeconds` 가중치 반영 전후의 등급 변화 분포 비교 분석.\n3. 전체 세션 분모(정상 완료, 프레임 드롭 세션, 비동기 연산 실패 세션 포함)를 바탕으로 QC 등급 판정 성공률 및 오류율 측정.\n4. 다양한 디바이스 및 브라우저 환경에서 메인 루프 프레임 레이트 영향도 평가.",
+            "prompt": "당신은 NeuroLens 측정 파이프라인 개발 AI입니다. 커밋 `3df0a657cff15ebe000a8fa9321617626313a807`의 `newbiz-battery.js` 및 `condition.html` 변경 사항을 바탕으로 측정 배터리 QC 안정성 과제를 수행하세요.\n\n1. 코드 구조 확인:\n   - `condition.html` 내 `pulseSupport()` 및 `S.supportWorker` 비동기 메시지 처리, 예외 발생 시 terminate 및 폴백 흐름을 점검하세요.\n   - `newbiz-battery.js` 내 `QC` 객체(v1.4) 및 `hq` 평가 함수에서 `confidence`와 `effectiveSeconds`가 최종 배터리 신뢰도에 미치는 영향을 분석하세요.\n\n2. 변경 및 검증 과제 작성:\n   - 비동기 분석 워커가 예외로 종료되더라도 측정 진행 및 결과 생성이 차단되지 않는 예외 처리 강화를 수행하세요.\n   - `effectiveSeconds` 수치가 세션 품질을 올바르게 반영하는지 `dataset` 세션 로그와 연계하여 검증하세요.\n   - 가상의 정답 수치를 생성하지 말고, 실제 수집된 프레임 품질(`skinQ`, `lum`)과 신호 유효 시간 데이터를 기반으로 QC 지표의 적정성을 평가하세요.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: Worker 예외 발생 시 100% 안전하게 메인 스레드 계산으로 폴백되며, QC 등급 오판정률 감소.\n   - 회귀 기준: 신호 유효 시간이 짧은 고노이즈 세션이 높은 QC 점수를 받아 C/D 등급이 A/B 등급으로 오판정되는 경우 발생.\n\n4. 결과 보고 양식:\n   - 환경별(Worker 정상, 지연, 미지원) 폴백 테스트 결과\n   - 전체 분모 대비 QC 등급(A/B/C/D) 분포 및 변동 분석 표\n   - 실측 데이터셋 메모 연계 QC 타당성 검토 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3df0a657cff15ebe000a8fa9321617626313a807\nDataset-Task: evo-3df0a657cff1-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-3df0a657cff1-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "condition_fusion_benchmark 연계 실측 데이터셋 기반 평가 체계 수립",
+            "rationale": "커밋에 `tools/condition_fusion_benchmark.cjs` 및 `CONDITION_FUSION_BENCHMARK.json`이 신규 도입되었으나, 스크립트 내부 가중치는 공학적 점수일 뿐이며 실제 연구 정답으로 간주할 수 없다. 신규 벤치마크 도구가 합성 수치나 자체 융합 결과를 임상 진단 정확도나 독립 정답으로 오해하지 않도록, 실제 관측 데이터셋(`NEWBIZ_RESEARCH_DATA.md` 및 데이터셋 메모)을 정합성 있게 연계하는 검증 체계를 마련해야 한다.",
+            "validationPlan": "1. `tools/condition_fusion_benchmark.cjs`가 임의 생성된 수치를 독립 정답으로 출력하는지 검토하고, 실제 레퍼런스 데이터셋 파일 경로와 메모를 연결하도록 파이프라인 수정.\n2. 날짜별, 참가자별, 촬영 환경(밝기 변동, 머리 움직임)별로 분리된 실측 데이터셋을 기반으로 벤치마크 수행.\n3. 단일 세션 성공 결과에 치우치지 않고 실패 세션을 포함한 분모 전체의 수율-오차 프로파일 생성.\n4. 알고리즘 파라미터(SNR threshold, periodicity threshold) 변화에 따른 융합 수율 및 오차 추이 분석.",
+            "prompt": "당신은 NeuroLens 연구 검증 개발 AI입니다. 커밋 `3df0a657cff15ebe000a8fa9321617626313a807`에 추가된 `tools/condition_fusion_benchmark.cjs` 및 `CONDITION_FUSION_BENCHMARK.json`을 검토하고 연구 과제를 수행하세요.\n\n1. 코드 구조 확인:\n   - `tools/condition_fusion_benchmark.cjs` 스크립트의 입출력 구조 및 벤치마크 메트릭 산출 방식을 확인하세요.\n   - `NEWBIZ_RESEARCH_DATA.md` 및 프로젝트 내 연구 데이터 연동 지점을 파악하세요.\n\n2. 변경 및 검증 과제 작성:\n   - 벤치마크 도구가 가상 수치나 공학적 점수를 '임상 진단 정확도' 또는 '독립 정답'으로 표기하지 않도록 정정하세요.\n   - 실제 관측 데이터셋(`dataset`)의 메모 및 정답 라벨을 직접 읽어와 융합 알고리즘의 오차를 계산하도록 도구를 개편하세요.\n   - 관측 사실, 연구자 주장, 개발 가설을 명확히 구분하여 리포트를 작성하도록 벤치마크 출력 양식을 정비하세요.\n\n3. 성공 및 회귀 기준:\n   - 성공 기준: 실측 데이터셋 연동을 통해 참가자/기기/날짜별로 분리된 수율-오차 매트릭스가 검증 가능하게 출력됨.\n   - 회귀 기준: 기준 센서 정답 없이 합성/자체 결과만으로 정확도를 확정하거나, 실패 시도를 분모에서 제외하여 수율을 과장 보고함.\n\n4. 결과 보고 양식:\n   - 벤치마크 도구 개편 및 데이터셋 연동 현황\n   - 분모(전체 시도) 기반 수율 및 오차 분포 표\n   - 개발 가설 vs 실측 검증 증거 비교 리포트\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 3df0a657cff15ebe000a8fa9321617626313a807\nDataset-Task: evo-3df0a657cff1-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-3df0a657cff1-gaze",
+            "domain": "gaze",
+            "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
+            "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+            "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
+            "prompt": "NeuroLens 알고리즘 후속 과제 evo-3df0a657cff1-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 3df0a657cff15ebe000a8fa9321617626313a807\n변경 제목: Accumulate and fuse supported webcam pulse evidence\n관련 파일: CONDITION_FUSION_BENCHMARK.json, NEWBIZ_RESEARCH_DATA.md, condition-analysis-worker.js, condition-camera.test.cjs, condition-fusion.js, condition-fusion.test.cjs, condition-signal.test.cjs, condition.html, newbiz-battery.js, newbiz-core.js, newbiz-report.js, newbiz-research.js, tools/condition_fusion_benchmark.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-3df0a657cff1-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+            "generator": "rule",
+            "state": "proposed"
+          }
+        ],
+        "evidenceHash": "d2a539e263bf89452460a0e16297b45701faceca704f7fcba329f9d83dd9a00a",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 10472,
+            "candidatesTokenCount": 3116,
+            "totalTokenCount": 17763
+          }
+        },
+        "generatedAt": "2026-10-17T16:31:26.585645+00:00",
+        "sourceSha": "3df0a657cff15ebe000a8fa9321617626313a807",
+        "sourceEvidence": {
+          "sha": "3df0a657cff15ebe000a8fa9321617626313a807",
+          "parents": [
+            "a7e980b47e37b92484d20f70371466e87736a60b"
+          ],
+          "committedAt": "2026-10-04T05:46:00Z",
+          "subject": "Accumulate and fuse supported webcam pulse evidence",
+          "url": "https://github.com/jeebs0627/neurolens/commit/3df0a657cff15ebe000a8fa9321617626313a807",
+          "files": [
+            {
+              "path": "CONDITION_FUSION_BENCHMARK.json",
+              "status": "added",
+              "additions": 823,
+              "deletions": 0
+            },
+            {
+              "path": "NEWBIZ_RESEARCH_DATA.md",
+              "status": "modified",
+              "additions": 28,
+              "deletions": 0
+            },
+            {
+              "path": "condition-analysis-worker.js",
+              "status": "added",
+              "additions": 6,
+              "deletions": 0
+            },
+            {
+              "path": "condition-camera.test.cjs",
+              "status": "modified",
+              "additions": 8,
+              "deletions": 0
+            },
+            {
+              "path": "condition-fusion.js",
+              "status": "added",
+              "additions": 179,
+              "deletions": 0
+            },
+            {
+              "path": "condition-fusion.test.cjs",
+              "status": "added",
+              "additions": 59,
+              "deletions": 0
+            },
+            {
+              "path": "condition-signal.test.cjs",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "condition.html",
+              "status": "modified",
+              "additions": 37,
+              "deletions": 7
+            },
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 5
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 68,
+              "deletions": 56
+            },
+            {
+              "path": "newbiz-report.js",
+              "status": "modified",
+              "additions": 13,
+              "deletions": 2
+            },
+            {
+              "path": "newbiz-research.js",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 2
+            },
+            {
+              "path": "tools/condition_fusion_benchmark.cjs",
+              "status": "added",
+              "additions": 41,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement",
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition-fusion.js\n@@ -0,0 +1,179 @@\n+/* Evidence fusion for casual webcam acquisition. Weights are engineering scores,\n+ * not clinical probabilities. Methods sharing pixels never count as independent ROIs. */\n+(function(root,factory){\n+  if(typeof module==='object'&&module.exports)module.exports=factory;\n+  if(root)root.NLFusionFactory=factory;\n+})(typeof globalThis!=='undefined'?globalThis:null,function(N){\n+  'use strict';\n+  const VERSION='condition-fusion-1',finite=Number.isFinite;\n+  const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));\n+  function weightedQuantile(rows,key,q=.5){\n+    const sorted=rows.filter(r=>finite(r[key])&&r.weight>0).slice().sort((a,b)=>a[key]-b[key]);\n+    const total=sorted.reduce((s,r)=>s+r.weight,0);let sum=0;\n+    for(const r of sorted){sum+=r.weight;if(sum>=q*total)return r[key];}\n+    return null;\n+  }\n+  function periodicity(x,fs){\n+    const m=N.mean(Array.from(x));let best={r:0,bpm:null};\n+    for(let lag=Math.ceil(fs/3);lag<=Math.floor(fs/.7)&&lag<x.length/2;lag++){\n+      let xy=0,xx=0,yy=0;\n+      for(let i=lag;i<x.length;i++){const a=x[i]-m,b=x[i-lag]-m;xy+=a*b;xx+=a*a;yy+=b*b;}\n+      const r=xx*yy>1e-20?xy/Math.sqrt(xx*yy):0;\n+      if(r>best.r+.015)best={r,bpm:60*fs/lag};\n+    }\n+    return best;\n+  }\n+  function fuse(candidates){\n+    if(!candidates.length)return null;\n+    let best=null;\n+    for(const center of candidates){\n+      const cluster=candidates.filter(p=>Math.abs(p.bpm-center.bpm)<=5),groups=new Map();\n+      for(const p of cluster){\n+        const key=p.roi,old=groups.get(key);\n+        if(!old||p.weight>old.weight)groups.set(key,p);\n+      }\n+      const rows=[...groups.values()],score=rows.reduce((s,p)=>s+p.weight,0);\n+      if(!best||score>best.score)best={rows,cluster,score};\n+    }\n+    const rows=best.rows,rois=rows.filter(p=>p.roi!=='aggregate'),spatial=rois.length||1;\n+    const physical=rois.length?rois:rows;\n+    const coherence=[];\n+    for(let i=0;i<physical.length;i++)for(let j=0;j<i;j++){\n+      const a=physical[i]._wave,b=physical[j]._wave;if(!a||!b)continue;\n+      const ma=N.mean(Array.from(a)),mb=N.mean(Array.from(b));let xy=0,xx=0,yy=0;\n+      for(let k=0;k<Math.min(a.length,b.length);k++){const x=a[k]-ma,y=b[k]-mb;xy+=x*y;xx+=x*x;yy+=y*y;}\n+      coherence.push(xx*yy>1e-20?Math.abs(xy/Math.sqrt(xx*yy)):0);\n+    }\n+    const spatialCoherence=coherence.length?N.median(coherence):null;\n+    const methods=[...new Set(best.cluster.filter(p=>p.period>=.35&&p.snr>=-7&&physical.some(r=>r.roi===p.roi)).map(p=>p.method))];\n+    const bpm=weightedQuantile(physical,'bpm');\n+    const avg=key=>physical.reduce((s,p)=>s+p[key]*p.weight,0)/physical.reduce((s,p)=>s+p.weight,0);\n+    const snr=avg('snr'),period=avg('period'),recovered=avg('recovered'),pixelQ=avg('pixelQ');\n+    const strongestByRoi=new Map();\n+    candidates.forEach(p=>strongestByRoi.set(p.roi,Math.max(strongestByRoi.get(p.roi)||0,p.weight)));\n+    const agreement=best.score/[...strongestByRoi.values()].reduce((a,b)=>a+b,0);\n+    const spread=Math.sqrt(avgSquared(physical,bpm));\n+    const corroborated=spatial>=2&&agreement>=.5&&period>=.4&&snr>=-7;\n+    const single=spatial===1&&agreement>=.5&&period>=.55&&snr>=-1&&(methods.length>=2||snr>=3);\n+    const usable=(corroborated||single)&&methods.some(m=>m!=='green')&&(spatialCoherence===null||spatialCoherence>=.25);\n+    const recoverable=spatial>=2&&agreement>=.5&&period>=.25&&snr>=-7&&methods.some(m=>m!=='green');\n+    const confidence=clamp((.3+.4*clamp((snr+7)/13)+.3*period)*(.65+.35*agreement)*(.65+.35*pixelQ)*(1-recovered)*(spatial>=2?1:.8));\n+    return {bpm,snr,period,spatialCoherence,candidateConfidence:confidence,recoverable,confidence:usable?confidence:Math.min(confidence,.29),usable,\n+      quality:usable?(snr>=3&&confidence>=.65?'good':'fair'):'poor',\n+      status:usable?(snr>=3?'measured':'supported'):'uncertain',recovered,agreement,spread,\n+      regions:physical.map(p=>p.roi),methods,n:physical.length,\n+      reason:usable?null:agreement<.5?'conflicting-regions':'weak-periodicity',\n+      alternatives:candidates.map(({roi,method,bpm,snr,period,weight,pixelQ,recovered,_wave})=>{\n+        const value={roi,method,bpm,snr,period,weight,pixelQ,recovered};Object.defineProperty(value,'_wave',{value:_wave});return value;\n+      })};\n+  }\n+  function avgSquared(rows,m){const den=rows.reduce((s,r)=>s+r.weight,0);return rows.reduce((s,r)=>s+r.weight*(r.bpm-m)**2,0)/den;}\n+  function windows(sig,winSec=10,stepSec=1,opt={}){\n+    if(!sig)return [];\n+    const {fs,t0,bvp}=sig,step=Math.max(1,Math.round(stepSec*fs));\n+    const lower=finite(opt.start)?Math.max(0,Math.ceil((opt.start-t0)*fs/1000)):0;\n+    const upper=finite(opt.end)?Math.min(bvp.length,Math.floor((opt.end-t0)*fs/1000)+1):bvp.length;\n+    const sources=sig.candidates||[{roi:'aggregate',method:'pos',wave:bvp,repairs:sig.repaired}];\n+    const out=[];\n+    for(let s=lower;s+6*fs<=upper;s+=step){\n+      let chosen=null;\n+      // Weak but continuous observations can gain frequency resolution with a longer window.\n+      // This uses already captured data; the test duration and phase boundaries stay fixed.\n+      for(const sec of [...new Set([winSec,16,6])].filter(v=>v>=6)){\n+        const wl=Math.round(sec*fs);if(s+wl>upper)continue;\n+        const start=t0+s*1000/fs,end=t0+(s+wl-1)*1000/fs;\n+        if((opt.jumps||[]).some(t=>start<t+750&&end>t-750))continue;\n+        const candidates=[];\n+        for(const c of sources){\n+          const seg=c.wave.subarray(s,s+wl);\n+          if(!seg.every(finite)||N.std(Array.from(seg))<1e-9)continue;\n+          // Large frame-to-frame colour-ratio jumps are optical artefacts, not a weak pulse.\n+          // Common brightness changes cancel in the ratios; small noisy observations remain usable.\n+          if(c.jitter&&N.mean(Array.from(c.jitter.subarray(s,s+wl)))>.08)continue;\n+          const recovered=c.repairs?c.repairs.subarray(s,s+wl).reduce((a,b)=>a+b,0)/wl:0;\n+          if(recovered>.25)continue;\n+          const pk=N.spectralPeak(seg,fs);if(!pk)continue;\n+          const ac=periodicity(seg,fs),peaks=[pk];\n+          // Resolve a doubled spectral peak only when a full-period candidate is also observed.\n+          if(ac.r>.65&&ac.bpm&&Math.abs(pk.bpm/ac.bpm-2)<.15){\n+            const half=N.spectralPeak(seg,fs,Math.max(.7,ac.bpm/60-.08),Math.min(3,ac.bpm/60+.08));\n+            if(half)peaks.push(half);\n+          }\n+          const pixelQ=c.quality?N.mean(Array.from(c.quality.subarray(s,s+wl))):1;\n+          for(const p of peaks){\n+            const agreement=ac.bpm?clamp(1-Math.abs(ac.bpm-p.bpm)/15):0;\n+            const period=ac.r*(.45+.55*agreement);\n+            const weight=(c.roi==='aggregate'&&sources.some(p=>p.roi!=='aggregate')?.3:1)*(.2+.8*clamp((p.snrDb+10)/16))*(.25+.75*period)*(.5+.5*pixelQ)*(1-recovered);\n+            candidates.push({roi:c.roi,method:c.method,bpm:p.bpm,snr:p.snrDb,period,recovered,pixelQ,weight,_wave:seg});\n+          }\n+        }\n+        const fused=fuse(candidates);if(!fused)continue;\n+        if(sec<8&&fused.period<.55){fused.usable=false;fused.recoverable=false;fused.quality='poor';fused.status='uncertain';fused.confidence=Math.min(fused.confidence,.29);fused.reason='short-window-ambiguity';}\n+        const result={...fused,start,end,t:(start+end)/2,windowSec:sec};\n+        if(!chosen||(!chosen.usable&&result.usable)||result.confidence>chosen.confidence+.12||(result.usable&&sec>chosen.windowSec&&result.confidence>=chosen.confidence-.04))chosen=result;\n+        if(result.usable&&(result.snr>=3||sec===16))break;\n+      }\n+      if(chosen)out.push(chosen);\n+    }\n+    // Weak support must recur at a distinct time, or have strong spatial/period evidence.\n+    // This changes acceptance, never the measured BPM or an actual rapid transition.\n+    return out.map(w=>{\n+      if(!w.usable){\n+        const nearby=out.filter(v=>Math.abs(v.t-w.t)<=16000);\n+        const matches=(v,bpm)=>v.alternatives.filter(p=>p.roi!=='aggregate'&&p.snr>=-7&&p.period>=.2&&Math.abs(p.bpm-bpm)<=5);\n+        let accumulated=null;\n+        for(const anchor of w.alternatives.filter(p=>p.method!=='green')){\n+          const current=matches(w,anchor.bpm);\n+          if(new Set(current.map(p=>p.roi)).size<2)continue;\n+          const agreeing=nearby.filter(v=>new Set(matches(v,anchor.bpm).map(p=>p.roi)).size>=2);\n+          // Distinct epochs span at least ten seconds, not just repeated algorithms on one clip.\n+          if(agreeing.length<4||Math.max(...agreeing.map(v=>v.t))-Math.min(...agreeing.map(v=>v.t))<10000)continue;\n+          const candidate=fuse(current);\n+          if(candidate&&candidate.spatialCoherence>=.3&&candidate.methods.some(m=>m!=='green')&&(!accumulated||candidate.candidateConfidence>accumulated.candidateConfidence))accumulated=candidate;\n+        }\n+        if(accumulated)return {...w,...accumulated,alternatives:w.alternatives,usable:true,quality:'fair',status:'supported',confidence:accumulated.candidateConfidence*.9,reason:'accumulated-weak-evidence'};\n+      }\n+      if(!w.usable&&w.recoverable&&w.windowSec>=10&&w.spatialCoherence>=.3){\n+        const same=out.filter(v=>v.recoverable&&v.windowSec>=10&&Math.abs(v.t-w.t)<=16000&&Math.abs(v.bpm-w.bpm)<=5);\n+        if(same.length>=4&&Math.max(...same.map(v=>v.t))-Math.min(...same.map(v=>v.t))>=10000)\n+          return {...w,usable:true,quality:'fair',status:'supported',confidence:w.candidateConfidence*.9,reason:'accumulated-weak-evidence'};\n+      }\n+      if(!w.usable||w.snr>=3||(w.n>=3&&w.period>=.7))return w;\n+      const supported=out.some(v=>v!==w&&v.usable&&Math.abs(v.t-w.t)>=1800&&Math.abs(v.t-w.t)<=12000&&Math.abs(v.bpm-w.bpm)<=8);\n+      return supported?w:{...w,usable:false,quality:'poor',status:'uncertain',confidence:Math.min(w.confidence,.29),reason:'unconfirmed-weak-window'};\n+    }).sort((a,b)=>a.t-b.t);\n+  }\n+  // Integrate support on unique time intervals. Overlapping windows add no extra seconds.\n+  function support(rows,start,end){\n+    const events=[];\n+    rows.forEach((w,i)=>{const a=Math.max(start,w.start??w.t),b=Math.min(end,w.end??w.t);if(b>a){events.push({t:a,i,on:true},{t:b,i,on:false});}});\n+    events.sort((a,b)=>a.t-b.t);const active=new Map(),weights=new Map();let seconds=0,effective=0,last=null;\n+    for(const ev of events){\n+      if(last!==null&&ev.t>last&&active.size){\n+        const dt=(ev.t-last)/1000;seconds+=dt;\n+        const list=[...active.keys()],best=list.reduce((a,b)=>(rows[a].confidence??.65)>=(rows[b].confidence??.65)?a:b);\n+        const q=rows[best].confidence??.65;effective+=dt*q;\n+        weights.set(best,(weights.get(best)||0)+dt*q);\n+      }\n+      if(ev.on)active.set(ev.i,true);else active.delete(ev.i);last=ev.t;\n+    }\n+    return {seconds,effective,weighted:[...weights].map(([i,weight])=>({...rows[i],weight}))};\n+  }\n+  function summarize(wins,start,end){\n+    const inside=wins.filter(w=>(w.start??w.t)>=start-.01&&(w.end??w.t)<=end+.01&&finite(w.bpm));\n+    const valid=inside.filter(w=>w.usable??w.snr>=-2),s=support(valid,start,end);\n+    const empty={bpm:null,snr:null,quality:'none',n:0,validSeconds:0,effectiveSeconds:0,coverage:0,confidence:0,spreadBpm:null,rangeBpm:null,recovered:0,status:'unavailable',candidateWindows:inside.length};\n+    if(!valid.length)return empty;\n+    // Legacy callers may provide only window centres; retain their existing summary contract.\n+    const rows=s.weighted.length?s.weighted:valid.map(w=>({...w,weight:w.confidence??.65}));\n+    const avg=key=>rows.reduce((a,r)=>a+(r[key]||0)*r.weight,0)/rows.reduce((a,r)=>a+r.weight,0);\n+    const bpm=weightedQuantile(rows,'bpm'),snr=avg('snr'),confidence=s.seconds?s.effective/s.seconds:avg('confidence')||.65;\n+    const spread=Math.sqrt(avgSquared(rows,bpm)),range=[weightedQuantile(rows,'bpm',.1),weightedQuantile(rows,'bpm',.9)];\n+    return {bpm,snr,quality:snr>=3&&confidence>=.65?'good':'fair',n:valid.length,\n+      validSeconds:s.seconds,effectiveSeconds:s.effective,coverage:clamp(s.seconds/Math.max(.001,(end-start)/1000)),\n+      confidence,spreadBpm:spread,rangeBpm:range,recovered:avg('recovered'),\n+      status:s.seconds<10||snr<3?'limited':'measured',candidateWindows:inside.length,\n+      methods:[...new Set(valid.flatMap(w=>w.methods||['pos']))],regions:[...new Set(valid.flatMap(w=>w.regions||[]))]};\n+  }\n+  return {VERSION,windows,fuse,support,summarize,periodicity};\n+});\nFILE condition.html\n@@ -1159,6 +1159,7 @@ <h2>결과를 정리하고 있어요</h2>\n <script src=\"auth.js\"></script>\n <script src=\"condition-signal.js\"></script>\n <script src=\"condition-camera.js\"></script>\n+<script src=\"condition-fusion.js\"></script>\n <script src=\"newbiz-core.js\"></script>\n <script src=\"newbiz-battery.js\"></script>\n <script src=\"newbiz-report.js\"></script>\n@@ -1487,7 +1488,7 @@ <h2>결과를 정리하고 있어요</h2>\n   while (S.fpsTimes.length && S.fpsTimes[0] < fr.t - 2000) S.fpsTimes.shift();\n }\n function startLoop() { S.camera.start(); }\n-window.addEventListener('pagehide', () => { S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });\n+window.addEventListener('pagehide', () => { S.supportWorker?.terminate(); S.camera?.stop(); S.stream?.getTracks().forEach(track => track.stop()); });\n \n function drawOverlay() {\n   const cv = $('overlay'), ctx = cv.getContext('2d');\n@@ -1661,6 +1662,31 @@ <h2>결과를 정리하고 있어요</h2>\n   }, 300);\n }\n /* 과제 진행 막대: 시간 기반(task(label, ms)) 또는 시행 기반(taskSet(i, n)) */\n+function pulseSupport(key) {\n+  if (S.demo || typeof Worker !== 'function') return () => {};\n+  if (!S.supportWorker) {\n+    try { S.supportWorker=new Worker('condition-analysis-worker.js'); }\n+    catch (_) { return () => {}; }\n+    S.supportWorker.onmessage=({data:m})=>{\n+      S.supportBusy=false;\n+      if(m.error || S.phases[m.key]?.start!==m.start)return;\n+      S.phaseEvidence=S.phaseEvidence||{}; S.phaseEvidence[m.key]=m.evidence;\n+      if(S.cur===m.key && !S.phases[m.key].end){\n+        const sec=Math.round(m.evidence.validSeconds||0);\n+        $('taskName').textContent=(m.key==='baseline'?'안정 기준선':'회복 호흡')+(sec?' · 활용 가능한 신호 '+sec+'초 확보':' · 신호를 모으고 있어요');\n+      }\n+    };\n+    S.supportWorker.onerror=()=>{S.supportWorker?.terminate();S.supportWorker=null;S.supportBusy=false;};\n+  }\n+  const update=()=>{\n+    const ph=S.phases[key]; if(!ph || S.supportBusy || !S.supportWorker)return;\n+    const end=ph.end||now(); S.supportBusy=true; S.supportSeq=(S.supportSeq||0)+1;\n+    const hidden=t=>S.hidden.some(h=>t>=h.start-500&&t<=h.end+1500)||(S.hideStart!==null&&t>=S.hideStart-500);\n+    const frames=S.frames.filter(f=>f.t>=ph.start&&f.t<=end).map(f=>({t:f.t,ok:!hidden(f.t)&&f.ok,ppgOk:!hidden(f.t)&&(f.ppgOk??f.ok),r:f.r,g:f.g,b:f.b,rr:f.rr,rq:f.rq,skinQ:f.skinQ,lum:f.lum}));\n+    S.supportWorker.postMessage({id:S.supportSeq,key,start:ph.start,end,frames});\n+  };\n+  const stop=every(4000,update); return ()=>{stop();update();};\n+}\n function task(label, ms) {\n   $('taskbar').hidden = false; $('taskName').textContent = label;\n   const t0 = now();\n@@ -1752,8 +1778,9 @@ <h2>결과를 정리하고 있어요</h2>\n     if (key === 'calibration') return S.calib && S.calib.errPct != null ? { cls: S.calib.grade === 'good' ? '' : 'warn', text: `시선 보정 완료 · 오차 ${S.calib.errPct}%` } : { cls: 'warn', text: '시선 보정 생략 · 시선 지표 제외' };\n     if (key === 'baseline') {\n       const ph = S.phases.baseline, fr = S.frames.filter(f => ph && f.t >= ph.start && f.t <= ph.end);\n-      const q = S.demo ? 'good' : (N.liveHr(fr, 20) || {}).quality;\n-      return { cls: q === 'good' ? '' : 'warn', text: `기준선 완료 · 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함' }[q] || '부족'}` };\n+      const evidence=S.phaseEvidence?.baseline;\n+      const q = S.demo ? 'good' : (evidence || N.liveHr(fr, 20) || {}).quality;\n+      return { cls: q === 'good' ? '' : 'warn', text: `기준선 완료 · 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함' }[q] || '부족'}${evidence?.validSeconds ? ' · '+Math.round(evidence.validSeconds)+'초 활용' : ''}` };\n     }\n     if (key === 'pursuit' && S.pursuit) { const n = S.pursuit.samples.length, e = S.pursuit.dur / 1000 * 25; return { cls: n / e >= 0.5 ? '' : 'warn', text: `원활 추적 완료 · 시선 표본 ${Math.min(100, Math.round(n / e * 100))}%` }; }\n     if (key === 'saccade') {\n@@ -1829,7 +1856,7 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   }\n }\n async function runSession() {\n-  Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null });\n+  Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null, phaseEvidence: {} });\n   Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 } });\n   chooseForm(S.mode);\n   S.stimMode = stimReady(S.mode) ? 'photo' : 'schematic';\n@@ -2105,7 +2132,8 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   body.innerHTML = (await calmPhoto(sec)) || calmScene();\n   await wait(1500);                                   // 화면 전환 직후 1.5초는 적응 구간 (기준선에 넣지 않음)\n   const stop = task('안정 기준선', sec * 1000);\n-  mark('baseline', 'start'); await wait(sec * 1000); mark('baseline', 'end');\n+  mark('baseline', 'start'); const support=pulseSupport('baseline');\n+  await wait(sec * 1000); mark('baseline', 'end'); support();\n   stop();\n }\n \n@@ -2430,7 +2458,9 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n  * 피드백은 화면 밝기를 바꾸지 않도록 글자로만 */\n async function phaseStress(sec) {\n   const P = B.PROTOCOL.stress;\n+  mark('preStress','start');\n   await brief('stress');\n+  mark('preStress','end');\n   if (document.activeElement) document.activeElement.blur();\n   await countdown('암산 과제가 곧 시작돼요');\n   mark('stress', 'start');\n@@ -2521,13 +2551,13 @@ <h2 id=\"bT\">${esc(m.title)}</h2>\n   await brief('recovery');\n   await countdown('천천히 호흡을 준비하세요');\n   body.innerHTML = pacerHtml('rp', { cycles: Math.round(sec * 1000 / BREATH_T) });\n-  mark('recovery', 'start');\n+  mark('recovery', 'start'); const support=pulseSupport('recovery');\n   const stopP = startPacer('rp', now());\n   S.cleanup.push(stopP);\n   const stopT = task('공명 호흡', sec * 1000);\n   await wait(sec * 1000);\n   stopT(); stopP();\n-  mark('recovery', 'end');\n+  mark('recovery', 'end'); support();\n }\n \n /* ---------- 분석 · 리포트 ---------- */\nFILE newbiz-battery.js\n@@ -19,7 +19,7 @@\n })(typeof window !== 'undefined' ? window : null, function (N) {\n   'use strict';\n \n-  const VERSION = 'In_mind battery 0.9';\n+  const VERSION = 'In_mind battery 1.0';\n   const finite = v => typeof v === 'number' && Number.isFinite(v);\n   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\n   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;\n@@ -118,7 +118,7 @@\n    * 3) 수렴 원칙: ‘관리 필요’는 서로 다른 지표 2개 이상이 저하를 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만. 아니면 ‘주의’로 낮춘다\n    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다\n    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */\n-  const QC = { version: 'In_mind QC 1.3', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n+  const QC = { version: 'In_mind QC 1.4', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n   const DUR = {\n     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */\n     full:  { baseline: 60, pursuit: 24, circle: 15, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },\n@@ -799,7 +799,7 @@\n     const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => (f.faceOk ?? f.ok) && f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };\n     const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp(v / (k === 'saccade' ? 24 : 15), 0.25, 1); };\n     const sartFrames = span('sart') ? N.Signal.timeCoverage(face,...span('sart')) : 0;\n-    const hq = q => (QC.hrQ[q && q.quality] ?? 0) * (1-(q?.recovered||0));\n+    const hq = q => !q || q.bpm === null ? 0 : (q.confidence ?? QC.hrQ[q.quality] ?? 0) * (finite(q.effectiveSeconds) ? clamp(q.effectiveSeconds/12,.65,1) : 1) * (1-(q.recovered||0));\n     const refHr = base.hrRef === 'pre' ? base.hr.pre : base.hr.baseline;\n     /* NL-QC 8) 공명 호흡 순응: 카메라로 잰 호흡 리듬이 뚜렷한데 분당 6회(0.1Hz)에서 벗어나 있으면 호흡 동조 지표를 판정하지 않는다\n      * (따라 하지 않은 사람의 ‘동조 약함’을 조절력 부족으로 오해하지 않기 위해) */\n@@ -850,7 +850,7 @@\n     const domains = {};\n     DOMAIN_KEYS.forEach(k => { domains[k] = aggregateDomain(k, indicators); });\n     if (domains.autonomic.status !== 'na') {\n-      if (base.hrRef === 'pre') domains.autonomic.notes.push('안정 기준선의 심박 신호가 약해, 압박 과제 직전 안정 구간을 비교 기준으로 썼어요');\n+      if (base.hrRef === 'pre') domains.autonomic.notes.push(base.hr.pre.context === 'pre-task-instructions' ? '안정 기준선의 심박 신호가 약해, 압박 과제 직전 안내 구간을 비교 기준으로 썼어요' : '안정 기준선의 심박 신호가 약해, 압박 과제 직전 구간을 비교 기준으로 썼어요');\n       if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);\n       else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);\n       if (base.recovery !== null && base.hr.stressPeak !== null && refHr && refHr.bpm !== null && base.hr.stressPeak - refHr.bpm < 3) domains.autonomic.notes.push('압박 때 심박이 크게 오르지 않아, 회복률은 ‘호흡 후 심박이 평소 수준으로 돌아왔는지’로 계산했어요');\n@@ -871,7 +871,7 @@\n     const overall = measuredD.length ? round(mean(measuredD.map(k => domains[k].confidence)), 2) : 0;\n     const stepQ = (key, label, r, note) => ({ key, label, r: finite(r) ? round(r, 2) : null, note: note || null });\n     const qc = {\n-      version: QC.version, acquisition: rec.capture || null, signals: { captured: frames.length, face: face.length, eyes: frames.filter(f=>f.eyeOk??f.ok).length, skin: frames.filter(f=>f.ppgOk??f.ok).length, monocular: [...(rec.saccade||[]),...(rec.trials||[]),...(rec.pursuit?[rec.pursuit]:[])].flatMap(t=>t.samples||[]).filter(p=>p.mode==='left'||p.mode==='right').length }, confidence: overall, grade: overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D',\n+      version: QC.version, pulseEvidence: base.evidence?.phases || null, acquisition: rec.capture || null, signals: { captured: frames.length, face: face.length, eyes: frames.filter(f=>f.eyeOk??f.ok).length, skin: frames.filter(f=>f.ppgOk??f.ok).length, monocular: [...(rec.saccade||[]),...(rec.trials||[]),...(rec.pursuit?[rec.pursuit]:[])].flatMap(t=>t.samples||[]).filter(p=>p.mode==='left'||p.mode==='right').length }, confidence: overall, grade: overall >= 0.8 ? 'A' : overall >= 0.6 ? 'B' : overall >= QC.tentative ? 'C' : 'D',\n       steps: [\n         stepQ('baseline', '안정 기준선 · 심박', hq(base.hr.baseline), base.hr.baseline.quality === 'poor' ? '심박 신호가 약해 기준선 비교가 제한돼요' : null),\n         rec.pvt ? stepQ('pvt', 'PVT-B · PERCLOS', Math.min(rOf.pvt(), eye ? rOf.eye() : 1), pvt && pvt.invalid) : null,\nFILE newbiz-core.js\n@@ -6,13 +6,14 @@\n  * 브라우저: window.NLNewbiz · Node 테스트: module.exports */\n (function (root, factory) {\n   const signal = typeof module === 'object' && module.exports ? require('./condition-signal.js') : root && root.NLSignal;\n-  const api = factory(signal);\n+  const fusion = typeof module === 'object' && module.exports ? require('./condition-fusion.js') : root && root.NLFusionFactory;\n+  const api = factory(signal, fusion);\n   if (typeof module === 'object' && module.exports) module.exports = api;\n   if (root) root.NLNewbiz = api;\n-})(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal) {\n+})(typeof globalThis !== 'undefined' ? globalThis : null, function (Signal, createFusion) {\n   'use strict';\n \n-  const VERSION = 'In_mind core 0.5';\n+  const VERSION = 'In_mind core 0.6';\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {     ",
+          "patchTruncated": true,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "39049591840"
+      }
     },
     {
       "sha": "a7e980b47e37b92484d20f70371466e87736a60b",
@@ -19391,9 +19851,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "d51c39815ca53dd81e3bf70902abde26936b9eef"
+    "sourceHead": "02663df796d96beaf99ada8b373fffed784dcb86"
   },
-  "updatedAt": "2026-10-17T13:16:02.258355+00:00",
-  "aiCooldownUntil": "2026-10-17T13:21:01.523080+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-17T16:31:27.137775+00:00"
 }
