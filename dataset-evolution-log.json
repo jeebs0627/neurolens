@@ -13516,7 +13516,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-55537213005",
@@ -13548,8 +13548,9 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-04T10:17:44.389389+00:00",
-      "analysisError": "HTTP_403"
+      "lastAttemptAt": "2026-10-18T06:37:42.412390+00:00",
+      "analysisError": "HTTP_429",
+      "analysisErrorCode": "GEMINI_RATE_LIMIT"
     },
     {
       "sha": "dc2a2a8ff88078f5552cdd03bcd02a3c7ab30265",
@@ -19852,9 +19853,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "39c0230d5794ef073fcf601fd623cc6612c221b6"
+    "sourceHead": "40123b4f9d4cbc044a478b47a8ebc0d251cd6b87"
   },
-  "updatedAt": "2026-10-18T01:34:16.109080+00:00",
-  "aiCooldownUntil": "2026-10-18T01:39:15.171098+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-18T06:38:12.520953+00:00",
+  "aiCooldownUntil": "2026-10-18T07:38:12.030650+00:00",
+  "aiCooldownReason": "GEMINI_RATE_LIMIT"
 }
