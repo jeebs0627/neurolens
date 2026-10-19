@@ -16897,42 +16897,191 @@
       "accuracyValidated": false,
       "tasks": [
         {
-          "id": "evo-1ff01ebca793-pulse",
-          "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-1ff01ebca793-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\n변경 제목: Two-test lineup: Gaze Trait Test + Mind Condition Test (In_mind) on the main site\n관련 파일: api/rcvrslt_admin.py, condition.html, index.html, newbiz-battery.js, newbiz-core.js, newbiz-report.js, newbiz-stim/README.md, newbiz.html, resultadmin-care.js, resultadmin.html, sitemap.xml, test.html, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-1ff01ebca793-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "id": "evo-1ff01ebca793-measurement",
+          "domain": "measurement",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "quick 모드 시행 수 단축에 따른 배터리 측정 완수율 및 지표 수렴 오차 평가",
+          "rationale": "newbiz-battery.js에서 quick 모드의 pursuit, pro, anti, fv, sart 시행 수를 줄이고 주석으로 약 8분 구성을 제시했으나, 이것이 지표 수렴성과 측정 완료 성공률에 미치는 영향은 가설 단계이며 검증되지 않았습니다.",
+          "validationPlan": "1. 세션 분모 관리: 미완료/실패 세션을 포함한 전체 세션 분모 수집.\n2. 조건별 활용률-오차 분석: 정밀 모드 대비 단축 표준 모드의 지표 분산 및 오차 범위 비교.\n3. 데이터셋 연결: 외부 dataset 파일 내 실제 측정 데이터 및 메모와 연결하여 평가하되 존재하지 않는 수치를 생성하지 않음.",
+          "prompt": "다음 절차에 따라 quick 모드 시행 수 단축에 대한 영향 검증 및 회귀 분석 코드를 작성해 주세요.\n\n1. 현재 코드 확인:\n- `newbiz-battery.js`의 `DUR.quick` 설정값(pursuit: 12, pro: 4, anti: 10, fv: {neu: 3, neg: 8, pos: 4}, sart: 54)과 `newbiz-report.js`의 라벨 변경사항을 확인하세요.\n\n2. 변경 및 검증 과제:\n- 시행 수 감소에 따라 측정 시간 단축 효과와 지표 안정성 간의 트레이드오프를 평가하는 분석 모듈을 구현하세요.\n- 약한 신호 및 부분 유효 신호의 파편 데이터를 폐기하지 않고, 신뢰도 가중치(confidence)와 불확실성/오차 범위를 계산에 포함하세요.\n- 기준 센서가 없는 환경임을 명시하고 합성/자체 결과를 독립 정답으로 주장하지 않도록 검증 로직을 구성하세요.\n\n3. 성공/회귀 기준:\n- 성공: 측정 포기율 감소 및 부분 유효 신호 활용량 증가, 단축 조건에서도 핵심 지표 분산 폭이 허용 범위 내 유지.\n- 회귀: 과도한 시행 수 단축으로 인한 지표 판정 불가(na) 비율 급증 또는 QC 통과율 급락.\n\n4. 결과 보고 양식:\n- 참가자/기기/날짜별로 분리된 수치표를 출력하세요.\n- 임의의 성능 수치를 조작하거나 만드실 수 없으며, 제공된 dataset의 실측 기록을 연동하여 분모(전체 시도 수), 성공 세션 수, 활용 신호 비율, 추정 오차 범위를 리포트 형태로 작성하세요.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\nDataset-Task: evo-1ff01ebca793-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-1ff01ebca793-gaze",
           "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-1ff01ebca793-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\n변경 제목: Two-test lineup: Gaze Trait Test + Mind Condition Test (In_mind) on the main site\n관련 파일: api/rcvrslt_admin.py, condition.html, index.html, newbiz-battery.js, newbiz-core.js, newbiz-report.js, newbiz-stim/README.md, newbiz.html, resultadmin-care.js, resultadmin.html, sitemap.xml, test.html, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-1ff01ebca793-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "시선 추적 과제 자극 시행 수 감축 후 시선 진폭 및 잔여 오차 평가",
+          "rationale": "newbiz-battery.js에서 pursuit(14->12), pro(6->4), anti(12->10)의 시행 수가 줄어듦에 따라 웹캠 기반 시선 추적의 좌우 균형 가중치 및 개인 시선 진폭 보정 정확도가 저하될 가능성이 있으므로 가설 검증이 필요합니다.",
+          "validationPlan": "1. 시선 자극별(pursuit/pro/anti) 데이터 추출 및 자극 감소 구간 동안의 시선 좌표 오차 추이 분석.\n2. 기기 환경별(웹캠 해상도, 프레임 레이트) 및 참가자별 시선 추적 신뢰도 점수 비교.\n3. dataset 내 실측 시선 보정 데이터와 연동하여 정밀 모드 대비 단축 모드의 시선 오차 증가율 산출.",
+          "prompt": "웹캠 기반 시선 추적 알고리즘의 시행 수 감축에 따른 정확도 영향 검증 코드를 작성해 주세요.\n\n1. 현재 코드 확인:\n- `newbiz-battery.js` 파일 내 DUR.quick의 pursuit, pro, anti 자극 수 감소 코드를 확인하세요.\n\n2. 변경 및 검증 과제:\n- 자극 수가 감축된 상태에서 개인 시선 진폭 및 좌우 균형 가중 보정 알고리즘이 유효한 시선 신호를 얼마나 회복하는지 평가하세요.\n- 신호가 약하거나 손실된 구간을 정상값으로 임의 생성하지 말고, 불확실성 구획으로 지정하여 오차 범위에 반영하세요.\n\n3. 성공/회귀 기준:\n- 성공: 감축된 시행 수 내에서 시선 보정 잔여 오차가 허용 한계 내에 수렴.\n- 회귀: pro-saccade/anti-saccade 지표의 신뢰도(confidence)가 급격히 저하되어 QC 기준(minR: 0.3) 미달 세션 증가.\n\n4. 결과 보고 양식:\n- 세션 분모, 기기 종류, 참가자별로 구분하여 자극 감축 전후의 유효 신호 활용률, 시선 오차 범위, 제외 세션 수 비율을 출력하는 보고서 형식을 작성하세요. 존재하지 않는 실측 수치를 고조시키지 마세요.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\nDataset-Task: evo-1ff01ebca793-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
-          "id": "evo-1ff01ebca793-measurement",
-          "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-1ff01ebca793-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\n변경 제목: Two-test lineup: Gaze Trait Test + Mind Condition Test (In_mind) on the main site\n관련 파일: api/rcvrslt_admin.py, condition.html, index.html, newbiz-battery.js, newbiz-core.js, newbiz-report.js, newbiz-stim/README.md, newbiz.html, resultadmin-care.js, resultadmin.html, sitemap.xml, test.html, vercel.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-1ff01ebca793-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "id": "evo-1ff01ebca793-pulse",
+          "domain": "pulse",
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "정서 자극(fv) 단축 구간 내 맥박 신호(HR/rPPG) SNR 및 품질 판정 검증",
+          "rationale": "newbiz-battery.js에서 fv 블록 시행 수(neu 4->3, neg 12->8, pos 6->4)가 단축되었으나 `newbiz-core.js`의 HR_BAND [0.7, 3.0] 및 SNR 기준(SNR_GOOD=3, SNR_FAIR=-2)은 동일하게 유지되어, 단축된 시간 창에서 rPPG 신호 품질 평가의 타당성을 검증해야 합니다.",
+          "validationPlan": "1. 정서 자극 블록 단축에 따른 rPPG 신호 window 길이 감소 및 SNR 변화 측정.\n2. 본인 기준선(baseline) 대비 심박 변동 및 품질 지수(hrQ) 판정의 안정성을 dataset 실제 녹화 세션 데이터와 연결하여 평가.\n3. 날짜/참가자/기기별 분리 평가 수행.",
+          "prompt": "정서 자극 시간 단축 환경에서 맥박(pulse/rPPG) 신호의 SNR 및 측정 품질을 평가하는 후속 개발 및 검증 스크립트를 작성해 주세요.\n\n1. 현재 코드 확인:\n- `newbiz-battery.js`의 fv 자극 수 감축 내역과 `newbiz-core.js`의 HR_BAND 및 SNR 기준을 검토하세요.\n\n2. 변경 및 검증 과제:\n- 정서 자극 관측 창이 줄어듦에 따라 안면 노이즈 환경에서 약한 맥박 신호를 회복하고, hrQ(good/fair/poor) 판정 정확도를 유지하는 로직을 검증하세요.\n- 신호 미잡힘 시 정상 심박수(예: 70bpm)를 임의 대입하는 행위를 금지하고 불확실성 수치를 그대로 유지하세요.\n\n3. 성공/회귀 기준:\n- 성공: 단축된 fv 블록에서도 맥박 신호의 SNR 계산이 안정적으로 이루어지고 본인 기준선 대비 심박 변동 추정이 유효함.\n- 회귀: 신호 관측 창 부족으로 인한 SNR 계산 오류 또는 잘못된 hrQ 판정 증대.\n\n4. 결과 보고 양식:\n- 참가자/기기/날짜별 전체 측정 시도 분모, 신호 회복 성공률, SNR 분포, 불확실성 범위를 정리하는 리포트 코드를 작성하세요. 없는 수치를 임의로 지어내지 마세요.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\nDataset-Task: evo-1ff01ebca793-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisState": "generated",
+      "analysisAttempts": 3,
       "deploymentEvents": [],
-      "lastAttemptAt": "2026-10-18T22:38:58.401246+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-19T00:32:19.472592+00:00",
+      "analysis": {
+        "summary": "GitHub 커밋(1ff01ebca79355c7f34e90d31271d7c48cb3f0ab)의 공개 코드 변경사항에 대한 관측 결과 및 미검증 영향 요약입니다.\n\n[관측된 변경 사실]\n1. newbiz-battery.js: VERSION이 'In_mind battery 0.8'로, QC.version이 'In_mind QC 1.2'로 변경되었습니다. DUR.quick 내 시행 수가 감축되었습니다(pursuit: 14->12, pro: 6->4, anti: 12->10, fv: neu 4->3 / neg 12->8 / pos 6->4, sart: 63->54). 주석에 '표준(약 8분, 기본값) — 각 과제의 최소 신뢰 수준을 지키며 측정 시간을 8분 안팎으로 맞춘 구성' 설명이 추가되었습니다.\n2. newbiz-core.js: VERSION이 'In_mind core 0.4'로 변경되었습니다.\n3. newbiz-report.js: 리포트 제목 및 킥커가 '마인드 컨디션 리포트 / NeuroLens · Mind Condition Report · In_mind engine'으로 변경되었으며, r.mode UI 표시 문자열이 'quick'->'표준 측정', 'full'->'정밀 측정'으로 명칭 변경되었습니다.\n4. 패치 미제공(diff 생략) 파일: api/rcvrslt_admin.py, condition.html, index.html, newbiz-stim/README.md, newbiz.html, resultadmin-care.js, resultadmin.html, sitemap.xml, test.html, vercel.json 등은 파일 추가/수정 내역만 확인되며 세부 코드 diff는 제공되지 않았습니다.\n\n[미검증 영향 및 제한사항]\n- 본 커밋의 accuracyValidated 상태는 false입니다. 커밋 제목이나 브랜드 명칭 변경('In_mind', '표준 측정')을 검증된 성능 향상이나 임상적 진단 정확도로 해석할 수 없습니다.\n- quick 모드의 시행 수 감소로 인한 전체 측정 시간 단축이 시선(gaze) 및 맥박(pulse) 신호의 SNR, QC 통과율, 추정 오차에 미치는 실측 영향은 본 제출 자료에 포함되어 있지 않으며 추가 후속 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-1ff01ebca793-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "quick 모드 시행 수 단축에 따른 배터리 측정 완수율 및 지표 수렴 오차 평가",
+            "rationale": "newbiz-battery.js에서 quick 모드의 pursuit, pro, anti, fv, sart 시행 수를 줄이고 주석으로 약 8분 구성을 제시했으나, 이것이 지표 수렴성과 측정 완료 성공률에 미치는 영향은 가설 단계이며 검증되지 않았습니다.",
+            "validationPlan": "1. 세션 분모 관리: 미완료/실패 세션을 포함한 전체 세션 분모 수집.\n2. 조건별 활용률-오차 분석: 정밀 모드 대비 단축 표준 모드의 지표 분산 및 오차 범위 비교.\n3. 데이터셋 연결: 외부 dataset 파일 내 실제 측정 데이터 및 메모와 연결하여 평가하되 존재하지 않는 수치를 생성하지 않음.",
+            "prompt": "다음 절차에 따라 quick 모드 시행 수 단축에 대한 영향 검증 및 회귀 분석 코드를 작성해 주세요.\n\n1. 현재 코드 확인:\n- `newbiz-battery.js`의 `DUR.quick` 설정값(pursuit: 12, pro: 4, anti: 10, fv: {neu: 3, neg: 8, pos: 4}, sart: 54)과 `newbiz-report.js`의 라벨 변경사항을 확인하세요.\n\n2. 변경 및 검증 과제:\n- 시행 수 감소에 따라 측정 시간 단축 효과와 지표 안정성 간의 트레이드오프를 평가하는 분석 모듈을 구현하세요.\n- 약한 신호 및 부분 유효 신호의 파편 데이터를 폐기하지 않고, 신뢰도 가중치(confidence)와 불확실성/오차 범위를 계산에 포함하세요.\n- 기준 센서가 없는 환경임을 명시하고 합성/자체 결과를 독립 정답으로 주장하지 않도록 검증 로직을 구성하세요.\n\n3. 성공/회귀 기준:\n- 성공: 측정 포기율 감소 및 부분 유효 신호 활용량 증가, 단축 조건에서도 핵심 지표 분산 폭이 허용 범위 내 유지.\n- 회귀: 과도한 시행 수 단축으로 인한 지표 판정 불가(na) 비율 급증 또는 QC 통과율 급락.\n\n4. 결과 보고 양식:\n- 참가자/기기/날짜별로 분리된 수치표를 출력하세요.\n- 임의의 성능 수치를 조작하거나 만드실 수 없으며, 제공된 dataset의 실측 기록을 연동하여 분모(전체 시도 수), 성공 세션 수, 활용 신호 비율, 추정 오차 범위를 리포트 형태로 작성하세요.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\nDataset-Task: evo-1ff01ebca793-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-1ff01ebca793-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "시선 추적 과제 자극 시행 수 감축 후 시선 진폭 및 잔여 오차 평가",
+            "rationale": "newbiz-battery.js에서 pursuit(14->12), pro(6->4), anti(12->10)의 시행 수가 줄어듦에 따라 웹캠 기반 시선 추적의 좌우 균형 가중치 및 개인 시선 진폭 보정 정확도가 저하될 가능성이 있으므로 가설 검증이 필요합니다.",
+            "validationPlan": "1. 시선 자극별(pursuit/pro/anti) 데이터 추출 및 자극 감소 구간 동안의 시선 좌표 오차 추이 분석.\n2. 기기 환경별(웹캠 해상도, 프레임 레이트) 및 참가자별 시선 추적 신뢰도 점수 비교.\n3. dataset 내 실측 시선 보정 데이터와 연동하여 정밀 모드 대비 단축 모드의 시선 오차 증가율 산출.",
+            "prompt": "웹캠 기반 시선 추적 알고리즘의 시행 수 감축에 따른 정확도 영향 검증 코드를 작성해 주세요.\n\n1. 현재 코드 확인:\n- `newbiz-battery.js` 파일 내 DUR.quick의 pursuit, pro, anti 자극 수 감소 코드를 확인하세요.\n\n2. 변경 및 검증 과제:\n- 자극 수가 감축된 상태에서 개인 시선 진폭 및 좌우 균형 가중 보정 알고리즘이 유효한 시선 신호를 얼마나 회복하는지 평가하세요.\n- 신호가 약하거나 손실된 구간을 정상값으로 임의 생성하지 말고, 불확실성 구획으로 지정하여 오차 범위에 반영하세요.\n\n3. 성공/회귀 기준:\n- 성공: 감축된 시행 수 내에서 시선 보정 잔여 오차가 허용 한계 내에 수렴.\n- 회귀: pro-saccade/anti-saccade 지표의 신뢰도(confidence)가 급격히 저하되어 QC 기준(minR: 0.3) 미달 세션 증가.\n\n4. 결과 보고 양식:\n- 세션 분모, 기기 종류, 참가자별로 구분하여 자극 감축 전후의 유효 신호 활용률, 시선 오차 범위, 제외 세션 수 비율을 출력하는 보고서 형식을 작성하세요. 존재하지 않는 실측 수치를 고조시키지 마세요.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\nDataset-Task: evo-1ff01ebca793-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-1ff01ebca793-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "정서 자극(fv) 단축 구간 내 맥박 신호(HR/rPPG) SNR 및 품질 판정 검증",
+            "rationale": "newbiz-battery.js에서 fv 블록 시행 수(neu 4->3, neg 12->8, pos 6->4)가 단축되었으나 `newbiz-core.js`의 HR_BAND [0.7, 3.0] 및 SNR 기준(SNR_GOOD=3, SNR_FAIR=-2)은 동일하게 유지되어, 단축된 시간 창에서 rPPG 신호 품질 평가의 타당성을 검증해야 합니다.",
+            "validationPlan": "1. 정서 자극 블록 단축에 따른 rPPG 신호 window 길이 감소 및 SNR 변화 측정.\n2. 본인 기준선(baseline) 대비 심박 변동 및 품질 지수(hrQ) 판정의 안정성을 dataset 실제 녹화 세션 데이터와 연결하여 평가.\n3. 날짜/참가자/기기별 분리 평가 수행.",
+            "prompt": "정서 자극 시간 단축 환경에서 맥박(pulse/rPPG) 신호의 SNR 및 측정 품질을 평가하는 후속 개발 및 검증 스크립트를 작성해 주세요.\n\n1. 현재 코드 확인:\n- `newbiz-battery.js`의 fv 자극 수 감축 내역과 `newbiz-core.js`의 HR_BAND 및 SNR 기준을 검토하세요.\n\n2. 변경 및 검증 과제:\n- 정서 자극 관측 창이 줄어듦에 따라 안면 노이즈 환경에서 약한 맥박 신호를 회복하고, hrQ(good/fair/poor) 판정 정확도를 유지하는 로직을 검증하세요.\n- 신호 미잡힘 시 정상 심박수(예: 70bpm)를 임의 대입하는 행위를 금지하고 불확실성 수치를 그대로 유지하세요.\n\n3. 성공/회귀 기준:\n- 성공: 단축된 fv 블록에서도 맥박 신호의 SNR 계산이 안정적으로 이루어지고 본인 기준선 대비 심박 변동 추정이 유효함.\n- 회귀: 신호 관측 창 부족으로 인한 SNR 계산 오류 또는 잘못된 hrQ 판정 증대.\n\n4. 결과 보고 양식:\n- 참가자/기기/날짜별 전체 측정 시도 분모, 신호 회복 성공률, SNR 분포, 불확실성 범위를 정리하는 리포트 코드를 작성하세요. 없는 수치를 임의로 지어내지 마세요.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 1ff01ebca79355c7f34e90d31271d7c48cb3f0ab\nDataset-Task: evo-1ff01ebca793-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "0e45bc225e6030f7f75eba83f9419614333a3e8b4f3330fc4c0240fb956cd855",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 3228,
+            "candidatesTokenCount": 2370,
+            "totalTokenCount": 7867
+          }
+        },
+        "generatedAt": "2026-10-19T00:32:46.003291+00:00",
+        "sourceSha": "1ff01ebca79355c7f34e90d31271d7c48cb3f0ab",
+        "sourceEvidence": {
+          "sha": "1ff01ebca79355c7f34e90d31271d7c48cb3f0ab",
+          "parents": [
+            "4849ff718c30f5ed316f260a3f6dc79e89a53a62"
+          ],
+          "committedAt": "2026-10-03T12:58:36Z",
+          "subject": "Two-test lineup: Gaze Trait Test + Mind Condition Test (In_mind) on the main site",
+          "url": "https://github.com/jeebs0627/neurolens/commit/1ff01ebca79355c7f34e90d31271d7c48cb3f0ab",
+          "files": [
+            {
+              "path": "api/rcvrslt_admin.py",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "condition.html",
+              "status": "added",
+              "additions": 2581,
+              "deletions": 0
+            },
+            {
+              "path": "index.html",
+              "status": "modified",
+              "additions": 220,
+              "deletions": 42
+            },
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 4,
+              "deletions": 3
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "newbiz-report.js",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "newbiz-stim/README.md",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "newbiz.html",
+              "status": "modified",
+              "additions": 5,
+              "deletions": 2561
+            },
+            {
+              "path": "resultadmin-care.js",
+              "status": "modified",
+              "additions": 6,
+              "deletions": 8
+            },
+            {
+              "path": "resultadmin.html",
+              "status": "modified",
+              "additions": 10,
+              "deletions": 19
+            },
+            {
+              "path": "sitemap.xml",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "test.html",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 1
+            },
+            {
+              "path": "vercel.json",
+              "status": "modified",
+              "additions": 57,
+              "deletions": 14
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE condition.html\n[patch unavailable]\nFILE newbiz-battery.js\n@@ -19,7 +19,7 @@\n })(typeof window !== 'undefined' ? window : null, function (N) {\n   'use strict';\n \n-  const VERSION = 'newbiz-battery-0.7';\n+  const VERSION = 'In_mind battery 0.8';\n   const finite = v => typeof v === 'number' && Number.isFinite(v);\n   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\n   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;\n@@ -114,11 +114,12 @@\n    * 3) 수렴 원칙: ‘관리 필요’는 서로 다른 지표 2개 이상이 저하를 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만. 아니면 ‘주의’로 낮춘다\n    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다\n    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */\n-  const QC = { version: 'NL-QC 1.2', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n+  const QC = { version: 'In_mind QC 1.2', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n   const DUR = {\n     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */\n     full:  { baseline: 60, pursuit: 24, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },\n-    quick: { baseline: 30, pursuit: 14, pro: 6, anti: 12, practice: 1, trials: 4, fv: { neu: 4, neg: 12, pos: 6 }, pvt: 90, pvtPractice: 2, sart: 63, sartPractice: 9, stress: 40, recovery: 40 },\n+    /* 표준(약 8분, 기본값) — 각 과제의 최소 신뢰 수준을 지키며 측정 시간을 8분 안팎으로 맞춘 구성 */\n+    quick: { baseline: 30, pursuit: 12, pro: 4, anti: 10, practice: 1, trials: 4, fv: { neu: 3, neg: 8, pos: 4 }, pvt: 90, pvtPractice: 2, sart: 54, sartPractice: 9, stress: 40, recovery: 40 },\n   };\n \n   const MODULES = {\nFILE newbiz-core.js\n@@ -11,7 +11,7 @@\n })(typeof window !== 'undefined' ? window : null, function () {\n   'use strict';\n \n-  const VERSION = 'newbiz-mvp-0.4';\n+  const VERSION = 'In_mind core 0.4';\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\nFILE newbiz-report.js\n@@ -553,8 +553,8 @@\n     <nav class=\"rnav no-print\" aria-label=\"리포트 목차\"><a href=\"#r-top\">요약</a><a href=\"#r-ai\">AI 총평</a><a href=\"#r-dash\">대시보드</a>${B.DOMAIN_KEYS.map(k => `<a href=\"#dom-${k}\">${esc(B.DOMAINS[k].name)}</a>`).join('')}<a href=\"#r-care\">케어</a><a href=\"#r-qc\">품질·방법</a></nav>\n \n     <section class=\"rhero\" id=\"r-top\">\n-      <div class=\"rhero-top\"><div><div class=\"kicker\">NeuroLens Lab · Integrated Self-Regulation Report</div>\n-        <h1>통합 자기조절 리포트</h1>\n+      <div class=\"rhero-top\"><div><div class=\"kicker\">NeuroLens · Mind Condition Report · In_mind engine</div>\n+        <h1>마인드 컨디션 리포트</h1>\n         <p class=\"rhero-sub\">또렷함 · 집중 조절 · 마음의 시선 · 몸의 회복력을 하나의 모델로 통합해 해석합니다${C.cite(['posner', 'thayerLane'])}</p></div>${source}</div>\n       <div class=\"rhero-main\">\n         <div class=\"rhero-gauge\">${ring(idx, { size: 168, stroke: 14, color: idx === null ? '#8A93A8' : idx >= 70 ? '#4FD1A1' : idx >= 40 ? '#F2B544' : '#F27C98', sub: '종합 지수', title: '종합 지수' })}\n@@ -564,7 +564,7 @@\n       </div>\n       <div class=\"rdoms\">${B.DOMAIN_KEYS.map(k => { const d = b.domains[k]; return `<a class=\"rdom\" href=\"#dom-${k}\"><div class=\"rdom-h\"><span class=\"dic\" style=\"color:${DCOLOR[k]};background:rgba(255,255,255,.1)\">${icon(k, '#fff')}</span><span>${esc(d.name)}<small>${esc(d.pro)} · ${esc(d.en)}</small></span></div>\n         <div class=\"rdom-b\">${ring(d.score, { size: 74, stroke: 7, color: d.status === 'na' ? '#8A93A8' : DCOLOR[k], title: d.name })}<div><span class=\"st st-${d.status}\">${B.STATUS[d.status]}</span>${d.tentative ? '<span class=\"st st-watch\" style=\"margin-left:4px\">잠정</span>' : ''}<div class=\"rdom-c\"><span>신뢰도</span><i><b style=\"width:${Math.round((d.confidence || 0) * 100)}%\"></b></i></div></div></div></a>`; }).join('')}</div>\n-      <dl class=\"rmeta\"><div><dt>측정 일시</dt><dd>${when ? esc(when.toLocaleString('ko-KR')) : '—'}</dd></div><div><dt>세션 ID</dt><dd>${esc(sid)}</dd></div><div><dt>측정 시간</dt><dd>${mins === null ? '—' : mins + '분'} · ${r.mode === 'quick' ? '빠른 측정' : '표준 측정'}</dd></div><div><dt>시선 보정</dt><dd>${esc(calText)}</dd></div></dl>\n+      <dl class=\"rmeta\"><div><dt>측정 일시</dt><dd>${when ? esc(when.toLocaleString('ko-KR')) : '—'}</dd></div><div><dt>세션 ID</dt><dd>${esc(sid)}</dd></div><div><dt>측정 시간</dt><dd>${mins === null ? '—' : mins + '분'} · ${r.mode === 'quick' ? '표준 측정' : '정밀 측정'}</dd></div><div><dt>시선 보정</dt><dd>${esc(calText)}</dd></div></dl>\n     </section>\n \n     <section class=\"card ai\" id=\"r-ai\">",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "39181184513"
+      }
     },
     {
       "sha": "4849ff718c30f5ed316f260a3f6dc79e89a53a62",
@@ -17007,39 +17156,159 @@
         {
           "id": "evo-4849ff718c30-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-4849ff718c30-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\n변경 제목: newbiz: plain-language domains, simple report view, always-on recovery rate, PHQ wording, saccade range check fix, baseline photo\n관련 파일: api/rppg.py, api/rppg_test.py, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js, newbiz-stim/README.md, newbiz.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-4849ff718c30-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "rPPG 심박 회복률 산출식 재정의 및 신호 대체 구간 유효성 실측 검증",
+          "rationale": "`newbiz-core.js`에서 압박 반응이 작은 경우에도 회복률을 산출하도록 분모 하한(3bpm)을 도입하고, 회복 후반 신호 저하 시 전체 구간으로 대체(`recoverySrc: 'whole'`)하는 로직이 추가되었습니다. 이는 약한 신호의 활용량을 늘리는 가설에 기반하나, 불완전 신호 포함에 따라 실제 심박 회복률 오차가 증가할 위험이 있어 실측 데이터 연계 검증이 필수적입니다.",
+          "validationPlan": "합성 테스트 데이터 외에 dataset에 수록된 실제 참가자 웹캠 rPPG 및 기준 센서(ECG/PPG) 동시 측정 기록을 연결하여 평가합니다. 전체 시도 횟수를 분모로 설정하고, 신호 미잡힘(null), 'late' 적용, 'whole' 대체 적용 비율별로 구분하여 기준 대비 회복률 오차(MAE)와 활용률 변동을 측정합니다. 회귀 테스트로 기존 정상 신호 구간의 산출값 변동 여부를 확인합니다.",
+          "prompt": "[개발 AI 프롬프트]\n\n1. 현재 코드 확인:\n   - `api/rppg.py`, `newbiz-core.js`, `newbiz-battery.js`의 심박 계산 및 회복률(`recovery`, `recoverySrc`, `stressPeak`) 구현 현황을 분석하고, 소스코드 내 주석 및 제약 조건을 파악하라.\n\n2. 변경 및 검증 과제:\n   - 약한 rPPG 신호 구간에서 `recoverySrc = 'whole'` 대체 로직이 활성화될 때, 기준 센서 대비 심박 회복률 오차와 신호 활용률(전체 세션 대비 유효 측정 성공 비율)을 동시 평가하는 검증 코드를 작성하라.\n   - 임의로 정상 오차 범위를 만들어 채우지 말고, dataset에 등록된 실제 참가자 데이터셋 메모와 신호 품질 등급(good/fair/poor/none)을 연결하여 조건별로 오차를 분리 집계하라.\n\n3. 성공/회귀 기준:\n   - 성공 기준: 약한 신호 구간에서 회복률 산출 불능(null) 비율을 줄이면서, 기준 센서 대비 회복률 추정 오차가 상한 허용 범위 내에 유지될 것.\n   - 회귀 기준: 고품질 신호 구간('late')의 회복률 계산값 변화 또는 신호 잡음 증가 시 잘못된 정점(peak) 포획으로 인한 회복률 과대/과소 평가 발생.\n\n4. 결과 보고 양식:\n   - 평가 대상 세션 분모 수, 조건별(신호 등급, recoverySrc 구분) 세션 수, 유효 활용률(%), 회복률 MAE, 오차 분포 및 실패 원인 분석표를 작성하여 보고하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\nDataset-Task: evo-4849ff718c30-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-4849ff718c30-gaze",
           "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-4849ff718c30-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\n변경 제목: newbiz: plain-language domains, simple report view, always-on recovery rate, PHQ wording, saccade range check fix, baseline photo\n관련 파일: api/rppg.py, api/rppg_test.py, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js, newbiz-stim/README.md, newbiz.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-4849ff718c30-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "웹캠 안구운동 및 사카드 반응 기준 변경에 따른 시선 추적 안정성 검증",
+          "rationale": "커밋 변경 내역 및 메타데이터에 따르면 사카드 진폭 판정 관련 수정과 시선 지표 설명 변경이 포함되어 있습니다. 웹캠 30fps 환경 및 개인별 응시 진폭 40% 기준 적용이 실시간 시선 오차와 유효 시행 비율에 미치는 영향을 검증해야 합니다.",
+          "validationPlan": "dataset 내 참가자별/기기별/날짜별 시선 추적 데이터를 연결하여 사카드 시작 잠복기 및 방향 오류율의 오차 분포를 측정합니다. 고정 기준 대비 가변 40% 기준 적용 시 유효 시행 수(분모 대비) 증가량과 시선 각도 오차(1~2° 범위)를 다층 평가합니다.",
+          "prompt": "[개발 AI 프롬프트]\n\n1. 현재 코드 확인:\n   - `newbiz-battery.js` 및 관련 프론트엔드 모듈에서 안구운동 통제(oculo) 파라미터, 사카드 기준값 및 시선 처리 로직을 점검하라.\n\n2. 변경 및 검증 과제:\n   - 웹캠 환경의 프레임 레이트 제한(30fps, ±33ms) 내에서 개인별 시선 진폭 40% 적용 로직이 유효 시행 수와 방향 오류율 판정 정확도에 미치는 영향을 평가하는 과제를 수행하라.\n   - dataset의 실제 사용자 시선 관측 데이터와 연계하여 표적 제시 후 시선 반응 검출 성공률을 계산하라.\n\n3. 성공/회귀 기준:\n   - 성공 기준: 전체 시도 시행 중 오진단 없이 유효 시행으로 판정되는 비율이 유의미하게 증가할 것.\n   - 회귀 기준: 미세한 머리 움직임이나 안경 반사 환경에서 거짓 사카드(false positive) 검출률이 증가할 것.\n\n4. 결과 보고 양식:\n   - 평가 참가자/기기 분모, 전체 시행 수 대비 유효 시행 비율(%), 사카드 잠복기 오차 범위, 프레임 드랍 시 판정 예외 발생 건수를 도표로 보고하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\nDataset-Task: evo-4849ff718c30-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-4849ff718c30-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-4849ff718c30-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\n변경 제목: newbiz: plain-language domains, simple report view, always-on recovery rate, PHQ wording, saccade range check fix, baseline photo\n관련 파일: api/rppg.py, api/rppg_test.py, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-report.js, newbiz-stim/README.md, newbiz.html\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-4849ff718c30-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "진단 용어 평이화 및 통합 보고서 지표 산출의 데이터 유효성 검증",
+          "rationale": "`newbiz-battery.js` 및 `newbiz-report.js`에서 Domain 명칭('각성'→'또렷함', '주의 통제'→'집중 조절' 등)과 PHQ-8 질문지 표현이 평이하게 다듬어졌으며, `R.renderSimple` 등의 간편 보고서 기능이 추가되었습니다. UI 렌더링 시 결손 데이터 처리와 지표 합산 시 계산 오류 유무를 검증할 필요가 있습니다.",
+          "validationPlan": "`newbiz-battery.test.js`에 추가된 21번 테스트 패턴을 확장하여, 모든 페르소나 및 일부 데이터 결손(NaN, null, undefined) 세션 조건에서 간편 보고서 HTML 생성 시 스크립트 에러 발생 여부 및 용어 노출 규칙을 검증합니다.",
+          "prompt": "[개발 AI 프롬프트]\n\n1. 현재 코드 확인:\n   - `newbiz-battery.js`, `newbiz-report.js`, `newbiz.html`의 통합 해석(HEAD, PATHWAYS, CARE_PLAN) 및 PHQ-8 매핑, 보고서 렌더링 코드를 확인하라.\n\n2. 변경 및 검증 과제:\n   - 측정 항목 중 일부 영역(rPPG, 시선, 행동) 신호가 부분 취소되거나 null인 조건에서도 간편 보고서 렌더링이 중단되지 않고 적절한 안내 문구가 표시되는지 검증 코드를 작성하라.\n   - PHQ-8 점수 합산 및 영역 연결(PHQ_LINKS)에서 정수 범위 및 유효 상태값이 정상 유지되는지 확인하라.\n\n3. 성공/회귀 기준:\n   - 성공 기준: 렌더링 결과물에 `undefined`, `NaN`, `[object Object]` 등 부적절한 문자열이 전혀 포함되지 않고 모든 테스트 페르소나에서 안정적인 HTML을 생성할 것.\n   - 회귀 기준: 전문 용어 숨김 규칙 위반, 또는 필수 영역 결손 시 전체 통합 해석이 왜곡되어 오판 단어를 생성하는 현상 발생.\n\n4. 결과 보고 양식:\n   - 테스트 실행 입력 세션 구성, 페르소나별 렌더링 성공 여부, 예외 발생 건수, 렌더링 텍스트 검증 결과를 정형화된 리포트로 작성하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\nDataset-Task: evo-4849ff718c30-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [],
-      "lastAttemptAt": "2026-10-04T10:19:08.935516+00:00",
-      "analysisError": "HTTP_403"
+      "lastAttemptAt": "2026-10-19T00:32:46.046695+00:00",
+      "analysis": {
+        "summary": "공개 GitHub 커밋(4849ff718c30f5ed316f260a3f6dc79e89a53a62)의 변경 사항을 관측한 결과, `newbiz-core.js` 및 `newbiz-battery.js`에서 자율신경 회복률(`recovery`) 산출식이 분모 하한(3bpm) 및 상위 25% 분위수 정점(`stressPeak`) 기반으로 재정의되었고, 후반 신호 품질 저하 시 회복 구간 전체(`recoverySrc: 'whole'`)를 활용하도록 대체 로직이 추가되었습니다. 또한 `newbiz-battery.js`, `newbiz-report.js` 전반에서 전문 용어를 쉬운 표현으로 변경하고 PHQ-8 문항 선택지 표기를 다듬었으며, `newbiz-battery.test.js`에 관련 단위 테스트가 추가되었습니다. 커밋 메타데이터상 `accuracyValidated`는 false이며 diff 일부가 생략(`patchTruncated: true`)되어 있으므로, 커밋 제목의 성과 주장을 독립된 정답으로 수용하지 않고 실제 참가자 관측 데이터셋과 연계한 오차 및 활용률 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-4849ff718c30-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "rPPG 심박 회복률 산출식 재정의 및 신호 대체 구간 유효성 실측 검증",
+            "rationale": "`newbiz-core.js`에서 압박 반응이 작은 경우에도 회복률을 산출하도록 분모 하한(3bpm)을 도입하고, 회복 후반 신호 저하 시 전체 구간으로 대체(`recoverySrc: 'whole'`)하는 로직이 추가되었습니다. 이는 약한 신호의 활용량을 늘리는 가설에 기반하나, 불완전 신호 포함에 따라 실제 심박 회복률 오차가 증가할 위험이 있어 실측 데이터 연계 검증이 필수적입니다.",
+            "validationPlan": "합성 테스트 데이터 외에 dataset에 수록된 실제 참가자 웹캠 rPPG 및 기준 센서(ECG/PPG) 동시 측정 기록을 연결하여 평가합니다. 전체 시도 횟수를 분모로 설정하고, 신호 미잡힘(null), 'late' 적용, 'whole' 대체 적용 비율별로 구분하여 기준 대비 회복률 오차(MAE)와 활용률 변동을 측정합니다. 회귀 테스트로 기존 정상 신호 구간의 산출값 변동 여부를 확인합니다.",
+            "prompt": "[개발 AI 프롬프트]\n\n1. 현재 코드 확인:\n   - `api/rppg.py`, `newbiz-core.js`, `newbiz-battery.js`의 심박 계산 및 회복률(`recovery`, `recoverySrc`, `stressPeak`) 구현 현황을 분석하고, 소스코드 내 주석 및 제약 조건을 파악하라.\n\n2. 변경 및 검증 과제:\n   - 약한 rPPG 신호 구간에서 `recoverySrc = 'whole'` 대체 로직이 활성화될 때, 기준 센서 대비 심박 회복률 오차와 신호 활용률(전체 세션 대비 유효 측정 성공 비율)을 동시 평가하는 검증 코드를 작성하라.\n   - 임의로 정상 오차 범위를 만들어 채우지 말고, dataset에 등록된 실제 참가자 데이터셋 메모와 신호 품질 등급(good/fair/poor/none)을 연결하여 조건별로 오차를 분리 집계하라.\n\n3. 성공/회귀 기준:\n   - 성공 기준: 약한 신호 구간에서 회복률 산출 불능(null) 비율을 줄이면서, 기준 센서 대비 회복률 추정 오차가 상한 허용 범위 내에 유지될 것.\n   - 회귀 기준: 고품질 신호 구간('late')의 회복률 계산값 변화 또는 신호 잡음 증가 시 잘못된 정점(peak) 포획으로 인한 회복률 과대/과소 평가 발생.\n\n4. 결과 보고 양식:\n   - 평가 대상 세션 분모 수, 조건별(신호 등급, recoverySrc 구분) 세션 수, 유효 활용률(%), 회복률 MAE, 오차 분포 및 실패 원인 분석표를 작성하여 보고하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\nDataset-Task: evo-4849ff718c30-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-4849ff718c30-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "웹캠 안구운동 및 사카드 반응 기준 변경에 따른 시선 추적 안정성 검증",
+            "rationale": "커밋 변경 내역 및 메타데이터에 따르면 사카드 진폭 판정 관련 수정과 시선 지표 설명 변경이 포함되어 있습니다. 웹캠 30fps 환경 및 개인별 응시 진폭 40% 기준 적용이 실시간 시선 오차와 유효 시행 비율에 미치는 영향을 검증해야 합니다.",
+            "validationPlan": "dataset 내 참가자별/기기별/날짜별 시선 추적 데이터를 연결하여 사카드 시작 잠복기 및 방향 오류율의 오차 분포를 측정합니다. 고정 기준 대비 가변 40% 기준 적용 시 유효 시행 수(분모 대비) 증가량과 시선 각도 오차(1~2° 범위)를 다층 평가합니다.",
+            "prompt": "[개발 AI 프롬프트]\n\n1. 현재 코드 확인:\n   - `newbiz-battery.js` 및 관련 프론트엔드 모듈에서 안구운동 통제(oculo) 파라미터, 사카드 기준값 및 시선 처리 로직을 점검하라.\n\n2. 변경 및 검증 과제:\n   - 웹캠 환경의 프레임 레이트 제한(30fps, ±33ms) 내에서 개인별 시선 진폭 40% 적용 로직이 유효 시행 수와 방향 오류율 판정 정확도에 미치는 영향을 평가하는 과제를 수행하라.\n   - dataset의 실제 사용자 시선 관측 데이터와 연계하여 표적 제시 후 시선 반응 검출 성공률을 계산하라.\n\n3. 성공/회귀 기준:\n   - 성공 기준: 전체 시도 시행 중 오진단 없이 유효 시행으로 판정되는 비율이 유의미하게 증가할 것.\n   - 회귀 기준: 미세한 머리 움직임이나 안경 반사 환경에서 거짓 사카드(false positive) 검출률이 증가할 것.\n\n4. 결과 보고 양식:\n   - 평가 참가자/기기 분모, 전체 시행 수 대비 유효 시행 비율(%), 사카드 잠복기 오차 범위, 프레임 드랍 시 판정 예외 발생 건수를 도표로 보고하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\nDataset-Task: evo-4849ff718c30-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-4849ff718c30-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "진단 용어 평이화 및 통합 보고서 지표 산출의 데이터 유효성 검증",
+            "rationale": "`newbiz-battery.js` 및 `newbiz-report.js`에서 Domain 명칭('각성'→'또렷함', '주의 통제'→'집중 조절' 등)과 PHQ-8 질문지 표현이 평이하게 다듬어졌으며, `R.renderSimple` 등의 간편 보고서 기능이 추가되었습니다. UI 렌더링 시 결손 데이터 처리와 지표 합산 시 계산 오류 유무를 검증할 필요가 있습니다.",
+            "validationPlan": "`newbiz-battery.test.js`에 추가된 21번 테스트 패턴을 확장하여, 모든 페르소나 및 일부 데이터 결손(NaN, null, undefined) 세션 조건에서 간편 보고서 HTML 생성 시 스크립트 에러 발생 여부 및 용어 노출 규칙을 검증합니다.",
+            "prompt": "[개발 AI 프롬프트]\n\n1. 현재 코드 확인:\n   - `newbiz-battery.js`, `newbiz-report.js`, `newbiz.html`의 통합 해석(HEAD, PATHWAYS, CARE_PLAN) 및 PHQ-8 매핑, 보고서 렌더링 코드를 확인하라.\n\n2. 변경 및 검증 과제:\n   - 측정 항목 중 일부 영역(rPPG, 시선, 행동) 신호가 부분 취소되거나 null인 조건에서도 간편 보고서 렌더링이 중단되지 않고 적절한 안내 문구가 표시되는지 검증 코드를 작성하라.\n   - PHQ-8 점수 합산 및 영역 연결(PHQ_LINKS)에서 정수 범위 및 유효 상태값이 정상 유지되는지 확인하라.\n\n3. 성공/회귀 기준:\n   - 성공 기준: 렌더링 결과물에 `undefined`, `NaN`, `[object Object]` 등 부적절한 문자열이 전혀 포함되지 않고 모든 테스트 페르소나에서 안정적인 HTML을 생성할 것.\n   - 회귀 기준: 전문 용어 숨김 규칙 위반, 또는 필수 영역 결손 시 전체 통합 해석이 왜곡되어 오판 단어를 생성하는 현상 발생.\n\n4. 결과 보고 양식:\n   - 테스트 실행 입력 세션 구성, 페르소나별 렌더링 성공 여부, 예외 발생 건수, 렌더링 텍스트 검증 결과를 정형화된 리포트로 작성하라.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 4849ff718c30f5ed316f260a3f6dc79e89a53a62\nDataset-Task: evo-4849ff718c30-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "7e63e93dae1fa40435eecfbfcca619315e5bac273957ec395f85a2adfadeea97",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 3,
+          "usage": {
+            "promptTokenCount": 12059,
+            "candidatesTokenCount": 2011,
+            "totalTokenCount": 15478
+          }
+        },
+        "generatedAt": "2026-10-19T00:33:39.674673+00:00",
+        "sourceSha": "4849ff718c30f5ed316f260a3f6dc79e89a53a62",
+        "sourceEvidence": {
+          "sha": "4849ff718c30f5ed316f260a3f6dc79e89a53a62",
+          "parents": [
+            "741275af1a57773b7b56e7aecf8a3b916f262ee7"
+          ],
+          "committedAt": "2026-10-03T11:50:56Z",
+          "subject": "newbiz: plain-language domains, simple report view, always-on recovery rate, PHQ wording, saccade range check fix, baseline photo",
+          "url": "https://github.com/jeebs0627/neurolens/commit/4849ff718c30f5ed316f260a3f6dc79e89a53a62",
+          "files": [
+            {
+              "path": "api/rppg.py",
+              "status": "modified",
+              "additions": 11,
+              "deletions": 10
+            },
+            {
+              "path": "api/rppg_test.py",
+              "status": "modified",
+              "additions": 3,
+              "deletions": 3
+            },
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 38,
+              "deletions": 35
+            },
+            {
+              "path": "newbiz-battery.test.js",
+              "status": "modified",
+              "additions": 21,
+              "deletions": 3
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 15,
+              "deletions": 7
+            },
+            {
+              "path": "newbiz-report.js",
+              "status": "modified",
+              "additions": 74,
+              "deletions": 4
+            },
+            {
+              "path": "newbiz-stim/README.md",
+              "status": "modified",
+              "additions": 20,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz.html",
+              "status": "modified",
+              "additions": 132,
+              "deletions": 12
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE newbiz-battery.js\n@@ -123,25 +123,25 @@\n \n   const MODULES = {\n     alert: {\n-      title: '각성', tests: 'PVT-B 정신운동 경계 과제 + PERCLOS 눈꺼풀 분석', domain: 'alert', min: { full: 3.5, quick: 2 },\n+      title: '또렷함 검사', tests: 'PVT-B 정신운동 경계 과제 + PERCLOS 눈꺼풀 분석', domain: 'alert', min: { full: 3.5, quick: 2 },\n       paradigm: '무작위 간격(1~4초)으로 나타나는 숫자 카운터에 최대한 빨리 반응한다. 수면 부족·피로에 가장 민감한 행동 지표로 확립된 PVT의 3분 단축형(PVT-B)이며, 같은 시간 동안 웹캠으로 눈꺼풀이 80% 이상 닫힌 시간 비율(PERCLOS)을 함께 잰다.',\n       limits: '브라우저·키보드 입력 지연(약 20~60ms)이 반응시간에 더해진다. PERCLOS는 개인별 눈 열림 범위로 정규화한 근사값이며 안경 반사·조명에 영향을 받는다.',\n       refs: ['dinges85', 'basnerB', 'basner', 'wierwille', 'dingesGrace', 'caffier'],\n     },\n     oculo: {\n-      title: '안구운동 통제', tests: '원활 추적 + 프로·안티사카드', domain: 'control', min: { full: 2.5, quick: 1.5 },\n+      title: '눈 움직임 조절', tests: '원활 추적 + 프로·안티사카드', domain: 'control', min: { full: 2.5, quick: 1.5 },\n       paradigm: '좌우로 움직이는 점을 눈으로 따라가는 원활 추적과, 주변에 나타난 점을 보거나(프로사카드) 반대쪽을 보는(안티사카드) 과제다. 안티사카드는 반사적 시선을 억제하는 전전두 실행 통제를 직접 반영한다.',\n       limits: '웹캠 시선은 정확도 약 1~2°, 30fps라 잠복기는 ±33ms 해상도의 참고값이다. 사카드 직전 좌·중·우 응시로 개인별 시선 진폭을 재고 그 40%를 반응 기준으로 삼아, 고정 기준보다 유효 시행을 크게 늘렸다. 판정에는 시선 방향(오류율)처럼 웹캠으로도 안정적인 지표를 주로 쓴다.',\n       refs: ['hallett', 'munoz', 'antoniades', 'lencer', 'maruta', 'webcamET'],\n     },\n     sustain: {\n-      title: '지속 주의', tests: 'SART 반응 억제 과제 + 머리 움직임', domain: 'control', min: { full: 3, quick: 1.7 },\n+      title: '지속 집중', tests: 'SART 반응 억제 과제 + 머리 움직임', domain: 'control', min: { full: 3, quick: 1.7 },\n       paradigm: '숫자 1~9가 빠르게(250ms 제시 + 900ms 빈 화면, 1.15초 간격) 나타날 때 3을 제외한 모든 숫자에 반응한다. 지속 주의와 반응 억제의 실패(일상적 주의 실수)를 측정하는 연속수행검사(CPT) 계열 과제이며, 수행 중 머리 움직임을 웹캠으로 함께 기록한다.',\n       limits: '자극 간격(1.15초)·숫자 크기 5단계·본 시행 중 정오 피드백 없음은 원판 그대로다. 원판의 마스크(원 안의 ×)는 ‘틀렸다’는 표시로 오인되기 쉬워 빈 화면으로 바꿨으며, 마스크가 없으면 과제가 다소 쉬워질 수 있어 억제 실패율 기준은 파일럿에서 재설정한다. 또한 원판(225시행)을 108시행(표준)·63시행(빠른 측정)으로 단축했다. 본 시행 전 연습(표준 18시행)에서만 정오 피드백을 주며, 본 시행에서는 정오와 무관한 입력 확인 표시만 보인다. 머리 움직임은 얼굴 랜드마크 이동량이며 적외선 동작 분석(QbTest류)보다 해상도가 낮다.',\n       refs: ['robertson', 'rosvold', 'kofler', 'teicher'],\n     },\n     core: {\n-      title: '정서 주의 · 스트레스 반응', tests: '정서 자유 보기 + MIST 암산 압박 + 분당 6회 공명 호흡', domain: 'emotion · autonomic', min: { full: 4.5, quick: 2.8 },\n+      title: '마음·몸 반응', tests: '정서 자유 보기 + MIST 암산 압박 + 분당 6회 공명 호흡', domain: 'emotion · autonomic', min: { full: 4.5, quick: 2.8 },\n       paradigm: '정서-중립 사진 쌍(위협·슬픔·긍정 vs 내용이 맞춰진 중립 사진)을 자유롭게 보는 동안의 시선 체류(주의 편향), MIST 방식 암산(난이도 1~5 무작위 · 덧셈·뺄셈 · 답 0~9 · 수행에 따라 줄어드는 제한 시간 · 목표 정답률 막대) 중 심박 반응, 공명 주파수 호흡 중 심박 회복과 호흡-심박 동조를 rPPG(POS)로 측정한다.',\n       limits: 'rPPG는 조명·움직임에 민감하며 HRV(RMSSD)는 30fps 한계로 참고값이다. MIST 원판의 거짓 평균 비교(기만) 대신 실제 목표 정답률(80%)과 비교하며, 시간은 1분으로 단축했다. 정서 사진 세트가 없으면 밝기를 맞춘 도식 얼굴·단어로 대체하며, 이 경우 표준화 사진 자극보다 강도가 약하다.',\n       refs: ['armstrong', 'dedovic', 'kirschbaum', 'lehrer', 'pos', 'mediapipe'],\n@@ -150,11 +150,12 @@\n \n   const DOMAIN_KEYS = ['alert', 'control', 'emotion', 'autonomic'];\n   const HIER = ['alert', 'autonomic', 'control', 'emotion'];\n+  /* name = 결과지에 보이는 쉬운 이름 · pro = 전문 용어(부제로 함께 표시) */\n   const DOMAINS = {\n-    alert: { name: '각성', en: 'Alerting', network: '경계 네트워크', what: '주의를 유지하는 토대인 기본 각성 수준', refs: ['posner', 'limDinges'], modules: ['alert'] },\n-    control: { name: '주의 통제', en: 'Executive control', network: '실행 통제 네트워크', what: '반사적 반응을 억제하고 목표에 주의를 유지하는 능력', refs: ['posner', 'munoz', 'robertson'], modules: ['oculo', 'sustain'] },\n-    emotion: { name: '정서 주의', en: 'Emotional orienting', network: '정서 자극 정향', what: '부정·긍정 정보로 주의가 향하고 머무는 경향', refs: ['armstrong', 'act'], modules: ['core'] },\n-    autonomic: { name: '자율신경 조절', en: 'Autonomic regulation', network: '신경내장 조절', what: '압박에 대한 심박 반응과 회복, 호흡-심박 동조', refs: ['thayerLane', 'dedovic'], modules: ['core'] },\n+    alert: { name: '또렷함', pro: '각성', en: 'Alertness', network: '경계 네트워크', what: '피곤하지 않고 깨어 있는 정도 — 모든 집중의 바탕이 되는 기본 에너지', refs: ['posner', 'limDinges'], modules: ['alert'] },\n+    control: { name: '집중 조절', pro: '주의 통제', en: 'Focus control', network: '실행 통제 네트워크', what: '충동적으로 반응하지 않고, 하려던 일에 집중을 유지하는 힘', refs: ['posner', 'munoz', 'robertson'], modules: ['oculo', 'sustain'] },\n+    emotion: { name: '마음의 시선', pro: '정서 주의', en: 'Emotional attention', network: '정서 자극 정향', what: '불편하거나 기쁜 정보에 눈과 마음이 얼마나 끌리고 머무는지', refs: ['armstrong', 'act'], modules: ['core'] },\n+    autonomic: { name: '몸의 회복력', pro: '자율신경 조절', en: 'Body recovery', network: '신경내장 조절', what: '긴장할 때 몸(심박)이 얼마나 반응하고, 다시 편안해지는 힘', refs: ['thayerLane', 'dedovic'], modules: ['core'] },\n   };\n \n   /* ---------- 지표 정의: band = 좋음 기준점(best) · 양호 한계(ok) · 주의 한계(concern) · 최저점(worst) ---------- */\n@@ -196,7 +197,7 @@\n     { key: 'stressDelta', domain: 'autonomic', w: 2, label: '압박 심박 반응', unit: 'bpm', d: 1, band: BAND('low', 2, 6, 12, 25), refs: ['dedovic'],\n       desc: '제한 시간 암산 − 기준선 심박. 과도한 반응 여부만 판정한다', get: a => a.stressDelta },\n     { key: 'recovery', domain: 'autonomic', w: 2, label: '심박 회복률', unit: '%', d: 0, band: BAND('high', 100, 50, 20, -20), refs: ['thayer'],\n-      desc: '압박으로 오른 심박이 호흡 구간 후반에 되돌아온 비율 (압박 반응 3bpm 이상일 때만 계산)', get: a => a.recovery },\n+      desc: '호흡 후 심박이 평소 수준으로 돌아온 정도. 1 − (회복 후반 − 기준) ÷ max(압박 정점 − 기준, 3bpm)', get: a => a.recovery },\n     { key: 'recoveryResid', domain: 'autonomic', w: 1, label: '회복 후 잔여 심박', unit: 'bpm', d: 1, band: BAND('low', 0, 3, 7, 15), refs: ['thayer'],\n       desc: '호흡 구간 후반 심박 − 기준 심박. 압박 반응이 작아 회복률을 계산할 수 없을 때도 회복을 판정한다', get: a => a.recoveryResid },\n     { key: 'coupling', domain: 'autonomic', w: 1, label: '공명 호흡 심박 동조', unit: 'bpm', d: 1, band: BAND('high', 8, 3, 1.5, 0), refs: ['lehrer'],\n@@ -482,43 +483,43 @@\n \n   /* ---------- 통합 해석 ---------- */\n   const HEAD = {\n-    alert: { title: '각성 저하 우선형', lead: '주의 체계의 토대인 각성 수준이 낮게 측정됐어요. 각성이 떨어지면 주의 통제와 정서 조절 수행도 함께 떨어지므로, 다른 영역의 결과보다 먼저 수면·휴식으로 각성을 회복하는 것이 우선입니다.' },\n-    control: { title: '주의 통제 부하형', lead: '반사적 반응을 억제하고 목표에 주의를 유지하는 실행 통제 지표가 낮았어요. 각성은 유지되고 있어, 피로보다는 주의를 조절하는 자원 자체가 부하를 받고 있는 패턴입니다.' },\n-    emotion: { title: '정서 주의 편향형', lead: '부정 정보로 주의가 향하고 머무는 경향이 두드러졌어요. 걱정·반추가 주의를 붙잡아 조용히 에너지를 쓰고 있을 수 있습니다.' },\n-    autonomic: { title: '신체 스트레스 반응형', lead: '압박 상황에서 심박 반응이 크거나 회복이 더뎠어요. 생각보다 몸이 먼저, 그리고 오래 긴장하는 패턴입니다.' },\n-    balanced: { title: '균형 조절형', lead: '측정된 영역이 모두 참고 범위 안에 있었어요. 각성·주의 통제·정서 주의·자율신경 조절이 균형을 이루고 있습니다. 지금 상태를 개인 기준선으로 기록해 두면 이후 변화를 민감하게 알아챌 수 있어요.' },\n+    alert: { title: '피로 회복 우선형', lead: '모든 집중의 바탕인 또렷함(각성)이 낮게 측정됐어요. 피곤하면 집중과 감정 조절도 함께 흔들리기 때문에, 다른 결과보다 먼저 수면과 휴식으로 기본 에너지를 되찾는 것이 우선이에요.' },\n+    control: { title: '집중 흔들림형', lead: '충동을 누르고 하려던 일에 집중을 붙잡아 두는 힘(주의 통제)이 낮았어요. 피곤해서라기보다, 집중을 조절하는 힘 자체에 부담이 쌓인 패턴이에요.' },\n+    emotion: { title: '마음 쏠림형', lead: '불편한 정보에 눈과 마음이 먼저 가고 오래 머무는 경향(정서 주의 편향)이 두드러졌어요. 걱정이나 곱씹는 생각이 조용히 에너지를 쓰고 있을 수 있어요.' },\n+    autonomic: { title: '몸 긴장형', lead: '긴장되는 상황에서 심박이 크게 오르거나 다시 편안해지는 데 시간이 걸렸어요(자율신경 조절). 마음보다 몸이 먼저, 그리고 오래 긴장하는 패턴이에요.' },\n+    balanced: { title: '균형 조절형', lead: '측정한 네 가지가 모두 참고 범위 안이었어요. 또렷함·집중 조절·마음의 시선·몸의 회복력이 균형을 이루고 있어요. 지금 상태를 나의 기준으로 남겨 두면 나중의 변화를 민감하게 알아챌 수 있어요.' },\n     insufficient: { title: '통합 해석 보류', lead: '측정된 영역이 2개 미만이라 영역 사이의 관계를 해석하지 않았어요. 측정된 지표만 참고하고, 가능한 검사를 더 포함해 다시 측정해 보세요.' },\n   };\n   const PATHWAYS = {\n-    fatigue: { title: '피로 게이팅 · 각성 → 주의·정서', refs: ['limDinges', 'yoo'],\n-      text: w => `각성 지표가 낮은 상태에서 ${w} 지표도 함께 낮았어요. 수면 부족은 주의 통제와 정서 조절 수행을 함께 떨어뜨리는 것으로 알려져 있어, 이번 결과의 일부는 피로의 영향일 수 있습니다. 충분히 쉰 뒤 같은 시간대에 재측정하면 두 원인을 구분할 수 있어요.` },\n-    act: { title: '주의 통제 이론 · 정서 편향 ↔ 억제 통제', refs: ['act', 'derakshan'],\n+    fatigue: { title: '피로가 집중·마음을 끌어내림 (피로 게이팅)', refs: ['limDinges', 'yoo'],\n+      text: w => `또렷함이 낮은 상태에서 ${w}도 함께 낮았어요. 수면 부족은 주의 통제와 정서 조절 수행을 함께 떨어뜨리는 것으로 알려져 있어, 이번 결과의 일부는 피로의 영향일 수 있습니다. 충분히 쉰 뒤 같은 시간대에 재측정하면 두 원인을 구분할 수 있어요.` },\n+    act: { title: '불편한 정보에 끌림 ↔ 멈추는 힘 약해짐 (주의 통제 이론)', refs: ['act', 'derakshan'],\n       text: () => '부정 자극으로 주의가 쏠리는 경향과 반응 억제의 약화가 함께 나타났어요. 주의 통제 이론은 불안이 목표 지향적 주의(억제 기능)를 약화시키고 자극 주도적 주의를 강화한다고 설명합니다. 정서 편향과 주의 통제를 함께 다루는 케어가 효율적이에요.' },\n-    nvi: { title: '신경내장 통합 · 주의 통제 ↔ 자율신경', refs: ['thayerLane', 'thayer'],\n-      text: () => '실행 통제 지표와 자율신경 조절 지표가 함께 낮았어요. 신경내장 통합 모델은 전전두엽의 억제 회로가 인지 통제와 미주신경성 심장 조절을 함께 담당한다고 봅니다. 호흡·심박 조절 훈련이 주의 통제에도 도움이 될 수 있는 근거입니다.' },\n-    perseverative: { title: '지속 인지 가설 · 정서 주의 ↔ 신체 반응', refs: ['brosschot', 'armstrong'],\n+    nvi: { title: '집중 조절 ↔ 몸의 회복력이 함께 낮음 (신경내장 통합)', refs: ['thayerLane', 'thayer'],\n+      text: () => '집중 조절과 몸의 회복력이 함께 낮았어요. 신경내장 통합 모델은 전전두엽의 억제 회로가 인지 통제와 미주신경성 심장 조절을 함께 담당한다고 봅니다. 호흡·심박 조절 훈련이 주의 통제에도 도움이 될 수 있는 근거입니다.' },\n+    perseverative: { title: '곱씹는 생각 ↔ 오래가는 몸의 긴장 (지속 인지 가설)', refs: ['brosschot', 'armstrong'],\n       text: () => '부정 정보에 머무는 주의와 큰 신체 반응·느린 회복이 함께 나타났어요. 지속 인지 가설은 걱정·반추가 스트레스성 생리 활성을 연장시킨다고 설명합니다. 반추를 줄이는 개입과 신체 이완을 함께 권합니다.' },\n   };\n   const CARE_PLAN = {\n-    alert: { title: '각성 회복 트랙', goal: '각성 수준을 먼저 회복해 다른 영역을 정확히 다시 평가합니다.',\n+    alert: { title: '피로 회복 트랙', goal: '또렷함을 먼저 되찾아 다른 영역을 정확히 다시 봅니다.',\n       items: [\n         { text: '2주간 기상 시각을 ±30분 안에 고정하고, 잠자리에서 깨어 있는 시간을 줄이기 (CBT-I의 수면 제한·자극 조절 원리)', refs: ['trauer'] },\n         { text: '오후 졸림이 심한 날 10분 이내 짧은 낮잠 (15시 이전)', refs: ['brooks'] },\n         { text: '고집중 작업 전 3분 PVT로 상태 확인 — 경과 반응이 ‘주의’ 이상이면 작업 순서를 조정', refs: ['basnerB'] },\n       ], kpi: 'PVT 경과 반응 3분당 3회 이하 · PERCLOS 8% 이하', remeasure: '각성 모듈 · 2주 후 같은 시간대' },\n-    control: { title: '주의 통제 트랙', goal: '반응 억제와 주의 유지 자원을 키웁니다.',\n+    control: { title: '집중력 트랙', goal: '충동을 멈추는 힘과 집중을 유지하는 힘을 키웁니다.',\n       items: [\n         { text: '마음챙김 주의 훈련 하루 10분 (호흡에 주의를 두고, 벗어나면 알아차려 되돌리기)', refs: ['tang'] },\n         { text: '중강도 유산소 운동 주 3회 30분 — 실행 기능 향상 근거가 가장 일관된 생활 개입', refs: ['hillman'] },\n         { text: '알림을 끄고 25분 단일 과제 블록으로 일하기 (주의 전환 비용 줄이기)', refs: [] },\n       ], kpi: 'SART 억제 실패 40% 이하 · 반응시간 변동성 0.25 이하 · 안티사카드 오류 25% 이하', remeasure: '안구운동 통제 + 지속 주의 모듈 · 4주 후' },\n-    emotion: { title: '주의 전환 트랙', goal: '부정 정보에서 주의를 떼어내는 유연성을 키웁니다.',\n+    emotion: { title: '마음 전환 트랙', goal: '불편한 정보에서 마음을 떼어내는 유연성을 키웁니다.',\n       items: [\n         { text: '주의 전환 연습 하루 2분 — 부정 자극 반대편 표적에 반응하는 주의 편향 수정(ABM) 형식. 효과 크기는 작게 보고되므로 다른 루틴과 병행', refs: ['hakamata', 'cristea'] },\n         { text: '걱정 시간 정하기 — 반추를 하루 정해진 15분으로 모으기', refs: ['borkovec'] },\n         { text: '생각 라벨링: “나는 지금 ~라는 생각을 하고 있다”로 거리 두기', refs: ['tang'] },\n       ], kpi: '부정 자극 응시 58% 이하', remeasure: '정서 주의 · 스트레스 반응 모듈 · 2주 후' },\n-    autonomic: { title: '신체 이완 트랙', goal: '압박 뒤 심박이 빨리 되돌아오는 회복력을 키웁니다.',\n+    autonomic: { title: '몸 이완 트랙', goal: '긴장 뒤 심박이 빨리 편안해지는 회복력을 키웁니다.',\n       items: [\n         { text: '분당 6회 공명 호흡 하루 2회 5분 (들숨 5초 · 날숨 5초)', refs: ['lehrer', 'zaccaro'] },\n         { text: '4주 심박 바이오피드백 — 호흡 중 심박이 출렁이는 폭을 키우는 연습', refs: ['goessl'] },\n@@ -558,9 +559,9 @@\n     if (base.mismatch) mismatches.push({ key: 'tension-' + base.mismatch.kind, title: '느끼는 긴장 ↔ 몸의 반응', text: base.mismatch.text, refs: ['garfinkel'], aligned: base.mismatch.kind === 'aligned' });\n     const kss = checkin && finite(checkin.kss) ? checkin.kss : null;\n     if (kss !== null && st('alert') !== 'na') {\n-      if (kss <= 5 && fl('alert')) mismatches.push({ key: 'sleep-unaware', title: '느끼는 졸림 ↔ 각성 수행', text: `스스로 느끼는 졸림(KSS ${kss}/9)은 크지 않았지만 각성 지표는 저하돼 있었어요. 수면이 부족하면 주관적 졸림은 일찍 적응해 버리지만 수행 저하는 계속 쌓이는 것으로 알려져 있어, 느낌보다 측정을 기준으로 휴식을 계획하는 것이 안전해요.`, refs: ['vanDongen', 'kss'] });\n-      else if (kss >= 7 && !fl('alert')) mismatches.push({ key: 'sleep-subjective', title: '느끼는 졸림 ↔ 각성 수행', text: `졸림을 크게 느꼈지만(KSS ${kss}/9) 각성 수행은 참고 범위 안이었어요. 지루함·의욕 저하 같은 요인이 졸림으로 느껴지고 있을 수 있어요.`, refs: ['kss'] });\n-      else mismatches.push({ key: 'sleep-aligned', title: '느끼는 졸림 ↔ 각성 수행', text: `스스로 느끼는 졸림(KSS ${kss}/9)과 각성 수행이 대체로 일치했어요.`, refs: ['kss'], aligned: true });\n+      if (kss <= 5 && fl('alert')) mismatches.push({ key: 'sleep-unaware', title: '느끼는 졸림 ↔ 실제 또렷함', text: `스스로 느끼는 졸림(KSS ${kss}/9)은 크지 않았지만 각성 지표는 저하돼 있었어요. 수면이 부족하면 주관적 졸림은 일찍 적응해 버리지만 수행 저하는 계속 쌓이는 것으로 알려져 있어, 느낌보다 측정을 기준으로 휴식을 계획하는 것이 안전해요.`, refs: ['vanDongen', 'kss'] });\n+      else if (kss >= 7 && !fl('alert')) mismatches.push({ key: 'sleep-subjective', title: '느끼는 졸림 ↔ 실제 또렷함', text: `졸림을 크게 느꼈지만(KSS ${kss}/9) 각성 수행은 참고 범위 안이었어요. 지루함·의욕 저하 같은 요인이 졸림으로 느껴지고 있을 수 있어요.`, refs: ['kss'] });\n+      else mismatches.push({ key: 'sleep-aligned', title: '느끼는 졸림 ↔ 실제 또렷함', text: `스스로 느끼는 졸림(KSS ${kss}/9)과 각성 수행이 대체로 일치했어요.`, refs: ['kss'], aligned: true });\n     }\n \n     return { code, ...HEAD[code], primary: code === 'insufficient' ? null : primary, secondary: code === 'insufficient' ? null : secondary, measured, flagged, pathways, mismatches };\n@@ -577,9 +578,9 @@\n     const c = checkin || {}, out = [];\n     const short = c.sleep === 'lt5' || c.sleep === '5to6', recentCaf = c.caffeine === 'lt1' || c.caffeine === '1to3';\n     if (CONTEXT.sleep[c.sleep]) {\n-      if (short && fl('alert')) out.push({ key: 'sleep-short-low', title: '어젯밤 수면 ↔ 각성 저하', text: `어젯밤 수면이 ${CONTEXT.sleep[c.sleep]}이었어요. 이번 각성 저하의 상당 부분은 하룻밤 수면 부족의 영향일 수 있어요. 충분히 잔 다음 날 같은 시간대에 다시 재 보면 일시적인 상태인지 지속되는 패턴인지 구분할 수 있어요.`, refs: ['vanDongen', 'limDinges'] });\n-      else if (short) out.push({ key: 'sleep-short-ok', title: '어젯밤 수면 ↔ 각성 유지', text: `수면이 ${CONTEXT.sleep[c.sleep]}으로 짧았지만 각성 수행은 유지됐어요. 다만 수면 부족은 며칠 쌓이면 수행이 계단식으로 떨어지는 것으로 알려져 있어 오늘은 무리하지 않는 편이 좋아요.`, refs: ['vanDongen'] });\n-      else if (fl('alert')) out.push({ key: 'sleep-ok-low', title: '어젯밤 수면 ↔ 각성 저하', text: `수면 시간(${CONTEXT.sleep[c.sleep]})은 부족하지 않았는데 각성이 낮게 나왔어요. 수면의 질, 측정 시각, 피로 누적을 함께 살펴볼 필요가 있어요.`, refs: ['limDinges'] });\n+      if (short && fl('alert')) out.push({ key: 'sleep-short-low', title: '어젯밤 수면 ↔ 또렷함 저하', text: `어젯밤 수면이 ${CONTEXT.sleep[c.sleep]}이었어요. 이번 각성 저하의 상당 부분은 하룻밤 수면 부족의 영향일 수 있어요. 충분히 잔 다음 날 같은 시간대에 다시 재 보면 일시적인 상태인지 지속되는 패턴인지 구분할 수 있어요.`, refs: ['vanDongen', 'limDinges'] });\n+      else if (short) out.push({ key: 'sleep-short-ok', title: '어젯밤 수면 ↔ 또렷함 유지', text: `수면이 ${CONTEXT.sleep[c.sleep]}으로 짧았지만 각성 수행은 유지됐어요. 다만 수면 부족은 며칠 쌓이면 수행이 계단식으로 떨어지는 것으로 알려져 있어 오늘은 무리하지 않는 편이 좋아요.`, refs: ['vanDongen'] });\n+      else if (fl('alert')) out.push({ key: 'sleep-ok-low', title: '어젯밤 수면 ↔ 또렷함 저하', text: `수면 시간(${CONTEXT.sleep[c.sleep]})은 부족하지 않았는데 각성이 낮게 나왔어요. 수면의 질, 측정 시각, 피로 누적을 함께 살펴볼 필요가 있어요.`, refs: ['limDinges'] });\n     }\n     if (CONTEXT.caffeine[c.caffeine] && recentCaf) {\n       out.push({ key: fl('alert') ? 'caffeine-low' : 'caffeine-ok', title: '최근 카페인', text: fl('alert')\n@@ -628,8 +629,8 @@\n    * 비대면으로 묻지 않도록 제외한 PHQ-8 을 쓴다 (Kroenke et al., 2009). 2단계 실시: Levis et al., 2020.\n    * 점수는 영역 점수에 섞지 않고, 측정 영역과의 대조와 케어 우선순위(상담 안내)에만 쓴다. */\n   const PHQ = {\n-    stem: '지난 2 주일 동안 당신은 다음의 문제들로 인해서 얼마나 자주 방해를 받았습니까?',\n-    options: ['전혀 방해 받지 않았다', '며칠 동안 방해 받았다', '7 일 이상 방해 받았다', '거의 매일 방해 받았다'],\n+    stem: '지난 2주 동안, 아래 나열되는 증상들에 얼마나 자주 시달렸습니까?',\n+    options: ['전혀 아니다', '여러 날 동안', '일주일 이상', '거의 매일'],\n     items: [\n       '일 또는 여가 활동을 하는 데 흥미나 즐거움을 느끼지 못함',\n       '기분이 가라앉거나, 우울하거나, 희망이 없음',\n@@ -643,7 +644,7 @@\n     screenCut: 3,                        // PHQ-2 ≥ 3 → 나머지 6문항 (Kroenke et al., 2003)\n     bands: [[4, '낮음'], [9, '가벼움'], [14, '중간'], [19, '높음'], [24, '매우 높음']],   // PHQ-8 0–24 구간 (Kroenke et al., 2009)\n     consultCut: 10,                      // PHQ-8 ≥ 10 → 전문가 상담 안내 (Kroenke et al., 2009; 한국판 절단점 10, 박승진 외, 2010)\n-    copyright: '환자 건강 질문지 한국어판 © 2005 Pfizer Inc. · 허가 없이 사용 가능 (phqscreeners.com) · 9번 문항 제외(PHQ-8)',\n+    copyright: '환자 건강 질문지(PHQ) © Pfizer Inc. · 허가 없이 사용 가능 (phqscreeners.com) · 한국어판 문항을 바탕으로 질문·선택지 표현을 자연스럽게 다듬음 (점수 0~3 동일) · 9번 문항 제외(PHQ-8)',\n   };\n   /* 문항 ↔ 측정 영역 연결 (자기보고와 객관 측정의 대조) */\n   const PHQ_LINKS = [\n@@ -673,7 +674,7 @@\n     return PHQ_LINKS.map(L => {\n       const vals = L.items.map(i => phq.items[i]);\n       if (!vals.every(finite)) return null;\n-      const self = Math.max(...vals) >= 2;                 // '7 일 이상 방해 받았다' 이상\n+      const self = Math.max(...vals) >= 2;                 // '일주일 이상' 이상\n       const d = domains[L.domain], measured = !!d && d.status !== 'na', low = measured && SEV[d.status] >= 1;\n       const kind = !measured ? 'na' : self && low ? 'both' : self ? 'self' : low ? 'measure' : 'none';\n       return { ...L, score: vals.reduce((x, y) => x + y, 0), max: vals.length * 3, self, kind, text: LINK_TEXT[kind], status: measured ? d.status : 'na' };\n@@ -800,7 +801,9 @@\n       if (base.hrRef === 'pre') domains.autonomic.notes.push('안정 기준선의 심박 신호가 약해, 압박 과제 직전 안정 구간을 비교 기준으로 썼어요');\n       if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);\n       else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);\n-      if (base.recovery === null && base.recoveryResid !== null) domains.autonomic.notes.push(`압박 반응이 ${base.stressDelta === null ? '측정되지 않아' : `${base.stressDelta}bpm으로 작아`} 회복률 대신 ‘회복 후 잔여 심박’으로 회복을 판정했어요`);\n+      if (base.recovery !== null && base.hr.stressPeak !== null && refHr && refHr.bpm !== null && base.hr.stressPeak - refHr.bpm < 3) domains.autonomic.notes.push('압박 때 심박이 크게 오르지 않아, 회복률은 ‘호흡 후 심박이 평소 수준으로 돌아왔는지’로 계산했어요');\n+      if (base.recoverySrc === 'whole') domains.autonomic.notes.push('호흡 구간 후반 신호가 약해 호흡 구간 전체 심박으로 회복률을 계산했어요');\n+      if (base.recovery === null) domains.autonomic.notes.push(`심박 회복률을 계산하지 못했어요 — ${!refHr || refHr.quality === 'poor' || refHr.quality === 'none' ? '기준 심박' : base.hr.stressPeak === null ? '압박 구간 심박' : '호흡 구간 심박'} 신호가 약했어요. 밝은 조명에서 움직임을 줄이면 잡혀요`);\n     }\n \n     const integrated = integrate(domains, indicators, base, rec.checkin);\nFILE newbiz-battery.test.js\n@@ -262,7 +262,7 @@ for (const [p, e] of Object.entries(expect)) {\n   assert.equal(t.tentative, true);\n }\n \n-/* 15) 자율신경: 압박 반응이 작으면 회복률 대신 잔여 심박으로 판정, 기준선이 약하면 과제 직전 구간을 기준으로 */\n+/* 15) 자율신경: 압박 반응이 작아도 회복률이 계산되고, 회복 후반이 약하면 전체 구간으로, 기준선이 약하면 과제 직전 구간을 기준으로 */\n {\n   const rec = B.simulate('balanced'); \n   const r = B.run(rec);\n@@ -273,9 +273,15 @@ for (const [p, e] of Object.entries(expect)) {\n   B.PERSONAS.balanced.hr.stress = 1;\n   const small = B.run(B.simulate('balanced'));\n   B.PERSONAS.balanced.hr.stress = P0;\n-  assert.equal(small.recovery, null);\n+  assert.ok(small.recovery !== null && small.recovery >= 50, `small reaction recovery ${small.recovery}`);   // 반응이 작아도 회복률이 계산된다\n   assert.ok(small.recoveryResid !== null && small.battery.domains.autonomic.status !== 'na');\n-  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('잔여 심박')));\n+  assert.ok(small.battery.domains.autonomic.notes.some(n => n.includes('평소 수준으로 돌아왔는지')));\n+  /* 회복 후반 신호가 망가져도 회복 구간 전체로 대신 계산 */\n+  const rec3 = B.simulate('control'), rp = rec3.phases.recovery, mid = (rp.start + rp.end) / 2;\n+  let sd3 = 9; const rnd3 = () => { sd3 = (sd3 * 16807) % 2147483647; return sd3 / 2147483647 - 0.5; };\n+  rec3.frames = rec3.frames.map(f => (f.t >= mid && f.t <= rp.end ? { ...f, r: 175 + 30 * rnd3(), g: 118 + 30 * rnd3(), b: 98 + 30 * rnd3(), rr: [0, 1, 2].map(() => [175 + 30 * rnd3(), 118 + 30 * rnd3(), 98 + 30 * rnd3()]) } : f));\n+  const r3 = B.run(rec3);\n+  assert.ok(r3.recovery !== null, `whole-window fallback ${r3.recoverySrc}`);\n   /* 기준선 구간 신호를 잡음으로 망가뜨리면 과제 직전 구간이 기준이 된다 */\n   const rec2 = B.simulate('overload'), bl = rec2.phases.baseline;\n   let sd = 5; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647 - 0.5; };\n@@ -359,4 +365,16 @@ for (const [p, e] of Object.entries(expect)) {\n   assert.equal(RS.browserFamily('Mozilla/5.0 (Windows NT 10.0) AppleWebKit Chrome/141.0 Safari/537.36').browser, 'chrome');\n }\n \n+/* 21) 간편 보고서: 네 영역 카드 · 날씨 · 오늘 할 일, 잘못된 값 없음, 전문 용어 대신 쉬운 이름 */\n+for (const p of Object.keys(B.PERSONAS)) {\n+  const r = B.run(B.simulate(p, { seed: 7 }));\n+  const h = R.renderSimple(r, { ai: '테스트 한마디' });\n+  assert.ok(!/undefined|NaN|\\[object/.test(h), `${p}: simple 잘못된 값`);\n+  assert.equal((h.match(/class=\"sp-dom /g) || []).length, 4);\n+  assert.ok(h.includes('오늘의 마음 날씨') && h.includes('오늘부터 해볼 3가지') && h.includes('id=\"spBio\"'));\n+  ['또렷함', '집중 조절', '마음의 시선', '몸의 회복력'].forEach(n => assert.ok(h.includes(n), `${p}: ${n}`));\n+  assert.ok(!/PERCLOS|사카드|SART|rPPG/.test(h), `${p}: 전문 용어 노출`);\n+}\n+assert.equal(R.weatherOf(90).key, 'sun'); assert.equal(R.weatherOf(70).key, 'partly'); assert.equal(R.weatherOf(50).key, 'cloud'); assert.equal(R.weatherOf(30).key, 'rain');\n+\n console.log('newbiz-battery tests passed');\nFILE newbiz-core.js\n@@ -615,12 +615,20 @@\n       : usableHr(hr.pre) ? { ...hr.pre, src: 'pre' } : null;\n     const stressDelta = ref && usableHr(hr.stress) ? round(hr.stress.bpm - ref.bpm, 1) : null;\n     const negDelta = usableHr(hr.neu) && usableHr(hr.neg) ? round(hr.neg.bpm - hr.neu.bpm, 1) : null;\n-    /* 회복률은 압박 반응이 3bpm 이상일 때만 의미가 있다 (작은 분모는 비율을 크게 흔든다).\n-     * 반응이 작을 때는 대신 ‘회복 후 잔여 심박’(회복 후반 − 기준)으로 회복을 판정한다 */\n-    let recovery = null, recoveryResid = null;\n-    if (ref && usableHr(hr.recoveryLate)) {\n-      recoveryResid = round(hr.recoveryLate.bpm - ref.bpm, 1);\n-      if (stressDelta !== null && stressDelta >= 3) recovery = round(clamp((hr.stress.bpm - hr.recoveryLate.bpm) / stressDelta, -1, 2) * 100, 0);\n+    /* 심박 회복률 (항상 계산되도록 재정의):\n+     *   회복률 = 1 − (회복 후반 − 기준)⁺ / max(압박 정점 − 기준, 3bpm)\n+     *   - 압박 정점 = 압박 구간 심박 창들의 상위 25% 값(중앙값보다 반응을 잘 잡는다)\n+     *   - 분모 하한 3bpm: 반응이 작아도 비율이 폭주하지 않고, ‘다 돌아왔으면 100%’라는 직관을 지킨다\n+     *   - 회복 후반 신호가 약하면 회복 구간 전체 심박으로 대신한다 (recoverySrc 에 기록)\n+     * 반응이 큰 경우에는 고전적 정의(정점 대비 되돌아온 비율)와 같다 */\n+    let recovery = null, recoveryResid = null, recoverySrc = null;\n+    const lateHr = usableHr(hr.recoveryLate) ? (recoverySrc = 'late', hr.recoveryLate) : usableHr(hr.recovery) ? (recoverySrc = 'whole', hr.recovery) : null;\n+    const stressWins = wins.filter(w => w.t >= (se - ss > 20000 ? ss + 8000 : ss) && w.t <= se && w.snr >= SNR_FAIR);\n+    const peak = stressWins.length >= 2 ? quantile(stressWins.map(w => w.bpm), 0.75) : usableHr(hr.stress) ? hr.stress.bpm : null;\n+    hr.stressPeak = finite(peak) ? round(peak, 1) : null;\n+    if (ref && lateHr) {\n+      recoveryResid = round(lateHr.bpm - ref.bpm, 1);\n+      if (finite(peak)) recovery = round(clamp(1 - Math.max(0, lateHr.bpm - ref.bpm) / Math.max(peak - ref.bpm, 3), -1, 1) * 100, 0);\n     }\n     const recIbis = sig && usableHr(hr.recovery) ? ibis(beats(sig, rs, re, hr.recovery.bpm)) : [];\n     const coupling = breathingCoupling(recIbis);\n@@ -662,7 +670,7 @@\n     return {\n       version: VERSION, demo: !!rec.demo, measuredAt: rec.measuredAt || null, checkin: rec.checkin || null,\n       quality: { faceCoverage: coverage, gaze: rec.calibration || null, hr: hr.baseline.quality, gazeOk, bodyOk },\n-      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),\n+      hr, hrRef: ref ? ref.src : null, stressDelta, negDelta, recovery, recoveryResid, recoverySrc, coupling, resp, lightJumps: jumps.length, hrv: round(hrv, 0),\n       gaze: { blocks, sideBias, attentionBias, positivity, dwellNeg: blocks.neg.dwellMs, firstNeg: blocks.neg.firstEmoRate },\n       blink, motion, expr, exprNeg,\n       profile: { code, ...PROFILES[code], biasHigh, bodyHigh },\nFILE newbiz-report.js\n@@ -386,7 +386,7 @@\n       body += `<p class=\"disc\">MIST 압박 과제 정답 ${r.stressScore ? `${r.stressScore.correct}/${r.stressScore.total}` : '—'}${r.stressScore && r.stressScore.minLimit ? ` · 최단 제한 시간 ${(r.stressScore.minLimit / 1000).toFixed(1)}초` : ''}${C.cite(['dedovic'])} · 안정 시 심박 신호 ${{ good: '양호', fair: '보통', poor: '약함', none: '없음' }[r.hr.baseline.quality]}${C.cite(['pos'])}</p>`;\n     }\n     return `<section class=\"card dom\" id=\"dom-${k}\" style=\"--dc:${DCOLOR[k]}\">\n-      <div class=\"dom-h\"><div><div class=\"kicker\" style=\"color:${DCOLOR[k]}\"><span class=\"dic sm\" style=\"color:${DCOLOR[k]};background:${DCOLOR[k]}1A\">${icon(k)}</span> Domain ${idx} · ${esc(d.en)}</div><h2>${esc(d.name)} <span class=\"net\">${esc(d.network)}</span></h2>\n+      <div class=\"dom-h\"><div><div class=\"kicker\" style=\"color:${DCOLOR[k]}\"><span class=\"dic sm\" style=",
+          "patchTruncated": true,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "39181184513"
+      }
     },
     {
       "sha": "741275af1a57773b7b56e7aecf8a3b916f262ee7",
@@ -17151,49 +17420,216 @@
         {
           "id": "evo-741275af1a57-pulse",
           "domain": "pulse",
-          "title": "맥파·신호 융합 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-741275af1a57-pulse\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 741275af1a57773b7b56e7aecf8a3b916f262ee7\n변경 제목: newbiz: NL-QC 1.2 (capture timestamps, hidden-tab/lighting/fps/breathing checks), context, explainability, assisted gaze cursor, research data pipeline\n관련 파일: .vercelignore, NEWBIZ_CALIBRATION.md, NEWBIZ_RESEARCH_DATA.md, api/rppg.py, api/rppg_test.py, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-core.test.js, newbiz-report.js, newbiz-research.js, newbiz.html, supabase/migrations/20261003_newbiz_research.sql, tools/newbiz_research_export.py\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 저조도·움직임·짧은 유효 구간에서 활용 시간과 기준 심박 MAE/RMSE를 함께 비교한다. 중복 분석 창을 독립 표본으로 세지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-741275af1a57-pulse\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "카메라 기반 호흡 수 추정 알고리즘 및 공명 호흡 동조 지표 제외 기준 검증",
+          "rationale": "`newbiz-core.js`에 미세 움직임(`cy`)과 밝기 변동(`g/r+g+b`) 스펙트럼 피크를 비교하는 `respiration` 함수가 추가되고, `newbiz-battery.js`에서 호흡주기(0.1Hz) 대비 0.03Hz 초과 이탈 시 `breathOff`로 판정하여 `coupling` 지표를 제외하는 로직이 관측되었습니다. 이는 참가자의 조절력 부족과 지침 미준수를 구분하려는 연구 가설에 기반하나, 저화질/웹캠 노이즈 환경에서 호흡 신호 회복률과 동조 지표 잘못 제외/채택 위험은 검증되지 않은 상태입니다.",
+          "validationPlan": "다양한 웹캠 조도 및 저프레임 환경의 dataset 생체 신호 기록을 연결하여 `respiration` 피크 집중도 역치(0.4) 조건별 호흡수 추정 성공률을 측정합니다. 실측 호흡 정답 데이터셋과 대조하여 `breathOff` 제외 처리 전후의 자율신경계 영역 점수 오차와 유효 측정 활용률(분모 대비 채택 비율)을 비교 평가합니다.",
+          "prompt": "현재 `newbiz-core.js`의 `respiration` 함수 및 `newbiz-battery.js`의 `breathOff` 및 `coupling` 제외 로직을 확인하십시오.\n\n[과제 명세]\n1. `respiration` 스펙트럼 피크 집중도 역치(0.4) 및 대역폭(0.05~0.6Hz) 조건에서 노이즈가 포함된 약한 신호의 추정 오차(BPM 차이)와 유효 신호 활용률을 동시 평가하는 테스트 코드를 작성하십시오.\n2. 호흡 지침 불일치(`breathOff`) 판정 시 불필요하게 지표가 전량 폐기되지 않도록, 부분 유효 신호 활용 가능 여부 및 `coupling` 지표의 오차 경계를 측정하십시오.\n\n[성공 및 회귀 기준]\n- 노이즈 조건에서도 호흡수 추정 오차가 허용 한계 내에 있으며, 신호 미검출 시 정상값으로 위장하지 않고 `null` 또는 `excluded` 처리되어야 함.\n- 기존 합성 단위 테스트(`newbiz-battery.test.js` 17번 케이스)가 깨지지 않고 통과해야 함.\n\n[결과 보고 양식]\n- 코드 확인 결과 (기존 로직 분석)\n- 노이즈 조건별 호흡수 추정 활용률 및 평균 오차(BPM)\n- `breathOff` 적용 전후 지표 채택률 및 오차 변화\n- 연결된 dataset 기록 ID 및 실측 비교 결과 요약\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 741275af1a57773b7b56e7aecf8a3b916f262ee7\nDataset-Task: evo-741275af1a57-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-741275af1a57-gaze",
           "domain": "gaze",
-          "title": "시선·카메라 획득 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-741275af1a57-gaze\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 741275af1a57773b7b56e7aecf8a3b916f262ee7\n변경 제목: newbiz: NL-QC 1.2 (capture timestamps, hidden-tab/lighting/fps/breathing checks), context, explainability, assisted gaze cursor, research data pipeline\n관련 파일: .vercelignore, NEWBIZ_CALIBRATION.md, NEWBIZ_RESEARCH_DATA.md, api/rppg.py, api/rppg_test.py, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-core.test.js, newbiz-report.js, newbiz-research.js, newbiz.html, supabase/migrations/20261003_newbiz_research.sql, tools/newbiz_research_export.py\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 안경 반사·모자·단안 가림·프레임 지연에서 유효 시선 표본 비율과 독립 표적 오차를 비교한다. 보정 학습 표적을 독립 평가 정답으로 쓰지 않는다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-741275af1a57-gaze\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "FPS 기반 신뢰도 감쇄 가중치 및 화면 이탈 구간 시행 제외 알고리즘 검증",
+          "rationale": "`newbiz-battery.js`에서 구간별 FPS를 측정하여 10~24fps 구간에서 신뢰도를 0.3~1.0으로 선형 감쇄하는 `fpsF` 함수와, 탭 전환/화면 가림(`hidden`) 시간대와 겹친 시행을 무효화하는 로직이 추가되었습니다. low-FPS 환경에서 약한 시선 신호를 무조건 폐기하지 않고 오차 범위를 넓혀 활용하는 가설이 도입되었으나, 실제 오프스크린 시선 이동이나 저프레임 드롭 시의 시선 추적 오차 증가폭이 충분히 반영되었는지는 실측 데이터 검증이 필요합니다.",
+          "validationPlan": "10fps~60fps 가변 프레임 레이트 및 화면 이탈 이벤트가 포함된 시선 추적 dataset을 연결합니다. `fpsF` 감쇄 적용 전후의 anti-saccade 및 pursuit 지표 오차 범위와 유효 데이터 활용률을 산출하여 약한 신호의 보정 적절성을 평가합니다.",
+          "prompt": "현재 `newbiz-battery.js` 내 `fpsOf`, `fpsF`, `hidden` 이탈 구간 처리 로직을 확인하십시오.\n\n[과제 명세]\n1. 10~24fps 사이의 저프레임 환경에서 시선 반응(anti-saccade, pursuit) 지표의 `rOf` 신뢰도 감쇄 가중치가 적절한 오차 한계를 반영하는지 검증하는 회귀 테스트를 구현하십시오.\n2. 화면 가림(`hidden`) 이벤트 처리 시 부분적으로 유효한 시행의 타임스탬프 오차와 dropped 개수 산정이 정확한지, 약한 신호의 활용량과 측정 오차를 함께 평가하십시오.\n\n[성공 및 회귀 기준]\n- 저프레임(10fps) 조건에서도 오차가 정밀하게 가중 반영되어 과장된 판정을 방지함.\n- `newbiz-battery.test.js` 내 hidden 케이스(16번) 회귀 테스트 통과.\n\n[결과 보고 양식]\n- FPS 구간별(10, 15, 24, 30, 60fps) 신뢰도 감쇄치 및 시선 오차 평가표\n- 가림 구간 제외 전후 시행 채택률(활용률) 및 오차 변동 분석\n- 연결한 dataset 시선 기록 매핑 결과\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 741275af1a57773b7b56e7aecf8a3b916f262ee7\nDataset-Task: evo-741275af1a57-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-741275af1a57-measurement",
           "domain": "measurement",
-          "title": "검사·해석 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-741275af1a57-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 741275af1a57773b7b56e7aecf8a3b916f262ee7\n변경 제목: newbiz: NL-QC 1.2 (capture timestamps, hidden-tab/lighting/fps/breathing checks), context, explainability, assisted gaze cursor, research data pipeline\n관련 파일: .vercelignore, NEWBIZ_CALIBRATION.md, NEWBIZ_RESEARCH_DATA.md, api/rppg.py, api/rppg_test.py, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-core.test.js, newbiz-report.js, newbiz-research.js, newbiz.html, supabase/migrations/20261003_newbiz_research.sql, tools/newbiz_research_export.py\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-741275af1a57-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "NL-QC 1.2 측정 맥락 보정 및 영역 점수 설명 가능성 분해 회귀 검증",
+          "rationale": "`newbiz-battery.js`에 수면·카페인·측정시각 조건을 해석하는 `contextNotes`와 영역별 지표 기여도/다음 단계 목표를 계산하는 `explainDomain`, `nextBand` 함수가 추가되었습니다. 점수를 직접 조작하지 않고 맥락을 제시한다는 설계 원칙이 실제 경계선(borderline) 및 약한 신호 다수 포함 세션에서 정확하게 작동하는지 검증이 요구됩니다.",
+          "validationPlan": "수면 부족, 카페인 섭취, 생체리듬 저하 시각 조건이 결합된 다양한 참가자 dataset 기록을 연결합니다. `explainDomain`에서 지표 기여도 점수의 합이 영역 점수와 일치하는지, 경계선 지표의 다음 단계 목표(`nextBand`) 계산 오차가 없는지 회귀 검증을 수행합니다.",
+          "prompt": "현재 `newbiz-battery.js`의 `contextNotes`, `explainDomain`, `nextBand` 함수 구현부를 확인하십시오.\n\n[과제 명세]\n1. 지표 점수 기여도 분해(`explainDomain`) 및 다음 단계 목표(`nextBand`) 산출 시, 불확실하거나 제외된 지표(`excluded: true`)가 존재할 때 영역 총점과의 수학적 일관성(기여 비중 합 100% 및 점수 일치)을 평가하는 코드를 작성하십시오.\n2. 수면/카페인/측정시각 맥락 노트(`contextNotes`)가 측정 오차나 약한 신호 세션에서 잘못된 해석을 유발하지 않는지 경계 조건 세션 dataset을 연결해 검증하십시오.\n\n[성공 및 회귀 기준]\n- 모든 페르소나 및 입력 세션에서 `explainDomain` 기여 점수 합과 영역 점수 오차가 ±1.2점 이내 유지.\n- `newbiz-battery.test.js` 테스트 18, 19번 성공적 통과.\n\n[결과 보고 양식]\n- 설명 가능성 분해 로직의 산출 점수 일치 여부 검증 결과\n- 맥락 노트 트리거 조건별 산출 정확도 평가\n- 연동된 dataset 경계 세션 검증 결과 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 741275af1a57773b7b56e7aecf8a3b916f262ee7\nDataset-Task: evo-741275af1a57-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         },
         {
           "id": "evo-741275af1a57-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-741275af1a57-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 741275af1a57773b7b56e7aecf8a3b916f262ee7\n변경 제목: newbiz: NL-QC 1.2 (capture timestamps, hidden-tab/lighting/fps/breathing checks), context, explainability, assisted gaze cursor, research data pipeline\n관련 파일: .vercelignore, NEWBIZ_CALIBRATION.md, NEWBIZ_RESEARCH_DATA.md, api/rppg.py, api/rppg_test.py, newbiz-battery.js, newbiz-battery.test.js, newbiz-core.js, newbiz-core.test.js, newbiz-report.js, newbiz-research.js, newbiz.html, supabase/migrations/20261003_newbiz_research.sql, tools/newbiz_research_export.py\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-741275af1a57-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "연구 데이터 파이프라인(newbiz-research.js) 시계열 양자화 복원 정밀도 및 민감정보 분리 검증",
+          "rationale": "신규 파일 `newbiz-research.js` 및 데이터베이스 마이그레이션 `20261003_newbiz_research.sql`을 통해 연구 데이터 익명화, 시계열 정수 양자화 패킹(`pack`), PHQ 민감정보 동의 기반 분리 기능이 구현되었습니다. 정수 양자화 후 실수 복원 과정에서 발생하는 정보 손실량과 오차 수준이 생체 신호 연구 분석에 영향을 주지 않는지 검증이 필요합니다.",
+          "validationPlan": "원래의 실수 시계열 프레임 데이터와 `RS.pack`으로 양자화 후 복원된 시계열 간의 RMS 오차 및 상관관계를 측정합니다. PHQ 동의 옵션(true/false)에 따른 데이터 구조의 격리성과 Supabase 마이그레이션 스키마의 쿼리 정상 작동을 회귀 평가합니다.",
+          "prompt": "현재 `newbiz-research.js` 파일과 `supabase/migrations/20261003_newbiz_research.sql` 스키마를 확인하십시오.\n\n[과제 명세]\n1. `RS.pack`에서 프레임 시계열(`r, g, b, cx, cy` 등)을 정수 양자화 후 `FRAME_COLS` 배율로 복원할 때 발생하는 복원 오차 및 정보 손실 수준을 정량 평가하는 회귀 테스트를 작성하십시오.\n2. PHQ 설문 데이터 포함 여부(`phq: true/false`) 설정에 따라 연구 패키지 수집 데이터에서 민감 정보가 완벽히 분리 처리되는지 확인하십시오.\n\n[성공 및 회귀 기준]\n- 시계열 복원 오차가 허용 기준(원본 대비 R^2 > 0.999) 내에 도달할 것.\n- `newbiz-battery.test.js` 20번 연구 데이터 패키지 테스트 통과.\n\n[결과 보고 양식]\n- 양자화 전후 시계열 데이터 복원 오차(RMSE, R^2) 측정 결과\n- PHQ 옵션별 데이터 패키지 스키마 유효성 검증 보고\n- 연구 데이터 파이프라인 연동 테스트 결과\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 741275af1a57773b7b56e7aecf8a3b916f262ee7\nDataset-Task: evo-741275af1a57-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [],
-      "lastAttemptAt": "2026-10-04T10:19:09.421369+00:00",
-      "analysisError": "HTTP_403"
+      "lastAttemptAt": "2026-10-19T00:33:39.776122+00:00",
+      "analysis": {
+        "summary": "공개 커밋(sha: 741275af1a57773b7b56e7aecf8a3b916f262ee7)을 통해 `api/rppg.py`, `newbiz-battery.js`, `newbiz-core.js`, `newbiz-research.js`, `supabase/migrations/20261003_newbiz_research.sql` 등 총 14개 파일의 변경 및 신규 추가가 확인되었습니다. 본 패치는 NL-QC 1.2 적용으로 호흡수 추정(`respiration`), 프레임 레이트 감쇄(`fpsF`), 탭 전환/가림(`hidden`) 시행 제외, 측정 맥락 해석(`contextNotes`), 영역 점수 분해(`explainDomain`) 및 연구 데이터 파이프라인을 도입했습니다. 제공된 diff 예시는 `newbiz-core.js` 도중 생략(`patchTruncated: true`)되었습니다. 커밋 메시지의 명시나 단위 테스트 통과 사실은 시뮬레이션/합성 테스트 기준이며, 실제 참가자 및 기준 센서(ECG/PPG/기준 Eye Tracker) 대조를 통한 임상적/학술적 정확도가 검증된 것은 아닙니다. 신호 품질 감쇄 및 미세 신호 활용 규칙이 오차와 데이터 활용률에 미치는 영향에 대해 후속 실측·회귀 검증이 요구됩니다.",
+        "tasks": [
+          {
+            "id": "evo-741275af1a57-pulse",
+            "domain": "pulse",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "카메라 기반 호흡 수 추정 알고리즘 및 공명 호흡 동조 지표 제외 기준 검증",
+            "rationale": "`newbiz-core.js`에 미세 움직임(`cy`)과 밝기 변동(`g/r+g+b`) 스펙트럼 피크를 비교하는 `respiration` 함수가 추가되고, `newbiz-battery.js`에서 호흡주기(0.1Hz) 대비 0.03Hz 초과 이탈 시 `breathOff`로 판정하여 `coupling` 지표를 제외하는 로직이 관측되었습니다. 이는 참가자의 조절력 부족과 지침 미준수를 구분하려는 연구 가설에 기반하나, 저화질/웹캠 노이즈 환경에서 호흡 신호 회복률과 동조 지표 잘못 제외/채택 위험은 검증되지 않은 상태입니다.",
+            "validationPlan": "다양한 웹캠 조도 및 저프레임 환경의 dataset 생체 신호 기록을 연결하여 `respiration` 피크 집중도 역치(0.4) 조건별 호흡수 추정 성공률을 측정합니다. 실측 호흡 정답 데이터셋과 대조하여 `breathOff` 제외 처리 전후의 자율신경계 영역 점수 오차와 유효 측정 활용률(분모 대비 채택 비율)을 비교 평가합니다.",
+            "prompt": "현재 `newbiz-core.js`의 `respiration` 함수 및 `newbiz-battery.js`의 `breathOff` 및 `coupling` 제외 로직을 확인하십시오.\n\n[과제 명세]\n1. `respiration` 스펙트럼 피크 집중도 역치(0.4) 및 대역폭(0.05~0.6Hz) 조건에서 노이즈가 포함된 약한 신호의 추정 오차(BPM 차이)와 유효 신호 활용률을 동시 평가하는 테스트 코드를 작성하십시오.\n2. 호흡 지침 불일치(`breathOff`) 판정 시 불필요하게 지표가 전량 폐기되지 않도록, 부분 유효 신호 활용 가능 여부 및 `coupling` 지표의 오차 경계를 측정하십시오.\n\n[성공 및 회귀 기준]\n- 노이즈 조건에서도 호흡수 추정 오차가 허용 한계 내에 있으며, 신호 미검출 시 정상값으로 위장하지 않고 `null` 또는 `excluded` 처리되어야 함.\n- 기존 합성 단위 테스트(`newbiz-battery.test.js` 17번 케이스)가 깨지지 않고 통과해야 함.\n\n[결과 보고 양식]\n- 코드 확인 결과 (기존 로직 분석)\n- 노이즈 조건별 호흡수 추정 활용률 및 평균 오차(BPM)\n- `breathOff` 적용 전후 지표 채택률 및 오차 변화\n- 연결된 dataset 기록 ID 및 실측 비교 결과 요약\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 741275af1a57773b7b56e7aecf8a3b916f262ee7\nDataset-Task: evo-741275af1a57-pulse\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-741275af1a57-gaze",
+            "domain": "gaze",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "FPS 기반 신뢰도 감쇄 가중치 및 화면 이탈 구간 시행 제외 알고리즘 검증",
+            "rationale": "`newbiz-battery.js`에서 구간별 FPS를 측정하여 10~24fps 구간에서 신뢰도를 0.3~1.0으로 선형 감쇄하는 `fpsF` 함수와, 탭 전환/화면 가림(`hidden`) 시간대와 겹친 시행을 무효화하는 로직이 추가되었습니다. low-FPS 환경에서 약한 시선 신호를 무조건 폐기하지 않고 오차 범위를 넓혀 활용하는 가설이 도입되었으나, 실제 오프스크린 시선 이동이나 저프레임 드롭 시의 시선 추적 오차 증가폭이 충분히 반영되었는지는 실측 데이터 검증이 필요합니다.",
+            "validationPlan": "10fps~60fps 가변 프레임 레이트 및 화면 이탈 이벤트가 포함된 시선 추적 dataset을 연결합니다. `fpsF` 감쇄 적용 전후의 anti-saccade 및 pursuit 지표 오차 범위와 유효 데이터 활용률을 산출하여 약한 신호의 보정 적절성을 평가합니다.",
+            "prompt": "현재 `newbiz-battery.js` 내 `fpsOf`, `fpsF`, `hidden` 이탈 구간 처리 로직을 확인하십시오.\n\n[과제 명세]\n1. 10~24fps 사이의 저프레임 환경에서 시선 반응(anti-saccade, pursuit) 지표의 `rOf` 신뢰도 감쇄 가중치가 적절한 오차 한계를 반영하는지 검증하는 회귀 테스트를 구현하십시오.\n2. 화면 가림(`hidden`) 이벤트 처리 시 부분적으로 유효한 시행의 타임스탬프 오차와 dropped 개수 산정이 정확한지, 약한 신호의 활용량과 측정 오차를 함께 평가하십시오.\n\n[성공 및 회귀 기준]\n- 저프레임(10fps) 조건에서도 오차가 정밀하게 가중 반영되어 과장된 판정을 방지함.\n- `newbiz-battery.test.js` 내 hidden 케이스(16번) 회귀 테스트 통과.\n\n[결과 보고 양식]\n- FPS 구간별(10, 15, 24, 30, 60fps) 신뢰도 감쇄치 및 시선 오차 평가표\n- 가림 구간 제외 전후 시행 채택률(활용률) 및 오차 변동 분석\n- 연결한 dataset 시선 기록 매핑 결과\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 741275af1a57773b7b56e7aecf8a3b916f262ee7\nDataset-Task: evo-741275af1a57-gaze\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-741275af1a57-measurement",
+            "domain": "measurement",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "NL-QC 1.2 측정 맥락 보정 및 영역 점수 설명 가능성 분해 회귀 검증",
+            "rationale": "`newbiz-battery.js`에 수면·카페인·측정시각 조건을 해석하는 `contextNotes`와 영역별 지표 기여도/다음 단계 목표를 계산하는 `explainDomain`, `nextBand` 함수가 추가되었습니다. 점수를 직접 조작하지 않고 맥락을 제시한다는 설계 원칙이 실제 경계선(borderline) 및 약한 신호 다수 포함 세션에서 정확하게 작동하는지 검증이 요구됩니다.",
+            "validationPlan": "수면 부족, 카페인 섭취, 생체리듬 저하 시각 조건이 결합된 다양한 참가자 dataset 기록을 연결합니다. `explainDomain`에서 지표 기여도 점수의 합이 영역 점수와 일치하는지, 경계선 지표의 다음 단계 목표(`nextBand`) 계산 오차가 없는지 회귀 검증을 수행합니다.",
+            "prompt": "현재 `newbiz-battery.js`의 `contextNotes`, `explainDomain`, `nextBand` 함수 구현부를 확인하십시오.\n\n[과제 명세]\n1. 지표 점수 기여도 분해(`explainDomain`) 및 다음 단계 목표(`nextBand`) 산출 시, 불확실하거나 제외된 지표(`excluded: true`)가 존재할 때 영역 총점과의 수학적 일관성(기여 비중 합 100% 및 점수 일치)을 평가하는 코드를 작성하십시오.\n2. 수면/카페인/측정시각 맥락 노트(`contextNotes`)가 측정 오차나 약한 신호 세션에서 잘못된 해석을 유발하지 않는지 경계 조건 세션 dataset을 연결해 검증하십시오.\n\n[성공 및 회귀 기준]\n- 모든 페르소나 및 입력 세션에서 `explainDomain` 기여 점수 합과 영역 점수 오차가 ±1.2점 이내 유지.\n- `newbiz-battery.test.js` 테스트 18, 19번 성공적 통과.\n\n[결과 보고 양식]\n- 설명 가능성 분해 로직의 산출 점수 일치 여부 검증 결과\n- 맥락 노트 트리거 조건별 산출 정확도 평가\n- 연동된 dataset 경계 세션 검증 결과 보고\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 741275af1a57773b7b56e7aecf8a3b916f262ee7\nDataset-Task: evo-741275af1a57-measurement\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          },
+          {
+            "id": "evo-741275af1a57-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "연구 데이터 파이프라인(newbiz-research.js) 시계열 양자화 복원 정밀도 및 민감정보 분리 검증",
+            "rationale": "신규 파일 `newbiz-research.js` 및 데이터베이스 마이그레이션 `20261003_newbiz_research.sql`을 통해 연구 데이터 익명화, 시계열 정수 양자화 패킹(`pack`), PHQ 민감정보 동의 기반 분리 기능이 구현되었습니다. 정수 양자화 후 실수 복원 과정에서 발생하는 정보 손실량과 오차 수준이 생체 신호 연구 분석에 영향을 주지 않는지 검증이 필요합니다.",
+            "validationPlan": "원래의 실수 시계열 프레임 데이터와 `RS.pack`으로 양자화 후 복원된 시계열 간의 RMS 오차 및 상관관계를 측정합니다. PHQ 동의 옵션(true/false)에 따른 데이터 구조의 격리성과 Supabase 마이그레이션 스키마의 쿼리 정상 작동을 회귀 평가합니다.",
+            "prompt": "현재 `newbiz-research.js` 파일과 `supabase/migrations/20261003_newbiz_research.sql` 스키마를 확인하십시오.\n\n[과제 명세]\n1. `RS.pack`에서 프레임 시계열(`r, g, b, cx, cy` 등)을 정수 양자화 후 `FRAME_COLS` 배율로 복원할 때 발생하는 복원 오차 및 정보 손실 수준을 정량 평가하는 회귀 테스트를 작성하십시오.\n2. PHQ 설문 데이터 포함 여부(`phq: true/false`) 설정에 따라 연구 패키지 수집 데이터에서 민감 정보가 완벽히 분리 처리되는지 확인하십시오.\n\n[성공 및 회귀 기준]\n- 시계열 복원 오차가 허용 기준(원본 대비 R^2 > 0.999) 내에 도달할 것.\n- `newbiz-battery.test.js` 20번 연구 데이터 패키지 테스트 통과.\n\n[결과 보고 양식]\n- 양자화 전후 시계열 데이터 복원 오차(RMSE, R^2) 측정 결과\n- PHQ 옵션별 데이터 패키지 스키마 유효성 검증 보고\n- 연구 데이터 파이프라인 연동 테스트 결과\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 741275af1a57773b7b56e7aecf8a3b916f262ee7\nDataset-Task: evo-741275af1a57-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "34a85089c995d20ced46d3562c3b7d9cf99e916de9643e407e32d89593fd3529",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 11874,
+            "candidatesTokenCount": 2729,
+            "totalTokenCount": 16579
+          }
+        },
+        "generatedAt": "2026-10-19T00:34:05.712958+00:00",
+        "sourceSha": "741275af1a57773b7b56e7aecf8a3b916f262ee7",
+        "sourceEvidence": {
+          "sha": "741275af1a57773b7b56e7aecf8a3b916f262ee7",
+          "parents": [
+            "31d720a4c30ef5b3bac32c2d9711b3fd5c452eff"
+          ],
+          "committedAt": "2026-10-03T08:14:19Z",
+          "subject": "newbiz: NL-QC 1.2 (capture timestamps, hidden-tab/lighting/fps/breathing checks), context, explainability, assisted gaze cursor, research data pipeline",
+          "url": "https://github.com/jeebs0627/neurolens/commit/741275af1a57773b7b56e7aecf8a3b916f262ee7",
+          "files": [
+            {
+              "path": ".vercelignore",
+              "status": "modified",
+              "additions": 1,
+              "deletions": 0
+            },
+            {
+              "path": "NEWBIZ_CALIBRATION.md",
+              "status": "modified",
+              "additions": 23,
+              "deletions": 1
+            },
+            {
+              "path": "NEWBIZ_RESEARCH_DATA.md",
+              "status": "added",
+              "additions": 59,
+              "deletions": 0
+            },
+            {
+              "path": "api/rppg.py",
+              "status": "modified",
+              "additions": 73,
+              "deletions": 4
+            },
+            {
+              "path": "api/rppg_test.py",
+              "status": "modified",
+              "additions": 17,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-battery.js",
+              "status": "modified",
+              "additions": 86,
+              "deletions": 12
+            },
+            {
+              "path": "newbiz-battery.test.js",
+              "status": "modified",
+              "additions": 65,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-core.js",
+              "status": "modified",
+              "additions": 100,
+              "deletions": 8
+            },
+            {
+              "path": "newbiz-core.test.js",
+              "status": "modified",
+              "additions": 39,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz-report.js",
+              "status": "modified",
+              "additions": 28,
+              "deletions": 2
+            },
+            {
+              "path": "newbiz-research.js",
+              "status": "added",
+              "additions": 101,
+              "deletions": 0
+            },
+            {
+              "path": "newbiz.html",
+              "status": "modified",
+              "additions": 186,
+              "deletions": 35
+            },
+            {
+              "path": "supabase/migrations/20261003_newbiz_research.sql",
+              "status": "added",
+              "additions": 141,
+              "deletions": 0
+            },
+            {
+              "path": "tools/newbiz_research_export.py",
+              "status": "added",
+              "additions": 97,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "pulse",
+            "gaze",
+            "measurement",
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE newbiz-battery.js\n@@ -19,7 +19,7 @@\n })(typeof window !== 'undefined' ? window : null, function (N) {\n   'use strict';\n \n-  const VERSION = 'newbiz-battery-0.6';\n+  const VERSION = 'newbiz-battery-0.7';\n   const finite = v => typeof v === 'number' && Number.isFinite(v);\n   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\n   const round = (x, d = 0) => finite(x) ? Math.round(x * 10 ** d) / 10 ** d : null;\n@@ -85,6 +85,8 @@\n     shaffer: 'Shaffer F, Meehan ZM. A practical guide to resonance frequency assessment for heart rate variability biofeedback. Front Neurosci. 2020;14:570400.',\n     pfeuffer: 'Pfeuffer K, Vidal M, Turner J, Bulling A, Gellersen H. Pursuit calibration: making gaze calibration less tedious and more flexible. Proc ACM UIST. 2013:261–270.',\n     casiez: 'Casiez G, Roussel N, Vogel D. 1€ filter: a simple speed-based low-pass filter for noisy input in interactive systems. Proc ACM CHI. 2012:2527–2530.',\n+    wesensten: 'Wesensten NJ, Belenky G, Kautz MA, Thorne DR, Reichardt RM, Balkin TJ. Maintaining alertness and performance during sleep deprivation: modafinil versus caffeine. Psychopharmacology. 2002;159(3):238–247.',\n+    blatter: 'Blatter K, Cajochen C. Circadian rhythms in cognitive performance: methodological constraints, protocols, theoretical underpinnings. Physiol Behav. 2007;90(2–3):196–208.',\n     nunnally: 'Nunnally JC, Bernstein IH. Psychometric Theory. 3rd ed. New York: McGraw-Hill; 1994.',\n     hedge: 'Hedge C, Powell G, Sumner P. The reliability paradox: why robust cognitive tasks do not produce reliable individual differences. Behav Res Methods. 2018;50(3):1166–1186.',\n     jacobson: 'Jacobson NS, Truax P. Clinical significance: a statistical approach to defining meaningful change in psychotherapy research. J Consult Clin Psychol. 1991;59(1):12–19.',\n@@ -112,7 +114,7 @@\n    * 3) 수렴 원칙: ‘관리 필요’는 서로 다른 지표 2개 이상이 저하를 가리키거나, 경계가 아닌 고신뢰 핵심 지표일 때만. 아니면 ‘주의’로 낮춘다\n    * 4) 수행 타당도: 무작위 누르기·무반응 같은 비순응 패턴이면 그 검사를 판정에서 뺀다\n    * 5) 개인 기준 보정: 심박은 본인 기준선 대비, 시선은 좌우 균형 가중·개인 시선 진폭, 반응시간은 기기 지연 보정 */\n-  const QC = { version: 'NL-QC 1.1', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n+  const QC = { version: 'NL-QC 1.2', minR: 0.3, tentative: 0.45, hrQ: { good: 1, fair: 0.65, poor: 0, none: 0 }, pvtFalseMax: 20, sartOmitMax: 0.5 };\n   const DUR = {\n     /* fv: 정서 사진 모드의 블록별 시행 수 (중립-중립 · 부정[위협+슬픔] · 긍정), trials: 도식 자극 모드의 블록별 시행 수 */\n     full:  { baseline: 60, pursuit: 24, pro: 8, anti: 20, practice: 2, trials: 7, fv: { neu: 6, neg: 24, pos: 12 }, pvt: 180, pvtPractice: 3, sart: 108, sartPractice: 18, stress: 60, recovery: 60 },\n@@ -564,6 +566,52 @@\n     return { code, ...HEAD[code], primary: code === 'insufficient' ? null : primary, secondary: code === 'insufficient' ? null : secondary, measured, flagged, pathways, mismatches };\n   }\n \n+  /* ---------- 측정 맥락: 어젯밤 수면 · 마지막 카페인 · 측정 시각 ----------\n+   * 각성 지표(PVT·PERCLOS)는 수면량, 카페인, 하루 중 시각의 영향을 크게 받는다 (Van Dongen et al., 2003; Wesensten et al., 2002;\n+   * Blatter & Cajochen, 2007). 점수를 바꾸지 않고, 결과를 ‘일시적 상태’로 볼지 ‘지속 패턴’으로 볼지 해석을 돕는다 */\n+  const CONTEXT = {\n+    sleep: { lt5: '5시간 미만', '5to6': '5~6시간', '6to7': '6~7시간', '7to8': '7~8시간', gt8: '8시간 이상' },\n+    caffeine: { none: '오늘 안 마심', lt1: '1시간 이내', '1to3': '1~3시간 전', '3to6': '3~6시간 전', gt6: '6시간 이상 전' },\n+  };\n+  function contextNotes(checkin, measuredAt, fl) {\n+    const c = checkin || {}, out = [];\n+    const short = c.sleep === 'lt5' || c.sleep === '5to6', recentCaf = c.caffeine === 'lt1' || c.caffeine === '1to3';\n+    if (CONTEXT.sleep[c.sleep]) {\n+      if (short && fl('alert')) out.push({ key: 'sleep-short-low', title: '어젯밤 수면 ↔ 각성 저하', text: `어젯밤 수면이 ${CONTEXT.sleep[c.sleep]}이었어요. 이번 각성 저하의 상당 부분은 하룻밤 수면 부족의 영향일 수 있어요. 충분히 잔 다음 날 같은 시간대에 다시 재 보면 일시적인 상태인지 지속되는 패턴인지 구분할 수 있어요.`, refs: ['vanDongen', 'limDinges'] });\n+      else if (short) out.push({ key: 'sleep-short-ok', title: '어젯밤 수면 ↔ 각성 유지', text: `수면이 ${CONTEXT.sleep[c.sleep]}으로 짧았지만 각성 수행은 유지됐어요. 다만 수면 부족은 며칠 쌓이면 수행이 계단식으로 떨어지는 것으로 알려져 있어 오늘은 무리하지 않는 편이 좋아요.`, refs: ['vanDongen'] });\n+      else if (fl('alert')) out.push({ key: 'sleep-ok-low', title: '어젯밤 수면 ↔ 각성 저하', text: `수면 시간(${CONTEXT.sleep[c.sleep]})은 부족하지 않았는데 각성이 낮게 나왔어요. 수면의 질, 측정 시각, 피로 누적을 함께 살펴볼 필요가 있어요.`, refs: ['limDinges'] });\n+    }\n+    if (CONTEXT.caffeine[c.caffeine] && recentCaf) {\n+      out.push({ key: fl('alert') ? 'caffeine-low' : 'caffeine-ok', title: '최근 카페인', text: fl('alert')\n+        ? `카페인을 ${CONTEXT.caffeine[c.caffeine]}에 마셨는데도 각성이 낮게 나왔어요. 카페인이 가린 피로가 더 클 수 있어 휴식이 우선이에요.`\n+        : `카페인을 ${CONTEXT.caffeine[c.caffeine]}에 마셨어요. 카페인은 반응 속도와 경계 수행을 일시적으로 끌어올리므로, 이번 각성 결과는 평소보다 좋게 나왔을 수 있어요. 재측정은 카페인 조건을 맞춰 주세요.`, refs: ['wesensten'] });\n+    }\n+    const d = measuredAt ? new Date(measuredAt) : null, hr = d && !isNaN(d) ? d.getHours() : null;\n+    if (hr !== null && fl('alert') && ((hr >= 13 && hr < 16) || hr >= 23 || hr < 7)) {\n+      out.push({ key: 'time-dip', title: '측정 시각', text: hr >= 13 && hr < 16 ? '오후 1~4시는 생체리듬상 각성이 잠시 떨어지는 시간대예요. 같은 결과라도 오전에 다시 재면 차이가 날 수 있어요.' : '늦은 밤·이른 새벽은 생체리듬상 각성이 가장 낮은 시간대예요. 낮 시간대 재측정과 비교해 보세요.', refs: ['blatter'] });\n+    }\n+    return out;\n+  }\n+\n+  /* ---------- 설명 가능성: 영역 점수 분해 + 판정 경계까지의 거리 ----------\n+   * 영역 점수 = Σ (가중치 × 신뢰도 × 지표 점수) / Σ (가중치 × 신뢰도) 이므로, 지표별 기여(점)를 그대로 나눠 보여 줄 수 있다 */\n+  function explainDomain(k, indicators) {\n+    const m = indicators.filter(i => i.domain === k && i.value !== null && !i.excluded);\n+    const wsum = m.reduce((s, i) => s + (i.primary ? 2 : 1) * i.r, 0);\n+    if (!(wsum > 0)) return [];\n+    return m.map(i => {\n+      const share = (i.primary ? 2 : 1) * i.r / wsum;\n+      return { key: i.key, label: i.label, status: i.status, share: round(share * 100), points: round(share * i.score, 1), score: i.score, next: i.next || null };\n+    }).sort((a, b) => b.share - a.share);\n+  }\n+  /* 지금 판정보다 한 단계 좋아지려면 지표가 얼마여야 하는가 */\n+  function nextBand(ind, v) {\n+    const b = ind.band, st = statusOf(scoreOf(v, b));\n+    if (st === 'ok') return null;\n+    const target = st === 'concern' ? b.concern : b.ok;\n+    return { to: st === 'concern' ? 'watch' : 'ok', target, text: `${ind.d >= 2 ? target.toFixed(2) : target}${ind.unit || ''} ${b.dir === 'low' ? '이하' : '이상'}이면 ‘${STATUS[st === 'concern' ? 'watch' : 'ok']}’` };\n+  }\n+\n   /* 정서 사진 모드: 부정 블록 안의 위협·슬픔 자극을 따로 집계 (불안은 위협, 우울은 슬픔 자극 편향과 관련; Armstrong & Olatunji, 2012) */\n   function emoSub(rec, W, gazeOk) {\n     if (!gazeOk) return [];\n@@ -668,6 +716,17 @@\n    * rec = core 기록(frames, phases, trials, calibration, checkin, screenW, demo) + {pursuit, saccade, pvt, sart, steps, stressScore, sim}\n    * phases 에는 실제로 끝까지 수행한 구간만 담는다 (건너뛴 구간은 지운 상태로 전달). */\n   function run(rec) {\n+    /* NL-QC 6) 화면이 가려졌던 구간(탭 전환·창 전환)과 겹친 시행은 판정에서 뺀다 */\n+    const hidden = (rec.hidden || []).filter(h => finite(h.start) && finite(h.end) && h.end > h.start);\n+    const hid = t => hidden.some(h => t >= h.start - 500 && t <= h.end + 1500);\n+    let dropped = 0;\n+    if (hidden.length) {\n+      const keep = arr => (arr || []).filter(t => { const bad = hid(t.onset); if (bad) dropped++; return !bad; });\n+      const overlap = (a, b) => hidden.reduce((s, h) => s + Math.max(0, Math.min(b, h.end) - Math.max(a, h.start)), 0);\n+      rec = { ...rec, trials: keep(rec.trials), saccade: rec.saccade ? keep(rec.saccade) : rec.saccade, sart: rec.sart ? { ...rec.sart, trials: keep(rec.sart.trials) } : rec.sart };\n+      if (rec.pvt && rec.phases && rec.phases.pvt) rec.pvt = { ...rec.pvt, trials: keep(rec.pvt.trials), durationMs: Math.max(0, rec.pvt.durationMs - overlap(rec.phases.pvt.start, rec.phases.pvt.end)) };\n+      if (rec.pursuit) rec.pursuit = { ...rec.pursuit, samples: rec.pursuit.samples.filter(z => !hid(z.t)) };\n+    }\n     const base = N.analyze(rec);\n     const ph = rec.phases || {};\n     const span = k => ph[k] && finite(ph[k].start) && finite(ph[k].end) ? [ph[k].start, ph[k].end] : null;\n@@ -688,25 +747,31 @@\n     /* NL-QC 1) 지표별 신뢰도 r · 2) 표준오차 */\n     const negSt = (rec.trials || []).filter(t => t.kind === 'neg').map(t => N.trialStats(t, W)).filter(x => x.valid);\n     const negN = (rec.trials || []).filter(t => t.kind === 'neg').length;\n+    /* NL-QC 7) 단계별 카메라 프레임 수: 시선·사카드 지표는 24fps 이상에서 온전히, 10fps 에서 0.3배로 */\n+    const fpsOf = k => { const sp = span(k); if (!sp) return null; const n = frames.filter(f => f.t >= sp[0] && f.t <= sp[1]).length; return n / Math.max(1, (sp[1] - sp[0]) / 1000); };\n+    const fpsF = k => { const v = fpsOf(k); return v === null ? 1 : clamp((v - 10) / 14, 0.3, 1); };\n     const sartFrames = span('sart') ? face.filter(f => f.t >= span('sart')[0] && f.t <= span('sart')[1]).length / Math.max(1, (span('sart')[1] - span('sart')[0]) / 1000 * 24) : 0;\n     const hq = q => QC.hrQ[q && q.quality] ?? 0;\n     const refHr = base.hrRef === 'pre' ? base.hr.pre : base.hr.baseline;\n+    /* NL-QC 8) 공명 호흡 순응: 카메라로 잰 호흡 리듬이 뚜렷한데 분당 6회(0.1Hz)에서 벗어나 있으면 호흡 동조 지표를 판정하지 않는다\n+     * (따라 하지 않은 사람의 ‘동조 약함’을 조절력 부족으로 오해하지 않기 위해) */\n+    const resp = base.resp, breathOff = !!(resp && resp.clear && Math.abs(resp.hz - 0.1) > 0.03);\n     const rOf = {\n       pvt: () => pvt && !pvt.invalid ? clamp(pvt.valid / 30, 0, 1) : 0,\n       eye: () => eye ? clamp((eye.coverage - 0.4) / 0.4, 0, 1) : 0,\n-      anti: () => saccade && saccade.ok ? clamp((saccade.anti.valid - saccade.anti.weak * 0.5) / Math.max(8, saccade.anti.n * 0.8), 0, 1) : 0,\n+      anti: () => saccade && saccade.ok ? clamp((saccade.anti.valid - saccade.anti.weak * 0.5) / Math.max(8, saccade.anti.n * 0.8), 0, 1) * fpsF('saccade') : 0,\n       sart: () => sart && !sart.invalid ? clamp(sart.n / 54, 0, 1) : 0,\n-      pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.5) / 0.3, 0, 1) : 0,\n+      pursuit: () => pursuit && pursuit.ok ? clamp(pursuit.coverage / 0.8, 0, 1) * clamp((pursuit.r - 0.5) / 0.3, 0, 1) * fpsF('pursuit') : 0,\n       motion: () => clamp((sartFrames - 0.4) / 0.4, 0, 1),\n-      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) : 0,\n+      gaze: () => a.gazeOk && negN ? clamp(negSt.length / negN / 0.8, 0, 1) * fpsF('neg') : 0,\n     };\n     const REL = {\n       pvtLapses: rOf.pvt, pvtMedian: rOf.pvt, pvtFalse: () => pvt ? clamp(pvt.valid / 30, 0, 1) : 0, perclos: rOf.eye, blinkDur: rOf.eye,\n       antiError: rOf.anti, sartCommission: rOf.sart, sartCv: rOf.sart, sartOmission: () => sart ? clamp(sart.n / 54, 0, 1) : 0,\n       pursuitGain: rOf.pursuit, pursuitErr: rOf.pursuit, motion: rOf.motion,\n       bias: rOf.gaze, firstNeg: rOf.gaze, negHr: () => Math.min(hq(base.hr.neu), hq(base.hr.neg)),\n       stressDelta: () => Math.min(hq(refHr), hq(base.hr.stress)), recovery: () => Math.min(hq(base.hr.stress), hq(base.hr.recoveryLate)),\n-      recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => hq(base.hr.recovery),\n+      recoveryResid: () => Math.min(hq(refHr), hq(base.hr.recoveryLate)), coupling: () => (breathOff ? 0 : hq(base.hr.recovery)),\n     };\n     const binSe = (p, n) => { if (!(n > 0) || !finite(p)) return null; const q = (p * n + 2) / (n + 4); return Math.sqrt(q * (1 - q) / (n + 4)) * 100; };   // Agresti–Coull\n     const SE = {\n@@ -725,17 +790,22 @@\n       const borderline = !!ci && [ind.band.ok, ind.band.concern].some(cut => ci[0] < cut && cut < ci[1]);\n       const excluded = has && r < QC.minR;\n       return { key: ind.key, domain: ind.domain, label: ind.label, unit: ind.unit, d: ind.d, refs: ind.refs, desc: ind.desc, primary: ind.w === 2,\n-        value: v, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded };\n+        value: v, score: excluded ? null : round(sc), status: excluded ? 'na' : statusOf(sc), range: rangeText(ind), r, ci, borderline: !excluded && borderline, excluded,\n+        next: has && !excluded ? nextBand(ind, v) : null };\n     });\n \n     const domains = {};\n     DOMAIN_KEYS.forEach(k => { domains[k] = aggregateDomain(k, indicators); });\n     if (domains.autonomic.status !== 'na') {\n       if (base.hrRef === 'pre') domains.autonomic.notes.push('안정 기준선의 심박 신호가 약해, 압박 과제 직전 안정 구간을 비교 기준으로 썼어요');\n+      if (breathOff) domains.autonomic.notes.push(`호흡 구간에서 카메라로 잰 호흡이 분당 ${resp.bpm}회로, 안내한 6회와 달라 호흡 동조 지표는 판정에서 뺐어요. 다음에는 원의 속도에 맞춰 천천히 호흡해 주세요`);\n+      else if (resp && resp.clear) domains.autonomic.notes.push(`호흡 구간에서 분당 ${resp.bpm}회 호흡이 확인돼 안내한 공명 호흡(6회)을 따른 것으로 봤어요`);\n       if (base.recovery === null && base.recoveryResid !== null) domains.autonomic.notes.push(`압박 반응이 ${base.stressDelta === null ? '측정되지 않아' : `${base.stressDelta}bpm으로 작아`} 회복률 대신 ‘회복 후 잔여 심박’으로 회복을 판정했어요`);\n     }\n \n     const integrated = integrate(domains, indicators, base, rec.checkin);\n+    integrated.context = contextNotes(rec.checkin, rec.measuredAt, k => domains[k] && SEV[domains[k].status] >= 1);\n+    DOMAIN_KEYS.forEach(k => { domains[k].explain = explainDomain(k, indicators); });\n     const care = [integrated.primary, integrated.secondary].filter(Boolean).map((k, i) => ({ domain: k, rank: i + 1, ...CARE_PLAN[k] }));\n     if (!care.length) care.push({ domain: 'balanced', rank: 1, ...CARE_PLAN.balanced });\n     const phq = phqScore(rec.checkin), links = phqLinks(phq, domains);\n@@ -762,6 +832,9 @@\n       borderline: indicators.filter(i => i.borderline).map(i => i.label),\n       excluded: indicators.filter(i => i.excluded).map(i => i.label),\n       downgraded: DOMAIN_KEYS.filter(k => domains[k].notes.some(n => n.includes('수렴 원칙'))),\n+      hidden: hidden.length ? { n: hidden.length, sec: round(hidden.reduce((x, h) => x + h.end - h.start, 0) / 1000, 1), dropped } : null,\n+      fps: Object.fromEntries(['baseline', 'pursuit', 'saccade', 'neg', 'pvt', 'sart', 'stress', 'recovery'].map(k => [k, fpsOf(k) === null ? null : round(fpsOf(k), 1)]).filter(x => x[1] !== null)),\n+      lightJumps: base.lightJumps || 0, breath: resp ? { bpm: resp.bpm, clear: resp.clear, src: resp.src, off: breathOff } : null,\n     };\n \n     const pv = (x, k, s = 1, dd = 0) => x && finite(x[k]) ? round(x[k] * s, dd) : null;\n@@ -805,19 +878,19 @@\n   /* ---------- 시뮬레이션 피험자 (카메라 없는 검증용) ----------\n    * 페르소나별로 생리 신호(합성 영상 프레임)와 과제 반응을 만들어 리포트 전 과정을 검증한다. 결과에는 반드시 ‘시뮬레이션’ 표시. */\n   const PERSONAS = {\n-    balanced: { label: '균형 조절 (대조)', checkin: { valence: 6, tension: 2, energy: 4, kss: 3, phq: [0, 1] },\n+    balanced: { label: '균형 조절 (대조)', checkin: { valence: 6, tension: 2, energy: 4, kss: 3, sleep: '7to8', caffeine: '3to6', phq: [0, 1] },\n       hr: { base: 68, task: 1, neg: 1, stress: 5, rec: 0.9, coup: 9 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.6, sart: 0.8 },\n       pvt: { mu: 282, sd: 28, lapse: 0.01, early: 0.01 }, anti: { err: 0.14, corr: 0.85, lat: 285, pro: 195 },\n       pursuit: { gain: 0.93, lag: 80, noise: 0.025 }, sart: { com: 0.28, om: 0.01, rt: 360, cv: 0.18 }, bias: 0.52, first: 0.5, pos: 0.56, math: 0.85 },\n-    fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4, phq: [1, 2, 3, 3, 1, 1, 2, 1] },\n+    fatigue: { label: '수면 부족 · 피로', checkin: { valence: 5, tension: 2, energy: 2, kss: 4, sleep: '5to6', caffeine: 'none', phq: [1, 2, 3, 3, 1, 1, 2, 1] },\n       hr: { base: 65, task: 1, neg: 1.5, stress: 5, rec: 0.75, coup: 7 }, eye: { blinkMs: 260, drowsy: 0.12 }, motion: { base: 0.7, sart: 1.0 },\n       pvt: { mu: 318, sd: 55, lapse: 0.12, early: 0.05 }, anti: { err: 0.3, corr: 0.7, lat: 320, pro: 220 },\n       pursuit: { gain: 0.72, lag: 150, noise: 0.05 }, sart: { com: 0.56, om: 0.1, rt: 430, cv: 0.36 }, bias: 0.54, first: 0.52, pos: 0.5, math: 0.7 },\n-    control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3, phq: [1, 1] },\n+    control: { label: '주의 통제 부하', checkin: { valence: 5, tension: 3, energy: 4, kss: 3, sleep: '6to7', caffeine: '1to3', phq: [1, 1] },\n       hr: { base: 72, task: 2, neg: 1, stress: 7, rec: 0.42, coup: 3.2 }, eye: { blinkMs: 150, drowsy: 0 }, motion: { base: 0.8, sart: 3.4 },\n       pvt: { mu: 288, sd: 40, lapse: 0.03, early: 0.06 }, anti: { err: 0.5, corr: 0.6, lat: 300, pro: 190 },\n       pursuit: { gain: 0.86, lag: 90, noise: 0.04 }, sart: { com: 0.66, om: 0.04, rt: 330, cv: 0.37 }, bias: 0.53, first: 0.52, pos: 0.54, math: 0.75 },\n-    overload: { label: '정서·신체 과부하', checkin: { valence: 4, tension: 2, energy: 3, kss: 5, phq: [2, 2, 1, 2, 1, 2, 1, 1] },\n+    overload: { label: '정서·신체 과부하', checkin: { valence: 4, tension: 2, energy: 3, kss: 5, sleep: '6to7', caffeine: 'gt6', phq: [2, 2, 1, 2, 1, 2, 1, 1] },\n       hr: { base: 76, task: 2, neg: 4.5, stress: 13, rec: 0.12, coup: 1.2 }, eye: { blinkMs: 170, drowsy: 0.01 }, motion: { base: 0.7, sart: 1.2 },\n       pvt: { mu: 300, sd: 40, lapse: 0.04, early: 0.02 }, anti: { err: 0.36, corr: 0.7, lat: 310, pro: 200 },\n       pursuit: { gain: 0.88, lag: 90, noise: 0.03 }, sart: { com: 0.45, om: 0.03, rt: 370, cv: 0.26 }, bias: 0.72, first: 0.7, pos: 0.47, math: 0.65 },\n@@ -941,6 +1014,7 @@\n       seed: (opt.seed || 7) + 11, noise: 0.15,\n       eyeAt: () => P.eye,\n       motionAt: x => (inP('sart', x) ? P.motion.sart : P.motion.base) / 0.8,\n+      breathAt: x => 0.003 * Math.sin(2 * Math.PI * (inP('recovery', x) ? 0.1 : 0.25) * x / 1000),\n       frownAt: x => (inP('neg', x) ? 0.05 + (P.bias > 0.6 ? 0.05 : 0.015) : 0.05),\n     });\n \n@@ -958,6 +1032,6 @@\n \n   return {\n     VERSION, REFS, PHQ, PHQ_LINKS, PROTOCOL, DUR, MODULES, DOMAINS, DOMAIN_KEYS, INDICATORS, STATUS, SEV, HEAD, PATHWAYS, CARE_PLAN, PERSONAS,\n-    QC, mistProblem, mistNext, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,\n+    QC, CONTEXT, contextNotes, explainDomain, nextBand, mistProblem, mistNext, aggregateDomain, cleanGaze, blockCenters, phqScore, phqLinks, scoreOf, statusOf, rangeText, pvtStats, eyeStats, saccadeThreshold, saccadeTrial, saccadeQuick, saccadeStats, pursuitStats, sartSequence, sartStats, integrate, run, simulate,\n   };\n });\nFILE newbiz-battery.test.js\n@@ -294,4 +294,69 @@ for (const [p, e] of Object.entries(expect)) {\n   assert.equal(b.balanced, true); assert.equal(b.emoShare, 0.5);\n }\n \n+/* 16) 화면 이탈 구간: 겹친 PVT·SART 시행은 빠지고 PVT 시간도 그만큼 줄어든다 */\n+{\n+  const rec = B.simulate('balanced'), ph = rec.phases.pvt;\n+  const base = B.run(B.simulate('balanced'));\n+  rec.hidden = [{ start: ph.start + 30000, end: ph.start + 60000 }];\n+  const r = B.run(rec);\n+  assert.ok(r.battery.pvt.n < base.battery.pvt.n, `pvt n ${r.battery.pvt.n} vs ${base.battery.pvt.n}`);\n+  assert.ok(r.battery.pvt.durationMin < base.battery.pvt.durationMin);\n+  assert.ok(r.battery.qc.hidden && r.battery.qc.hidden.dropped > 0);\n+  checkReport(r, 'hidden');\n+}\n+\n+/* 17) 공명 호흡 순응: 호흡이 분당 15회로 뚜렷하면 호흡 동조 지표를 판정에서 뺀다 */\n+{\n+  const rec = B.simulate('control');\n+  const r0 = B.run(rec);\n+  assert.equal(r0.battery.qc.breath.off, false);\n+  const rr = rec.phases.recovery;\n+  rec.frames = rec.frames.map(f => (f.t >= rr.start && f.t <= rr.end ? { ...f, cy: 0.5 + 0.004 * Math.sin(2 * Math.PI * 0.25 * f.t / 1000) } : f));\n+  const r = B.run(rec), cp = r.battery.indicators.find(i => i.key === 'coupling');\n+  assert.equal(r.battery.qc.breath.off, true);\n+  assert.ok(cp.excluded || cp.value === null);\n+  assert.ok(r.battery.domains.autonomic.notes.some(n => n.includes('호흡 동조 지표는 판정에서')));\n+}\n+\n+/* 18) 측정 맥락: 짧은 수면 + 각성 저하 → 맥락 해석, 최근 카페인 + 각성 양호 → 과대 추정 가능성 */\n+{\n+  const fl = s => k => s.includes(k);\n+  assert.ok(B.contextNotes({ sleep: '5to6' }, null, fl(['alert'])).some(c => c.key === 'sleep-short-low'));\n+  assert.ok(B.contextNotes({ caffeine: 'lt1' }, null, fl([])).some(c => c.key === 'caffeine-ok'));\n+  assert.equal(B.contextNotes({ sleep: '7to8', caffeine: 'gt6' }, '2026-10-03T01:00:00Z', fl([])).length, 0);\n+  const r = B.run(B.simulate('fatigue'));\n+  assert.ok(r.battery.integrated.context.some(c => c.key === 'sleep-short-low'));\n+  const html = checkReport(r, 'context');\n+  assert.ok(html.includes('측정 맥락') && html.includes('점수 구성'));\n+}\n+\n+/* 19) 점수 분해: 기여의 합 = 영역 점수, 비중 합 = 100%, 저하 지표에는 다음 단계 목표 */\n+{\n+  const r = B.run(B.simulate('fatigue'));\n+  B.DOMAIN_KEYS.forEach(k => {\n+    const d = r.battery.domains[k], ex = d.explain;\n+    if (d.score === null) return;\n+    assert.ok(Math.abs(ex.reduce((s, e) => s + e.points, 0) - d.score) <= 1.2, `${k} sum`);\n+    assert.ok(Math.abs(ex.reduce((s, e) => s + e.share, 0) - 100) <= 2, `${k} share`);\n+    ex.filter(e => e.status !== 'ok').forEach(e => assert.ok(e.next && /이하|이상/.test(e.next.text), `${k} next`));\n+  });\n+}\n+\n+/* 20) 연구 데이터 패키지: PHQ 는 별도 동의 때만, 시계열은 정수 양자화, 복원 가능한 배율 */\n+{\n+  const RS = require('./newbiz-research.js');\n+  const rec = B.simulate('overload'), res = B.run(rec);\n+  const no = RS.pack(rec, res, { research: true, phq: false }, {});\n+  assert.ok(!('phq' in no.summary.checkin) && no.summary.phq === null);\n+  const yes = RS.pack(rec, res, { research: true, phq: true }, {});\n+  assert.ok(Array.isArray(yes.summary.checkin.phq) && yes.summary.phq.phq8 !== null);\n+  const F = no.payload.frames;\n+  assert.equal(F.t.length, rec.frames.length);\n+  assert.ok(F.r.every(v => v === null || Number.isInteger(v)));\n+  assert.ok(Math.abs(F.r[10] / RS.FRAME_COLS.r - rec.frames[10].r) < 0.01);\n+  assert.ok(JSON.stringify(no.summary).length < 200000 && JSON.stringify(no.meta).length < 30000);\n+  assert.equal(RS.browserFamily('Mozilla/5.0 (Windows NT 10.0) AppleWebKit Chrome/141.0 Safari/537.36').browser, 'chrome');\n+}\n+\n console.log('newbiz-battery tests passed');\nFILE newbiz-core.js\n@@ -11,7 +11,7 @@\n })(typeof window !== 'undefined' ? window : null, function () {\n   'use strict';\n \n-  const VERSION = 'newbiz-mvp-0.3';\n+  const VERSION = 'newbiz-mvp-0.4';\n   const HR_BAND = [0.7, 3.0];            // 42~180 bpm\n   const SNR_GOOD = 3, SNR_FAIR = -2;     // dB, 잠정 품질 기준\n   const THRESH = {                       // 잠정 판정 기준 (파일럿으로 재설정 예정)\n@@ -276,14 +276,58 @@\n     const band = bandpass(x, fs, targetHz * 0.6, targetHz * 1.6);\n     const amp = quantile(Array.from(band), 0.9) - quantile(Array.from(band), 0.1);\n     const nfft = Math.max(1024, nextPow2(x.length * 4)), p = powerSpectrum(x, nfft), df = fs / nfft;\n-    let inB = 0, tot = 0;\n+    let inB = 0, tot = 0, pk = -1, pf = null;\n     for (let i = 0; i < p.length; i++) {\n       const f = i * df;\n       if (f < 0.04 || f > 0.4) continue;\n       tot += p[i];\n       if (Math.abs(f - targetHz) <= 0.025) inB += p[i];\n+      if (p[i] > pk) { pk = p[i]; pf = f; }\n     }\n-    return { ampBpm: round(amp, 1), ratio: tot > 0 ? round(inB / tot, 2) : null };\n+    return { ampBpm: round(amp, 1), ratio: tot > 0 ? round(inB / tot, 2) : null, peakHz: round(pf, 3) };\n+  }\n+\n+  /* ---------- 호흡수 추정 (공명 호흡 순응 확인) ----------\n+   * 카메라만으로 호흡을 보는 두 경로: ① 호흡에 따른 머리·얼굴의 미세한 상하 움직임(얼굴 중심 cy),\n+   * ② 피부 밝기의 저주파 변동(호흡성 강도 변조). 4Hz 로 맞춘 뒤 0.05~0.6Hz 대역의 스펙트럼 피크와\n+   * 피크 집중도(피크 ±0.02Hz 파워 / 대역 전체)를 구해, 집중도가 더 높은 경로를 쓴다.\n+   * 집중도가 0.4 미만이면 ‘뚜렷한 호흡 리듬 없음’으로 보고 판정하지 않는다 */\n+  function respiration(frames, start, end) {\n+    const s = (frames || []).filter(f => f.ok && f.t >= start && f.t <= end && finite(f.cy));\n+    if (s.length < 150 || end - start < 25000) return null;\n+    const fs = 4, out = [];\n+    const series = [['motion', s.map(f => f.cy)], ['intensity', s.map(f => (finite(f.g) ? f.g / Math.max(1, f.r + f.g + f.b) : NaN))]];\n+    for (const [src, col] of series) {\n+      if (!col.every(finite)) continue;\n+      const rs = resample(s.map(f => f.t), [col], fs), x = Array.from(rs.data[0]);\n+      if (x.length < fs * 20) continue;\n+      const band = bandpass(Float64Array.from(x), fs, 0.05, 0.6);\n+      const nfft = Math.max(1024, nextPow2(band.length * 4)), p = powerSpectrum(band, nfft), df = fs / nfft;\n+      let pk = 0, pi = -1, tot = 0;\n+      for (let i = 0; i < p.length; i++) { const f = i * df; if (f < 0.05 || f > 0.6) continue; tot += p",
+          "patchTruncated": true,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "39181184513"
+      }
     },
     {
       "sha": "31d720a4c30ef5b3bac32c2d9711b3fd5c452eff",
@@ -21489,9 +21925,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "86f3ac14bc190683c87d63bfa84f8c76422f8e22"
+    "sourceHead": "4d11365956558e36a663b95b8eb5bca5538397f3"
   },
-  "updatedAt": "2026-10-18T22:40:03.053559+00:00",
-  "aiCooldownUntil": "2026-10-18T22:45:01.510134+00:00",
-  "aiCooldownReason": "GEMINI_UNAVAILABLE"
+  "updatedAt": "2026-10-19T00:34:07.108680+00:00"
 }
