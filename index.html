@@ -513,24 +513,29 @@ p.lead.lead-1l{max-width:none}
 .nw-play svg{width:22px;height:22px;fill:#fff;margin-left:3px}
 .nw-short iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 /* 특허 — 출원번호통지서 요약 */
-.nw-docs{position:relative;width:74%;height:72%}
-.nw-doc{position:absolute;inset:0;background:#fff;border:1px solid #E2DBFA;border-radius:14px;padding:18px 18px 16px;box-shadow:0 18px 34px -20px rgba(70,40,170,.45);display:flex;flex-direction:column}
-.nw-doc.back{transform:translate(16px,-14px) rotate(4deg);opacity:.75}
-.nw-doc.front{transform:rotate(-2deg)}
-.nw-doc .org{font-size:10.5px;font-weight:800;color:var(--gray);letter-spacing:.04em}
-.nw-doc .ttl{font-size:15px;font-weight:900;letter-spacing:.32em;text-align:center;margin:12px 0 14px;color:var(--ink)}
-.nw-doc dl{display:grid;grid-template-columns:auto 1fr;gap:7px 10px;font-size:11px;line-height:1.45}
+.nw-docs{position:relative;width:86%;height:80%;margin-top:22px;perspective:1100px}
+/* 두 장의 통지서를 엇갈려 세워, 종이 두께(겹친 가장자리)·접힌 모서리·바닥 그림자로 입체감을 준다 */
+.nw-doc{position:absolute;width:84%;padding:13px 15px 14px;border-radius:10px;background:linear-gradient(160deg,#fff 0%,#FBFAFF 60%,#F3F0FD 100%);border:1px solid #E4DDFA;transform-style:preserve-3d;transition:transform .45s;
+  box-shadow:1px 1px 0 #EAE5FB,2px 2px 0 #DCD4F7,3px 3px 0 #EAE5FB,4px 4px 0 #D3C9F4,0 26px 34px -16px rgba(60,35,150,.42),0 6px 12px -6px rgba(60,35,150,.18)}
+.nw-doc::after{content:"";position:absolute;top:0;right:0;width:22px;height:22px;border-radius:0 10px 0 6px;background:linear-gradient(225deg,var(--nsoft) 50%,#E1D8FA 50%,#fff 100%);box-shadow:-2px 2px 4px rgba(60,35,150,.12)}
+.nw-doc.d1{top:0;left:0;transform:rotateX(14deg) rotateY(10deg) rotateZ(-3deg)}
+.nw-doc.d2{bottom:0;right:0;transform:rotateX(14deg) rotateY(-10deg) rotateZ(2.5deg)}
+.nw-card:hover .nw-doc.d1{transform:rotateX(6deg) rotateY(4deg) rotateZ(-2deg) translateY(-4px)}
+.nw-card:hover .nw-doc.d2{transform:rotateX(6deg) rotateY(-4deg) rotateZ(1.5deg) translateY(-4px)}
+.nw-doc .ttl{font-size:12.5px;font-weight:900;letter-spacing:.3em;text-align:center;color:var(--ink);padding-bottom:8px;margin-bottom:9px;border-bottom:1px solid #ECE7FB}
+.nw-doc dl{display:grid;grid-template-columns:auto 1fr;gap:5px 9px;font-size:10.5px;line-height:1.5}
 .nw-doc dt{color:var(--gray2);font-weight:700;white-space:nowrap}
 .nw-doc dd{color:var(--ink2);font-weight:700;word-break:keep-all}
-.nw-doc dd.num{font-family:var(--font-num);color:var(--violet)}
-.nw-seal{position:absolute;right:-12px;bottom:-14px;width:70px;height:70px;border-radius:50%;display:grid;place-items:center;text-align:center;background:var(--grad-violet);color:#fff;font-family:var(--font-num);box-shadow:0 10px 22px -8px rgba(108,76,224,.6),0 0 0 4px #fff}
-.nw-seal b{display:block;font-size:22px;font-weight:800;line-height:1}
-.nw-seal small{display:block;font-size:9.5px;font-weight:700;letter-spacing:.06em;margin-top:2px}
+.nw-doc dd.num{font-family:var(--font-num);color:var(--violet);font-size:11.5px}
 .nw-ip-list{list-style:none;margin-top:4px;display:flex;flex-direction:column;gap:7px}
 .nw-ip-list li{font-size:13px;color:var(--gray);line-height:1.5;padding-left:16px;position:relative;word-break:keep-all}
 .nw-ip-list li::before{content:"";position:absolute;left:2px;top:8px;width:6px;height:6px;border-radius:2px;background:var(--nc)}
 /* 백서 — 3D 표지 */
-.nw-book{position:relative;width:52%;aspect-ratio:420/594;perspective:900px}
+.nw-book{position:relative;display:block;width:52%;aspect-ratio:420/594;perspective:900px;cursor:pointer}
+.nw-book:focus-visible{outline:3px solid var(--blue);outline-offset:8px;border-radius:6px}
+.nw-buy{position:absolute;z-index:2;left:50%;bottom:12px;transform:translate(-50%,6px);white-space:nowrap;font-size:12px;font-weight:800;color:#fff;background:rgba(11,27,63,.82);border-radius:999px;padding:6px 12px;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
+.nw-book:hover .nw-buy,.nw-book:focus-visible .nw-buy{opacity:1;transform:translate(-50%,0)}
+@media(hover:none){.nw-buy{opacity:1;transform:translate(-50%,0)}}
 .nw-book .bk{position:absolute;inset:0;transform:rotateY(-20deg);transform-style:preserve-3d;transform-origin:left center;transition:transform .5s}
 .nw-card:hover .nw-book .bk{transform:rotateY(-8deg)}
 .nw-book img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:2px 6px 6px 2px;box-shadow:18px 20px 34px -14px rgba(11,27,63,.5)}
@@ -1816,22 +1821,20 @@ footer p{font-size:12.5px;color:var(--gray)}
       <article class="nw-card ip">
         <div class="nw-media">
           <span class="nw-tag"><i></i>IP PORTFOLIO</span>
-          <div class="nw-docs" aria-hidden="true">
-            <div class="nw-doc back">
-              <div class="org">지식재산처</div>
-              <div class="ttl">출원번호통지서</div>
-              <dl><dt>출원일자</dt><dd>2026.10.18</dd><dt>출원번호</dt><dd class="num">10-2026-0200529</dd></dl>
-            </div>
-            <div class="nw-doc front">
-              <div class="org">지식재산처</div>
+          <div class="nw-docs">
+            <div class="nw-doc d1">
               <div class="ttl">출원번호통지서</div>
               <dl>
-                <dt>출원일자</dt><dd>2026.10.18</dd>
                 <dt>출원번호</dt><dd class="num">10-2026-0200531</dd>
-                <dt>발명자</dt><dd>지병석</dd>
-                <dt>발명의 명칭</dt><dd>원천 데이터의 시공간 종속성 기반 비접촉 맥파 후보 검증 및 신뢰도 상태 제어</dd>
+                <dt>발명의 명칭</dt><dd>원천 데이터의 공간 및 시간 종속성에 기초한 비접촉 맥파 후보 검증 및 신뢰도 상태 제어 방법, 장치 및 기록매체</dd>
               </dl>
-              <span class="nw-seal"><span><b>2</b><small>건 출원</small></span></span>
+            </div>
+            <div class="nw-doc d2">
+              <div class="ttl">출원번호통지서</div>
+              <dl>
+                <dt>출원번호</dt><dd class="num">10-2026-0200529</dd>
+                <dt>발명의 명칭</dt><dd>비접촉 생체 및 행동 신호의 신뢰도와 원천별 근거 개수에 기초한 다영역 상태평가 및 조건부 우선순위 결정 방법, 장치 및 기록매체</dd>
+              </dl>
             </div>
           </div>
         </div>
@@ -1852,9 +1855,9 @@ footer p{font-size:12.5px;color:var(--gray)}
       <article class="nw-card">
         <div class="nw-media">
           <span class="nw-tag"><i></i>WHITEPAPER</span>
-          <div class="nw-book"><div class="bk">
+          <a class="nw-book" href="https://bookk.co.kr/bookStore/6acccb223f1876caf8ec6fff" target="_blank" rel="noopener" aria-label="기술백서 구매 페이지(부크크)로 이동"><div class="bk">
             <img width="420" height="594" src="img/whitepaper-cover.webp" alt="기술백서 표지 — NeuroLens: AI 비접촉 생체측정과 자기조절학, 지병석 지음" loading="lazy">
-          </div></div>
+          </div><span class="nw-buy">부크크에서 보기 ↗</span></a>
           <span class="nw-isbn">ISBN 979-11-123-2005-6</span>
         </div>
         <div class="nw-body">
