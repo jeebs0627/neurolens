@@ -3,6 +3,56 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "a4d17c08afc6433ebab7f7fe1cc43886befbf777",
+      "parents": [
+        "d25da4945ea56d027ef165dc96bf1eaf64f3dd2a"
+      ],
+      "committedAt": "2026-10-20T16:08:11+09:00",
+      "subject": "홈페이지 로드맵 위 소식 섹션: 연합뉴스경제TV 보도(쇼츠 인라인 재생)·특허 출원 2건·In_Mind 기술백서",
+      "url": "https://github.com/jeebs0627/neurolens/commit/a4d17c08afc6433ebab7f7fe1cc43886befbf777",
+      "files": [
+        {
+          "path": "img/news-yonhap-short.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "img/whitepaper-cover.webp",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 161,
+          "deletions": 0
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56764084924",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-20T07:08:17Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/AcHJBNbkNamk54gtzegTUUpBT6qr",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "31a4390aa2e25efc11c8f0111186e3c3532ad35f",
       "parents": [
         "350fedeebc6bdd45e9283d30dd51c11c7b921f3a"
@@ -21535,20 +21585,129 @@
         {
           "id": "evo-dcd04990d2ec-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-dcd04990d2ec-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: dcd04990d2ec5408c014465ff2ae7c1d9c33982b\n변경 제목: Add files via upload\n관련 파일: SUPABASE.md, care.js, chat.html, chat_admin.html, chatbot_inst.md, index.html, onepager.html, result.html, supabase/functions/care-notify/index.ts, supabase/functions/chat/index.ts\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-dcd04990d2ec-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "Supabase 챗봇 및 케어 기능 추가에 따른 웹캠 측정 신호 처리 파이프라인 검증 및 데이터 연동 과제",
+          "rationale": "공개 GitHub 커밋(dcd04990d2ec5408c014465ff2ae7c1d9c33982b)을 통해 care.js, result.html, index.html 및 Supabase Edge Functions(care-notify, chat)가 새로 추가되거나 수정되었다. 그러나 accuracyValidated=false이고 코드 diff 생략 상태이므로, 본 변경이 웹캠 환경에서 약한 측정 신호(미세 눈운동, 프레임 레이트 변동 등) 수집 수율과 오차율에 미치는 실증적 영향은 미검증 가설이다. 프론트엔드/백엔드 비동기 통신 로직 추가가 프레임 드롭이나 연산 지연을 유발하여 약한 신호 회복력 및 정상 유효 신호 판정에 부정적 영향을 미치는지 구별하여 검증해야 한다.",
+          "validationPlan": "1. 세션 환경 분리 검증: 참가자, 측정 기기(웹캠 스펙), 측정 날짜별로 분리된 테스트 세션을 구성하고, 전체 시도 분모 대비 측정 성공률 및 신호 활용률을 산출한다.\n2. 신호 오차 및 불확실성 평가: 챗봇/케어 알림 비동기 요청 발생 시 프레임 드롭률, 타임스탬프 이탈률, 허용 오차 범위를 평가하며 정상값을 인위적으로 생성하여 채우지 않는다.\n3. 데이터셋 기반 실측 연결: 이 제출물 내에는 실측 데이터가 포함되어 있지 않으므로, 데이터셋 내의 실측 타임스탬프 데이터 및 연구자 메모를 직접 조회·연결하여 변경 전후의 신호 활용률 및 측정 오차 차이를 비교 분석한다.\n4. 회귀 기준 설정: 신호 활용률 절감 없는 오차 증가, 혹은 프레임 수집 실패율이 이전 기준 대비 증가할 경우 회귀로 판단하고 원인을 격리한다.",
+          "prompt": "[개발 AI 전달용 작업 프롬프트]\n\n1. 현재 코드 및 변경 사항 확인:\n- 커밋 dcd04990d2ec5408c014465ff2ae7c1d9c33982b에서 변경된 care.js, index.html, result.html 및 supabase/functions 관련 코드를 분석하여 비동기 데이터 전달, UI 스레드 점유, 챗봇 통신 로직을 파악하라.\n\n2. 부분 유효 신호 활용량 및 오차 함께 평가하는 변경·검증 과제:\n- 웹캠 미세 신호 수집 중 프레임 손실 또는 부분 노이즈 발생 시, 약한 신호를 무조건 폐기하거나 임의의 정상값으로 채우지 말고 허용 오차 및 불확실성 지표를 산출하도록 로직을 점검하라.\n- 데이터셋(dataset)에 존재하는 기존 실측 기록 및 연구 메모와 현 백엔드 연동 로직을 연결하여, 챗봇/알림 연동 시 발생하는 스레드 지연이 신호 수율과 오차범위에 미치는 영향을 측정하라. 없는 수치나 가상의 실험 결과를 만들어내지 마라.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 전체 시도 분모 대비 약한 신호의 유효 회복률(활용률)이 유지 또는 향상되며, 측정 실패율이 감소하고 허용 오차 범위 내 산출이 이루어짐.\n- 회귀 기준: 비동기 알림/챗봇 호출로 인해 프레임 레이트 저하, 타임스탬프 지연 발생, 또는 신호 손실 시 정상값 자의적 채움(imputation) 현상 발생.\n\n4. 결과 보고 양식:\n- 관측 사실 / 연구자 주장 / 가설 / 개발 보고 / 검증된 증거를 명확히 구별하여 보고서 작성.\n- 세션 분모(참가자 수, 기기 종류, 측정 날짜별) 대비 실패/성공 건수, 조건별 활용률 및 측정 오차 수치 도출.\n- 미검증 항목 및 데이터셋 연결 결과를 명시할 것.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: dcd04990d2ec5408c014465ff2ae7c1d9c33982b\nDataset-Task: evo-dcd04990d2ec-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 2,
+      "analysisState": "generated",
+      "analysisAttempts": 3,
       "deploymentEvents": [],
-      "lastAttemptAt": "2026-10-20T05:23:20.472161+00:00",
-      "analysisError": "HTTP_429",
-      "analysisErrorCode": "GEMINI_RATE_LIMIT"
+      "lastAttemptAt": "2026-10-20T07:08:38.846959+00:00",
+      "analysis": {
+        "summary": "관측된 변경 사항은 커밋 'dcd04990d2ec5408c014465ff2ae7c1d9c33982b'(커밋명: 'Add files via upload')에서 총 10개 파일이 추가 및 수정(SUPABASE.md, care.js, chat.html, chat_admin.html, chatbot_inst.md, index.html, onepager.html, result.html, supabase/functions/care-notify/index.ts, supabase/functions/chat/index.ts)된 내역이다. 정확도 검증 여부(accuracyValidated)는 false로 명시되어 있으며, 패치 본문(patchExcerpt)은 제공되지 않아 상세 코드 차이(diff)는 생략된 상태다. 이번 변경은 백엔드 및 챗봇 인터페이스/알림 기능(Supabase Edge Functions 및 관련 HTML/JS) 추가 및 확장에 집중되어 있으나, 웹캠 기반 NeuroLens 신호 측정 알고리즘 및 노이즈 수집·처리 로직에 미치는 영향은 아직 검증되지 않은 가설 단계다. 실제 웹캠 환경에서 데이터 측정 성공률과 신뢰도 수치에 미치는 미검증 영향을 평가할 후속 검증 과제가 필요하다.",
+        "tasks": [
+          {
+            "id": "evo-dcd04990d2ec-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "Supabase 챗봇 및 케어 기능 추가에 따른 웹캠 측정 신호 처리 파이프라인 검증 및 데이터 연동 과제",
+            "rationale": "공개 GitHub 커밋(dcd04990d2ec5408c014465ff2ae7c1d9c33982b)을 통해 care.js, result.html, index.html 및 Supabase Edge Functions(care-notify, chat)가 새로 추가되거나 수정되었다. 그러나 accuracyValidated=false이고 코드 diff 생략 상태이므로, 본 변경이 웹캠 환경에서 약한 측정 신호(미세 눈운동, 프레임 레이트 변동 등) 수집 수율과 오차율에 미치는 실증적 영향은 미검증 가설이다. 프론트엔드/백엔드 비동기 통신 로직 추가가 프레임 드롭이나 연산 지연을 유발하여 약한 신호 회복력 및 정상 유효 신호 판정에 부정적 영향을 미치는지 구별하여 검증해야 한다.",
+            "validationPlan": "1. 세션 환경 분리 검증: 참가자, 측정 기기(웹캠 스펙), 측정 날짜별로 분리된 테스트 세션을 구성하고, 전체 시도 분모 대비 측정 성공률 및 신호 활용률을 산출한다.\n2. 신호 오차 및 불확실성 평가: 챗봇/케어 알림 비동기 요청 발생 시 프레임 드롭률, 타임스탬프 이탈률, 허용 오차 범위를 평가하며 정상값을 인위적으로 생성하여 채우지 않는다.\n3. 데이터셋 기반 실측 연결: 이 제출물 내에는 실측 데이터가 포함되어 있지 않으므로, 데이터셋 내의 실측 타임스탬프 데이터 및 연구자 메모를 직접 조회·연결하여 변경 전후의 신호 활용률 및 측정 오차 차이를 비교 분석한다.\n4. 회귀 기준 설정: 신호 활용률 절감 없는 오차 증가, 혹은 프레임 수집 실패율이 이전 기준 대비 증가할 경우 회귀로 판단하고 원인을 격리한다.",
+            "prompt": "[개발 AI 전달용 작업 프롬프트]\n\n1. 현재 코드 및 변경 사항 확인:\n- 커밋 dcd04990d2ec5408c014465ff2ae7c1d9c33982b에서 변경된 care.js, index.html, result.html 및 supabase/functions 관련 코드를 분석하여 비동기 데이터 전달, UI 스레드 점유, 챗봇 통신 로직을 파악하라.\n\n2. 부분 유효 신호 활용량 및 오차 함께 평가하는 변경·검증 과제:\n- 웹캠 미세 신호 수집 중 프레임 손실 또는 부분 노이즈 발생 시, 약한 신호를 무조건 폐기하거나 임의의 정상값으로 채우지 말고 허용 오차 및 불확실성 지표를 산출하도록 로직을 점검하라.\n- 데이터셋(dataset)에 존재하는 기존 실측 기록 및 연구 메모와 현 백엔드 연동 로직을 연결하여, 챗봇/알림 연동 시 발생하는 스레드 지연이 신호 수율과 오차범위에 미치는 영향을 측정하라. 없는 수치나 가상의 실험 결과를 만들어내지 마라.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 전체 시도 분모 대비 약한 신호의 유효 회복률(활용률)이 유지 또는 향상되며, 측정 실패율이 감소하고 허용 오차 범위 내 산출이 이루어짐.\n- 회귀 기준: 비동기 알림/챗봇 호출로 인해 프레임 레이트 저하, 타임스탬프 지연 발생, 또는 신호 손실 시 정상값 자의적 채움(imputation) 현상 발생.\n\n4. 결과 보고 양식:\n- 관측 사실 / 연구자 주장 / 가설 / 개발 보고 / 검증된 증거를 명확히 구별하여 보고서 작성.\n- 세션 분모(참가자 수, 기기 종류, 측정 날짜별) 대비 실패/성공 건수, 조건별 활용률 및 측정 오차 수치 도출.\n- 미검증 항목 및 데이터셋 연결 결과를 명시할 것.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: dcd04990d2ec5408c014465ff2ae7c1d9c33982b\nDataset-Task: evo-dcd04990d2ec-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "d8673e934b16644f5ab0b082572680ad10ea7035157de9d1358273a193a5c18a",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 2,
+          "usage": {
+            "promptTokenCount": 1036,
+            "candidatesTokenCount": 1261,
+            "totalTokenCount": 2710
+          }
+        },
+        "generatedAt": "2026-10-20T07:08:58.395600+00:00",
+        "sourceSha": "dcd04990d2ec5408c014465ff2ae7c1d9c33982b",
+        "sourceEvidence": {
+          "sha": "dcd04990d2ec5408c014465ff2ae7c1d9c33982b",
+          "parents": [
+            "3a10c002a73447e1e7381dc810720ff015a6ad55"
+          ],
+          "committedAt": "2026-07-26T13:41:30Z",
+          "subject": "Add files via upload",
+          "url": "https://github.com/jeebs0627/neurolens/commit/dcd04990d2ec5408c014465ff2ae7c1d9c33982b",
+          "files": [
+            {
+              "path": "SUPABASE.md",
+              "status": "added",
+              "additions": 313,
+              "deletions": 0
+            },
+            {
+              "path": "care.js",
+              "status": "modified",
+              "additions": 2533,
+              "deletions": 1462
+            },
+            {
+              "path": "chat.html",
+              "status": "added",
+              "additions": 577,
+              "deletions": 0
+            },
+            {
+              "path": "chat_admin.html",
+              "status": "added",
+              "additions": 724,
+              "deletions": 0
+            },
+            {
+              "path": "chatbot_inst.md",
+              "status": "added",
+              "additions": 830,
+              "deletions": 0
+            },
+            {
+              "path": "index.html",
+              "status": "modified",
+              "additions": 440,
+              "deletions": 290
+            },
+            {
+              "path": "onepager.html",
+              "status": "modified",
+              "additions": 230,
+              "deletions": 230
+            },
+            {
+              "path": "result.html",
+              "status": "modified",
+              "additions": 123,
+              "deletions": 169
+            },
+            {
+              "path": "supabase/functions/care-notify/index.ts",
+              "status": "added",
+              "additions": 210,
+              "deletions": 0
+            },
+            {
+              "path": "supabase/functions/chat/index.ts",
+              "status": "added",
+              "additions": 483,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "39384577158"
+      }
     },
     {
       "sha": "3a10c002a73447e1e7381dc810720ff015a6ad55",
@@ -22676,9 +22835,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "4f38d6798bea34dc407082201b015ce50b9f76ff"
+    "sourceHead": "a4d17c08afc6433ebab7f7fe1cc43886befbf777"
   },
-  "updatedAt": "2026-10-20T05:23:29.597232+00:00",
-  "aiCooldownUntil": "2026-10-20T06:23:28.152951+00:00",
-  "aiCooldownReason": "GEMINI_RATE_LIMIT"
+  "updatedAt": "2026-10-20T07:08:58.993264+00:00"
 }
