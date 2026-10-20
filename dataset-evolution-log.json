@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "441e73806a085f87fc5effa91fbe8a3fcb4bdc4d",
+      "parents": [
+        "b5e434541066a543183fc5f39137b028fc60e35f"
+      ],
+      "committedAt": "2026-10-20T16:24:50+09:00",
+      "subject": "소식 섹션: 출원번호통지서 2건(출원번호·발명의 명칭) 입체 서류로, 백서 표지에 부크크 링크",
+      "url": "https://github.com/jeebs0627/neurolens/commit/441e73806a085f87fc5effa91fbe8a3fcb4bdc4d",
+      "files": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 28,
+          "deletions": 25
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56764957845",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-20T07:24:55Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/Dv3t1ndSEQFfgnzPRgdXN9TopBsV",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "a4d17c08afc6433ebab7f7fe1cc43886befbf777",
       "parents": [
         "d25da4945ea56d027ef165dc96bf1eaf64f3dd2a"
@@ -22855,7 +22893,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "df2cc46a878efecc6cff612ea86258d2a9a121fa"
+    "sourceHead": "441e73806a085f87fc5effa91fbe8a3fcb4bdc4d"
   },
-  "updatedAt": "2026-10-20T07:09:26.763679+00:00"
+  "updatedAt": "2026-10-20T07:25:24.621598+00:00"
 }
