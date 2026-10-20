@@ -478,6 +478,68 @@ p.lead.lead-1l{max-width:none}
 .commit .c p{font-size:12.5px;color:#B9C4DE}
 
 /* ============================================================
+   NEWS — 언론 보도 · 특허 출원 · 백서 발간
+============================================================ */
+#news{background:linear-gradient(180deg,#fff 0%,#F6F8FE 100%);border-bottom:1px solid var(--line)}
+.nw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch;margin-top:30px}
+@media(max-width:900px){.nw-grid{grid-template-columns:1fr;max-width:460px;margin-left:auto;margin-right:auto}.nw-media{aspect-ratio:1/1}}
+.nw-card{--nc:#1E5AF0;--nsoft:#EEF3FF;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow-sm);transition:box-shadow .25s,transform .25s}
+.nw-card:hover{box-shadow:var(--shadow-md);transform:translateY(-4px)}
+.nw-card.news{--nc:#E0446A;--nsoft:#FDEDF1}
+.nw-card.ip{--nc:#6C4CE0;--nsoft:#F1EDFD}
+.nw-media{position:relative;aspect-ratio:5/6;display:grid;place-items:center;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,#fff 0%,var(--nsoft) 70%)}
+.nw-media::after{content:"";position:absolute;inset:auto 0 0 0;height:1px;background:var(--line)}
+.nw-tag{position:absolute;top:14px;left:14px;z-index:3;display:inline-flex;align-items:center;gap:6px;font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--nc);background:rgba(255,255,255,.92);border:1px solid rgba(11,27,63,.06);border-radius:999px;padding:5px 11px;box-shadow:var(--shadow-sm)}
+.nw-tag i{width:6px;height:6px;border-radius:50%;background:var(--nc)}
+.nw-body{display:flex;flex-direction:column;flex:1;padding:22px 24px 24px}
+.nw-kind{font-size:12.5px;font-weight:700;color:var(--nc);margin-bottom:6px}
+.nw-kind span{font-family:var(--font-num);color:var(--gray2);font-weight:600;margin-left:6px}
+.nw-card h3{font-size:19px;font-weight:900;letter-spacing:-.02em;line-height:1.35;margin-bottom:8px;word-break:keep-all}
+.nw-card p{font-size:13.5px;color:var(--gray);line-height:1.65;word-break:keep-all}
+.nw-foot{margin-top:auto;padding-top:16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.nw-chip{font-size:12px;font-weight:700;color:var(--ink2);background:#F4F7FD;border:1px solid var(--line);border-radius:9px;padding:4px 9px}
+.nw-link{font-size:13px;font-weight:800;color:var(--nc);display:inline-flex;align-items:center;gap:4px}
+.nw-link:hover{text-decoration:underline}
+/* 영상 — 세로 쇼츠 플레이어 */
+.nw-card.news .nw-media{background:radial-gradient(90% 70% at 50% 45%,#2A3F7A 0%,#0B1B3F 72%)}
+.nw-card.news .nw-media::before{content:"";position:absolute;inset:-10%;background:var(--thumb) center/cover;filter:blur(28px) saturate(1.2);opacity:.35}
+.nw-short{position:relative;z-index:1;height:88%;aspect-ratio:9/16;border-radius:16px;overflow:hidden;background:#000;box-shadow:0 22px 40px -18px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.12)}
+.nw-short button{all:unset;cursor:pointer;position:absolute;inset:0;display:block}
+.nw-short button img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
+.nw-short button:hover img{transform:scale(1.04)}
+.nw-short button:focus-visible{outline:3px solid #fff;outline-offset:-3px}
+.nw-play{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:50%;background:rgba(224,68,106,.94);display:grid;place-items:center;box-shadow:0 10px 24px rgba(0,0,0,.4),0 0 0 6px rgba(255,255,255,.22);transition:transform .25s}
+.nw-short button:hover .nw-play{transform:translate(-50%,-50%) scale(1.08)}
+.nw-play svg{width:22px;height:22px;fill:#fff;margin-left:3px}
+.nw-short iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+/* 특허 — 출원번호통지서 요약 */
+.nw-docs{position:relative;width:74%;height:72%}
+.nw-doc{position:absolute;inset:0;background:#fff;border:1px solid #E2DBFA;border-radius:14px;padding:18px 18px 16px;box-shadow:0 18px 34px -20px rgba(70,40,170,.45);display:flex;flex-direction:column}
+.nw-doc.back{transform:translate(16px,-14px) rotate(4deg);opacity:.75}
+.nw-doc.front{transform:rotate(-2deg)}
+.nw-doc .org{font-size:10.5px;font-weight:800;color:var(--gray);letter-spacing:.04em}
+.nw-doc .ttl{font-size:15px;font-weight:900;letter-spacing:.32em;text-align:center;margin:12px 0 14px;color:var(--ink)}
+.nw-doc dl{display:grid;grid-template-columns:auto 1fr;gap:7px 10px;font-size:11px;line-height:1.45}
+.nw-doc dt{color:var(--gray2);font-weight:700;white-space:nowrap}
+.nw-doc dd{color:var(--ink2);font-weight:700;word-break:keep-all}
+.nw-doc dd.num{font-family:var(--font-num);color:var(--violet)}
+.nw-seal{position:absolute;right:-12px;bottom:-14px;width:70px;height:70px;border-radius:50%;display:grid;place-items:center;text-align:center;background:var(--grad-violet);color:#fff;font-family:var(--font-num);box-shadow:0 10px 22px -8px rgba(108,76,224,.6),0 0 0 4px #fff}
+.nw-seal b{display:block;font-size:22px;font-weight:800;line-height:1}
+.nw-seal small{display:block;font-size:9.5px;font-weight:700;letter-spacing:.06em;margin-top:2px}
+.nw-ip-list{list-style:none;margin-top:4px;display:flex;flex-direction:column;gap:7px}
+.nw-ip-list li{font-size:13px;color:var(--gray);line-height:1.5;padding-left:16px;position:relative;word-break:keep-all}
+.nw-ip-list li::before{content:"";position:absolute;left:2px;top:8px;width:6px;height:6px;border-radius:2px;background:var(--nc)}
+/* 백서 — 3D 표지 */
+.nw-book{position:relative;width:52%;aspect-ratio:420/594;perspective:900px}
+.nw-book .bk{position:absolute;inset:0;transform:rotateY(-20deg);transform-style:preserve-3d;transform-origin:left center;transition:transform .5s}
+.nw-card:hover .nw-book .bk{transform:rotateY(-8deg)}
+.nw-book img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:2px 6px 6px 2px;box-shadow:18px 20px 34px -14px rgba(11,27,63,.5)}
+.nw-book .bk::before{content:"";position:absolute;z-index:1;top:0;bottom:0;left:0;width:9px;background:linear-gradient(90deg,rgba(255,255,255,.35),rgba(0,0,0,.18) 60%,transparent);border-radius:2px 0 0 2px}
+.nw-book .bk::after{content:"";position:absolute;top:2px;bottom:2px;left:0;width:22px;background:linear-gradient(90deg,#0E3C9E,#2A62D8);transform:rotateY(90deg) translateZ(-11px) translateX(-11px)}
+.nw-isbn{position:absolute;bottom:14px;right:14px;z-index:3;font-family:var(--font-num);font-size:10.5px;font-weight:700;color:var(--gray);background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+@media(prefers-reduced-motion:reduce){.nw-card,.nw-book .bk,.nw-short button img{transition:none}}
+
+/* ============================================================
    ROADMAP
 ============================================================ */
 .road{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative}
@@ -1721,6 +1783,93 @@ footer p{font-size:12.5px;color:var(--gray)}
   </div>
 </section>
 
+<!-- ================= 소식: 언론 보도 · 특허 · 백서 ================= -->
+<section id="news">
+  <div class="wrap">
+    <span class="eyebrow">News · 2026.10</span>
+    <h2 class="sec">언론 · 특허 · 백서로 증명하는 <em>NeuroLens</em></h2>
+    <p class="lead">10월, 연합뉴스경제TV 보도와 핵심 알고리즘 특허 출원 2건, In_Mind 기술백서 발간이 이어졌습니다.</p>
+
+    <div class="nw-grid">
+      <!-- 언론 보도 -->
+      <article class="nw-card news">
+        <div class="nw-media" style="--thumb:url('img/news-yonhap-short.webp')">
+          <span class="nw-tag"><i></i>MEDIA</span>
+          <div class="nw-short" data-yt="UR7JJHkd7VI">
+            <button type="button" aria-label="연합뉴스경제TV 뉴로렌즈 보도 영상 재생">
+              <img width="450" height="800" src="img/news-yonhap-short.webp" alt="연합뉴스경제TV 보도 화면 — AI가 시선·생체신호 읽어내… 웹캠으로 마음 점검하는 '뉴로렌즈'" loading="lazy">
+              <span class="nw-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+          </div>
+        </div>
+        <div class="nw-body">
+          <div class="nw-kind">언론 보도<span>2026.10.15</span></div>
+          <h3>연합뉴스경제TV, 뉴로렌즈 보도</h3>
+          <p>시선·생체신호 추적 AI로 웹캠만으로 일상 속 마음건강을 점검하는 뉴로렌즈의 시도를 소개했습니다.</p>
+          <div class="nw-foot">
+            <a class="nw-link" href="https://www.youtube.com/shorts/UR7JJHkd7VI" target="_blank" rel="noopener">YouTube에서 보기 ↗</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 특허 출원 -->
+      <article class="nw-card ip">
+        <div class="nw-media">
+          <span class="nw-tag"><i></i>IP PORTFOLIO</span>
+          <div class="nw-docs" aria-hidden="true">
+            <div class="nw-doc back">
+              <div class="org">지식재산처</div>
+              <div class="ttl">출원번호통지서</div>
+              <dl><dt>출원일자</dt><dd>2026.10.18</dd><dt>출원번호</dt><dd class="num">10-2026-0200529</dd></dl>
+            </div>
+            <div class="nw-doc front">
+              <div class="org">지식재산처</div>
+              <div class="ttl">출원번호통지서</div>
+              <dl>
+                <dt>출원일자</dt><dd>2026.10.18</dd>
+                <dt>출원번호</dt><dd class="num">10-2026-0200531</dd>
+                <dt>발명자</dt><dd>지병석</dd>
+                <dt>발명의 명칭</dt><dd>원천 데이터의 시공간 종속성 기반 비접촉 맥파 후보 검증 및 신뢰도 상태 제어</dd>
+              </dl>
+              <span class="nw-seal"><span><b>2</b><small>건 출원</small></span></span>
+            </div>
+          </div>
+        </div>
+        <div class="nw-body">
+          <div class="nw-kind">특허 출원<span>2026.10.18</span></div>
+          <h3>핵심 알고리즘 특허 출원 2건</h3>
+          <ul class="nw-ip-list">
+            <li>시공간 종속성 기반 비접촉 맥파 후보 검증 · 신뢰도 제어</li>
+            <li>생체·행동 신호 신뢰도 기반 다영역 상태평가 · 우선순위 결정</li>
+          </ul>
+          <div class="nw-foot">
+            <span class="nw-chip">비접촉 맥파</span><span class="nw-chip">다영역 상태평가</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- 기술백서 -->
+      <article class="nw-card">
+        <div class="nw-media">
+          <span class="nw-tag"><i></i>WHITEPAPER</span>
+          <div class="nw-book"><div class="bk">
+            <img width="420" height="594" src="img/whitepaper-cover.webp" alt="기술백서 표지 — NeuroLens: AI 비접촉 생체측정과 자기조절학, 지병석 지음" loading="lazy">
+          </div></div>
+          <span class="nw-isbn">ISBN 979-11-123-2005-6</span>
+        </div>
+        <div class="nw-body">
+          <div class="nw-kind">기술백서 발간<span>2026.10</span></div>
+          <h3>NeuroLens In_Mind 기술백서 출간</h3>
+          <p>웹캠 기반 생체신호·시선 데이터 해석 체계를 측정 원리부터 해석 구조까지 한 권으로 정리했습니다.</p>
+          <div class="nw-foot">
+            <span class="nw-chip">rPPG</span><span class="nw-chip">PERCLOS</span><span class="nw-chip">시선추적</span><span class="nw-chip">자기조절</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
 <!-- ================= 로드맵 ================= -->
 <section id="roadmap">
   <div class="wrap">
@@ -1953,6 +2102,18 @@ footer p{font-size:12.5px;color:var(--gray)}
     }
   } catch (_) {}
 })();
+/* 언론 보도 쇼츠: 클릭 전에는 썸네일만, 클릭하면 그 자리에서 YouTube 플레이어로 바꿔 재생 */
+document.querySelectorAll('.nw-short[data-yt]').forEach(function (box) {
+  const btn = box.querySelector('button');
+  btn.addEventListener('click', function () {
+    const f = document.createElement('iframe');
+    f.src = 'https://www.youtube-nocookie.com/embed/' + box.dataset.yt + '?autoplay=1&playsinline=1&rel=0';
+    f.title = btn.getAttribute('aria-label');
+    f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    f.allowFullscreen = true;
+    btn.replaceWith(f);
+  });
+});
 </script>
 <script>
 /* =========================================================================
