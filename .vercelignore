@@ -21,3 +21,10 @@ gemini.key
 /training/
 /research_export/
 /tools/colab/
+
+# IN MIND 2.0 local-only artifacts
+/neurolens2/operational-baseline.json
+/neurolens2/*.test.cjs
+/start-neurolens2.ps1
+/docs/neurolens2-implementation.txt
+/output/neurolens2/

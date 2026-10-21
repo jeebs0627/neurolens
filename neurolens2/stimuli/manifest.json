@@ -1,0 +1,415 @@
+{
+  "version": "nl2-stimuli-1",
+  "status": "provisional",
+  "source": "newbiz-stim/manifest.json v2; copied immutable subset",
+  "pairs": [
+    {
+      "id": "A-THR-A-01",
+      "form": "A",
+      "category": "threat",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-thr_animal_01.jpg",
+        "sha256": "0575c6d55007dafa2d58890d985c7dd1a3923df43b2a33603ca707cd6404b721",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_animal_001.jpg",
+        "sha256": "3a291480eed310d47c011aa5957f18e3aa49ff391fa1e44ff14777ea94755d4f",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "A-THR-A-02",
+      "form": "A",
+      "category": "threat",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-thr_animal_02.jpg",
+        "sha256": "c75ec6b0068e2df50690c76597c4f5693544ba27db05289276a8e2b54ba54d58",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_animal_002.jpg",
+        "sha256": "2a3894065f958df694876e3bf6dec29b6ee8d121adcf7042f77cebf3791004c1",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "A-THR-A-03",
+      "form": "A",
+      "category": "threat",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-thr_animal_03.jpg",
+        "sha256": "ad4a436c4410d475b5bda281fe0d8e05c4ac134abaf0bd715d5cb512138d7ecd",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_animal_003.jpg",
+        "sha256": "daae9d2c87127a7767b8590c5755b44f3ea60e9b6982602737a5af15ff97a9b2",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "A-THR-O-01",
+      "form": "A",
+      "category": "threat",
+      "content": "object",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-thr_object_01.jpg",
+        "sha256": "41153726121ca68b4fc13d84432575e0549bd5f80c3db00343c3e83898eaceda",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_object_001.jpg",
+        "sha256": "bc58f8d2b9abe751ddb719c6c6b09957bc85323505704eeb41009666561247a4",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "A-DYS-A-01",
+      "form": "A",
+      "category": "dysphoric",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-dys_animal_01.jpg",
+        "sha256": "579d16a35134bc70698ac1d2ca7c821ea67c4f3451579b42eb109761265117a3",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_animal_101.jpg",
+        "sha256": "29a1c74b69d2bfd708a1531d2e832d20a83fb0c20d4ea0fa2231f5f456378d84",
+        "luminance": 130
+      }
+    },
+    {
+      "id": "A-DYS-A-02",
+      "form": "A",
+      "category": "dysphoric",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-dys_animal_02.jpg",
+        "sha256": "1305215cb9a56c9bd41823d6b8368869c5c7bb00e7a41ff722bf9d9b6e0dd3e5",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_animal_102.jpg",
+        "sha256": "cb6251fceeb2f953c00de3688c2b6590e92b4b852c8edb1cee4a3e4a5231346f",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "A-DYS-O-01",
+      "form": "A",
+      "category": "dysphoric",
+      "content": "object",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-dys_object_01.jpg",
+        "sha256": "ea76cba6bf1f25d581a3a72312e37837263c600d6d77cc18dfbb39c989fc7ffa",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_object_101.jpg",
+        "sha256": "ae9b0fe5dbf7ff97d298e1e9fd4a3bbe7618e25b3f39290474bff3f4f5605c74",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "A-DYS-O-02",
+      "form": "A",
+      "category": "dysphoric",
+      "content": "object",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-dys_object_02.jpg",
+        "sha256": "6615b61eb56ce27f9d1b400ffc086c58586f178faf1fd5e8e1f41dba9ab37361",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_object_102.jpg",
+        "sha256": "521188c2637313489d96247bbeec01af9ba4fff9bc975218a980ef9cbbffdfcd",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "A-POS-A-01",
+      "form": "A",
+      "category": "positive",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-pos_animal_01.jpg",
+        "sha256": "ce82d2cb0b0b06f2f385d23b28c88187781ed093bcdaa6b77b84c67a2e1888af",
+        "luminance": 130
+      },
+      "neutral": {
+        "file": "A-neu_animal_201.jpg",
+        "sha256": "3b879bf820bc59bf5e43296e06cba1d65387ec7dfcc371d999927a2500f88d33",
+        "luminance": 131
+      }
+    },
+    {
+      "id": "A-POS-A-02",
+      "form": "A",
+      "category": "positive",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-pos_animal_02.jpg",
+        "sha256": "98806e50bb60ca37ec9e9fdb37d1fc17df555307e506fe8ce1c2fd30dd746039",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_animal_202.jpg",
+        "sha256": "444d6d3b21fba4140e8a162b1f7be971f9d88cd989109861b7ed76052d9d7057",
+        "luminance": 128
+      }
+    },
+    {
+      "id": "A-POS-A-03",
+      "form": "A",
+      "category": "positive",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-pos_animal_03.jpg",
+        "sha256": "3473c617a33bc21d7240d50f8da7b07f461b42431b7fc814645b7f339574a909",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "A-neu_animal_203.jpg",
+        "sha256": "eec0c9c94418783b67f5ada6fc55a693394273d5bb1e30d7b429be4f4b841b83",
+        "luminance": 128
+      }
+    },
+    {
+      "id": "A-POS-O-01",
+      "form": "A",
+      "category": "positive",
+      "content": "object",
+      "status": "provisional",
+      "emotion": {
+        "file": "A-pos_object_01.jpg",
+        "sha256": "cb90c17ec59c7613a0d46440e07c74491bf074faeddffc8163b8a94b763ca005",
+        "luminance": 131
+      },
+      "neutral": {
+        "file": "A-neu_object_201.jpg",
+        "sha256": "0af826ec962825270985958912e36ec9925fdef6b633b741d8ac8c55771681f9",
+        "luminance": 131
+      }
+    },
+    {
+      "id": "B-THR-A-04",
+      "form": "B",
+      "category": "threat",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-thr_animal_04.jpg",
+        "sha256": "70990e6b79721cd1ef094ee04f8a2c0de56839cd39119d2b7b01c37eb0b7c454",
+        "luminance": 130
+      },
+      "neutral": {
+        "file": "B-neu_animal_004.jpg",
+        "sha256": "78af7798afec79807403e651cccfcf40d66e0ed3519ba81700d6184609fe5e44",
+        "luminance": 130
+      }
+    },
+    {
+      "id": "B-THR-A-05",
+      "form": "B",
+      "category": "threat",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-thr_animal_05.jpg",
+        "sha256": "ff6b70806b8ff81833a69a8631d9ec80d42ebd6bf924de489cd234b4175288b7",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "B-neu_animal_005.jpg",
+        "sha256": "03a6cbc735df1be898bd696d9b15459196df78bb42bdc573ac6aee64c09288f2",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "B-THR-A-06",
+      "form": "B",
+      "category": "threat",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-thr_animal_06.jpg",
+        "sha256": "8a4b6576c7ca148b776c60d7fc8b9d6da4874995f818b4ebbe954cd52a47026b",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "B-neu_animal_006.jpg",
+        "sha256": "223850964cf65349dda47ea979bf58338fc12f2c693593a7c226ee0c96b3f213",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "B-THR-O-03",
+      "form": "B",
+      "category": "threat",
+      "content": "object",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-thr_object_03.jpg",
+        "sha256": "729efc3fcfa4ffe542102224dbf6c461bd4063ed56a1410fa4417a936ee6fa18",
+        "luminance": 130
+      },
+      "neutral": {
+        "file": "B-neu_object_003.jpg",
+        "sha256": "737ccacde7866dd03e3561a9760c153bc3c5724fac5016f90cb134a0455f0797",
+        "luminance": 130
+      }
+    },
+    {
+      "id": "B-DYS-A-05",
+      "form": "B",
+      "category": "dysphoric",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-dys_animal_05.jpg",
+        "sha256": "b969ca6b5f8ffd9487ef495937319712743c10f25f2aeb36de23dee900533616",
+        "luminance": 128
+      },
+      "neutral": {
+        "file": "B-neu_animal_105.jpg",
+        "sha256": "92f442de3332c2976eb33d63097261985021bd464da2cd97c7e2db551aa0a7e3",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "B-DYS-A-06",
+      "form": "B",
+      "category": "dysphoric",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-dys_animal_06.jpg",
+        "sha256": "1d89b76e8a4e3fe0217cdc23a7022d2a2efb65104d968b7b19d464dc1625d4b3",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "B-neu_animal_106.jpg",
+        "sha256": "f732176af45d0ac24cc8cbe064f2126a30157825b7b1eb608f230a7e82ca7acf",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "B-DYS-O-03",
+      "form": "B",
+      "category": "dysphoric",
+      "content": "object",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-dys_object_03.jpg",
+        "sha256": "ce25c832cc0b3a9103397f0b70612908fc4d625df7fe507f6abb52caf8963b47",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "B-neu_object_103.jpg",
+        "sha256": "958d5fb8eb0589089c47cd9a315f10b11bd5236314abf0013a029aacd34f54ae",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "B-DYS-O-04",
+      "form": "B",
+      "category": "dysphoric",
+      "content": "object",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-dys_object_04.jpg",
+        "sha256": "6234719cb2bdb473b841fcdc36e36d9e1e34fd98d8a63e38ec00f766b646a99b",
+        "luminance": 131
+      },
+      "neutral": {
+        "file": "B-neu_object_104.jpg",
+        "sha256": "b69fc44b764dd012a325184a9c9530cd6ad6e0b8b09e33d737d76507a7feeed9",
+        "luminance": 130
+      }
+    },
+    {
+      "id": "B-POS-A-04",
+      "form": "B",
+      "category": "positive",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-pos_animal_04.jpg",
+        "sha256": "cf8b363179708834cd8734ba531f8b52b23be6499a91dc53144cc5cc02d1c96d",
+        "luminance": 131
+      },
+      "neutral": {
+        "file": "B-neu_animal_204.jpg",
+        "sha256": "3247f03b53809fdb442e4349b64ff414b324503a628feefb07d7155ee661c615",
+        "luminance": 131
+      }
+    },
+    {
+      "id": "B-POS-A-05",
+      "form": "B",
+      "category": "positive",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-pos_animal_05.jpg",
+        "sha256": "40d0046b7830b964e2769e94d8963905a5a870cb21ef5d432ac93ea15fd92aa1",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "B-neu_animal_205.jpg",
+        "sha256": "47030bc695ba277080fe999a6275283bb86bedeb58f866aa31e8f944cc88bc7d",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "B-POS-A-06",
+      "form": "B",
+      "category": "positive",
+      "content": "animal",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-pos_animal_06.jpg",
+        "sha256": "1c2da7ee01f6a95e89d6df86dea8cfffe305256f2a60307af01e2013a8e7fbf7",
+        "luminance": 130
+      },
+      "neutral": {
+        "file": "B-neu_animal_206.jpg",
+        "sha256": "5a5ee7e6c42ee519b20a78a0b128b7bddab7ed22978f3c9abb0e1d3cb7cda869",
+        "luminance": 129
+      }
+    },
+    {
+      "id": "B-POS-O-03",
+      "form": "B",
+      "category": "positive",
+      "content": "object",
+      "status": "provisional",
+      "emotion": {
+        "file": "B-pos_object_03.jpg",
+        "sha256": "95ac1cb6961c21718ed35cd4e938bbc31f19099aef0d383eabda1a01c4580ed8",
+        "luminance": 129
+      },
+      "neutral": {
+        "file": "B-neu_object_203.jpg",
+        "sha256": "14bcf6776e65b11dede3c2c06f444d09171064359cbf76d6ba005f971464062b",
+        "luminance": 129
+      }
+    }
+  ]
+}
