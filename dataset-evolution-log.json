@@ -3,6 +3,596 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "693617fa2eda984798bdad1bc8089c56c19d150a",
+      "parents": [
+        "6364902ece9bdf6e276b202cd39448645432999b"
+      ],
+      "committedAt": "2026-10-22T08:16:49+09:00",
+      "subject": "fix: preserve pinned measurement assets across checkouts",
+      "url": "https://github.com/jeebs0627/neurolens/commit/693617fa2eda984798bdad1bc8089c56c19d150a",
+      "files": [
+        {
+          "path": "neurolens2/.gitattributes",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56941896662",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-21T23:16:54Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/DdymjcUNXyDjeVCKFgipwU1zh4sn",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-56941954035",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-21T23:17:52Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/DdymjcUNXyDjeVCKFgipwU1zh4sn",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-7239594418-20214929801",
+          "type": "deployment",
+          "deploymentId": 7239594418,
+          "environment": "Preview",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-21T23:17:52Z",
+          "url": "https://neurolens-pmm40fihm-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        },
+        {
+          "key": "check-56942016067",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-21T23:18:56Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/5pWhaXJiQH4zFZELTGzUcvfmo8Jx",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
+      "sha": "6364902ece9bdf6e276b202cd39448645432999b",
+      "parents": [
+        "2bc8ee163bcd1856a78aa82408170983224dba85"
+      ],
+      "committedAt": "2026-10-22T08:15:53+09:00",
+      "subject": "feat: add isolated IN MIND 2.0 admin research studio",
+      "url": "https://github.com/jeebs0627/neurolens/commit/6364902ece9bdf6e276b202cd39448645432999b",
+      "files": [
+        {
+          "path": ".vercelignore",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 0
+        },
+        {
+          "path": "api/neurolens2.py",
+          "status": "modified",
+          "additions": 75,
+          "deletions": 0
+        },
+        {
+          "path": "docs/neurolens2-implementation.txt",
+          "status": "modified",
+          "additions": 250,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2.html",
+          "status": "modified",
+          "additions": 50,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/analysis-worker.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/app.js",
+          "status": "modified",
+          "additions": 179,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/camera.js",
+          "status": "modified",
+          "additions": 40,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/core.js",
+          "status": "modified",
+          "additions": 199,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/core.test.cjs",
+          "status": "modified",
+          "additions": 24,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/entry.js",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/fixture.js",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/operational-baseline.json",
+          "status": "modified",
+          "additions": 444,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/pulse.js",
+          "status": "modified",
+          "additions": 77,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/sensor-worker.js",
+          "status": "modified",
+          "additions": 49,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/stimuli/A-dys_animal_01.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-dys_animal_02.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-dys_object_01.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-dys_object_02.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_animal_001.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_animal_002.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_animal_003.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_animal_101.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_animal_102.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_animal_201.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_animal_202.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_animal_203.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_object_001.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_object_101.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_object_102.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-neu_object_201.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-pos_animal_01.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-pos_animal_02.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-pos_animal_03.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-pos_object_01.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-thr_animal_01.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-thr_animal_02.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-thr_animal_03.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/A-thr_object_01.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-dys_animal_05.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-dys_animal_06.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-dys_object_03.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-dys_object_04.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_animal_004.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_animal_005.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_animal_006.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_animal_105.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_animal_106.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_animal_204.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_animal_205.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_animal_206.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_object_003.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_object_103.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_object_104.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-neu_object_203.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-pos_animal_04.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-pos_animal_05.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-pos_animal_06.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-pos_object_03.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-thr_animal_04.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-thr_animal_05.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-thr_animal_06.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/B-thr_object_03.jpg",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/stimuli/manifest.json",
+          "status": "modified",
+          "additions": 415,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/storage.js",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/style.css",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/vendor/MEDIAPIPE-LICENSE.txt",
+          "status": "modified",
+          "additions": 218,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/vendor/face_landmarker.task",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/vendor/manifest.json",
+          "status": "modified",
+          "additions": 49,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/vendor/vision_bundle.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/vendor/vision_wasm_internal.js",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/vendor/vision_wasm_internal.wasm",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "neurolens2/vendor/vision_wasm_nosimd_internal.js",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/vendor/vision_wasm_nosimd_internal.wasm",
+          "status": "modified",
+          "additions": null,
+          "deletions": null
+        },
+        {
+          "path": "start-neurolens2.ps1",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 0
+        },
+        {
+          "path": "tools/neurolens2.browser.test.cjs",
+          "status": "modified",
+          "additions": 60,
+          "deletions": 0
+        },
+        {
+          "path": "tools/neurolens2_benchmark.cjs",
+          "status": "modified",
+          "additions": 47,
+          "deletions": 0
+        },
+        {
+          "path": "tools/neurolens2_benchmark.test.cjs",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "tools/neurolens2_preview.py",
+          "status": "modified",
+          "additions": 171,
+          "deletions": 0
+        },
+        {
+          "path": "tools/neurolens2_verify.py",
+          "status": "modified",
+          "additions": 61,
+          "deletions": 0
+        },
+        {
+          "path": "tools/test_neurolens2.py",
+          "status": "modified",
+          "additions": 78,
+          "deletions": 0
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56941846345",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "failure",
+          "at": "2026-10-21T23:16:02Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/FuAtDyvBiTVBgDo78VZvb3EvUqhX",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-7239566258-20214860429",
+          "type": "deployment",
+          "deploymentId": 7239566258,
+          "environment": "Preview",
+          "production": false,
+          "state": "failure",
+          "at": "2026-10-21T23:16:03Z",
+          "url": "https://neurolens-b90k8w9x4-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
+    },
+    {
       "sha": "441e73806a085f87fc5effa91fbe8a3fcb4bdc4d",
       "parents": [
         "b5e434541066a543183fc5f39137b028fc60e35f"
@@ -22913,7 +23503,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "a11c8b1228523d63acb779f3c5047d5883ab49d3"
+    "sourceHead": "693617fa2eda984798bdad1bc8089c56c19d150a"
   },
-  "updatedAt": "2026-10-20T07:25:56.043950+00:00"
+  "updatedAt": "2026-10-21T23:19:26.301028+00:00"
 }
