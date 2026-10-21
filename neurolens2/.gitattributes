@@ -1,0 +1,2 @@
+# Preserve the pinned vendor bytes and integrity hashes on Windows checkouts.
+vendor/** -text
