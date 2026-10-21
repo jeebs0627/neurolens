@@ -3,6 +3,198 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "9c5d96e2cfe150482798e576a369cf9545db4b68",
+      "parents": [
+        "ef4ce8bb2015590ca3a4f62c86ed2cc488c0ea61",
+        "45de30ed9135e8204e3b6f593e365f6ef787d865"
+      ],
+      "committedAt": "2026-10-22T08:21:38+09:00",
+      "subject": "merge: preserve automatic deployment evidence alongside IN MIND fix",
+      "url": "https://github.com/jeebs0627/neurolens/commit/9c5d96e2cfe150482798e576a369cf9545db4b68",
+      "files": [
+        {
+          "path": "dataset-evolution-log.json",
+          "status": "modified",
+          "additions": 612,
+          "deletions": 2
+        },
+        {
+          "path": "neurolens2/operational-baseline.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "domains": [
+        "research"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-9c5d96e2cfe1-research",
+          "domain": "research",
+          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-9c5d96e2cfe1-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 9c5d96e2cfe150482798e576a369cf9545db4b68\n변경 제목: merge: preserve automatic deployment evidence alongside IN MIND fix\n관련 파일: dataset-evolution-log.json, neurolens2/operational-baseline.json\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-9c5d96e2cfe1-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-56942180311",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-21T23:21:43Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2YFrt2pUMw77d4Kj6zrmtwFmpMLQ",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-56942180355",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-21T23:21:43Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/GXmGibUrXEbjCUXVj494uuPZAxU8",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-56942234997",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-21T23:22:39Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/GXmGibUrXEbjCUXVj494uuPZAxU8",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-7239669076-20215107232",
+          "type": "deployment",
+          "deploymentId": 7239669076,
+          "environment": "Production",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-21T23:22:40Z",
+          "url": "https://neurolens-cmtmpo55c-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        },
+        {
+          "key": "check-56942325995",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-21T23:24:10Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2YFrt2pUMw77d4Kj6zrmtwFmpMLQ",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-7239691171-20215162172",
+          "type": "deployment",
+          "deploymentId": 7239691171,
+          "environment": "Preview",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-21T23:24:11Z",
+          "url": "https://neurolens-kygbqyhvv-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-21T23:22:07.275368+00:00",
+      "analysisError": "HTTP_502",
+      "analysisErrorCode": "EVOLUTION_ANALYSIS_FAILED"
+    },
+    {
+      "sha": "ef4ce8bb2015590ca3a4f62c86ed2cc488c0ea61",
+      "parents": [
+        "693617fa2eda984798bdad1bc8089c56c19d150a"
+      ],
+      "committedAt": "2026-10-22T08:20:57+09:00",
+      "subject": "fix: prevent first animation frame from stalling measurement",
+      "url": "https://github.com/jeebs0627/neurolens/commit/ef4ce8bb2015590ca3a4f62c86ed2cc488c0ea61",
+      "files": [
+        {
+          "path": "docs/neurolens2-implementation.txt",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 2
+        },
+        {
+          "path": "neurolens2/app.js",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 3
+        },
+        {
+          "path": "neurolens2/core.js",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 1
+        },
+        {
+          "path": "neurolens2/core.test.cjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "tools/neurolens2_verify.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56942142011",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-21T23:21:04Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/A69GdvdPuBy1KadLZPAnQAWjwS3v",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-56942193442",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-21T23:21:56Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/A69GdvdPuBy1KadLZPAnQAWjwS3v",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-7239658437-20215080980",
+          "type": "deployment",
+          "deploymentId": 7239658437,
+          "environment": "Preview",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-21T23:21:57Z",
+          "url": "https://neurolens-2f9iinvwa-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
+        }
+      ]
+    },
+    {
       "sha": "693617fa2eda984798bdad1bc8089c56c19d150a",
       "parents": [
         "6364902ece9bdf6e276b202cd39448645432999b"
@@ -23523,7 +23715,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "e7b365ee1d1c631b1634960a34db41436503dd9b"
+    "sourceHead": "fac2bc859fb2b24c3d573f30e6b9d807a5b3c0b0"
   },
-  "updatedAt": "2026-10-21T23:20:10.234757+00:00"
+  "updatedAt": "2026-10-21T23:24:48.839254+00:00"
 }
