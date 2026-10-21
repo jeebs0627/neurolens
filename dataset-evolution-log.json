@@ -86,6 +86,26 @@
           "at": "2026-10-21T23:22:40Z",
           "url": "https://neurolens-cmtmpo55c-ax-open-lab.vercel.app",
           "source": "github-deployment-status"
+        },
+        {
+          "key": "check-56942325995",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "success",
+          "at": "2026-10-21T23:24:10Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/2YFrt2pUMw77d4Kj6zrmtwFmpMLQ",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "deployment-7239691171-20215162172",
+          "type": "deployment",
+          "deploymentId": 7239691171,
+          "environment": "Preview",
+          "production": false,
+          "state": "success",
+          "at": "2026-10-21T23:24:11Z",
+          "url": "https://neurolens-kygbqyhvv-ax-open-lab.vercel.app",
+          "source": "github-deployment-status"
         }
       ],
       "lastAttemptAt": "2026-10-21T23:22:07.275368+00:00",
@@ -23695,7 +23715,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "d0ea29e2922141846511a13811c691c84f8a2d0d"
+    "sourceHead": "fac2bc859fb2b24c3d573f30e6b9d807a5b3c0b0"
   },
-  "updatedAt": "2026-10-21T23:23:23.050958+00:00"
+  "updatedAt": "2026-10-21T23:24:48.839254+00:00"
 }
