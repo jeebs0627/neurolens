@@ -22,6 +22,14 @@
     if(!protocols[name]||!['attention','disengage','reward'].includes(focus))throw Error('invalid-protocol');
     let t=0;return protocols[name].map(([kind,duration])=>({id:kind,start:t,end:(t+=duration*1000),kind:kind==='focus'?focus:kind}));
   }
+  function sessionPosition(phases, frameTime, startedAt) {
+    if(!finite(frameTime)||!finite(startedAt)||!phases.length)throw Error('invalid-session-clock');
+    // A first rAF callback can carry the frame's timestamp from before start().
+    const end=phases.at(-1).end,elapsed=clamp(frameTime-startedAt,0,end),finished=elapsed>=end;
+    const phase=finished?null:phases.find(p=>elapsed>=p.start&&elapsed<p.end);
+    if(!finished&&!phase)throw Error('invalid-session-schedule');
+    return {elapsed,phase,finished};
+  }
   function makeTrials(phases, manifest, seed, form) {
     const r=rng(seed),trials=[];
     for(const phase of phases){
@@ -195,5 +203,5 @@
     // Never trust serialized calibration or results. Refit only from recorded holdout-tagged samples.
     p.calibration=fitCalibration(p.calibrationPoints);return p;
   }
-  return {VERSION,SCHEMA,protocols,clamp,finite,mean,median,sd,rng,shuffle,schedule,makeTrials,fitCalibration,gaze,interval,driftFlags,taskEvidence,recovery,analyze,compatible,longitudinal,recommend,validate};
+  return {VERSION,SCHEMA,protocols,clamp,finite,mean,median,sd,rng,shuffle,schedule,sessionPosition,makeTrials,fitCalibration,gaze,interval,driftFlags,taskEvidence,recovery,analyze,compatible,longitudinal,recommend,validate};
 });

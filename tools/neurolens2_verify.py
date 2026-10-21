@@ -53,7 +53,7 @@ def main():
     # Check again after browser tests to catch unintended writes.
     if any(not unchanged(name,sha) for name,sha in baseline.items()): raise RuntimeError('Operating file changed during verification')
     result={'operatingFilesUnchanged':len(baseline)-1,'deploymentConfig':'Original content preserved; NL2 local artifact exclusions appended','vendorAssetsVerified':len(vendor),'stimulusAssetsVerified':len(stimuli['pairs'])*2,
-            'engineTests':23,'authorizationAndPreviewTests':12,'browser':args.browser,'engine':'nl2-2.0.0'}
+            'engineTests':25,'authorizationAndPreviewTests':12,'browser':args.browser,'engine':'nl2-2.0.0'}
     out=ROOT/'output/neurolens2';out.mkdir(parents=True,exist_ok=True)
     (out/'verification.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
     print('IN MIND 2.0 verification passed.',flush=True)

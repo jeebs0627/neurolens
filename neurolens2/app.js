@@ -64,11 +64,13 @@ export async function mount({access,verify,logout}){
     }catch(e){camera?.stop();preparing=false;controls(true);show('overview');status(e.message+' 웹캠 없이 테스트하려면 행동 과제 모드를 선택하세요.',true);}
   }
   function tick(now){
+    try{advance(now);}catch(e){finish('aborted','화면 처리 오류로 측정을 중단했습니다: '+e.message);}
+  }
+  function advance(now){
     if(!running)return;
-    const elapsed=Math.min(now-sessionStart,packet.phases.at(-1).end);packet.elapsed=elapsed;
+    const {elapsed,phase,finished}=C.sessionPosition(packet.phases,now,sessionStart);packet.elapsed=elapsed;
     if(now-lastTick>1800){finish('aborted','화면 처리 지연으로 시간 연속성이 끊겼습니다.');return;}lastTick=now;
-    if(elapsed>=packet.phases.at(-1).end){finish('completed','시간 예산 완료');return;}
-    const phase=packet.phases.find(p=>elapsed>=p.start&&elapsed<p.end);
+    if(finished){finish('completed','시간 예산 완료');return;}
     if(currentPhase?.id!==phase.id){
       if(currentPhase?.kind==='calibration'){packet.calibration=C.fitCalibration(packet.calibrationPoints);$('cal-grade').textContent=packet.captureMode==='behavior'?'해당 없음':packet.calibration.grade;}
       currentPhase=phase;currentCal=null;activeTrial=null;renderKey='';packet.events.push({t:elapsed,type:'phase',phase:phase.id});
