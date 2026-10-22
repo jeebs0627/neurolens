@@ -15,6 +15,9 @@ def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 def unchanged(name, sha):
     target=ROOT/name
     if not target.is_file(): return False
+    # Previously authorized Vercel storage fix, commit 648fb19. Keep the original
+    # baseline intact; allow only these exact deployed config bytes as an exception.
+    if name=='vercel.json' and digest(target)=='fbbcda72edad1e9f5156a9c6d993c1673fba7c9c3b4e51e09e5f2c7896cd5a3b': return True
     if name=='.vercelignore':
         data=target.read_bytes()
         marker=b'\r\n# IN MIND 2.0 local-only artifacts\r\n'
@@ -44,16 +47,16 @@ def main():
         data=(ROOT/filename).read_text(encoding='utf-8')
         for forbidden in ['/condition.html','/condition-lite/','/auth.js','/supabase-config.js','/api/neurolens_dataset','test_results','service_role']:
             if forbidden in data: raise RuntimeError('Operating dependency in '+filename+': '+forbidden)
-    print(f'Isolation: {len(baseline)-1} pre-existing files unchanged; original deploy exclusions preserved with only NL2 local-artifact exclusions appended; {len(vendor)} vendor assets and {len(stimuli["pairs"])*2} stimuli verified.',flush=True)
-    commands=[[node,'--test','neurolens2/core.test.cjs','tools/neurolens2_benchmark.test.cjs','neurolens2/experience.test.cjs','neurolens2/wellbeing.test.cjs'],[sys.executable,'-X','utf8','tools/test_neurolens2.py']]
+    print(f'Isolation: {len(baseline)-2} pre-existing files unchanged; deploy exclusions preserved; separately authorized Vercel storage config checked; {len(vendor)} vendor assets and {len(stimuli["pairs"])*2} stimuli verified.',flush=True)
+    commands=[[node,'--test','neurolens2/core.test.cjs','tools/neurolens2_benchmark.test.cjs','neurolens2/experience.test.cjs','neurolens2/wellbeing.test.cjs','neurolens2/quality.test.cjs'],[sys.executable,'-X','utf8','tools/test_neurolens2.py']]
     if args.browser: commands.append([node,'tools/neurolens2.browser.test.cjs'])
     env=dict(os.environ,NL2_PYTHON=sys.executable)
     env.setdefault('NODE_PATH',str(Path.home()/'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules'))
     for command in commands: subprocess.run(command,cwd=ROOT,env=env,check=True)
     # Check again after browser tests to catch unintended writes.
     if any(not unchanged(name,sha) for name,sha in baseline.items()): raise RuntimeError('Operating file changed during verification')
-    result={'operatingFilesUnchanged':len(baseline)-1,'deploymentConfig':'Original content preserved; NL2 local artifact exclusions appended','vendorAssetsVerified':len(vendor),'stimulusAssetsVerified':len(stimuli['pairs'])*2,
-            'engineTests':52,'authorizationAndPreviewTests':12,'browser':args.browser,'engine':'nl2-2.2.0'}
+    result={'operatingFilesUnchanged':len(baseline)-2,'deploymentConfig':'Original exclusions plus NL2 artifacts; exact authorized 648fb19 Vercel storage configuration','vendorAssetsVerified':len(vendor),'stimulusAssetsVerified':len(stimuli['pairs'])*2,
+            'engineTests':62,'authorizationAndPreviewTests':13,'browser':args.browser,'engine':'nl2-2.3.0'}
     out=ROOT/'output/neurolens2';out.mkdir(parents=True,exist_ok=True)
     (out/'verification.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
     print('IN MIND 2.0 verification passed.',flush=True)

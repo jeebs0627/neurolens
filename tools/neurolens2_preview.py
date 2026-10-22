@@ -43,6 +43,9 @@ class PreviewServer(ThreadingHTTPServer):
         self.sessions = {}
         self.lock = threading.Lock()
         self.scope = hashlib.sha256(("nl2-local:" + getpass.getuser() + str(ROOT)).encode()).hexdigest()[:24]
+        # Cookies are shared across ports on a hostname. Separate preview
+        # instances must not overwrite each other's administrator sessions.
+        self.cookie_name = "nl2_local_" + str(self.server_port)
 
     @property
     def origin(self):
@@ -59,7 +62,7 @@ class PreviewHandler(BaseHTTPRequestHandler):
     def session(self):
         try:
             cookie = SimpleCookie(self.headers.get("Cookie", ""))
-            token = cookie.get("nl2_local")
+            token = cookie.get(self.server.cookie_name)
             if token and self.server.sessions.get(token.value, 0) > time.monotonic():
                 return token.value
         except Exception:
@@ -113,7 +116,7 @@ class PreviewHandler(BaseHTTPRequestHandler):
             token = self.session()
             if token:
                 self.server.sessions.pop(token, None)
-            return self.send(200, {"ok": True}, cookie="nl2_local=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0")
+            return self.send(200, {"ok": True}, cookie=self.server.cookie_name + "=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0")
         if path != "/api/neurolens2/bootstrap":
             return self.send(405, {"error": "method-not-allowed"})
         try:
@@ -131,7 +134,7 @@ class PreviewHandler(BaseHTTPRequestHandler):
                 self.server.ticket = None
                 token = secrets.token_urlsafe(36)
                 self.server.sessions[token] = time.monotonic() + 8 * 3600
-            return self.send(200, {"ok": True}, cookie="nl2_local=" + token + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800")
+            return self.send(200, {"ok": True}, cookie=self.server.cookie_name + "=" + token + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800")
         except (ValueError, TypeError, AttributeError):
             return self.send(400, {"error": "invalid-request"})
 

@@ -4,7 +4,7 @@
   else root.NL2 = api;
 })(typeof self !== 'undefined' ? self : globalThis, function () {
   'use strict';
-  const VERSION = 'nl2-2.2.0', SCHEMA = 'nl2-packet-1';
+  const VERSION = 'nl2-2.3.0', SCHEMA = 'nl2-packet-1';
   const legacyProtocols = {
     first180: [['calibration',18],['baseline',12],['attention',36],['disengage',24],['reward',18],['preload',20],['load',20],['recovery',28],['wrap',4]],
     daily60: [['calibration',10],['baseline',12],['focus',24],['recovery',10],['wrap',4]],
@@ -87,8 +87,10 @@
   }
   function interval(values) {
     if(!values.length)return {value:null,n:0,interval:null};
-    const m=mean(values),se=sd(values)/Math.sqrt(values.length);
-    return {value:m,n:values.length,interval:values.length>=3?[m-2.2*se,m+2.2*se]:null};
+    const m=mean(values),se=sd(values)/Math.sqrt(values.length),df=values.length-1;
+    const critical=[0,12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    const width=(critical[Math.min(df,30)]||1.96)*se;
+    return {value:m,n:values.length,interval:values.length>=3?[m-width,m+width]:null,intervalMethod:'Student-t; independent-trial normal-mean approximation, not diagnostic certainty'};
   }
   function driftFlags(packet){
     if(packet.calibration.grade==='G0')return [];
@@ -162,7 +164,7 @@
       interval:null,provisional:true};
   }
   function analyze(packet,pulse) {
-    const tasks=taskEvidence(packet),windows=pulse?pulse.analyze(packet.frames,packet.phases):[];
+    const tasks=taskEvidence(packet),windows=pulse&&packet.captureMode!=='behavior'?pulse.analyze(packet.frames,packet.phases).filter(w=>w.end<=packet.elapsed):[];
     const valid=windows.filter(w=>w.bpm!==null),hr=interval(valid.map(w=>w.bpm));
     const features=[...tasks.features,{id:'pulse',label:'관측 심박 후보',...hr,interval:null,unit:'bpm',source:'camera-rgb',usable:valid.length>0,
       contextKey:'windows:'+valid.map(w=>w.phase+':'+w.start).join(','),
@@ -174,10 +176,13 @@
       qualityFlags:tasks.flags,
       withheld:['불안·우울 진단 확률','자아탄력성 점수','HRV / LF-HF','검증되지 않은 종합 마음 점수']};
   }
-  function compatible(a,b){return ['engine','participant','protocol','focus','captureMode','form','deviceKey'].every(k=>a[k]===b[k])&&a.calibration?.grade===b.calibration?.grade;}
+  const observed=p=>p.origin==='observed'&&p.purpose!=='evaluation'&&p.status==='completed';
+  const localDay=p=>/^\d{4}-\d{2}-\d{2}$/.test(p.localDate||'')?p.localDate:p.createdAt.slice(0,10);
+  function contextKey(p){return ['sleep','caffeine','exercise'].map(k=>p.checkin?.context?.[k]||'unknown').join(':');}
+  function compatible(a,b){return ['engine','participant','protocol','focus','captureMode','form','deviceKey','stimuliVersion'].every(k=>a[k]===b[k])&&a.calibration?.grade===b.calibration?.grade&&contextKey(a)===contextKey(b);}
   function longitudinal(current,history) {
-    const valid=history.filter(h=>h.id!==current.id&&h.createdAt<current.createdAt&&h.origin==='observed'&&h.status==='completed'&&compatible(current,h));
-    const days=new Map();for(const h of valid.sort((a,b)=>a.createdAt.localeCompare(b.createdAt))){const day=h.createdAt.slice(0,10);if(day!==current.createdAt.slice(0,10))days.set(day,h);}
+    const valid=observed(current)?history.filter(h=>h.id!==current.id&&h.createdAt<current.createdAt&&observed(h)&&compatible(current,h)):[];
+    const days=new Map();for(const h of valid.sort((a,b)=>a.createdAt.localeCompare(b.createdAt))){const day=localDay(h);if(day!==localDay(current))days.set(day,h);}
     const all=[...days.values()],base=all.slice(0,7),rolling=all.slice(-7),changes=[];
     for(const f of current.result.features.filter(f=>f.usable)){
       const vals=base.map(h=>h.result.features.find(x=>x.id===f.id&&x.usable&&x.contextKey===f.contextKey)?.value).filter(finite);
@@ -186,18 +191,21 @@
       changes.push({id:f.id,label:f.label,n:vals.length,baseline:vals.length>=3?m:null,rolling:trend.length>=3?median(trend):null,
         difference:vals.length>=3?f.value-m:null,unit:f.unit,flag:vals.length>=3&&Math.abs(f.value-m)>2*noise?'평소 변동 폭 밖':'판정 보류',noise});
     }
-    return {days:all.length,changes,rule:'같은 과제·형식·장치·참여 코드의 이전 날짜만 비교. 계산은 난이도 구성, 심박은 채택 단계·창이 같아야 비교합니다. 첫 7일 기준과 최근 7일을 별도 유지.'};
+    return {days:all.length,changes,rule:'같은 과제·자극 버전·형식·장치·참여 코드·기록된 수면/카페인/운동 조건의 이전 현지 날짜만 비교. 미기록 조건은 통제된 것으로 보지 않습니다. 계산 난이도와 심박 채택 창도 일치해야 합니다. 운영 점검은 제외합니다.'};
   }
   function recommend(history) {
     const candidates=['attention','disengage','reward'].map(kind=>{
-      const features=history.filter(h=>h.origin==='observed'&&h.status==='completed').slice(-14).flatMap(h=>h.result?.features||[])
+      const features=history.filter(observed).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,14).flatMap(h=>h.result?.features||[])
         .filter(f=>f.usable&&(kind==='attention'?f.id.startsWith('attention'):f.id===kind));
       const n=features.reduce((s,f)=>s+f.n,0);return {kind,n,priority:1/Math.sqrt(1+n)};
     }).sort((a,b)=>b.priority-a.priority);
     return {kind:candidates[0].kind,candidates,reason:'최근 14회 중 유효 시행이 적은 정서 축을 우선하는 탐색 규칙. 검증된 EIG 최적화 모델은 아님.'};
   }
   function validate(p) {
-    if(!p||p.schema!==SCHEMA||![VERSION,'nl2-2.1.0','nl2-2.0.0'].includes(p.engine))throw Error('지원하지 않는 기록 버전');
+    if(!p||p.schema!==SCHEMA||![VERSION,'nl2-2.2.0','nl2-2.1.0','nl2-2.0.0'].includes(p.engine))throw Error('지원하지 않는 기록 버전');
+    if(p.purpose!==undefined&&!['personal','evaluation'].includes(p.purpose))throw Error('기록 목적이 올바르지 않습니다.');
+    if(p.checkinOnly!==undefined&&typeof p.checkinOnly!=='boolean')throw Error('체크인 전용 기록 형식 오류');
+    if(p.checkinOnly&&(p.elapsed!==0||p.status!=='aborted'||p.trials?.length||p.frames?.length))throw Error('체크인 전용 기록에 과제 측정이 섞였습니다.');
     const walk=(x,depth=0)=>{if(depth>12)throw Error('기록 중첩 초과');if(x&&typeof x==='object'){for(const k of Object.keys(x)){if(['__proto__','constructor','prototype','access_token','refresh_token','password'].includes(k))throw Error('허용되지 않는 기록 필드');walk(x[k],depth+1);}}else if(typeof x==='number'&&!finite(x))throw Error('잘못된 수치');};walk(p);
     if(!['observed','synthetic','imported'].includes(p.origin)||!['completed','aborted'].includes(p.status)||!protocols[p.protocol]||!finite(p.elapsed)||p.elapsed<0||p.elapsed>181000)throw Error('잘못된 세션 정보');
     if(!Array.isArray(p.frames)||p.frames.length>12000||!Array.isArray(p.trials)||p.trials.length>100||!Array.isArray(p.phases)||p.phases.length>12)throw Error('기록 크기 초과');
@@ -210,10 +218,14 @@
       if(f.rois&&(!Array.isArray(f.rois)||f.rois.length>3))throw Error('잘못된 ROI');
       for(const r of f.rois||[]){if(!r||typeof r.id!=='string'||!Array.isArray(r.rgb)||r.rgb.length!==3||!r.rgb.every(v=>finite(v)&&v>=0&&v<=255)||!Array.isArray(r.box)||r.box.length!==4||!r.box.every(finite))throw Error('잘못된 ROI 값');}
     }
-    for(const trial of p.trials)if(!finite(trial.start)||!finite(trial.end)||trial.end<=trial.start||trial.end>181000||typeof trial.id!=='string'||!['attention','disengage','reward','load'].includes(trial.kind))throw Error('잘못된 시행');
+    const trialIds=new Set();
+    for(const trial of p.trials){const phase=expected.find(ph=>ph.id===trial.phase&&ph.kind===trial.kind);
+      if(!phase||!finite(trial.start)||!finite(trial.end)||trial.end<=trial.start||trial.start<phase.start||trial.end>phase.end||typeof trial.id!=='string'||trialIds.has(trial.id)||!['attention','disengage','reward','load'].includes(trial.kind))throw Error('잘못된 시행');
+      trialIds.add(trial.id);
+    }
     if(!Array.isArray(p.calibrationPoints)||p.calibrationPoints.length>3000)throw Error('잘못된 교정 기록');
     // Never trust serialized calibration or results. Refit only from recorded holdout-tagged samples.
     p.calibration=fitCalibration(p.calibrationPoints);return p;
   }
-  return {VERSION,SCHEMA,protocols,clamp,finite,mean,median,sd,rng,shuffle,schedule,sessionPosition,makeTrials,fitCalibration,gaze,interval,driftFlags,taskEvidence,recovery,analyze,compatible,longitudinal,recommend,validate};
+  return {VERSION,SCHEMA,protocols,clamp,finite,mean,median,sd,rng,shuffle,schedule,sessionPosition,makeTrials,fitCalibration,gaze,interval,driftFlags,taskEvidence,recovery,analyze,observed,localDay,contextKey,compatible,longitudinal,recommend,validate};
 });

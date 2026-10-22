@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#112c32">
   <title>IN MIND 2.0 · 마음 컨디션</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23112c32'/%3E%3Cpath d='M10 23q5-18 10 0t10 0' fill='none' stroke='%23b8e6cb' stroke-width='3'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/neurolens2/style.css?v=2.2.0">
-  <link rel="stylesheet" href="/neurolens2/report.css?v=2.2.0">
+  <link rel="stylesheet" href="/neurolens2/style.css?v=2.3.0">
+  <link rel="stylesheet" href="/neurolens2/report.css?v=2.3.0">
 </head>
 <body>
   <div id="auth" class="auth-shell">
@@ -27,14 +27,14 @@
         <div class="hero"><div><p class="eyebrow">OBSERVE. UNDERSTAND. RETURN.</p><h1>오늘의 마음을,<br><em>변화의 흐름으로.</em></h1><p>지금 느끼는 마음과 실제 과제 반응을 함께 살펴보세요.<br>나를 이해하는 리포트에서, 오늘의 돌봄까지.</p><div class="hero-tags"><span>정서 체크인</span><span>과제 60–180초</span><span>마음 리포트 + 케어</span></div><button id="demo-report" class="secondary hero-demo">시연용 리포트 미리 보기 ↗</button></div><div class="lens-art" aria-hidden="true"><div></div><div></div><div></div><span>ATTENTION<br>RESPONSE<br>RECOVERY</span></div></div>
         <div class="purpose-grid" aria-label="이 검사가 알려주는 것"><article class="purpose-item"><div data-art="mind"></div><span>01 / FEEL</span><h3>내가 느끼는 마음</h3><p>우울감·불안 관련 부담과 현재 긴장·활력을 체크합니다.</p></article><article class="purpose-item"><div data-art="attention"></div><span>02 / OBSERVE</span><h3>반응을 이해하기</h3><p>시선이 머무는 곳, 주의 전환, 선택과 집중을 관찰합니다.</p></article><article class="purpose-item"><div data-art="recovery"></div><span>03 / RECOVER</span><h3>회복의 실마리</h3><p>몸의 변화와 내가 쓸 수 있는 회복 자원을 구분해 봅니다.</p></article><article class="purpose-item"><div data-art="disengage"></div><span>04 / CARE</span><h3>오늘의 작은 행동</h3><p>점수의 뜻을 읽고, 1분 돌봄과 반복 기록으로 이어갑니다.</p></article></div>
         <div class="workspace-grid"><section class="card setup"><div class="section-title"><div><p class="eyebrow">01 / NEW SESSION</p><h2>측정 시작하기</h2></div><span class="tag mint">연구 버전</span></div>
-          <label for="participant">연구 참여 코드</label><input id="participant" maxlength="48" autocomplete="off" spellcheck="false" placeholder="예: research-01"><p class="hint">같은 코드로 반복 측정합니다. 이름 대신 연구용 코드를 사용하세요.</p>
+          <label for="participant">연구 참여 코드</label><input id="participant" maxlength="48" autocomplete="off" spellcheck="false" placeholder="예: research-01"><button id="new-participant" class="quiet">다른 참여자 · 새 코드 만들기</button><p class="hint">같은 코드로 반복 측정합니다. 이름 대신 연구용 코드를 사용하세요.</p>
           <div class="two-col"><div><label for="protocol">검사 선택</label><select id="protocol"><option value="first180">전체 살펴보기 · 3분</option><option value="daily60">빠르게 확인하기 · 1분</option><option value="daily90">오늘의 상태 · 90초</option><option value="weekly180">집중과 회복 · 3분</option></select></div><div><label for="focus">집중 관찰</label><select id="focus"><option value="auto">자동 추천</option><option value="attention">정서 주의</option><option value="disengage">주의 전환</option><option value="reward">보상 선택</option></select></div></div>
           <label class="check"><input type="checkbox" id="behavior-only">웹캠 없이 행동 과제만 테스트</label>
-          <div id="recommendation" class="note">첫 측정은 주의·전환·보상·회복을 차례로 관찰합니다.</div>
+          <label class="check"><input type="checkbox" id="evaluation-mode">서비스 진행 점검 · 개인 추이와 실제 관측 집계에서 제외</label><div id="recommendation" class="note">첫 측정은 주의·전환·보상·회복을 차례로 관찰합니다.</div>
           <button id="start" class="primary">마음 체크인부터 시작 <span>→</span></button><p id="setup-status" class="status" role="status"></p>
           <p class="hint">마음 체크인 약 40–60초, 환경 확인·연습·안내 시간은 과제 시간과 별도입니다. 영상은 저장·전송하지 않으며, 수치 기록은 이 브라우저에만 저장됩니다.</p>
         </section><aside class="side-stack"><section class="card dark"><p class="eyebrow">YOUR FIRST EXPERIENCE</p><h2>처음이어도,<br>하나씩 안내할게요.</h2><div class="metric-rule"><span>01</span><p><strong>편안한 자리 만들기</strong><br>얼굴 위치와 거리, 빛을 함께 확인합니다.</p></div><div class="metric-rule"><span>02</span><p><strong>부담 없이 연습하기</strong><br>어디를 보고 무엇을 누르는지 먼저 익힙니다.</p></div><div class="metric-rule"><span>03</span><p><strong>짧게 관찰하고 돌아보기</strong><br>보기만 하는 단계와 선택하는 단계를 알려드립니다.</p></div><p class="hint">영상은 기기 안에서만 처리하고 저장하지 않습니다.<br>측정값은 이 브라우저에만 보관합니다.</p></section><details class="card replay-card"><summary>관리자 검증 도구</summary><p class="eyebrow">REPRODUCIBLE BY DESIGN</p><h3>기록으로 다시 검증</h3><p>수치 기록을 가져와 결과와 채택 근거를 재계산합니다.</p><label class="button secondary" for="import">기록 가져오기</label><input id="import" class="sr-only" type="file" accept=".json,application/json"><button id="demo" class="quiet">합성 신호로 엔진 확인 →</button><p class="hint">합성 데이터는 개인 기준선에 포함되지 않습니다.</p></details></aside></div>
-        <div class="footer-line"><span>IN MIND RESEARCH ENGINE</span><span>엔진 v2.2 · 연구 프리뷰</span></div>
+        <div class="footer-line"><span>IN MIND RESEARCH ENGINE</span><span>엔진 v2.3 · 연구 프리뷰</span></div>
       </section>
       <section id="checkin" class="panel" hidden></section>
       <section id="session" class="panel" hidden>
@@ -49,5 +49,5 @@
     </main>
     <footer class="app-footer"><span>뉴로렌즈 · IN MIND 2.0</span><span>정서 기능의 반복 관측을 위한 연구 도구</span><span id="storage-status">브라우저 전용 저장소</span></footer>
   </div>
-  <script src="/neurolens2/core.js?v=2.2.0"></script><script src="/neurolens2/experience.js?v=2.2.0"></script><script src="/neurolens2/pulse.js"></script><script src="/neurolens2/wellbeing.js?v=2.2.0"></script><script type="module" src="/neurolens2/entry.js?v=2.2.0"></script>
+  <script src="/neurolens2/core.js?v=2.3.0"></script><script src="/neurolens2/experience.js?v=2.3.0"></script><script src="/neurolens2/pulse.js"></script><script src="/neurolens2/wellbeing.js?v=2.3.0"></script><script src="/neurolens2/quality.js?v=2.3.0"></script><script type="module" src="/neurolens2/entry.js?v=2.3.0"></script>
 </body></html>

@@ -56,6 +56,12 @@ class PreviewTests(unittest.TestCase):
         with self.assertRaises(OSError):
             duplicate = preview.PreviewServer(self.server.server_port)
             duplicate.server_close()
+    def test_separate_preview_ports_cannot_overwrite_login_cookie(self):
+        other=preview.PreviewServer(0)
+        try:
+            self.assertNotEqual(self.server.cookie_name,other.cookie_name)
+            self.assertTrue(self.server.cookie_name.endswith(str(self.server.server_port)))
+        finally: other.server_close()
     def test_public_shell_and_protected_session(self):
         self.assertEqual(self.request('/neurolens2.html')[0],200)
         self.assertEqual(self.request('/api/neurolens2')[0],401)

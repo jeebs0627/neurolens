@@ -27,6 +27,11 @@
     if(checkin.version!==VERSION||!checkin.answers||Array.isArray(checkin.answers)||typeof checkin.answers!=='object')throw Error('마음 체크인 기록 형식이 올바르지 않습니다.');
     if(typeof checkin.completedAt!=='string'||!Number.isFinite(Date.parse(checkin.completedAt)))throw Error('마음 체크인 시각이 올바르지 않습니다.');
     for(const [id,v] of Object.entries(checkin.answers)){const item=items.find(q=>q.id===id);if(!item||!Number.isInteger(v)||v<0||v>item.max)throw Error('마음 체크인 응답 범위를 확인해주세요.');}
+    if(checkin.context!==undefined){
+      if(!checkin.context||Array.isArray(checkin.context)||typeof checkin.context!=='object')throw Error('검사 조건 형식을 확인해주세요.');
+      const choices={sleep:['unknown','usual','short','long'],caffeine:['unknown','yes','no'],exercise:['unknown','yes','no']};
+      for(const [key,value] of Object.entries(checkin.context))if(!choices[key]?.includes(value))throw Error('검사 조건 값을 확인해주세요.');
+    }
     return checkin;
   }
   function score(checkin){
@@ -39,17 +44,22 @@
       resourceLabel:resources===null?'체크인 없음':resources<34?'도움을 보탤 때':resources<67?'기반을 쌓는 중':'활용할 자원 있음',
       method:'PHQ-4: 네 응답 합계 0–12. 회복 자원: 자체 3문항 합계 ÷ 12 × 100. 긴장·활력: 단일 자기평가 0–10. 서로 합산하지 않음.'};
   }
+  function wilson(success,total){
+    if(!total)return null;
+    const z=1.96,p=success/total,d=1+z*z/total,center=(p+z*z/(2*total))/d,half=z*Math.sqrt(p*(1-p)/total+z*z/(4*total*total))/d;
+    return [Math.max(0,(center-half)*100),Math.min(100,(center+half)*100)];
+  }
   function behavioral(packet,kind){
-    const planned=packet.trials.filter(t=>t.kind===kind),shown=planned.filter(t=>finite(t.shownAt)&&t.shownAt<=t.start+750&&t.end<=packet.elapsed);
-    const eligible=shown.filter(t=>!t.presentationInvalid&&!(t.inputLagMs>150));
+    const planned=packet.trials.filter(t=>t.kind===kind),shown=planned.filter(t=>finite(t.shownAt)&&t.end<=packet.elapsed);
+    const eligible=shown.filter(t=>t.shownAt<=t.start+750&&!t.presentationInvalid&&!(t.inputLagMs>150));
     const answered=eligible.filter(t=>finite(t.responseAt)&&finite(t.targetAt)&&t.responseAt>=t.targetAt+100&&t.responseAt<t.end);
     const correct=answered.filter(t=>t.correct===true),rts=(kind==='reward'?answered:correct).map(t=>t.responseAt-t.targetAt);
     const enough=eligible.length>=4,accuracy=eligible.length&&kind!=='reward'?Math.round(correct.length/eligible.length*100):null;
     return {kind,planned:planned.length,shown:shown.length,eligible:eligible.length,answered:answered.length,correct:correct.length,omissions:eligible.length-answered.length,excluded:shown.length-eligible.length,
-      accuracy,coverage:eligible.length?Math.round(answered.length/eligible.length*100):null,medianRT:quantile(rts,.5),iqr:rts.length>=4?[quantile(rts,.25),quantile(rts,.75)]:null,
+      accuracy,accuracyInterval:kind==='reward'?null:wilson(correct.length,eligible.length),coverage:eligible.length?Math.round(answered.length/eligible.length*100):null,medianRT:quantile(rts,.5),iqr:rts.length>=4?[quantile(rts,.25),quantile(rts,.75)]:null,
       wins:answered.filter(t=>t.win===true).length,usable:enough&&answered.length>=4,
       points:shown.map((t,i)=>({i:i+1,rt:answered.includes(t)?t.responseAt-t.targetAt:null,correct:t.correct===true,excluded:!eligible.includes(t),difficulty:t.difficulty??null,win:t.win===true})),
-      note:!planned.length?'이번 검사에는 포함되지 않았습니다.':!eligible.length?'표시 시각을 확인할 수 있는 완료 시행이 없습니다.':!enough?'시행이 적어 이번 응답만 참고합니다.':'정답률은 무응답을 포함한 유효 시행 기준입니다. 사람들과 비교한 백분위가 아닙니다.'};
+      note:!planned.length?'이번 검사에는 포함되지 않았습니다.':!eligible.length?'표시·입력 시간 품질을 통과한 완료 시행이 없습니다.':!enough?'시행이 적어 이번 응답만 참고합니다.':'정답률은 무응답을 포함한 유효 시행 기준입니다. 사람들과 비교한 백분위가 아닙니다.'};
   }
   function validatePacket(packet){
     validate(packet.checkin);
@@ -85,12 +95,12 @@
       distinction:'느낀 마음과 과제 반응은 서로 다른 정보입니다. 심박·시선·반응속도로 설문 점수를 올리거나 낮추지 않습니다.'};
   }
   function historySeries(current,history){
-    const days=new Map(),same=current.origin==='observed';
-    for(const p of [...history,current].filter(p=>p.participant===current.participant&&p.createdAt<=current.createdAt&&p.status==='completed'&&(same?p.origin==='observed':p.id===current.id)).sort((a,b)=>a.createdAt.localeCompare(b.createdAt))){
+    const days=new Map(),same=current.origin==='observed'&&current.purpose!=='evaluation';
+    for(const p of [...history,current].filter(p=>p.participant===current.participant&&p.createdAt<=current.createdAt&&(p.status==='completed'||p.checkinOnly===true)&&(same?p.origin==='observed'&&p.purpose!=='evaluation':p.id===current.id)).sort((a,b)=>a.createdAt.localeCompare(b.createdAt))){
       let s;try{s=score(p.checkin);}catch{continue;}if(s.tension===null&&s.energy===null)continue;
       const date=new Date(p.createdAt),day=p.localDate&&/^\d{4}-\d{2}-\d{2}$/.test(p.localDate)?p.localDate:[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');days.set(day,{day,tension:s.tension,energy:s.energy,id:p.id});
     }
     return [...days.values()].slice(-7);
   }
-  return {VERSION,items,sources,validate,validatePacket,score,behavioral,care,analyze,historySeries,quantile};
+  return {VERSION,items,sources,validate,validatePacket,score,behavioral,care,analyze,historySeries,quantile,wilson};
 });

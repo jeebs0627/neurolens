@@ -3,7 +3,7 @@ import {Store} from './storage.js';
 import {collectCheckin} from './checkin.js';
 import {reportHTML,bindReport,downloadReport} from './report.js';
 import {art} from './visuals.js';
-const C=globalThis.NL2,$=id=>document.getElementById(id);
+const C=globalThis.NL2,Q=globalThis.NL2Quality,$=id=>document.getElementById(id);
 const names={calibration:'시선 맞추기',baseline:'편안한 상태',attention:'정서 주의',disengage:'주의 전환',reward:'보상 선택',preload:'부하 전 기준',load:'짧은 집중',recovery:'회복 관찰',wrap:'마무리'};
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(x,d=1)=>Number.isFinite(x)?x.toFixed(d):'—';
@@ -18,7 +18,8 @@ export async function mount({access,verify,logout}){
   try{await store.open();history=await store.list();}catch{$('storage-status').textContent='저장소 사용 불가 · 결과 JSON을 내보내세요';persist=false;}
   manifest=await fetch('/neurolens2/stimuli/manifest.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error('자극 목록을 불러오지 못했습니다.');return r.json();});
   $('access-label').textContent=access.mode==='local-owner'?'LOCAL ADMIN':'ADMIN';
-  try{$('participant').value=localStorage.getItem('neurolens2-participant-code')||'research-01';}catch{$('participant').value='research-01';}
+  try{$('participant').value=localStorage.getItem('neurolens2-participant-code')||newCode();}catch{$('participant').value=newCode();}
+  function newCode(){return 'P-'+crypto.randomUUID().slice(0,8).toUpperCase();}
   function show(id){if(id!=='results'){reportCleanup?.();reportCleanup=null;}for(const panel of document.querySelectorAll('.panel'))panel.hidden=panel.id!==id;for(const b of document.querySelectorAll('[data-nav]'))b.classList.toggle('active',b.dataset.nav===id);window.scrollTo(0,0);}
   function status(message,error=false){$('setup-status').textContent=message;$('setup-status').classList.toggle('error',error);}
   function controls(enabled){for(const el of document.querySelectorAll('.topbar button:not(#logout),#start,#demo,#demo-report,#import'))el.disabled=!enabled;}
@@ -40,10 +41,10 @@ export async function mount({access,verify,logout}){
       show('checkin');status('');const checkin=await collectCheckin($('checkin'),events.signal);
       if(events.signal.aborted)return;
       if(checkin===undefined){controls(true);show('overview');return;}
-      show('session');await session.start({participant,protocol,focus,form,behavior,checkin,recommendation:C.recommend(hs),deviceHash:hash});
+      show('session');await session.start({participant,protocol,focus,form,behavior,checkin,purpose:$('evaluation-mode').checked?'evaluation':'personal',recommendation:C.recommend(hs),deviceHash:hash});
     }catch(e){controls(true);show('overview');status(e.message,true);}finally{preparing=false;}
   }
-  async function save(p){if(persist){try{await store.put(p);}catch{persist=false;$('storage-status').textContent='저장 실패 · JSON을 내보내세요';}}history=[p,...history.filter(h=>h.id!==p.id)];}
+  async function save(p){if(persist){try{await store.put(p);}catch{persist=false;$('storage-status').textContent='저장 실패 · JSON을 내보내세요';}}history=[p,...history.filter(h=>h.id!==p.id)];return persist;}
   function renderResults(p){
     reportCleanup?.();displayed=p;show('results');$('results').innerHTML=reportHTML(p,history);
     reportCleanup=bindReport($('results'),p,{save,signal:events.signal});
@@ -51,10 +52,28 @@ export async function mount({access,verify,logout}){
     on($('print-report'),'click',()=>window.print());
     on($('download-report'),'click',async()=>{const b=$('download-report');b.disabled=true;try{await downloadReport($('results'),p);b.textContent='리포트 저장 완료 ✓';}catch(e){b.textContent=e.message;}finally{b.disabled=false;}});
     on($('new-session'),'click',()=>{show('overview');recommendation();});
+    on($('retest-session'),'click',async()=>{
+      $('protocol').value=p.protocol;$('focus').value=p.focus;$('behavior-only').checked=p.captureMode==='behavior';$('evaluation-mode').checked=p.purpose==='evaluation';
+      const same=await hash(access.scope+':'+$('participant').value.trim())===p.participant;
+      show('overview');recommendation();status(same?'같은 참여 코드와 검사 설정을 준비했습니다. 다른 날짜·비슷한 환경에서 다시 관찰하세요.':'검사 설정을 불러왔습니다. 원래 참여 코드를 직접 입력해야 같은 사람의 기록으로 이어집니다.');
+    });
   }
-  function renderHistory(){show('history');$('history').innerHTML=`<div class="results-head"><div><p class="eyebrow">YOUR RESEARCH LOG</p><h1>누적 관측 기록</h1><p>이 관리자 범위의 브라우저 저장소에 ${history.length}개 기록이 있습니다.</p></div></div>${!history.length?'<div class="empty">첫 관측을 시작하면 여기에 기록됩니다.</div>':`<div class="table-wrap"><table><thead><tr><th>일시</th><th>참여 코드 해시</th><th>유형</th><th>시간 / 상태</th><th>보기</th></tr></thead><tbody>${history.map(p=>`<tr><td>${esc(new Date(p.createdAt).toLocaleString('ko-KR'))}</td><td>${esc(p.participant.slice(0,8))}</td><td>${esc(p.origin)} / ${esc(p.protocol)}</td><td>${fmt(p.elapsed/1000,0)}초 / ${esc(p.status)}</td><td><button data-record="${esc(p.id)}">결과</button><button data-remove="${esc(p.id)}" class="danger">삭제</button></td></tr>`).join('')}</tbody></table></div>`}<div class="note">서로 다른 참여 코드·장치·과제 형식은 기준선에서 분리됩니다. 가져온 기록과 합성 기록도 실제 기준선에 포함하지 않습니다. 데이터는 이 브라우저를 지우면 사라지므로 필요한 기록은 내보내세요.</div>`;
+  function renderHistory(filter='personal'){
+    show('history');const cohort=Q.cohort(history,new Date().toLocaleDateString('sv-SE'));
+    const records=history.filter(p=>filter==='all'||filter==='review'&&Q.personal(p)&&Q.assess(p).review||filter==='personal'&&Q.personal(p)||filter==='evaluation'&&p.purpose==='evaluation'||filter==='synthetic'&&p.origin==='synthetic'||filter==='imported'&&p.origin==='imported');
+    $('history').innerHTML=`<div class="results-head"><div><p class="eyebrow">OBSERVATION QUALITY DESK</p><h1>기록과 관측 품질</h1><p>이 관리자·브라우저에 저장된 기록만 집계합니다. 서비스 전체 이용자나 임상 성능의 통계가 아닙니다.</p></div></div><div class="admin-kpis">
+      <article><span>실제 관측 완료</span><strong>${cohort.completed}<small> / ${cohort.records}회</small></strong><p>${fmt(cohort.completionRate,0)}% · 본 검사 시작 후 저장 기준</p></article>
+      <article><span>확인할 기록</span><strong>${cohort.review}<small>회</small></strong><p>중단·누락·측정 품질 확인</p></article>
+      <article><span>다른 날짜 재관찰</span><strong>${cohort.returned}<small> / ${cohort.returnEligible}명</small></strong><p>오늘 이전 완료 이력이 있는 코드 기준</p></article>
+      <article><span>심박 후보 채택</span><strong>${cohort.pulseRecords}<small> / ${cohort.cameraRecords}회</small></strong><p>웹캠 기록 중 한 창 이상 · 정확도 아님</p></article></div>
+      <div class="history-controls"><label for="history-filter">기록 구분 <select id="history-filter">${[['personal','실제 관측'],['review','실제 관측 · 확인 필요'],['evaluation','서비스 진행 점검'],['synthetic','합성 시연'],['imported','가져온 기록'],['all','전체 기록']].map(([v,t])=>`<option value="${v}" ${v===filter?'selected':''}>${t}</option>`).join('')}</select></label><button id="quality-export" class="secondary" ${records.length?'':'disabled'}>표시 기록 품질 CSV 내보내기</button></div>
+      <p class="hint">실제 관측 집계에서 진행 점검·합성·가져온·체크인 전용 ${cohort.excluded}회 제외. 준비 중 이탈은 아직 기록하지 않아 완료율의 분모에 포함되지 않습니다. 참여 코드는 사람 수의 대용 지표이며 재관찰은 7일 유지율이 아닙니다.</p>
+      ${!records.length?'<div class="empty">이 구분에는 저장된 기록이 없습니다.</div>':`<div class="table-wrap"><table><thead><tr><th>일시 / 참여 코드 해시</th><th>검사 / 출처</th><th>응답 / 품질</th><th>상태 / 후속 조치</th><th>기록</th></tr></thead><tbody>${records.map(p=>{const q=Q.assess(p);return `<tr><td>${esc(new Date(p.createdAt).toLocaleString('ko-KR'))}<br><small>${esc(p.participant.slice(0,8))}</small></td><td>${esc(p.protocol)} · ${p.captureMode==='webcam'?'웹캠':'행동'}<br><small>${esc(p.origin)} · ${p.purpose==='evaluation'?'진행 점검':'개인 관측'}</small></td><td>${q.answered}/${q.valid} 응답<br><small>제외 ${q.excluded} · 누락 ${q.omissions}</small></td><td><strong>${p.checkinOnly?'체크인만':p.status==='completed'?'완료':'중단'} · ${q.review?'확인 필요':'관찰 가능'}</strong><br><small>${esc(q.issues.map(x=>x.text).join(' · ')||'다른 날짜에 같은 조건으로 반복')}</small></td><td><button data-record="${esc(p.id)}">결과</button><button data-remove="${esc(p.id)}" class="danger">삭제</button></td></tr>`;}).join('')}</tbody></table></div>`}
+      <div class="note">수면·카페인·운동, 자극 버전, 과제·장치·입력·난이도를 확인한 기록끼리 비교합니다. 같은 날은 한 날짜로 셉니다. 브라우저를 지우면 기록도 사라집니다. 품질 CSV에는 마음 점수와 원시 영상 수치를 넣지 않습니다.</div>`;
+    on($('history-filter'),'change',e=>renderHistory(e.target.value));
+    on($('quality-export'),'click',()=>{const url=URL.createObjectURL(new Blob([Q.csv(records)],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='IN-MIND-quality-'+filter+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
     for(const b of $('history').querySelectorAll('[data-record]'))on(b,'click',()=>renderResults(history.find(p=>p.id===b.dataset.record)));
-    for(const b of $('history').querySelectorAll('[data-remove]'))on(b,'click',async()=>{if(b.dataset.armed!=='yes'){b.dataset.armed='yes';b.textContent='다시 눌러 삭제';return;}const id=b.dataset.remove;if(persist)await store.remove(id);history=history.filter(p=>p.id!==id);renderHistory();});
+    for(const b of $('history').querySelectorAll('[data-remove]'))on(b,'click',async()=>{if(b.dataset.armed!=='yes'){b.dataset.armed='yes';b.textContent='다시 눌러 삭제';return;}const id=b.dataset.remove;try{if(persist)await store.remove(id);history=history.filter(p=>p.id!==id);renderHistory(filter);}catch{b.textContent='삭제 실패 · 다시 시도';}});
   }
   function renderMethods(){show('methods');$('methods').innerHTML=`<div class="results-head"><div><p class="eyebrow">EXPLAINABLE BY CONSTRUCTION</p><h1>결과를 만드는 원리</h1><p>관측 → 품질 확인 → 후보 비교 → 개인 변화. 각 단계는 기록으로 재현합니다.</p></div></div><div class="method-grid">
       <section class="card"><h3>01 · 교정과 검증을 분리</h3><p>세 지점의 시선으로 수평 위치를 보정합니다. 이후 두 지점은 보정식에 넣지 않고 오차만 평가합니다. 화면 너비 대비 평균 절대 오차 12% 이하 G2, 22% 이하 G1, 그 외 G0입니다. 이는 초기 공학 기준이며 정밀 안구추적기 성능을 뜻하지 않습니다.</p><p>준비 화면에서 한 사람의 얼굴, 얼굴 크기·중앙 위치·자세·빛이 2초간 안정적인지 확인합니다. 깜박임, 교정 이후 얼굴 위치·크기·기울기 변화, 오래된 관측과 AOI 경계의 모호한 표본은 시선 근거에서 제외합니다. G0일 때 시선 결과를 만들지 않습니다.</p></section>
@@ -68,6 +87,7 @@ export async function mount({access,verify,logout}){
   async function demo(){controls(false);status('합성 수치 기록을 생성하고 엔진을 재현합니다…');try{await verify();const {makeFixture}=await import('./fixture.js');const p=makeFixture(manifest);p.result=await compute(p);await save(p);renderResults(p);status('');}catch(e){status(e.message,true);}finally{controls(true);}}
   for(const b of document.querySelectorAll('[data-nav]'))on(b,'click',()=>{if(session.busy||preparing)return;if(b.dataset.nav==='history')renderHistory();else if(b.dataset.nav==='methods')renderMethods();else{show('overview');recommendation();}});
   on($('start'),'click',start);on($('logout'),'click',logout);on($('import'),'change',importRecord);on($('demo'),'click',demo);on($('demo-report'),'click',demo);
+  on($('new-participant'),'click',()=>{$('participant').value=newCode();recommendation();status('새 참여 코드입니다. 반복 검사에서는 이 코드를 보관해 사용하세요.');});
   on($('protocol'),'change',recommendation);on($('participant'),'change',recommendation);
   for(const node of document.querySelectorAll('[data-art]'))node.innerHTML=art(node.dataset.art);
   show('overview');recommendation();
