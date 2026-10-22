@@ -1,8 +1,17 @@
 {
   "ignoreCommand": "node dataset-deploy-guard.cjs",
   "functions": {
-    "api/neurolens_dataset.py": { "maxDuration": 120 },
-    "api/dataset_evolution.py": { "maxDuration": 120 }
+    "api/neurolens_dataset.py": {
+      "maxDuration": 120,
+      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**}"
+    },
+    "api/dataset_evolution.py": {
+      "maxDuration": 120,
+      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**}"
+    },
+    "api/*.py": {
+      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**}"
+    }
   },
   "rewrites": [
     {
