@@ -27,7 +27,7 @@ export class Session {
     this.cleanup();const gen=++this.generation;
     this.options=options;this.state='setup';this.started=performance.now();this.setupStarted=this.started;this.practiceLog=[];this.inputChecks=new Set();this.gate.reset();this.latest=null;this.device={width:0,height:0,fps:0,trackId:'behavior'};this.calibrationAttempts=[];this.packet=null;this.phaseIndex=0;this.level=1;this.lastQualityAt=0;this.sequence=0;this.cameraConnecting=false;this.cameraError='';
     document.body.classList.add('in-session');$('session-progress').value=0;$('remaining').textContent=String(C.schedule(options.protocol,options.focus).at(-1).end/1000);$('session-progress').max=Number($('remaining').textContent);$('timer-label').textContent='초 측정';$('session-status').textContent='';$('frame-count').textContent='0';$('cal-grade').textContent='준비 전';$('wall-time').textContent='0초';
-    $('camera-video').hidden=options.behavior;$('camera-placeholder').hidden=!options.behavior;$('quality').textContent=options.behavior?'행동 과제 모드':'카메라 연결 전';
+    $('camera-video').closest('.camera-frame').hidden=options.behavior;$('camera-video').hidden=options.behavior;$('camera-placeholder').hidden=!options.behavior;$('quality').textContent=options.behavior?'행동 과제 모드':'카메라 연결 전';
     this.renderSetup();this.lastTick=performance.now();this.raf=requestAnimationFrame(t=>this.tick(t));
     try{await this.preload();if(gen!==this.generation)return;this.assetsReady=true;this.refreshSetup();}
     catch(e){if(gen===this.generation){this.cameraError=e.message;this.refreshSetup();}}
