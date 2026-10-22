@@ -21,7 +21,7 @@ def unchanged(name, sha):
     if name=='.vercelignore':
         data=target.read_bytes()
         marker=b'\r\n# IN MIND 2.0 local-only artifacts\r\n'
-        allowed=b'/neurolens2/operational-baseline.json\r\n/neurolens2/*.test.cjs\r\n/start-neurolens2.ps1\r\n/docs/neurolens2-implementation.txt\r\n/output/neurolens2/\r\n'
+        allowed=b'/neurolens2/operational-baseline.json\r\n/neurolens2/*.test.cjs\r\n/start-neurolens2.ps1\r\n/docs/neurolens2-implementation.txt\r\n/output/neurolens2/\r\n/docs/neurolens2-v24-diagnostic.txt\r\n'
         if marker in data:
             original, addition=data.split(marker,1)
             return hashlib.sha256(original).hexdigest()==sha and addition==allowed
