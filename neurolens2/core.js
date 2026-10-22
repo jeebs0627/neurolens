@@ -4,7 +4,7 @@
   else root.NL2 = api;
 })(typeof self !== 'undefined' ? self : globalThis, function () {
   'use strict';
-  const VERSION = 'nl2-2.1.0', SCHEMA = 'nl2-packet-1';
+  const VERSION = 'nl2-2.2.0', SCHEMA = 'nl2-packet-1';
   const legacyProtocols = {
     first180: [['calibration',18],['baseline',12],['attention',36],['disengage',24],['reward',18],['preload',20],['load',20],['recovery',28],['wrap',4]],
     daily60: [['calibration',10],['baseline',12],['focus',24],['recovery',10],['wrap',4]],
@@ -197,7 +197,7 @@
     return {kind:candidates[0].kind,candidates,reason:'최근 14회 중 유효 시행이 적은 정서 축을 우선하는 탐색 규칙. 검증된 EIG 최적화 모델은 아님.'};
   }
   function validate(p) {
-    if(!p||p.schema!==SCHEMA||![VERSION,'nl2-2.0.0'].includes(p.engine))throw Error('지원하지 않는 기록 버전');
+    if(!p||p.schema!==SCHEMA||![VERSION,'nl2-2.1.0','nl2-2.0.0'].includes(p.engine))throw Error('지원하지 않는 기록 버전');
     const walk=(x,depth=0)=>{if(depth>12)throw Error('기록 중첩 초과');if(x&&typeof x==='object'){for(const k of Object.keys(x)){if(['__proto__','constructor','prototype','access_token','refresh_token','password'].includes(k))throw Error('허용되지 않는 기록 필드');walk(x[k],depth+1);}}else if(typeof x==='number'&&!finite(x))throw Error('잘못된 수치');};walk(p);
     if(!['observed','synthetic','imported'].includes(p.origin)||!['completed','aborted'].includes(p.status)||!protocols[p.protocol]||!finite(p.elapsed)||p.elapsed<0||p.elapsed>181000)throw Error('잘못된 세션 정보');
     if(!Array.isArray(p.frames)||p.frames.length>12000||!Array.isArray(p.trials)||p.trials.length>100||!Array.isArray(p.phases)||p.phases.length>12)throw Error('기록 크기 초과');

@@ -1,7 +1,8 @@
 import {Camera} from './camera.js';
+import {art} from './visuals.js';
 const C=globalThis.NL2,E=globalThis.NL2Experience,$=id=>document.getElementById(id);
 const sideName={left:'왼쪽',right:'오른쪽'};
-const icon=(kind)=>({attention:'◒',disengage:'↗',reward:'◯ □',load:'2 + 3',calibration:'◎',preload:'＋',baseline:'＋',recovery:'＋',wrap:'✓'})[kind];
+const icon=kind=>art(['baseline','preload','wrap'].includes(kind)?'recovery':kind);
 
 export class Session {
   constructor({manifest,onComplete,onCancel}){
@@ -25,7 +26,7 @@ export class Session {
   get busy(){return !['idle','done'].includes(this.state);}
   async start(options){
     this.cleanup();const gen=++this.generation;
-    this.options=options;this.state='setup';this.started=performance.now();this.setupStarted=this.started;this.practiceLog=[];this.inputChecks=new Set();this.gate.reset();this.latest=null;this.device={width:0,height:0,fps:0,trackId:'behavior'};this.calibrationAttempts=[];this.packet=null;this.phaseIndex=0;this.level=1;this.lastQualityAt=0;this.sequence=0;this.cameraConnecting=false;this.cameraError='';
+    this.options=options;$('stage-journey').innerHTML='<span class="current">환경 확인</span><span>과제 연습</span><span>본 검사</span><span>마음 리포트</span>';this.state='setup';this.started=performance.now();this.setupStarted=this.started;this.practiceLog=[];this.inputChecks=new Set();this.gate.reset();this.latest=null;this.device={width:0,height:0,fps:0,trackId:'behavior'};this.calibrationAttempts=[];this.packet=null;this.phaseIndex=0;this.level=1;this.lastQualityAt=0;this.sequence=0;this.cameraConnecting=false;this.cameraError='';
     document.body.classList.add('in-session');$('session-progress').value=0;$('remaining').textContent=String(C.schedule(options.protocol,options.focus).at(-1).end/1000);$('session-progress').max=Number($('remaining').textContent);$('timer-label').textContent='초 측정';$('session-status').textContent='';$('frame-count').textContent='0';$('cal-grade').textContent='준비 전';$('wall-time').textContent='0초';
     $('camera-video').closest('.camera-frame').hidden=options.behavior;$('camera-video').hidden=options.behavior;$('camera-placeholder').hidden=!options.behavior;$('quality').textContent=options.behavior?'행동 과제 모드':'카메라 연결 전';
     this.renderSetup();this.lastTick=performance.now();this.raf=requestAnimationFrame(t=>this.tick(t));
@@ -37,7 +38,7 @@ export class Session {
     const files=[...new Set(this.manifest.pairs.filter(p=>p.form===this.options.form).flatMap(p=>[p.emotion.file,p.neutral.file]))];
     await Promise.all(files.map(file=>new Promise((resolve,reject)=>{const img=new Image(),timer=setTimeout(()=>reject(Error('그림 준비에 시간이 걸립니다. 연결을 확인하고 다시 시작해주세요.')),15000);img.onload=()=>{clearTimeout(timer);resolve();};img.onerror=()=>{clearTimeout(timer);reject(Error('검사 그림을 불러오지 못했습니다.'));};img.src='/neurolens2/stimuli/'+file;})));
   }
-  header(title,step,action,mode){$('phase-name').textContent=title;$('phase-counter').textContent=step;$('instruction').textContent=action;$('task-instruction').textContent=action;$('interaction-mode').textContent=mode;$('session-status').textContent='';}
+  header(title,step,action,mode){$('phase-name').textContent=title;$('phase-counter').textContent=step;$('instruction').textContent=action;$('task-instruction').textContent=action;$('interaction-mode').textContent=mode;$('session-status').textContent='';const guide=Object.values(E.guides).find(g=>g.title===title);$('session-purpose').textContent=guide?.why||'느낀 마음과 과제 반응을 구분해, 나에게 맞는 돌봄으로 연결합니다.';}
   content(html){$('task-content').innerHTML=html;}
   hideResponses(){ $('response-buttons').hidden=true; }
   renderSetup(){
@@ -86,7 +87,7 @@ export class Session {
     else if(action==='cal-retry'&&this.state==='cal-review'&&this.calibrationAttempts.length<3){this.packet.frames=[];this.packet.calibrationPoints=[];this.countdown(()=>this.beginPhase(performance.now()));}
   }
   showPractice(){
-    this.practiceTrial=0;this.activeTrial=null;
+    this.practiceTrial=0;this.activeTrial=null;$('stage-journey').innerHTML='<span class="done">환경 확인</span><span class="current" aria-current="step">과제 연습</span><span>본 검사</span><span>마음 리포트</span>';
     if(this.practiceIndex>=this.practices.length){this.state='ready';this.header('준비가 끝났습니다','준비 3 / 3 · 시작 확인',this.options.behavior?'편안한 상태부터 시작해, 연습한 과제로 이어집니다.':'시작하면 먼저 움직이는 점을 따라 시선을 맞춥니다.','설명은 단계마다 다시 표시됩니다');this.hideResponses();this.content(`<div class="guide-card"><div class="guide-symbol">✓</div><p class="eyebrow">READY WHEN YOU ARE</p><h3>이제 편안하게 시작해요.</h3><p>${this.options.behavior?'카메라 없이 버튼 반응만 관찰합니다.':'머리는 편안하게 두고, 화면의 안내를 따라주세요.'}<br>보기만 하는 단계에서는 버튼이 나타나지 않습니다.</p><div class="duration-pill">실제 측정 ${C.schedule(this.options.protocol,this.options.focus).at(-1).end/1000}초 <span>설명 시간 별도</span></div><button class="primary" data-action="begin">${this.options.behavior?'편안한 상태부터 시작':'시선 맞추기부터 시작'} <span>→</span></button></div>`);return;}
     this.practiceKind=this.practices[this.practiceIndex];const g=E.guides[this.practiceKind];this.state='practice-intro';$('session').dataset.state='practice';this.header(g.title,`연습 ${this.practiceIndex+1} / ${this.practices.length} · 결과에 포함되지 않음`,g.action,g.mode);this.hideResponses();
     this.content(`<div class="guide-card"><div class="guide-symbol">${icon(this.practiceKind)}</div><p class="eyebrow">LET’S TRY IT ONCE</p><h3>${g.title}</h3><p class="guide-action">${g.action}</p><p>${g.why}</p><div class="instruction-rule">${this.practiceKind==='attention'?'누르지 않아도 정상입니다.':'← → 키 · 숫자 1·2 · 화면 선택지를 사용할 수 있어요.'}</div><button class="primary" data-action="try-practice">짧게 연습하기 <span>→</span></button></div>`);
@@ -111,15 +112,15 @@ export class Session {
     if(!this.options.behavior&&(!this.latest||performance.now()-this.latest.t>1000||!E.readiness(this.latest).ok)){this.state='setup';this.gate.reset();this.renderSetup();this.refreshSetup();return;}
     this.state='starting';const gen=this.generation;
     const rect=$('stage').getBoundingClientRect(),deviceKey=await this.options.deviceHash(JSON.stringify([this.device.trackId,this.device.width,this.device.height,Math.round(this.device.fps||0),Math.round(rect.width),Math.round(rect.height),navigator.userAgent]));if(gen!==this.generation)return;
-    const {protocol,focus,form,participant,recommendation,behavior}=this.options,seed=crypto.getRandomValues(new Uint32Array(1))[0],phases=C.schedule(protocol,focus);
-    this.packet={schema:C.SCHEMA,engine:C.VERSION,id:crypto.randomUUID(),createdAt:new Date().toISOString(),participant,protocol,focus,form,seed,deviceKey,device:{width:this.device.width,height:this.device.height,fps:this.device.fps},captureMode:behavior?'behavior':'webcam',origin:'observed',status:'aborted',elapsed:0,phases,trials:C.makeTrials(phases,this.manifest,seed,form),frames:[],calibrationPoints:[],calibration:C.fitCalibration([]),events:[],segments:[],practice:this.practiceLog,stimuliVersion:this.manifest.version,stimuliStatus:this.manifest.status,recommendation,timing:{preparationMs:performance.now()-this.started,guidanceMs:0,clock:'phase-anchored performance clock; frame-presentation callbacks and input event timestamps; camera exposure timestamp unavailable'}};
+    const {protocol,focus,form,participant,recommendation,behavior,checkin}=this.options,seed=crypto.getRandomValues(new Uint32Array(1))[0],phases=C.schedule(protocol,focus);
+    this.packet={schema:C.SCHEMA,engine:C.VERSION,id:crypto.randomUUID(),createdAt:new Date().toISOString(),participant,protocol,focus,form,seed,deviceKey,checkin,localDate:new Date().toLocaleDateString('sv-SE'),device:{width:this.device.width,height:this.device.height,fps:this.device.fps},captureMode:behavior?'behavior':'webcam',origin:'observed',status:'aborted',elapsed:0,phases,trials:C.makeTrials(phases,this.manifest,seed,form),frames:[],calibrationPoints:[],calibration:C.fitCalibration([]),events:[],segments:[],practice:this.practiceLog,stimuliVersion:this.manifest.version,stimuliStatus:this.manifest.status,recommendation,timing:{preparationMs:performance.now()-this.started,guidanceMs:0,clock:'phase-anchored performance clock; frame-presentation callbacks and input event timestamps; camera exposure timestamp unavailable'}};
     this.phaseIndex=0;this.phase=phases[0];this.countdown(()=>this.beginPhase(performance.now()));
   }
   currentGuide(){return this.options.behavior&&this.phase.kind==='calibration'?{title:'편안하게 준비하기',action:'화면을 편안하게 바라보세요. 잠시 후 연습한 과제가 시작됩니다.',mode:'보기만 하기'}:E.guides[this.phase.kind];}
   countdown(next){this.state='countdown';this.countdownStart=performance.now();this.afterCountdown=next;this.hideResponses();this.renderKey='';this.header('곧 시작합니다','준비 완료 · 3초 후 시작',this.currentGuide().action,this.currentGuide().mode);}
   beginPhase(wallTime){
     this.state='active';$('session').dataset.state='active';this.phase=this.packet.phases[this.phaseIndex];this.clock.start(this.phase,wallTime);this.segment={phase:this.phase.id,wallStart:wallTime-this.started,activeStart:this.phase.start};this.packet.segments.push(this.segment);this.bounds=$('stage').getBoundingClientRect();this.renderKey='';this.activeTrial=null;this.currentCal=null;this.pendingOnset=null;this.lastTick=performance.now();
-    const g=this.currentGuide();this.header(g.title,`${this.phaseIndex+1} / ${this.packet.phases.length} · ${this.options.behavior?'행동 관찰':'본 검사'}`,g.action,g.mode);$('timer-label').textContent='초 남음';this.event('phase',{phase:this.phase.id});this.drawTask(this.phase.start);
+    $('stage-journey').innerHTML=this.packet.phases.map((p,i)=>`<span class="${i===this.phaseIndex?'current':i<this.phaseIndex?'done':''}" ${i===this.phaseIndex?'aria-current="step"':''}>${this.options.behavior&&p.kind==='calibration'?'편안한 준비':E.guides[p.kind].title}</span>`).join('');const g=this.currentGuide();this.header(g.title,`${this.phaseIndex+1} / ${this.packet.phases.length} · ${this.options.behavior?'행동 관찰':'본 검사'}`,g.action,g.mode);$('timer-label').textContent='초 남음';this.event('phase',{phase:this.phase.id});this.drawTask(this.phase.start);
   }
   endPhase(now){
     const wallEnd=this.clock.anchor+this.phase.end-this.phase.start;this.packet.elapsed=this.phase.end;this.segment.wallEnd=wallEnd-this.started;this.clock.pause();this.hideResponses();this.pendingOnset=null;

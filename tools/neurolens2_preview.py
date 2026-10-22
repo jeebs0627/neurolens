@@ -86,7 +86,7 @@ class PreviewHandler(BaseHTTPRequestHandler):
         path = unquote(urlsplit(self.path).path)
         if path == "/api/neurolens2":
             if self.session():
-                return self.send(200, {"authorized": True, "scope": self.server.scope, "mode": "local-owner", "leaseSeconds": 300, "engine": "nl2-2.1.0"})
+                return self.send(200, {"authorized": True, "scope": self.server.scope, "mode": "local-owner", "leaseSeconds": 300, "engine": "nl2-2.2.0"})
             try:
                 return self.send(200, gateway.authorize(self.headers.get("Authorization", "")))
             except gateway.AccessError as exc:

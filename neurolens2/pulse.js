@@ -36,6 +36,19 @@
       const a=rows[i],b=rows[i+1];if(!b||t<a.t||t>b.t)return null;const w=(t-a.t)/(b.t-a.t||1);rgb.push(a.rgb.map((v,c)=>v+(b.rgb[c]-v)*w));}
     return rgb;
   }
+  function periodicity(signal,bpm,fs=20){
+    const a=detrend(signal),center=Math.round(fs*60/bpm),values=[];
+    for(let lag=Math.max(2,center-1);lag<=center+1;lag++){let cross=0,aa=0,bb=0;for(let i=lag;i<a.length;i++){cross+=a[i]*a[i-lag];aa+=a[i]**2;bb+=a[i-lag]**2;}values.push(aa&&bb?cross/Math.sqrt(aa*bb):0);}
+    return Math.max(...values);
+  }
+  function spatialConsensus(regions){
+    // A corrupted third region must not discard a unique two-region agreement.
+    const groups=regions.map(a=>regions.filter(b=>Math.abs(a.bpm-b.bpm)<=8)).filter(g=>g.length>=2&&Math.max(...g.map(x=>x.bpm))-Math.min(...g.map(x=>x.bpm))<=8);
+    const unique=[...new Map(groups.map(g=>[g.map(x=>x.roi).sort().join('|'),g])).values()].sort((a,b)=>b.length-a.length);
+    if(!unique.length)return {adopted:[],excluded:regions.map(x=>x.roi),ambiguous:false};
+    if(unique.length>1&&unique[0].length===unique[1].length)return {adopted:[],excluded:regions.map(x=>x.roi),ambiguous:true};
+    return {adopted:unique[0],excluded:regions.filter(r=>!unique[0].includes(r)).map(r=>r.roi),ambiguous:false};
+  }
   function windowEvidence(frames,start,end,phase){
     const seen=new Set(),selected=frames.filter(f=>{if(f.t<start||f.t>=end||f.phase!==phase||seen.has(f.t))return false;seen.add(f.t);return true;}), candidates=[],adopted=[];
     const base={start,end,phase,bpm:null,halfWidth:null,reason:'유효 관측 부족',candidates,adopted,
@@ -51,8 +64,9 @@
       const methodResults=[];
       for(const method of ['POS','CHROM']){
         const p=spectrum(s[method]);if(!p)continue;
-        const c={id:phase+'-'+start+'-'+id+'-'+method,roi:id,method,...p,observedFrames:rows.length,observedSpanMs:rows.at(-1).t-rows[0].t,
-          box:[0,1,2,3].map(k=>median(rows.map(r=>r.box[k]))),parent:phase+':'+start+':camera:'+id,eligible:p.concentration>=.35};
+        const repeat=periodicity(s[method],p.bpm),ambiguous=p.alternatives.some(a=>a.relative>=.65);
+        const c={id:phase+'-'+start+'-'+id+'-'+method,roi:id,method,...p,periodicity:repeat,ambiguousPeak:ambiguous,observedFrames:rows.length,observedSpanMs:rows.at(-1).t-rows[0].t,
+          box:[0,1,2,3].map(k=>median(rows.map(r=>r.box[k]))),parent:phase+':'+start+':camera:'+id,eligible:p.concentration>=.35&&repeat>=.35&&!ambiguous};
         candidates.push(c);if(c.eligible)methodResults.push(c);
       }
       if(methodResults.length<2||Math.abs(methodResults[0].bpm-methodResults[1].bpm)>7.5)continue;
@@ -62,16 +76,20 @@
       adopted.push(c);
     }
     if(adopted.length<2)return {...base,reason:'서로 겹치지 않는 ROI 2개에서 POS·CHROM 합의 부족'};
+    const agreement=spatialConsensus(adopted);
+    if(!agreement.adopted.length)return {...base,reason:agreement.ambiguous?'여러 얼굴 영역 조합이 비슷하게 지지되어 채택 보류':'얼굴 영역 간 주파수 불일치'};
+    adopted.splice(0,adopted.length,...agreement.adopted);
     const bpm=median(adopted.map(c=>c.bpm)),spread=Math.max(...adopted.map(c=>c.bpm))-Math.min(...adopted.map(c=>c.bpm));
     if(spread>8)return {...base,reason:'얼굴 영역 간 주파수 불일치'};
     // Background pulsation at the same frequency is a confound, never corroboration.
     const bg=selected.filter(f=>Number.isFinite(f.background));
-    if(bg.length>=90){const p=spectrum(bg.map(f=>f.background),1000/median(bg.slice(1).map((f,i)=>f.t-bg[i].t)));
+    const backgroundRGB=resample(bg.map(f=>({t:f.t,rgb:[f.background,f.background,f.background]})),start,end);
+    if(backgroundRGB){const p=spectrum(backgroundRGB.map(rgb=>rgb[0]));
       if(p&&p.amplitude>1.5&&p.concentration>.5&&Math.abs(p.bpm-bpm)<8)return {...base,reason:'배경 밝기와 동일한 주기: 조명 혼입 의심'};}
     return {...base,bpm,halfWidth:Math.max(60/((end-start)/1000)/2,spread/2,3),reason:'공간이 분리된 ROI 합의 채택',
-      supportRegions:adopted.length,independentModalities:1,intervalMeaning:'주파수 분해능·ROI 편차의 공학적 후보 폭; 통계적 신뢰구간 아님'};
+      supportRegions:adopted.length,rejectedRegions:agreement.excluded,backgroundChecked:!!backgroundRGB,independentModalities:1,intervalMeaning:'주파수 분해능·ROI 편차의 공학적 후보 폭; 통계적 신뢰구간 아님'};
   }
   function analyze(frames,phases){const out=[];for(const phase of phases){if(['calibration','wrap'].includes(phase.kind))continue;
     for(let t=phase.start;t+12000<=phase.end;t+=12000)out.push(windowEvidence(frames,t,t+12000,phase.id));}return out;}
-  return {overlap,detrend,spectrum,signals,resample,windowEvidence,analyze};
+  return {overlap,detrend,spectrum,signals,resample,periodicity,spatialConsensus,windowEvidence,analyze};
 });

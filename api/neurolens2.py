@@ -48,7 +48,7 @@ def authorize(authorization, fetch=remote, allowed_ids=None):
     except Exception as exc:
         raise AccessError(503, "authorization-unavailable") from exc
     return {"authorized": True, "scope": hashlib.sha256(("nl2:" + user["id"]).encode()).hexdigest()[:24],
-            "mode": "supabase-admin", "leaseSeconds": 300, "engine": "nl2-2.1.0"}
+            "mode": "supabase-admin", "leaseSeconds": 300, "engine": "nl2-2.2.0"}
 
 
 class handler(BaseHTTPRequestHandler):
