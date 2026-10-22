@@ -25,10 +25,44 @@
     const px=norm.map(r=>r[1]-r[2]),py=norm.map(r=>r[1]+r[2]-2*r[0]);
     const cx=norm.map(r=>3*r[0]-2*r[1]),cy=norm.map(r=>1.5*r[0]+r[1]-1.5*r[2]);
     if(sd(py)<1e-8||sd(cy)<1e-8)return null;
-    return {POS:px.map((v,i)=>v+sd(px)/sd(py)*py[i]),CHROM:cx.map((v,i)=>v-sd(cx)/sd(cy)*cy[i])};
+    const pa=sd(px)/sd(py),ca=sd(cx)/sd(cy);
+    return {POS:px.map((v,i)=>v+pa*py[i]),CHROM:cx.map((v,i)=>v-ca*cy[i])};
+  }
+  // Windowed-sinc FIR removes slow lighting drift and high frequency sensor noise.
+  // Reflection avoids inventing zero-valued skin at the ends of a recording.
+  function bandpass(a,fs=20,low=.7,high=3.3){
+    if(a.length<3)return a.map(()=>0);
+    const half=40,sinc=x=>x===0?1:Math.sin(Math.PI*x)/(Math.PI*x),kernel=[];
+    for(let k=-half;k<=half;k++)kernel.push((2*high/fs*sinc(2*high*k/fs)-2*low/fs*sinc(2*low*k/fs))*(.54+.46*Math.cos(Math.PI*k/half)));
+    const dc=mean(kernel);for(let i=0;i<kernel.length;i++)kernel[i]-=dc;
+    const at=i=>{while(i<0||i>=a.length)i=i<0?-i:2*a.length-2-i;return a[i];};
+    return a.map((_,i)=>kernel.reduce((v,k,j)=>v+k*at(i+j-half),0));
+  }
+  function temporalSignals(rgb){
+    const n=rgb.length,length=32,weight=Array(n).fill(0),out={POS:Array(n).fill(0),CHROM:Array(n).fill(0)};
+    // POS/CHROM projections are normalised locally (1.6 s), then overlap-added.
+    // Both remain dependent transformations of the same RGB pixels.
+    function local(rows){
+      const s=signals(rows);if(!s)return null;
+      const baseline=[0,1,2].map(c=>mean(rows.map(r=>r[c]))),norm=rows.map(r=>r.map((v,c)=>v/baseline[c]-1));
+      // CHROM's mixing weight belongs to filtered chrominance, not illumination drift.
+      const x=bandpass(norm.map(r=>3*r[0]-2*r[1])),y=bandpass(norm.map(r=>1.5*r[0]+r[1]-1.5*r[2])),sy=sd(y);
+      if(sy<1e-8)return null;const alpha=sd(x)/sy;
+      return {POS:s.POS,CHROM:x.map((v,i)=>v-alpha*y[i])};
+    }
+    for(let start=0;start+length<=n;start+=8){
+      const s=local(rgb.slice(start,start+length));if(!s)continue;
+      for(let i=0;i<length;i++){const w=.5-.5*Math.cos(2*Math.PI*(i+.5)/length);weight[start+i]+=w;for(const method of ['POS','CHROM'])out[method][start+i]+=s[method][i]*w;}
+    }
+    if(weight.some(w=>w===0)){
+      const s=local(rgb.slice(-length));if(!s)return null;
+      for(let i=0;i<length;i++){const index=n-length+i;if(weight[index]===0){weight[index]=1;for(const method of ['POS','CHROM'])out[method][index]=s[method][i];}}
+    }
+    if(weight.some(w=>w===0))return null;
+    return Object.fromEntries(Object.entries(out).map(([method,a])=>[method,bandpass(a.map((v,i)=>v/weight[i]))]));
   }
   function resample(rows,start,end){
-    if(rows.length<90||rows[0].t>start+200||rows.at(-1).t<end-200)return null;
+    if(rows.length<Math.max(90,Math.ceil((end-start)/1000*8))||rows[0].t>start+200||rows.at(-1).t<end-200)return null;
     for(let i=1;i<rows.length;i++)if(rows[i].t-rows[i-1].t>200)return null;
     const rgb=[];let i=0;
     // Interpolated points feed the spectrum only; they never increase observed support.
@@ -49,9 +83,10 @@
     if(unique.length>1&&unique[0].length===unique[1].length)return {adopted:[],excluded:regions.map(x=>x.roi),ambiguous:true};
     return {adopted:unique[0],excluded:regions.filter(r=>!unique[0].includes(r)).map(r=>r.roi),ambiguous:false};
   }
-  function windowEvidence(frames,start,end,phase){
+  function windowEvidence(frames,start,end,phase,options={}){
     const seen=new Set(),selected=frames.filter(f=>{if(f.t<start||f.t>=end||f.phase!==phase||seen.has(f.t))return false;seen.add(f.t);return true;}), candidates=[],adopted=[];
     const base={start,end,phase,bpm:null,halfWidth:null,reason:'유효 관측 부족',candidates,adopted,
+      algorithm:options.temporal?'temporal-projection-fir-1':'projection-legacy',
       source:{modality:'camera',frameRange:[selected[0]?.t??null,selected.at(-1)?.t??null],observedFrames:selected.length}};
     if(selected.length<90)return base;
     const face=selected.filter(f=>f.face&&Math.abs(f.yaw||0)<.23&&(f.motion||0)<.045&&(f.geometryAge||0)<180);
@@ -60,13 +95,13 @@
     for(const id of ids){
       const rows=face.map(f=>{const r=f.rois?.find(x=>x.id===id);return r&&r.coverage>=.65?{t:f.t,...r}:null;}).filter(Boolean);
       const rgb=resample(rows,start,end);if(!rgb)continue;
-      const s=signals(rgb);if(!s)continue;
+      const s=options.temporal?temporalSignals(rgb):signals(rgb);if(!s)continue;
       const methodResults=[];
       for(const method of ['POS','CHROM']){
         const p=spectrum(s[method]);if(!p)continue;
         const repeat=periodicity(s[method],p.bpm),ambiguous=p.alternatives.some(a=>a.relative>=.65);
         const c={id:phase+'-'+start+'-'+id+'-'+method,roi:id,method,...p,periodicity:repeat,ambiguousPeak:ambiguous,observedFrames:rows.length,observedSpanMs:rows.at(-1).t-rows[0].t,
-          box:[0,1,2,3].map(k=>median(rows.map(r=>r.box[k]))),parent:phase+':'+start+':camera:'+id,eligible:p.concentration>=.35&&repeat>=.35&&!ambiguous};
+          box:[0,1,2,3].map(k=>median(rows.map(r=>r.box[k]))),parent:phase+':'+start+':camera:'+id,eligible:p.concentration>=.35&&repeat>=.35&&!ambiguous&&(!options.temporal||p.bpm>43.5&&p.bpm<196.5)};
         candidates.push(c);if(c.eligible)methodResults.push(c);
       }
       if(methodResults.length<2||Math.abs(methodResults[0].bpm-methodResults[1].bpm)>7.5)continue;
@@ -86,10 +121,18 @@
     const backgroundRGB=resample(bg.map(f=>({t:f.t,rgb:[f.background,f.background,f.background]})),start,end);
     if(backgroundRGB){const p=spectrum(backgroundRGB.map(rgb=>rgb[0]));
       if(p&&p.amplitude>1.5&&p.concentration>.5&&Math.abs(p.bpm-bpm)<8)return {...base,reason:'배경 밝기와 동일한 주기: 조명 혼입 의심'};}
+    // Independent subspans must agree. Filtering alone must not turn noise into support.
+    if(options.temporal&&end-start>=24000){
+      const middle=(start+end)/2,halves=[windowEvidence(frames,start,middle,phase,{temporal:true}),windowEvidence(frames,middle,end,phase,{temporal:true})];
+      if(halves.some(w=>w.bpm===null||Math.abs(w.bpm-bpm)>8))return {...base,reason:'앞·뒤 절반의 공간 합의가 이어지지 않아 보류',temporalChecks:halves.map(w=>({bpm:w.bpm,reason:w.reason}))};
+    }
+    const traceROI=adopted[0].roi,traceRows=face.map(f=>{const r=f.rois?.find(x=>x.id===traceROI);return r?{t:f.t,...r}:null;}).filter(Boolean),traceRGB=resample(traceRows,start,end),traceSignals=traceRGB&&(options.temporal?temporalSignals(traceRGB):signals(traceRGB));
+    const trace=traceSignals?traceSignals.POS:[],scale=trace.length?sd(trace):0;
     return {...base,bpm,halfWidth:Math.max(60/((end-start)/1000)/2,spread/2,3),reason:'공간이 분리된 ROI 합의 채택',
+      waveform:scale?trace.filter((_,i)=>i%2===0).map(v=>Math.max(-4,Math.min(4,v/scale))):[],waveformHz:10,waveformMeaning:'POS 투영 신호 · 임의 단위, ECG 파형·박동 간격 아님',
       supportRegions:adopted.length,rejectedRegions:agreement.excluded,backgroundChecked:!!backgroundRGB,independentModalities:1,intervalMeaning:'주파수 분해능·ROI 편차의 공학적 후보 폭; 통계적 신뢰구간 아님'};
   }
-  function analyze(frames,phases){const out=[];for(const phase of phases){if(['calibration','wrap'].includes(phase.kind))continue;
-    for(let t=phase.start;t+12000<=phase.end;t+=12000)out.push(windowEvidence(frames,t,t+12000,phase.id));}return out;}
-  return {overlap,detrend,spectrum,signals,resample,periodicity,spatialConsensus,windowEvidence,analyze};
+  function analyze(frames,phases,options={}){const out=[],size=options.windowMs||12000;for(const phase of phases){if(['calibration','wrap'].includes(phase.kind)||options.steadyOnly&&!['baseline','preload','load','recovery'].includes(phase.kind))continue;
+    for(let t=phase.start;t+size<=phase.end;t+=size)out.push(windowEvidence(frames,t,t+size,phase.id,options));}return out;}
+  return {overlap,detrend,spectrum,signals,temporalSignals,bandpass,resample,periodicity,spatialConsensus,windowEvidence,analyze};
 });

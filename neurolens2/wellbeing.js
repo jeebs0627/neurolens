@@ -91,7 +91,7 @@
     const modalities={selfReport:Object.keys(packet.checkin?.answers||{}).length,gaze:attention.filter(f=>f.usable).length,behavior:tasks.filter(t=>t.usable).length,pulse:validWindows.length};
     return {version:VERSION,self:s,tasks,attention,headline,story,actions:care(s),modalities,
       quality:{frames:packet.frames.length,faceFrames:packet.frames.filter(f=>f.face).length,pulseAccepted:validWindows.length,pulseTotal:result.windows.length,calibration:packet.calibration.grade,complete:packet.status==='completed'},
-      physiology:['preload','load','recovery'].map(phase=>({phase,bpm:quantile(validWindows.filter(w=>w.phase===phase).map(w=>w.bpm),.5),n:validWindows.filter(w=>w.phase===phase).length})),
+      physiology:[packet.phases?.some(p=>p.id==='preload')?'preload':'baseline','load','recovery'].map(phase=>({phase,bpm:quantile(validWindows.filter(w=>w.phase===phase).map(w=>w.bpm),.5),n:validWindows.filter(w=>w.phase===phase).length})),
       distinction:'느낀 마음과 과제 반응은 서로 다른 정보입니다. 심박·시선·반응속도로 설문 점수를 올리거나 낮추지 않습니다.'};
   }
   function historySeries(current,history){

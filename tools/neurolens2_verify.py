@@ -48,7 +48,7 @@ def main():
         for forbidden in ['/condition.html','/condition-lite/','/auth.js','/supabase-config.js','/api/neurolens_dataset','test_results','service_role']:
             if forbidden in data: raise RuntimeError('Operating dependency in '+filename+': '+forbidden)
     print(f'Isolation: {len(baseline)-2} pre-existing files unchanged; deploy exclusions preserved; separately authorized Vercel storage config checked; {len(vendor)} vendor assets and {len(stimuli["pairs"])*2} stimuli verified.',flush=True)
-    commands=[[node,'--test','neurolens2/core.test.cjs','tools/neurolens2_benchmark.test.cjs','neurolens2/experience.test.cjs','neurolens2/wellbeing.test.cjs','neurolens2/quality.test.cjs'],[sys.executable,'-X','utf8','tools/test_neurolens2.py']]
+    commands=[[node,'--test','neurolens2/core.test.cjs','tools/neurolens2_benchmark.test.cjs','neurolens2/experience.test.cjs','neurolens2/wellbeing.test.cjs','neurolens2/quality.test.cjs','neurolens2/measurement.test.cjs'],[sys.executable,'-X','utf8','tools/test_neurolens2.py']]
     if args.browser: commands.append([node,'tools/neurolens2.browser.test.cjs'])
     env=dict(os.environ,NL2_PYTHON=sys.executable)
     env.setdefault('NODE_PATH',str(Path.home()/'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules'))
@@ -56,7 +56,7 @@ def main():
     # Check again after browser tests to catch unintended writes.
     if any(not unchanged(name,sha) for name,sha in baseline.items()): raise RuntimeError('Operating file changed during verification')
     result={'operatingFilesUnchanged':len(baseline)-2,'deploymentConfig':'Original exclusions plus NL2 artifacts; exact authorized 648fb19 Vercel storage configuration','vendorAssetsVerified':len(vendor),'stimulusAssetsVerified':len(stimuli['pairs'])*2,
-            'engineTests':62,'authorizationAndPreviewTests':13,'browser':args.browser,'engine':'nl2-2.3.0'}
+            'engineTests':75,'authorizationAndPreviewTests':13,'browser':args.browser,'engine':'nl2-2.4.0'}
     out=ROOT/'output/neurolens2';out.mkdir(parents=True,exist_ok=True)
     (out/'verification.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
     print('IN MIND 2.0 verification passed.',flush=True)

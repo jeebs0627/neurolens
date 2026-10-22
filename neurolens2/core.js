@@ -4,19 +4,26 @@
   else root.NL2 = api;
 })(typeof self !== 'undefined' ? self : globalThis, function () {
   'use strict';
-  const VERSION = 'nl2-2.3.0', SCHEMA = 'nl2-packet-1';
+  const VERSION = 'nl2-2.4.0', SCHEMA = 'nl2-packet-1';
   const legacyProtocols = {
     first180: [['calibration',18],['baseline',12],['attention',36],['disengage',24],['reward',18],['preload',20],['load',20],['recovery',28],['wrap',4]],
     daily60: [['calibration',10],['baseline',12],['focus',24],['recovery',10],['wrap',4]],
     daily90: [['calibration',12],['baseline',20],['focus',30],['recovery',24],['wrap',4]],
     weekly180: [['calibration',18],['baseline',22],['focus',48],['preload',20],['load',24],['recovery',44],['wrap',4]]
   };
-  const protocols = {
+  const v23Protocols = {
     first180: [['calibration',18],['baseline',12],['attention',36],['disengage',27],['reward',24],['preload',12],['load',24],['recovery',24],['wrap',3]],
     daily60: legacyProtocols.daily60,
     daily90: [['calibration',14],['baseline',12],['focus',36],['recovery',24],['wrap',4]],
     weekly180: [['calibration',18],['baseline',18],['focus',48],['preload',18],['load',30],['recovery',44],['wrap',4]]
   };
+  const protocols = {
+    first180:[['calibration',28],['baseline',32],['attention',48],['load',32],['recovery',38],['wrap',2]],
+    daily60:[['calibration',4],['baseline',32],['load',20],['wrap',4]],
+    daily90:[['calibration',24],['baseline',30],['attention',32],['wrap',4]],
+    weekly180:[['calibration',28],['baseline',32],['attention',48],['load',32],['recovery',38],['wrap',2]]
+  };
+  const calibrationTargets=[.18,.82,.5,.82,.18,.5,.30,.70,.5];
   const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
   const finite = x => typeof x === 'number' && Number.isFinite(x);
   const mean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
@@ -25,7 +32,7 @@
   function rng(seed) { let a=seed>>>0;return ()=>{a+=0x6D2B79F5;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;}; }
   function shuffle(a,r) { const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b; }
   function schedule(name,focus='attention',version=VERSION) {
-    const plans=version==='nl2-2.0.0'?legacyProtocols:protocols;
+    const plans=version==='nl2-2.0.0'?legacyProtocols:version===VERSION?protocols:v23Protocols;
     if(!protocols[name]||!['attention','disengage','reward'].includes(focus))throw Error('invalid-protocol');
     let t=0;return plans[name].map(([kind,duration])=>({id:kind,start:t,end:(t+=duration*1000),kind:kind==='focus'?focus:kind}));
   }
@@ -70,8 +77,11 @@
     if(v/centres.length<.000025)return {...empty,reason:'시선 이동 범위 부족'};
     const slope=centres.reduce((s,p)=>s+(p.raw-mx)*(p.target-my),0)/v,intercept=my-slope*mx;
     const error=mean(holdTargets.map(target=>mean(hold.filter(p=>p.target===target).map(p=>Math.abs(slope*p.raw+intercept-p.target)))));
-    const grade=error<=.12?'G2':error<=.22?'G1':'G0';
-    return {...empty,grade,reason:grade==='G0'?'독립 검증점 오차 초과':'훈련에 쓰지 않은 검증점 평가',slope,intercept,error,
+    const targetErrors=holdTargets.map(target=>({target,error:mean(hold.filter(p=>p.target===target).map(p=>Math.abs(slope*p.raw+intercept-p.target)))}));
+    const worstError=Math.max(...targetErrors.map(p=>p.error));
+    const jitter=median(holdTargets.map(target=>sd(hold.filter(p=>p.target===target).map(p=>slope*p.raw+intercept))));
+    const grade=error<=.12&&worstError<=.18&&jitter<=.10?'G2':error<=.22&&worstError<=.28&&jitter<=.16?'G1':'G0';
+    return {...empty,grade,reason:grade==='G0'?'독립 검증점 오차·흔들림 기준 초과':'훈련에 쓰지 않은 검증점 평가',slope,intercept,error,worstError,jitter,targetErrors,
       yaw:median(train.map(p=>p.yaw||0)),yawRange:.12,
       centerX:median(train.map(p=>p.centerX).filter(finite)),centerY:median(train.map(p=>p.centerY).filter(finite)),faceWidth:median(train.map(p=>p.faceWidth).filter(finite)),roll:median(train.map(p=>p.roll).filter(finite))};
   }
@@ -163,14 +173,18 @@
     return {value:100*(l-last.bpm)/rise,unit:'%',rise,error,reason:'(부하 심박 − 마지막 회복 심박) / (부하 심박 − 부하 전 심박)',
       interval:null,provisional:true};
   }
-  function analyze(packet,pulse) {
-    const tasks=taskEvidence(packet),windows=pulse&&packet.captureMode!=='behavior'?pulse.analyze(packet.frames,packet.phases).filter(w=>w.end<=packet.elapsed):[];
+  function analyze(packet,pulse,respiration) {
+    const modern=packet.engine===VERSION;
+    const tasks=taskEvidence(packet),windows=pulse&&packet.captureMode!=='behavior'?pulse.analyze(packet.frames,packet.phases,modern?{temporal:true,windowMs:24000,steadyOnly:true}:{}).filter(w=>w.end<=packet.elapsed):[];
+    const breathing=respiration&&packet.captureMode!=='behavior'?respiration.analyze(packet.frames,packet.phases,packet.elapsed):[];
     const valid=windows.filter(w=>w.bpm!==null),hr=interval(valid.map(w=>w.bpm));
     const features=[...tasks.features,{id:'pulse',label:'관측 심박 후보',...hr,interval:null,unit:'bpm',source:'camera-rgb',usable:valid.length>0,
       contextKey:'windows:'+valid.map(w=>w.phase+':'+w.start).join(','),
       reason:valid.length?'독립 시간 창의 중앙 후보를 요약; HRV·진단 점수로 변환하지 않음':'영상 품질·길이 또는 ROI 일치 기준 미달'}];
+    const breaths=breathing.filter(w=>finite(w.rate));
+    if(modern)features.push({id:'respiration',label:'자연 호흡 움직임 후보',value:median(breaths.map(w=>w.rate)),n:breaths.length,interval:null,unit:'회/분',source:'camera-motion',usable:breaths.length>0,contextKey:'chest-flow-1:'+breaths.map(w=>w.phase+':'+w.start+':'+w.end).join(','),reason:'가슴 좌우 반복 움직임의 연구 후보; 임상 호흡수·정서 점수 아님'});
     const groups=[...new Set(features.filter(f=>f.usable).map(f=>f.source==='behavior'?'behavior':'camera'))];
-    return {engine:VERSION,features,rows:tasks.rows,windows,recovery:recovery(windows),
+    return {engine:VERSION,features,rows:tasks.rows,windows,breathing,recovery:modern?{value:null,reason:'앞뒤 심박은 기술 통계로 비교합니다. 짧은 덧셈이 개인별 부하를 충분히 유발했는지 검증되지 않아 회복 능력 점수를 산출하지 않습니다.'}:recovery(windows),
       evidence:{sourceGroups:groups,independentModalities:groups.length,note:'시선과 맥파는 같은 카메라에 의존하며 별도 독립 모달리티로 합산하지 않음'},
       calibration:packet.calibration,complete:packet.status==='completed',experimentalStimuli:true,
       qualityFlags:tasks.flags,
@@ -202,7 +216,7 @@
     return {kind:candidates[0].kind,candidates,reason:'최근 14회 중 유효 시행이 적은 정서 축을 우선하는 탐색 규칙. 검증된 EIG 최적화 모델은 아님.'};
   }
   function validate(p) {
-    if(!p||p.schema!==SCHEMA||![VERSION,'nl2-2.2.0','nl2-2.1.0','nl2-2.0.0'].includes(p.engine))throw Error('지원하지 않는 기록 버전');
+    if(!p||p.schema!==SCHEMA||![VERSION,'nl2-2.3.0','nl2-2.2.0','nl2-2.1.0','nl2-2.0.0'].includes(p.engine))throw Error('지원하지 않는 기록 버전');
     if(p.purpose!==undefined&&!['personal','evaluation'].includes(p.purpose))throw Error('기록 목적이 올바르지 않습니다.');
     if(p.checkinOnly!==undefined&&typeof p.checkinOnly!=='boolean')throw Error('체크인 전용 기록 형식 오류');
     if(p.checkinOnly&&(p.elapsed!==0||p.status!=='aborted'||p.trials?.length||p.frames?.length))throw Error('체크인 전용 기록에 과제 측정이 섞였습니다.');
@@ -215,6 +229,10 @@
     if(JSON.stringify(p.phases)!==JSON.stringify(expected))throw Error('프로토콜 시간표 불일치');
     let t=-1;
     for(const f of p.frames){if(!finite(f.t)||f.t<t||f.t<0||f.t>p.elapsed+250||!expected.some(ph=>ph.id===f.phase))throw Error('잘못된 프레임 시간');t=f.t;
+      if(f.resp!==undefined&&f.resp!==null){
+        if(typeof f.resp!=='object'||Array.isArray(f.resp)||typeof f.resp.valid!=='boolean')throw Error('잘못된 호흡 움직임 기록');
+        if(f.resp.valid&&(!Number.isInteger(f.resp.epoch)||f.resp.epoch<0||['left','right','head','background'].some(k=>!finite(f.resp[k])||Math.abs(f.resp[k])>100000)))throw Error('호흡 움직임 수치 범위 오류');
+      }
       if(f.rois&&(!Array.isArray(f.rois)||f.rois.length>3))throw Error('잘못된 ROI');
       for(const r of f.rois||[]){if(!r||typeof r.id!=='string'||!Array.isArray(r.rgb)||r.rgb.length!==3||!r.rgb.every(v=>finite(v)&&v>=0&&v<=255)||!Array.isArray(r.box)||r.box.length!==4||!r.box.every(finite))throw Error('잘못된 ROI 값');}
     }
@@ -227,5 +245,5 @@
     // Never trust serialized calibration or results. Refit only from recorded holdout-tagged samples.
     p.calibration=fitCalibration(p.calibrationPoints);return p;
   }
-  return {VERSION,SCHEMA,protocols,clamp,finite,mean,median,sd,rng,shuffle,schedule,sessionPosition,makeTrials,fitCalibration,gaze,interval,driftFlags,taskEvidence,recovery,analyze,observed,localDay,contextKey,compatible,longitudinal,recommend,validate};
+  return {VERSION,SCHEMA,protocols,calibrationTargets,clamp,finite,mean,median,sd,rng,shuffle,schedule,sessionPosition,makeTrials,fitCalibration,gaze,interval,driftFlags,taskEvidence,recovery,analyze,observed,localDay,contextKey,compatible,longitudinal,recommend,validate};
 });

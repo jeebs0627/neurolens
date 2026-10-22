@@ -24,7 +24,8 @@ export async function mount({access,verify,logout}){
   function status(message,error=false){$('setup-status').textContent=message;$('setup-status').classList.toggle('error',error);}
   function controls(enabled){for(const el of document.querySelectorAll('.topbar button:not(#logout),#start,#demo,#demo-report,#import'))el.disabled=!enabled;}
   async function scopedHistory(){const participant=await hash(access.scope+':'+$('participant').value.trim());return history.filter(h=>h.participant===participant);}
-  async function recommendation(){const hs=await scopedHistory(),r=C.recommend(hs);$('recommendation').textContent=$('protocol').value==='first180'?'처음이라면 전체 검사를 권합니다. 환경 확인과 연습 후, 보기·방향 전환·선택·집중·회복을 차례로 경험합니다.':$('protocol').value==='daily60'?'짧은 검사는 방향 전환 또는 선택 과제를 중심으로 관찰합니다. 준비와 설명 시간은 별도입니다.':`오늘의 관찰: ${names[r.kind]} · 준비와 짧은 연습 후 시작합니다.`;}
+  async function recommendation(){const protocol=$('protocol').value;$('recommendation').textContent=protocol==='daily60'?'32초 자연스러운 몸의 리듬과 20초 집중 반응을 관찰합니다. 시선 검사는 포함하지 않습니다.':protocol==='daily90'?'시선을 교정하고, 30초 몸의 리듬과 정서 그림을 관찰합니다. 앞뒤 회복 비교는 3분 검사를 선택하세요.':'시선 검증 28초 → 자연스러운 리듬 32초 → 정서 그림 48초 → 집중 32초 → 다시 쉬기 38초. 보상 선택·원 찾기는 기본 검사에서 제외했습니다.';}
+
   session=new Session({manifest,onCancel(){controls(true);show('overview');status('준비를 마치고 다시 시작할 수 있습니다.');},async onComplete(p){
     packet=p;
     try{p.result=await compute(p);await save(p);renderResults(p);}catch(e){$('session-status').textContent='결과 정리 중 문제가 발생했습니다: '+e.message;const b=document.createElement('button');b.className='secondary';b.textContent='수치 기록 내보내기';b.onclick=()=>download(p);$('session-status').append(b);}finally{controls(true);}
@@ -35,13 +36,13 @@ export async function mount({access,verify,logout}){
     preparing=true;controls(false);status('접근 권한을 확인합니다…');
     try{await verify();try{localStorage.setItem('neurolens2-participant-code',code);}catch{}
       const hs=await scopedHistory(),behavior=$('behavior-only').checked,protocol=$('protocol').value;
-      let focus=$('focus').value==='auto'?C.recommend(hs).kind:$('focus').value;
-      if((behavior||protocol==='daily60')&&focus==='attention')focus='disengage';
+      let focus='attention';
+
       const participant=await hash(access.scope+':'+code),form=Math.floor(Date.now()/86400000)%2?'A':'B';
       show('checkin');status('');const checkin=await collectCheckin($('checkin'),events.signal);
       if(events.signal.aborted)return;
       if(checkin===undefined){controls(true);show('overview');return;}
-      show('session');await session.start({participant,protocol,focus,form,behavior,checkin,purpose:$('evaluation-mode').checked?'evaluation':'personal',recommendation:C.recommend(hs),deviceHash:hash});
+      show('session');await session.start({participant,protocol,focus,form,behavior,checkin,purpose:$('evaluation-mode').checked?'evaluation':'personal',recommendation:{kind:'attention',reason:'v2.4 표준 고정 프로토콜; 과거 자동 탐색 추천을 신규 검사에 적용하지 않음'},deviceHash:hash});
     }catch(e){controls(true);show('overview');status(e.message,true);}finally{preparing=false;}
   }
   async function save(p){if(persist){try{await store.put(p);}catch{persist=false;$('storage-status').textContent='저장 실패 · JSON을 내보내세요';}}history=[p,...history.filter(h=>h.id!==p.id)];return persist;}
@@ -53,7 +54,7 @@ export async function mount({access,verify,logout}){
     on($('download-report'),'click',async()=>{const b=$('download-report');b.disabled=true;try{await downloadReport($('results'),p);b.textContent='리포트 저장 완료 ✓';}catch(e){b.textContent=e.message;}finally{b.disabled=false;}});
     on($('new-session'),'click',()=>{show('overview');recommendation();});
     on($('retest-session'),'click',async()=>{
-      $('protocol').value=p.protocol;$('focus').value=p.focus;$('behavior-only').checked=p.captureMode==='behavior';$('evaluation-mode').checked=p.purpose==='evaluation';
+      $('protocol').value=p.protocol;$('focus').value=['auto','attention'].includes(p.focus)?p.focus:'auto';$('behavior-only').checked=p.captureMode==='behavior';$('evaluation-mode').checked=p.purpose==='evaluation';
       const same=await hash(access.scope+':'+$('participant').value.trim())===p.participant;
       show('overview');recommendation();status(same?'같은 참여 코드와 검사 설정을 준비했습니다. 다른 날짜·비슷한 환경에서 다시 관찰하세요.':'검사 설정을 불러왔습니다. 원래 참여 코드를 직접 입력해야 같은 사람의 기록으로 이어집니다.');
     });
@@ -76,10 +77,10 @@ export async function mount({access,verify,logout}){
     for(const b of $('history').querySelectorAll('[data-remove]'))on(b,'click',async()=>{if(b.dataset.armed!=='yes'){b.dataset.armed='yes';b.textContent='다시 눌러 삭제';return;}const id=b.dataset.remove;try{if(persist)await store.remove(id);history=history.filter(p=>p.id!==id);renderHistory(filter);}catch{b.textContent='삭제 실패 · 다시 시도';}});
   }
   function renderMethods(){show('methods');$('methods').innerHTML=`<div class="results-head"><div><p class="eyebrow">EXPLAINABLE BY CONSTRUCTION</p><h1>결과를 만드는 원리</h1><p>관측 → 품질 확인 → 후보 비교 → 개인 변화. 각 단계는 기록으로 재현합니다.</p></div></div><div class="method-grid">
-      <section class="card"><h3>01 · 교정과 검증을 분리</h3><p>세 지점의 시선으로 수평 위치를 보정합니다. 이후 두 지점은 보정식에 넣지 않고 오차만 평가합니다. 화면 너비 대비 평균 절대 오차 12% 이하 G2, 22% 이하 G1, 그 외 G0입니다. 이는 초기 공학 기준이며 정밀 안구추적기 성능을 뜻하지 않습니다.</p><p>준비 화면에서 한 사람의 얼굴, 얼굴 크기·중앙 위치·자세·빛이 2초간 안정적인지 확인합니다. 깜박임, 교정 이후 얼굴 위치·크기·기울기 변화, 오래된 관측과 AOI 경계의 모호한 표본은 시선 근거에서 제외합니다. G0일 때 시선 결과를 만들지 않습니다.</p></section>
-      <section class="card"><h3>02 · 같은 영상의 증거 중복 제거</h3><p>이마와 양 볼의 RGB에서 공개 POS·CHROM 방법을 비교합니다. 같은 ROI의 알고리즘 둘은 독립 센서가 아닙니다. 픽셀 영역이 겹치는 ROI도 지지 수를 늘리지 않습니다. 공간적으로 분리된 두 영역 이상이 합의해야 심박 후보를 채택합니다.</p><p>12초의 겹치지 않는 창, 실제 관측 연속성, 신호의 주기 반복성과 경쟁 주파수, 배경 조명 혼입을 확인합니다. 한 얼굴 영역이 오염돼도 다른 두 영역이 유일하게 합의하면 그 둘만 채택합니다. 비슷하게 지지되는 조합이 여러 개면 보류합니다. HRV와 임상 수준의 심박 정확도는 아직 주장하지 않습니다.</p></section>
-      <section class="card"><h3>03 · 정서를 과제 반응으로 관찰</h3><p>위협·슬픔·긍정 이미지의 체류 비율, 자극에서 시선을 떼는 시간, 수동 반응 시간, 보상 선택, 부하 후 회복을 분리해서 기록합니다. 시선과 버튼 반응을 하나의 지표로 섞지 않습니다.</p><p>자극 세트는 잠정 상태입니다. 짧은 시행의 수치가 불안, 우울 또는 자아탄력성을 직접 측정한다고 해석하지 않습니다. 해당 관련성은 향후 반복 연구에서 평가합니다.</p></section>
-      <section class="card"><h3>04 · 비교 가능한 날짜만 누적</h3><p>같은 참여 코드·카메라·화면 크기·프로토콜·과제·A/B 형식·엔진과 입력 방식·난이도 조건을 만족하는 이전 날짜만 기준선 후보로 씁니다. 같은 날의 반복은 하루 한 기록으로 처리합니다. 첫 7개 날짜와 최근 7개 날짜를 따로 유지합니다.</p><p>현재 자동 과제 선택은 유효 관측 수에 따른 탐색 규칙입니다. 학습된 진단 모델이나 검증된 정보량 최적화로 표시하지 않습니다.</p></section>
+      <section class="card"><h3>01 · 교정과 검증을 분리</h3><p>세 지점을 두 번씩 관찰한 뒤, 별도의 좌우·중앙 세 지점으로 검증합니다. 검증 지점은 보정식 학습에 쓰지 않습니다. 평균 오차·최대 지점 오차·흔들림을 함께 봅니다. G2는 각각 화면 너비의 12%·18%·10% 이하, G1은 22%·28%·16% 이하이며, 나머지는 G0입니다. 이는 초기 공학 기준이며 정밀 안구추적기 성능을 뜻하지 않습니다.</p><p>준비 화면에서 한 사람의 얼굴, 얼굴 크기·중앙 위치·자세·빛이 2초간 안정적인지 확인합니다. 깜박임, 교정 이후 얼굴 위치·크기·기울기 변화, 오래된 관측과 AOI 경계의 모호한 표본은 시선 근거에서 제외합니다. G0일 때 시선 결과를 만들지 않습니다.</p></section>
+      <section class="card"><h3>02 · 같은 영상의 증거 중복 제거</h3><p>이마와 양 볼의 RGB에서 공개 POS·CHROM 방법을 비교합니다. 같은 ROI의 알고리즘 둘은 독립 센서가 아닙니다. 픽셀 영역이 겹치는 ROI도 지지 수를 늘리지 않습니다. 공간적으로 분리된 두 영역 이상이 합의해야 심박 후보를 채택합니다.</p><p>v2.4는 일정한 화면의 24초 창에서 국소 정규화·대역 필터 후 앞뒤 12초의 합의도 확인합니다. 이전 기록은 원래의 12초 분석을 유지합니다. 실제 관측 연속성, 신호의 주기 반복성과 경쟁 주파수, 배경 조명 혼입을 확인합니다. 한 얼굴 영역이 오염돼도 다른 두 영역이 유일하게 합의하면 그 둘만 채택합니다. 비슷하게 지지되는 조합이 여러 개면 보류합니다. RGB 수집은 960×720을 요청하고 얼굴 모델은 별도 640폭 영상에서 처리합니다. 실제 해상도는 장치에 따라 다릅니다. 가슴 움직임은 얼굴 아래 고정 영역의 영상 기울기로 추적하며, 좌우 주기 합의·4주기·30초 관측·고개 및 배경 움직임을 확인합니다. 호흡 8–30회/분 범위의 연구 후보만 표시합니다. HRV와 임상 정확도는 산출하지 않습니다.</p></section>
+      <section class="card"><h3>03 · 정서를 과제 반응으로 관찰</h3><p>기본 검사는 정서 그림의 체류 비율, 짧은 집중의 반응 시간, 앞뒤 심박·가슴 움직임을 관찰합니다. 짧은 원 찾기·보상 선택으로 정서를 추정하는 과제는 제외했습니다. 이전 기록에서만 해당 결과를 볼 수 있습니다. 시선과 버튼 반응을 하나의 지표로 섞지 않습니다.</p><p>자극 세트는 잠정 상태입니다. 짧은 시행의 수치가 불안, 우울 또는 자아탄력성을 직접 측정한다고 해석하지 않습니다. 해당 관련성은 향후 반복 연구에서 평가합니다.</p></section>
+      <section class="card"><h3>04 · 비교 가능한 날짜만 누적</h3><p>같은 참여 코드·카메라·화면 크기·프로토콜·과제·A/B 형식·엔진과 입력 방식·난이도 조건을 만족하는 이전 날짜만 기준선 후보로 씁니다. 같은 날의 반복은 하루 한 기록으로 처리합니다. 첫 7개 날짜와 최근 7개 날짜를 따로 유지합니다.</p><p>v2.4는 반복 비교를 위해 고정된 과제 구성을 사용합니다. 학습된 진단 모델이나 검증된 정보량 최적화로 표시하지 않습니다.</p></section>
       <section class="card"><h3>05 · 저장과 재현</h3><p>영상·음성·얼굴 원본은 저장하지 않습니다. 시각, ROI 평균 RGB, 품질, 교정 관측, 과제 사건과 반응만 전용 IndexedDB에 기록합니다. 준비·연습·설명과 실제 측정의 시계를 분리합니다. 표시 프레임 콜백과 입력 사건 시각을 기록하고, 화면 정체나 전달 지연이 큰 반응은 분석에서 제외합니다. 디스플레이의 실제 발광 시각과 카메라 노출 시각까지 측정하는 장비 검증은 별도입니다. JSON을 가져올 때 저장된 점수를 신뢰하지 않고 다시 교정하고 분석합니다.</p><p>합성·가져온 기록은 개인 기준선에서 제외됩니다. 운영 검사 페이지, 운영 결과 테이블과 실행 상태를 공유하지 않습니다.</p></section>
       <section class="card"><h3>06 · 마음 체크인과 돌봄</h3><p>PHQ-4의 네 응답을 0–12점으로 합산해 최근 2주 정서 부담 구간을 표시합니다. 우울감·불안 소계는 추가 확인 신호로만 읽습니다. 현재 긴장·활력은 0–10 자기평가, 회복 자원은 자체 3문항 합계 ÷ 12 × 100입니다. 생리·행동 지표와 합쳐 진단 점수를 만들지 않습니다. 각 리포트에서 원 도구와 연구 출처, 산식을 확인할 수 있습니다.</p><p>돌봄은 응답에 따른 공개 규칙으로 제안합니다. 1분 쉬기와 전후 긴장 기록은 본인이 느낀 경험이며 개입 효과의 증명이 아닙니다.</p></section><section class="card"><h3>07 · 다음 검증 단계</h3><ol><li>실제 얼굴·조명·피부색·장치별 수집 및 재검사 평가</li><li>공개 RGB-PPG 자료의 피험자 분리 비교</li><li>기준 장비 확보 후 동시 측정 오차 검증</li><li>정서 척도·반복 관측과의 관련성 평가</li><li>회복 개입 무작위 비교와 개인 효과 모델</li></ol><p>현재 코드는 이 연구를 위한 관측·추적·재현 기반을 제공합니다. 데이터 없이 정확도 수치나 진단 성능을 만들어내지 않습니다.</p></section></div><div class="note">핵심 독자 구현: 시간 예산에 맞춘 과제 제어, 교정 검증과 품질에 따른 근거 보류, 후보의 원천 추적 및 중복 지지 제거, 비교 조건을 고정한 종단 분석. 공개 얼굴 모델과 POS·CHROM 자체를 독자 발명으로 주장하지 않습니다.</div>`;}
   async function importRecord(event){const file=event.target.files?.[0];event.target.value='';if(!file)return;if(file.size>8*1024*1024){status('8MB 이하의 수치 기록만 가져올 수 있습니다.',true);return;}

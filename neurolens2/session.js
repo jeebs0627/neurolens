@@ -26,10 +26,10 @@ export class Session {
   get busy(){return !['idle','done'].includes(this.state);}
   async start(options){
     this.cleanup();this.displayGate.reset();const gen=++this.generation;
-    this.options=options;$('stage-journey').innerHTML='<span class="current">환경 확인</span><span>과제 연습</span><span>본 검사</span><span>마음 리포트</span>';this.state='setup';this.started=performance.now();this.setupStarted=this.started;this.practiceLog=[];this.inputChecks=new Set();this.gate.reset();this.latest=null;this.device={width:0,height:0,fps:0,trackId:'behavior'};this.calibrationAttempts=[];this.packet=null;this.phaseIndex=0;this.level=1;this.lastQualityAt=0;this.sequence=0;this.cameraConnecting=false;this.cameraError='';
+    this.options=options;this.gazeEnabled=!options.behavior&&options.protocol!=='daily60';this.signalPending=false;this.lastSignalAt=0;this.liveWindow=null;this.liveFrames=[];$('stage-journey').innerHTML='<span class="current">환경 확인</span><span>과제 연습</span><span>본 검사</span><span>마음 리포트</span>';this.state='setup';this.started=performance.now();this.setupStarted=this.started;this.practiceLog=[];this.inputChecks=new Set();this.gate.reset();this.latest=null;this.device={width:0,height:0,fps:0,trackId:'behavior'};this.calibrationAttempts=[];this.packet=null;this.phaseIndex=0;this.level=1;this.lastQualityAt=0;this.sequence=0;this.cameraConnecting=false;this.cameraError='';
     document.body.classList.add('in-session');$('session-progress').value=0;$('remaining').textContent=String(C.schedule(options.protocol,options.focus).at(-1).end/1000);$('session-progress').max=Number($('remaining').textContent);$('timer-label').textContent='초 측정';$('session-status').textContent='';$('frame-count').textContent='0';$('cal-grade').textContent='준비 전';$('wall-time').textContent='0초';
     $('camera-video').closest('.camera-frame').hidden=options.behavior;$('camera-video').hidden=options.behavior;$('camera-placeholder').hidden=!options.behavior;$('quality').textContent=options.behavior?'행동 과제 모드':'카메라 연결 전';
-    this.renderSetup();this.lastTick=performance.now();this.raf=requestAnimationFrame(t=>this.tick(t));
+    this.renderSetup();$('signal-monitor').hidden=options.behavior;$('live-pulse').textContent='—';$('live-trace').innerHTML='';try{this.signalWorker=new Worker(new URL('./signal-worker.js',import.meta.url));this.signalWorker.onmessage=({data})=>{if(gen!==this.generation)return;this.signalPending=false;if(this.state==='active'&&data.phase===this.phase.id){this.liveWindow=data;this.paintSignal();}};this.signalWorker.onerror=()=>{this.signalPending=false;this.signalWorker?.terminate();this.signalWorker=null;};}catch{this.signalWorker=null;}this.lastTick=performance.now();this.raf=requestAnimationFrame(t=>this.tick(t));
     try{await this.preload();if(gen!==this.generation)return;this.assetsReady=true;this.refreshSetup();}
     catch(e){if(gen===this.generation){this.cameraError=e.message;this.refreshSetup();}}
   }
@@ -44,7 +44,7 @@ export class Session {
   renderSetup(){
     $('session').dataset.state='setup';this.header('나에게 맞는 측정 환경','준비 1 / 3 · 환경 확인',this.options.behavior?'두 방향의 입력이 잘 되는지 확인합니다.':'얼굴을 중앙에 맞추고, 입력이 잘 되는지 확인합니다.','아직 측정하지 않습니다');this.hideResponses();
     const checks=E.readiness(null).checks;
-    this.content(`<div class="preflight"><p class="eyebrow">A GOOD START</p><h3>${this.options.behavior?'입력부터 가볍게 확인할게요':'얼굴과 화면을 맞춰볼까요?'}</h3><p>${this.options.behavior?'아래 두 방향을 한 번씩 눌러주세요.':'화면을 눈높이에 두고, 카메라에서 팔 길이 정도 떨어져 앉아주세요.<br>실제 거리는 재지 않고 화면 속 얼굴 크기로 안내합니다.'}</p>
+    this.content(`<div class="preflight"><p class="eyebrow">A GOOD START</p><h3>${this.options.behavior?'입력부터 가볍게 확인할게요':'얼굴과 화면을 맞춰볼까요?'}</h3><p>${this.options.behavior?'아래 두 방향을 한 번씩 눌러주세요.':'화면을 눈높이에 두고, 카메라에서 팔 길이 정도 떨어져 앉아주세요.<br>가슴 윗부분도 보이면 호흡 움직임을 함께 관찰합니다.<br>얼굴 크기로 거리를 안내하며, 실제 거리를 재지는 않습니다.'}</p>
       ${this.options.behavior?'':`<button class="secondary connect-camera" data-action="connect">카메라 연결하기</button><div class="readiness-list">${checks.map(c=>`<div data-check="${c.id}"><span class="check-dot">○</span><span>${c.label}</span><small>확인 전</small></div>`).join('')}</div><div class="steady-track"><i id="steady-progress"></i></div><button class="quiet" data-action="behavior-fallback">카메라 없이 계속 · 체크인 유지</button><p id="camera-guidance" class="readiness-message" role="status">카메라 연결을 누르면 이 화면에서 자세를 안내합니다.</p>`}
       <div class="input-check"><span class="micro-label">입력 확인 · 두 방향을 모두 눌러보세요</span><div class="practice-keys"><button data-response="left">← 왼쪽</button><button data-response="right">오른쪽 →</button></div><p id="input-check-status" role="status">키보드 ← → / 숫자 1·2 / 화면 버튼을 사용할 수 있습니다.</p></div>
       <p id="display-guidance" class="readiness-message" role="status">화면 갱신 속도를 확인합니다…</p><button class="primary setup-next" data-action="practice" disabled>자세와 입력을 확인해주세요 <span>→</span></button>${this.options.checkin?'<button class="quiet" data-action="checkin-report">준비가 어렵다면 · 체크인 리포트 먼저 보기</button>':''}<p class="hint">환경 준비와 연습 시간은 검사 시간에 포함되지 않습니다.</p></div>`);
@@ -65,18 +65,21 @@ export class Session {
     for(const c of q.checks){const row=$('task-content').querySelector(`[data-check="${c.id}"]`);if(row){row.classList.toggle('passed',c.ok);row.querySelector('.check-dot').textContent=c.ok?'✓':'○';row.querySelector('small').textContent=c.ok?'좋아요':'조정 필요';}}
     if($('steady-progress'))$('steady-progress').style.width=q.progress*100+'%';
     if($('camera-guidance'))$('camera-guidance').textContent=this.cameraError||(!this.camera? '카메라 연결을 눌러주세요.':q.stable?'자세가 안정됐습니다. 아래 입력 확인 후 계속하세요.':q.hint);
+    const observed=this.liveFrames,span=observed.length>1?observed.at(-1).t-observed[0].t:0;
+    $('live-signal-status').textContent=span>=1500?'카메라 수집 약 '+Math.round((observed.length-1)*1000/span)+'fps · 심박은 본 관측에서 확인':'카메라 관측을 기다립니다';
+    $('live-breath-status').textContent=this.latest?.resp?.valid?'가슴 움직임 추적 가능 · 자연 호흡으로 유지':this.latest?.resp?.reason||'가슴 윗부분과 옷의 질감을 확인합니다';
     const display=this.displayGate.value(performance.now());
     if($('display-guidance'))$('display-guidance').textContent=display.stable?'화면 갱신 확인 ✓ · 약 '+display.fps+'fps':performance.now()-this.setupStarted<2500?'화면 갱신 속도를 확인합니다…':'화면 갱신이 느리거나 불안정합니다. 검사 창을 화면 앞에 두세요. 계속되면 일반 Chrome에서 다시 열어주세요. (관측 '+(display.fps??'—')+'fps)';
     const next=$('task-content').querySelector('[data-action="practice"]');if(next){next.disabled=!cameraOK||!inputs||!this.assetsReady||!display.stable;next.innerHTML=(cameraOK&&inputs&&this.assetsReady&&display.stable?'좋아요, 방법을 익혀볼게요':!inputs?'왼쪽과 오른쪽 입력을 확인해주세요':!display.stable?'화면 갱신을 확인해주세요':!cameraOK?'얼굴 위치를 잠시 유지해주세요':'검사 그림을 준비합니다…')+' <span>→</span>';}
   }
   receive(frame){
     this.latest=frame;
-    if(this.state==='setup'){this.gate.update(frame);return;}
+    if(this.state==='setup'){this.gate.update(frame);this.liveFrames.push(frame);this.liveFrames=this.liveFrames.filter(f=>frame.t-f.t<3000);return;}
     if(this.state!=='active'||!this.packet)return;
     const sample=this.clock.sample(frame.t);if(!sample)return;
     if(this.packet.frames.length>=12000){this.interrupt('영상 기록 상한에 도달했습니다.');return;}
     this.packet.frames.push({...frame,...sample,wallT:frame.t-this.started});
-    if(this.phase.kind==='calibration'&&this.currentCal&&frame.fresh&&frame.face&&!frame.blink&&C.finite(frame.eye)&&sample.t-this.currentCal.shownAt>500){this.packet.calibrationPoints.push({raw:frame.eye,yaw:frame.yaw,centerX:frame.centerX,centerY:frame.centerY,faceWidth:frame.faceWidth,roll:frame.roll,target:this.currentCal.target,split:this.currentCal.split,t:sample.t,point:this.currentCal.index});}
+    if(this.gazeEnabled&&this.phase.kind==='calibration'&&this.currentCal&&frame.fresh&&frame.face&&!frame.blink&&C.finite(frame.eye)&&sample.t-this.currentCal.shownAt>800){this.packet.calibrationPoints.push({raw:frame.eye,yaw:frame.yaw,centerX:frame.centerX,centerY:frame.centerY,faceWidth:frame.faceWidth,roll:frame.roll,target:this.currentCal.target,split:this.currentCal.split,t:sample.t,point:this.currentCal.index});}
   }
   action(action){
     if(action==='connect')return this.connect();
@@ -98,7 +101,7 @@ export class Session {
   }
   showPractice(){
     this.practiceTrial=0;this.activeTrial=null;$('stage-journey').innerHTML='<span class="done">환경 확인</span><span class="current" aria-current="step">과제 연습</span><span>본 검사</span><span>마음 리포트</span>';
-    if(this.practiceIndex>=this.practices.length){this.state='ready';this.header('준비가 끝났습니다','준비 3 / 3 · 시작 확인',this.options.behavior?'편안한 상태부터 시작해, 연습한 과제로 이어집니다.':'시작하면 먼저 움직이는 점을 따라 시선을 맞춥니다.','설명은 단계마다 다시 표시됩니다');this.hideResponses();this.content(`<div class="guide-card"><div class="guide-symbol">✓</div><p class="eyebrow">READY WHEN YOU ARE</p><h3>이제 편안하게 시작해요.</h3><p>${this.options.behavior?'카메라 없이 버튼 반응만 관찰합니다.':'머리는 편안하게 두고, 화면의 안내를 따라주세요.'}<br>보기만 하는 단계에서는 버튼이 나타나지 않습니다.</p><div class="duration-pill">실제 측정 ${C.schedule(this.options.protocol,this.options.focus).at(-1).end/1000}초 <span>설명 시간 별도</span></div><button class="primary" data-action="begin">${this.options.behavior?'편안한 상태부터 시작':'시선 맞추기부터 시작'} <span>→</span></button></div>`);return;}
+    if(this.practiceIndex>=this.practices.length){this.state='ready';this.header('준비가 끝났습니다','준비 3 / 3 · 시작 확인',!this.gazeEnabled?'편안한 상태부터 시작해, 연습한 과제로 이어집니다.':'시작하면 먼저 움직이는 점을 따라 시선을 맞춥니다.','설명은 단계마다 다시 표시됩니다');this.hideResponses();this.content(`<div class="guide-card"><div class="guide-symbol">✓</div><p class="eyebrow">READY WHEN YOU ARE</p><h3>이제 편안하게 시작해요.</h3><p>${this.options.behavior?'카메라 없이 버튼 반응만 관찰합니다.':'머리는 편안하게 두고, 화면의 안내를 따라주세요.'}<br>보기만 하는 단계에서는 버튼이 나타나지 않습니다.</p><div class="duration-pill">실제 측정 ${C.schedule(this.options.protocol,this.options.focus).at(-1).end/1000}초 <span>설명 시간 별도</span></div><button class="primary" data-action="begin">${!this.gazeEnabled?'편안한 상태부터 시작':'시선 맞추기부터 시작'} <span>→</span></button></div>`);return;}
     this.practiceKind=this.practices[this.practiceIndex];const g=E.guides[this.practiceKind];this.state='practice-intro';$('session').dataset.state='practice';this.header(g.title,`연습 ${this.practiceIndex+1} / ${this.practices.length} · 결과에 포함되지 않음`,g.action,g.mode);this.hideResponses();
     this.content(`<div class="guide-card"><div class="guide-symbol">${icon(this.practiceKind)}</div><p class="eyebrow">LET’S TRY IT ONCE</p><h3>${g.title}</h3><p class="guide-action">${g.action}</p><p>${g.why}</p><div class="instruction-rule">${this.practiceKind==='attention'?'누르지 않아도 정상입니다.':'← → 키 · 숫자 1·2 · 화면 선택지를 사용할 수 있어요.'}</div><button class="primary" data-action="try-practice">짧게 연습하기 <span>→</span></button></div>`);
   }
@@ -129,21 +132,21 @@ export class Session {
     this.phaseIndex=0;this.phase=phases[0];this.countdown(()=>this.beginPhase(performance.now()));
   }
   currentGuide(){
-    if(this.options.behavior&&this.phase.kind==='calibration')return {title:'편안하게 준비하기',action:'화면을 편안하게 바라보세요. 잠시 후 연습한 과제가 시작됩니다.',mode:'보기만 하기'};
+    if(!this.gazeEnabled&&this.phase.kind==='calibration')return {title:'편안하게 준비하기',action:'화면을 편안하게 바라보세요. 잠시 후 연습한 과제가 시작됩니다.',mode:'보기만 하기'};
     if(this.options.behavior&&this.phase.kind==='attention')return {...E.guides.attention,action:'그림을 자연스럽게 보세요. 카메라가 없어 이번에는 시선 수치를 기록하지 않습니다.',why:'전체 검사 화면을 경험하는 단계입니다. 시선 분석은 웹캠을 사용한 검사에서 제공합니다.'};
     return E.guides[this.phase.kind];
   }
   countdown(next){this.state='countdown';this.countdownStart=performance.now();this.afterCountdown=next;this.hideResponses();this.renderKey='';this.header('곧 시작합니다','준비 완료 · 3초 후 시작',this.currentGuide().action,this.currentGuide().mode);}
   beginPhase(wallTime){
-    this.state='active';$('session').dataset.state='active';this.phase=this.packet.phases[this.phaseIndex];this.clock.start(this.phase,wallTime);this.segment={phase:this.phase.id,wallStart:wallTime-this.started,activeStart:this.phase.start};this.packet.segments.push(this.segment);this.bounds=$('stage').getBoundingClientRect();this.renderKey='';this.activeTrial=null;this.currentCal=null;this.pendingOnset=null;this.lastTick=performance.now();
-    $('stage-journey').innerHTML=this.packet.phases.map((p,i)=>`<span class="${i===this.phaseIndex?'current':i<this.phaseIndex?'done':''}" ${i===this.phaseIndex?'aria-current="step"':''}>${this.options.behavior&&p.kind==='calibration'?'편안한 준비':E.guides[p.kind].title}</span>`).join('');const g=this.currentGuide();this.header(g.title,`${this.phaseIndex+1} / ${this.packet.phases.length} · ${this.options.behavior?'행동 관찰':'본 검사'}`,g.action,g.mode);$('timer-label').textContent='초 남음';this.event('phase',{phase:this.phase.id});this.drawTask(this.phase.start);
+    this.state='active';$('session').dataset.state='active';this.phase=this.packet.phases[this.phaseIndex];this.clock.start(this.phase,wallTime);this.segment={phase:this.phase.id,wallStart:wallTime-this.started,activeStart:this.phase.start};this.packet.segments.push(this.segment);this.bounds=$('stage').getBoundingClientRect();this.renderKey='';this.activeTrial=null;this.currentCal=null;this.pendingOnset=null;this.lastTick=performance.now();this.lastSignalAt=0;this.liveWindow=null;$('live-signal-status').textContent=this.options.behavior?'카메라 미사용':'연속 신호를 모읍니다';$('live-pulse').textContent='—';$('live-trace').innerHTML='';
+    $('stage-journey').innerHTML=this.packet.phases.map((p,i)=>`<span class="${i===this.phaseIndex?'current':i<this.phaseIndex?'done':''}" ${i===this.phaseIndex?'aria-current="step"':''}>${!this.gazeEnabled&&p.kind==='calibration'?'편안한 준비':E.guides[p.kind].title}</span>`).join('');const g=this.currentGuide();this.header(g.title,`${this.phaseIndex+1} / ${this.packet.phases.length} · ${this.options.behavior?'행동 관찰':'본 검사'}`,g.action,g.mode);$('timer-label').textContent='초 남음';this.event('phase',{phase:this.phase.id});this.drawTask(this.phase.start);this.paintSignal();
   }
   endPhase(now){
     const wallEnd=this.clock.anchor+this.phase.end-this.phase.start;this.packet.elapsed=this.phase.end;this.segment.wallEnd=wallEnd-this.started;this.clock.pause();this.hideResponses();this.pendingOnset=null;
-    if(this.phase.kind==='calibration'&&!this.options.behavior){this.packet.calibration=C.fitCalibration(this.packet.calibrationPoints);this.calibrationAttempts.push({grade:this.packet.calibration.grade,error:this.packet.calibration.error,points:this.packet.calibrationPoints.map(p=>({...p}))});this.packet.calibrationAttempts=this.calibrationAttempts;$('cal-grade').textContent=this.packet.calibration.grade;this.state='cal-review';this.guidanceStart=now;const valid=this.packet.calibration.grade!=='G0';this.header(valid?'시선 준비가 됐습니다':'시선을 한 번 더 맞춰볼까요?','시선 확인 · 측정 시간 정지',valid?'시선 위치를 확인했습니다. 계속하면 편안한 상태부터 관찰합니다.':'움직이는 점을 눈으로 따라주세요. 고개와 창 크기는 그대로 유지합니다.',valid?'준비 완료':'다시 맞추기 권장');this.content(`<div class="guide-card"><div class="guide-symbol">${valid?'◎':'↺'}</div><h3>${valid?'좋습니다. 본 과제로 이어갈게요.':'시선 위치가 아직 충분히 맞지 않았습니다.'}</h3><p>${valid?'시선과 행동 반응을 구분해 기록합니다.':'다시 맞추거나, 시선 지표 없이 행동·영상 관찰을 이어갈 수 있습니다.'}</p>${!valid&&this.calibrationAttempts.length<3?'<button class="primary" data-action="cal-retry">한 번 더 맞추기 <span>↺</span></button>':''}<button class="${valid?'primary':'secondary'}" data-action="cal-continue">${valid?'편안한 상태 관찰 시작':'시선 지표 없이 계속'}</button></div>`);return;}
+    if(this.phase.kind==='calibration'&&this.gazeEnabled){this.packet.calibration=C.fitCalibration(this.packet.calibrationPoints);this.calibrationAttempts.push({grade:this.packet.calibration.grade,error:this.packet.calibration.error,points:this.packet.calibrationPoints.map(p=>({...p}))});this.packet.calibrationAttempts=this.calibrationAttempts;$('cal-grade').textContent=this.packet.calibration.grade;this.state='cal-review';this.guidanceStart=now;const valid=this.packet.calibration.grade!=='G0';this.header(valid?'시선 준비가 됐습니다':'시선을 한 번 더 맞춰볼까요?','시선 확인 · 측정 시간 정지',valid?'시선 위치를 확인했습니다. 계속하면 편안한 상태부터 관찰합니다.':'움직이는 점을 눈으로 따라주세요. 고개와 창 크기는 그대로 유지합니다.',valid?'준비 완료':'다시 맞추기 권장');this.content(`<div class="guide-card"><div class="guide-symbol">${valid?'◎':'↺'}</div><h3>${valid?'좋습니다. 본 과제로 이어갈게요.':'시선 위치가 아직 충분히 맞지 않았습니다.'}</h3><p>${valid?'시선과 행동 반응을 구분해 기록합니다.':'다시 맞추거나, 시선 지표 없이 행동·영상 관찰을 이어갈 수 있습니다.'}</p><div class="cal-results"><span>검증 평균 오차 <b>${C.finite(this.packet.calibration.error)?(this.packet.calibration.error*100).toFixed(1)+'%':'—'}</b></span><span>최대 지점 오차 <b>${C.finite(this.packet.calibration.worstError)?(this.packet.calibration.worstError*100).toFixed(1)+'%':'—'}</b></span><span>흔들림 <b>${C.finite(this.packet.calibration.jitter)?(this.packet.calibration.jitter*100).toFixed(1)+'%':'—'}</b></span></div><p class="hint">화면 너비 대비 수평 오차입니다. 정밀 안구추적기 정확도를 의미하지 않습니다.</p>${this.calibrationAttempts.length<3?'<button class="primary" data-action="cal-retry">한 번 더 맞추기 <span>↺</span></button>':''}<button class="${valid?'primary':'secondary'}" data-action="cal-continue">${valid?'편안한 상태 관찰 시작':'시선 지표 없이 계속'}</button></div>`);return;}
     this.phaseIndex++;if(this.phaseIndex>=this.packet.phases.length){this.finish('completed','안내된 모든 과제를 마쳤습니다.');return;}
     this.phase=this.packet.phases[this.phaseIndex];
-    if(['attention','disengage','reward','preload'].includes(this.phase.kind)){this.state='brief';this.guidanceStart=now;const g=this.currentGuide();this.header(g.title,`다음 단계 ${this.phaseIndex+1} / ${this.packet.phases.length} · 안내 중`,g.action,g.mode);this.content(`<div class="guide-card"><div class="guide-symbol">${icon(this.phase.kind)}</div><p class="eyebrow">NEXT UP</p><h3>${g.title}</h3><p class="guide-action">${g.action}</p><p>${g.why}</p><button class="primary" data-action="phase-begin">이해했어요, 시작하기 <span>→</span></button><p class="hint">설명을 읽는 동안 측정 시간은 흐르지 않습니다.</p></div>`);}
+    if(['attention','disengage','reward','preload','load'].includes(this.phase.kind)){this.state='brief';this.guidanceStart=now;const g=this.currentGuide();this.header(g.title,`다음 단계 ${this.phaseIndex+1} / ${this.packet.phases.length} · 안내 중`,g.action,g.mode);this.content(`<div class="guide-card"><div class="guide-symbol">${icon(this.phase.kind)}</div><p class="eyebrow">NEXT UP</p><h3>${g.title}</h3><p class="guide-action">${g.action}</p><p>${g.why}</p><button class="primary" data-action="phase-begin">이해했어요, 시작하기 <span>→</span></button><p class="hint">설명을 읽는 동안 측정 시간은 흐르지 않습니다.</p></div>`);}
     else this.beginPhase(wallEnd);
   }
   event(type,extra={}){if(this.packet&&this.packet.events.length<3000)this.packet.events.push({t:this.packet.elapsed,wallT:performance.now()-this.started,type,...extra});}
@@ -162,10 +165,27 @@ export class Session {
         if(this.activeTrial&&now-this.lastTick>150)this.activeTrial.presentationInvalid=true;
         if(elapsed>=this.phase.end)this.endPhase(now);else{this.confirmOnset(now);this.drawTask(elapsed);this.refreshResponses(elapsed);}
         $('remaining').textContent=String(Math.ceil((this.packet.phases.at(-1).end-this.packet.elapsed)/1000));$('session-progress').value=this.packet.elapsed/1000;
-        if(now-this.lastQualityAt>500){this.lastQualityAt=now;$('frame-count').textContent=String(this.packet.frames.filter(f=>f.face).length);$('quality').textContent=this.options.behavior?'행동 반응 관찰 중':!this.latest?.face?'얼굴을 카메라 중앙에 맞춰주세요':Math.abs(this.latest.yaw)>.14?'정면을 편안하게 봐주세요':'영상 신호 수집 중';}
+        if(now-this.lastQualityAt>500){this.lastQualityAt=now;$('frame-count').textContent=String(this.packet.frames.filter(f=>f.face).length);$('quality').textContent=this.options.behavior?'행동 반응 관찰 중':!this.latest?.face?'얼굴을 카메라 중앙에 맞춰주세요':Math.abs(this.latest.yaw)>.14?'정면을 편안하게 봐주세요':'영상 신호 수집 중';this.paintSignal();this.analyzeLive(now);}
       }
       this.lastTick=now;this.raf=requestAnimationFrame(t=>this.tick(t));
     }catch(e){this.interrupt('화면 처리 중 문제가 발생했습니다. '+e.message);}
+  }
+  paintSignal(){
+    const panel=$('signal-monitor');panel.hidden=!!this.options.behavior;
+    if(this.options.behavior)return;
+    const steady=['baseline','load','recovery','preload'].includes(this.phase?.kind),seconds=this.phase?Math.floor((this.packet.elapsed-this.phase.start)/1000):0,w=this.liveWindow?.phase===this.phase?.id?this.liveWindow:null;
+    $('live-signal-status').textContent=!steady?'이 단계는 시선·반응 관찰입니다':w?.bpm!=null?'현재 창에서 심박 후보 확인':seconds<24?'연속 관측 '+Math.min(24,seconds)+' / 24초':w?.reason||'후보의 주기와 영역 합의를 확인합니다';
+    $('live-pulse').textContent=w?.bpm!=null?Math.round(w.bpm):'—';
+    $('signal-progress').value=steady?Math.min(24,seconds):0;
+    $('live-breath-status').textContent=this.latest?.resp?.valid?'가슴 움직임 수집 중 · 30초 이상 모아 분석':this.latest?.resp?.reason||'호흡: 가슴 영역·옷의 질감을 확인 중';
+    if(w?.waveform?.length){const a=w.waveform.slice(-100);$('live-trace').innerHTML='<polyline points="'+a.map((v,i)=>(i*280/(a.length-1)).toFixed(1)+','+(40-v*8).toFixed(1)).join(' ')+'"/>';}
+    else $('live-trace').innerHTML='<text x="140" y="44" text-anchor="middle">유효 파형 대기</text>';
+  }
+  analyzeLive(now){
+    if(!this.signalWorker||this.options.behavior||this.signalPending||!['baseline','load','recovery','preload'].includes(this.phase.kind)||now-this.lastSignalAt<4000)return;
+    const elapsed=this.packet.elapsed-this.phase.start;if(elapsed<12000)return;
+    const size=elapsed>=24000?24000:12000,end=this.packet.elapsed,start=end-size,frames=this.packet.frames.filter(f=>f.phase===this.phase.id&&f.t>=start&&f.t<end);
+    this.signalPending=true;this.lastSignalAt=now;this.signalWorker.postMessage({frames,start,end,phase:this.phase.id});
   }
   submitOnset(trial,field,t){this.pendingOnset={trial,field,submitted:t,wall:performance.now()};}
   confirmOnset(now){
@@ -177,10 +197,10 @@ export class Session {
   drawTask(t){
     const kind=this.phase.kind;
     if(kind==='calibration'){
-      this.hideResponses();if(this.options.behavior){if(this.renderKey!=='behavior-cal'){this.renderKey='behavior-cal';this.content('<div class="guide-card"><div class="guide-symbol">＋</div><h3>잠시 편안하게 준비하세요.</h3><p>다음 단계에서는 화면 안내에 맞춰 응답합니다.</p></div>');$('cal-grade').textContent='카메라 미사용';}return;}
-      const i=Math.min(4,Math.floor((t-this.phase.start)/((this.phase.end-this.phase.start)/5))),targets=[.2,.8,.5,.32,.68];if(this.renderKey!=='cal-'+i){this.renderKey='cal-'+i;this.currentCal={index:i,target:targets[i],split:i<3?'train':'holdout',shownAt:t};this.content(`<span class="target-dot" style="left:${targets[i]*100}%"><i></i></span><p class="cal-caption">점만 눈으로 따라보세요 · ${i+1} / 5<br><small>머리는 움직이지 않고 편안하게 유지합니다.</small></p>`);this.event('calibration-target',this.currentCal);}return;
+      this.hideResponses();if(!this.gazeEnabled){if(this.renderKey!=='behavior-cal'){this.renderKey='behavior-cal';this.content('<div class="guide-card"><div class="guide-symbol">＋</div><h3>잠시 편안하게 준비하세요.</h3><p>다음 단계에서는 화면 안내에 맞춰 응답합니다.</p></div>');$('cal-grade').textContent=this.options.behavior?'카메라 미사용':'생체 리듬 모드 · 시선 미측정';}return;}
+      const targets=C.calibrationTargets,i=Math.min(targets.length-1,Math.floor((t-this.phase.start)/((this.phase.end-this.phase.start)/targets.length)));if(this.renderKey!=='cal-'+i){this.renderKey='cal-'+i;this.currentCal={index:i,target:targets[i],split:i<6?'train':'holdout',shownAt:t};this.content(`<span class="target-dot" style="left:${targets[i]*100}%"><i></i></span><p class="cal-caption">점만 눈으로 따라보세요 · ${i+1} / ${targets.length}<br><small>머리는 움직이지 않고 편안하게 유지합니다.</small></p>`);this.event('calibration-target',this.currentCal);}return;
     }
-    if(!['attention','disengage','reward','load'].includes(kind)){this.hideResponses();if(this.renderKey!==kind){this.renderKey=kind;this.content(`<span class="fixation">${kind==='wrap'?'✓':'+'}</span><p class="stage-caption">${kind==='recovery'?'잘하셨어요. 이제 편안히 쉬세요.':kind==='wrap'?'관측을 마치고 결과를 준비합니다.':'가운데 +를 편안하게 바라보세요.'}</p>`);}return;}
+    if(!['attention','disengage','reward','load'].includes(kind)){this.hideResponses();if(this.renderKey!==kind){this.renderKey=kind;this.content(`<div class="rest-field"><div class="rest-ring"></div><span class="fixation">${kind==='wrap'?'✓':'+'}</span></div><div class="rest-copy"><span>${kind==='recovery'?'AFTER / 다시 쉬기':kind==='wrap'?'COMPLETE':'BEFORE / 자연스러운 리듬'}</span><strong>${kind==='wrap'?'관측 완료':'숨을 조절하지 않아도 괜찮아요'}</strong></div><p class="stage-caption">${kind==='recovery'?'잘하셨어요. 이제 편안히 쉬세요.':kind==='wrap'?'관측을 마치고 결과를 준비합니다.':'가운데 +를 보며 말하지 않고 편안히 쉬세요.'}</p>`);}return;}
     const trial=this.packet.trials.find(x=>x.phase===this.phase.id&&t>=x.start&&t<x.end);if(!trial){this.hideResponses();if(this.renderKey!=='rest'){this.renderKey='rest';this.content('<span class="fixation">+</span><p class="stage-caption">곧 다음 단계로 이어집니다.</p>');}return;}
     if(this.activeTrial?.id!==trial.id){this.activeTrial=trial;trial.enteredAt=t;this.pendingOnset=null;if(kind==='load'){trial.difficulty=this.level;trial.a+=(this.level-1)*3;trial.operation='+';trial.answer=trial.a+trial.b;trial.correctSide=trial.side;}}
     const state=E.trialView(trial,t),key=trial.id+'-'+state;if(key===this.renderKey)return;this.renderKey=key;
@@ -224,7 +244,7 @@ export class Session {
   }
   interrupt(reason){if(['active','brief','cal-review','countdown'].includes(this.state)&&this.packet)this.finish('aborted',reason);}
   stop(reason){if(this.packet)return this.finish('aborted',reason);this.cleanup();this.state='idle';this.onCancel();}
-  cleanup(){++this.generation;cancelAnimationFrame(this.raf);clearTimeout(this.practiceTimer);this.camera?.stop();this.camera=null;this.clock.pause();document.body.classList.remove('in-session');}
+  cleanup(){++this.generation;cancelAnimationFrame(this.raf);clearTimeout(this.practiceTimer);this.camera?.stop();this.camera=null;this.signalWorker?.terminate();this.signalWorker=null;this.clock.pause();document.body.classList.remove('in-session');}
   async finish(outcome,reason){
     if(this.state==='finishing'||!this.packet)return;const now=performance.now();if(this.state==='active')this.packet.elapsed=this.clock.elapsed(now);if(outcome==='completed')this.packet.elapsed=this.packet.phases.at(-1).end;
     if(this.segment&&!this.segment.wallEnd)this.segment.wallEnd=now-this.started;

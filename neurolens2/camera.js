@@ -7,7 +7,7 @@ export class Camera {
         let settled=false;
         this.cancelMedia=()=>{if(settled)return;settled=true;clearTimeout(this.mediaTimeout);reject(Error('카메라 연결이 취소됐거나 시간이 초과됐습니다. 다시 연결하거나 카메라 없이 계속할 수 있습니다.'));};
         this.mediaTimeout=setTimeout(this.cancelMedia,25000);
-        navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},frameRate:{ideal:30,max:30}},audio:false}).then(stream=>{
+        navigator.mediaDevices.getUserMedia({video:{width:{ideal:960},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false}).then(stream=>{
           if(settled||this.stopped){stream.getTracks().forEach(t=>t.stop());return;}
           settled=true;clearTimeout(this.mediaTimeout);this.cancelMedia=null;resolve(stream);
         },error=>{if(settled)return;settled=true;clearTimeout(this.mediaTimeout);this.cancelMedia=null;reject(error);});

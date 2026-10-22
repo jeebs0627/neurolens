@@ -23,9 +23,9 @@ function evaluate(manifest,load){
    const packet=C.validate(load(item.packet)),reference=load(item.reference),subject=item.dataset+':'+item.subject;
    if(!Array.isArray(reference)||reference.some(r=>!C.finite(r.t)||!C.finite(r.bpm)||r.bpm<30||r.bpm>240))throw Error('Reference must be [{t: milliseconds, bpm: numeric}], 30..240 bpm');
    if(item.referenceKind==='reference-device'&&(packet.origin!=='observed'||packet.captureMode!=='webcam'))throw Error('Real reference evaluation requires an observed webcam packet');
-   kinds.add(item.referenceKind);const windows=P.analyze(packet.frames,packet.phases).filter(w=>w.end<=packet.elapsed);
+   kinds.add(item.referenceKind);const windows=C.analyze(packet,P).windows;
    for(const w of windows){const refs=reference.filter(r=>r.t>=w.start&&r.t<w.end).sort((a,b)=>a.t-b.t);
-     if(refs.length<6||refs.at(-1).t-refs[0].t<9000){excluded.push({session:item.packet,start:w.start,reason:'reference-coverage'});continue;}
+     if(refs.length<Math.ceil((w.end-w.start)/2000)||refs.at(-1).t-refs[0].t<(w.end-w.start)*.85||refs.some((r,i)=>i&&r.t-refs[i-1].t>2000)){excluded.push({session:item.packet,start:w.start,reason:'reference-coverage'});continue;}
      total++;const truth=C.mean(refs.map(r=>r.bpm));
      const add=(name,predicted)=>{if(C.finite(predicted))rows[name].push({subject,session:item.packet,start:w.start,end:w.end,predicted,reference:truth});};
      add('fused',w.bpm);

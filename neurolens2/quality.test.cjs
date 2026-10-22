@@ -47,7 +47,7 @@ test('unknown conditions remain explicit and operational evaluations cannot cont
  assert.deepEqual(W.historySeries(now,[prior]).map(x=>x.id),['now']);
 });
 test('aborted sessions do not acquire future pulse windows or trial events outside their phase',()=>{
- const p=packet({status:'aborted',elapsed:25000,captureMode:'webcam'});const windows=C.analyze(p,P).windows;assert.equal(windows.length,1);assert.ok(windows.every(w=>w.end<=25000));assert.equal(C.analyze({...p,captureMode:'behavior'},P).windows.length,0);
+ const p=packet({engine:'nl2-2.3.0',phases:C.schedule('first180','attention','nl2-2.3.0'),status:'aborted',elapsed:35000,captureMode:'webcam'});const windows=C.analyze(p,P).windows;assert.equal(windows.length,1);assert.ok(windows.every(w=>w.end<=35000));assert.equal(C.analyze({...p,captureMode:'behavior'},P).windows.length,0);
  const phase=p.phases.find(p=>p.kind==='disengage'),t={...trial(0),phase:phase.id,kind:'disengage',start:phase.start-1,end:phase.start+1000};
  assert.throws(()=>C.validate({...p,trials:[t]}));assert.throws(()=>C.validate({...p,purpose:'clinical-proof'}));
  const checkinOnly=packet({checkinOnly:true,status:'aborted',elapsed:0});assert.equal(C.validate(checkinOnly).checkinOnly,true);assert.equal(C.observed(checkinOnly),false);assert.throws(()=>C.validate({...checkinOnly,status:'completed'}));assert.throws(()=>C.validate({...checkinOnly,elapsed:10}));
