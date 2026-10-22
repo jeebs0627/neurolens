@@ -3,6 +3,161 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "df167216962388b4c0a63ce6b970eb91924e1aaf",
+      "parents": [
+        "3a54ab298314e1d23cb3eae20757f01c0fefcb71"
+      ],
+      "committedAt": "2026-10-22T10:08:57+09:00",
+      "subject": "feat: add explainable mind reports and guided emotional check-in",
+      "url": "https://github.com/jeebs0627/neurolens/commit/df167216962388b4c0a63ce6b970eb91924e1aaf",
+      "files": [
+        {
+          "path": "api/neurolens2.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "docs/neurolens2-implementation.txt",
+          "status": "modified",
+          "additions": 40,
+          "deletions": 1
+        },
+        {
+          "path": "neurolens2.html",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 7
+        },
+        {
+          "path": "neurolens2/analysis-worker.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "neurolens2/app.js",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 23
+        },
+        {
+          "path": "neurolens2/checkin.js",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/core.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "neurolens2/fixture.js",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 3
+        },
+        {
+          "path": "neurolens2/operational-baseline.json",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "neurolens2/pulse.js",
+          "status": "modified",
+          "additions": 23,
+          "deletions": 5
+        },
+        {
+          "path": "neurolens2/report.css",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/report.js",
+          "status": "modified",
+          "additions": 58,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/session.js",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 7
+        },
+        {
+          "path": "neurolens2/visuals.js",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/wellbeing.js",
+          "status": "modified",
+          "additions": 96,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/wellbeing.test.cjs",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 0
+        },
+        {
+          "path": "tools/neurolens2.browser.test.cjs",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 8
+        },
+        {
+          "path": "tools/neurolens2_preview.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tools/neurolens2_verify.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56947964608",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-22T01:09:02Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/9cmEVLqf3EQvds4oZLB2ZvbZWJaG",
+          "source": "github-commit-status"
+        },
+        {
+          "key": "check-56947966084",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-22T01:09:03Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/4g1rxkZkMDdtHcXVNU1B3aFqArjj",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "e8c900f7dd2a4fb45ae080ca8732da06530aa724",
       "parents": [
         "38e2df7fbe7e2685d112b3f34f5b0956351d77c9"
@@ -140,9 +295,9 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [],
-      "lastAttemptAt": "2026-10-22T00:01:19.563077+00:00",
+      "lastAttemptAt": "2026-10-22T01:09:26.542186+00:00",
       "analysisError": "HTTP_502",
       "analysisErrorCode": "EVOLUTION_ANALYSIS_FAILED"
     },
@@ -297,7 +452,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-56942180311",
@@ -358,7 +513,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-21T23:22:07.275368+00:00",
+      "lastAttemptAt": "2026-10-22T01:09:28.417024+00:00",
       "analysisError": "HTTP_502",
       "analysisErrorCode": "EVOLUTION_ANALYSIS_FAILED"
     },
@@ -23965,7 +24120,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "aeb864e4ca6ea37808e4ba289d4bdeb883046414"
+    "sourceHead": "df167216962388b4c0a63ce6b970eb91924e1aaf"
   },
-  "updatedAt": "2026-10-22T00:02:58.415669+00:00"
+  "updatedAt": "2026-10-22T01:09:29.665758+00:00"
 }
