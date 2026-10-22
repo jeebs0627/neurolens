@@ -3,6 +3,188 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "243f9e3ef81c7871fef034c744567ab551521e7c",
+      "parents": [
+        "6c0338d7ff73730c8a621a5e94e6e54c4bf5fef5"
+      ],
+      "committedAt": "2026-10-22T12:17:34+09:00",
+      "subject": "Improve IN MIND measurement protocol, signal capture and evidence report",
+      "url": "https://github.com/jeebs0627/neurolens/commit/243f9e3ef81c7871fef034c744567ab551521e7c",
+      "files": [
+        {
+          "path": "docs/neurolens2-v24-diagnostic.txt",
+          "status": "modified",
+          "additions": 66,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2.html",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 9
+        },
+        {
+          "path": "neurolens2/analysis-worker.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "neurolens2/app.js",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 9
+        },
+        {
+          "path": "neurolens2/camera.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "neurolens2/core.js",
+          "status": "modified",
+          "additions": 28,
+          "deletions": 10
+        },
+        {
+          "path": "neurolens2/experience.js",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4
+        },
+        {
+          "path": "neurolens2/experience.test.cjs",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "neurolens2/fixture.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "neurolens2/measurement.test.cjs",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/motion.js",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/pulse.js",
+          "status": "modified",
+          "additions": 51,
+          "deletions": 8
+        },
+        {
+          "path": "neurolens2/quality.js",
+          "status": "modified",
+          "additions": 16,
+          "deletions": 2
+        },
+        {
+          "path": "neurolens2/quality.test.cjs",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "neurolens2/report.css",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/report.js",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 9
+        },
+        {
+          "path": "neurolens2/respiration.js",
+          "status": "modified",
+          "additions": 29,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/sensor-worker.js",
+          "status": "modified",
+          "additions": 31,
+          "deletions": 7
+        },
+        {
+          "path": "neurolens2/session.js",
+          "status": "modified",
+          "additions": 36,
+          "deletions": 16
+        },
+        {
+          "path": "neurolens2/signal-worker.js",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/style.css",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 0
+        },
+        {
+          "path": "neurolens2/wellbeing.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tools/neurolens2_benchmark.cjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tools/neurolens2_benchmark.test.cjs",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tools/neurolens2_verify.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56953732206",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-22T03:17:47Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/BumZgHvifAYqMGVHA24qsQwTvNBG",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "183175660d5756eb9783ab190a115032cce6e06d",
       "parents": [
         "6a3100101391c0cbd54a643c31eb3987976ebbd0"
@@ -24366,7 +24548,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "dd140366b95dcb1196df684e9764a70ec7008fa5"
+    "sourceHead": "243f9e3ef81c7871fef034c744567ab551521e7c"
   },
-  "updatedAt": "2026-10-22T02:30:37.716638+00:00"
+  "updatedAt": "2026-10-22T03:18:18.012949+00:00"
 }
