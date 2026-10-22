@@ -3,6 +3,44 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "648fb194e4d18103862f04e2c05e76ad78c44925",
+      "parents": [
+        "1b536cb3647d1eb5e5a2823a3fac650e6d6e9660"
+      ],
+      "committedAt": "2026-10-22T10:43:45+09:00",
+      "subject": "fix: exclude frontend assets from Python function bundles",
+      "url": "https://github.com/jeebs0627/neurolens/commit/648fb194e4d18103862f04e2c05e76ad78c44925",
+      "files": [
+        {
+          "path": "vercel.json",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 2
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56949612860",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-22T01:43:54Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/38ea9q31rUJxgeBZ78YuG3KjL1Qr",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "df167216962388b4c0a63ce6b970eb91924e1aaf",
       "parents": [
         "3a54ab298314e1d23cb3eae20757f01c0fefcb71"
@@ -24160,7 +24198,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "e6484d7d7c09243faec56d19cc4d0d77a7849a52"
+    "sourceHead": "648fb194e4d18103862f04e2c05e76ad78c44925"
   },
-  "updatedAt": "2026-10-22T01:10:56.605561+00:00"
+  "updatedAt": "2026-10-22T01:44:16.890899+00:00"
 }
