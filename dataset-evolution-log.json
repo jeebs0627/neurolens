@@ -807,9 +807,9 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 3,
+      "analysisAttempts": 4,
       "deploymentEvents": [],
-      "lastAttemptAt": "2026-10-22T02:30:05.238956+00:00",
+      "lastAttemptAt": "2026-10-22T07:37:24.887700+00:00",
       "analysisError": "HTTP_502",
       "analysisErrorCode": "EVOLUTION_ANALYSIS_FAILED"
     },
@@ -964,7 +964,7 @@
         }
       ],
       "analysisState": "retry-pending",
-      "analysisAttempts": 3,
+      "analysisAttempts": 4,
       "deploymentEvents": [
         {
           "key": "check-56942180311",
@@ -1025,7 +1025,7 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-22T02:30:05.802073+00:00",
+      "lastAttemptAt": "2026-10-22T07:37:26.072262+00:00",
       "analysisError": "HTTP_502",
       "analysisErrorCode": "EVOLUTION_ANALYSIS_FAILED"
     },
@@ -24632,7 +24632,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "6db2c14d4a85ec00df64bc1c6be0755ff75b5fcf"
+    "sourceHead": "55632b20a9cde030b77fc09a67d45a82d6d18c4d"
   },
-  "updatedAt": "2026-10-22T03:21:04.524900+00:00"
+  "updatedAt": "2026-10-22T07:37:27.472295+00:00"
 }
