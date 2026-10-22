@@ -3,6 +3,50 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "0bfa6224631bcbfb82c1d0c6acf72b0e9f6f44cd",
+      "parents": [
+        "a3941e25c3e9c6cc5b178fe87a173f825caf2594"
+      ],
+      "committedAt": "2026-10-22T12:19:51+09:00",
+      "subject": "Exclude IN MIND developer diagnostic notes from hosted assets",
+      "url": "https://github.com/jeebs0627/neurolens/commit/0bfa6224631bcbfb82c1d0c6acf72b0e9f6f44cd",
+      "files": [
+        {
+          "path": ".vercelignore",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "tools/neurolens2_verify.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        }
+      ],
+      "domains": [],
+      "linkedTaskIds": [],
+      "patchExcerpt": "",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [],
+      "analysisState": "not-applicable",
+      "analysisAttempts": 0,
+      "deploymentEvents": [
+        {
+          "key": "check-56953826140",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-22T03:19:59Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/FPsFU2KXucoAr29XfwChj8qEaayv",
+          "source": "github-commit-status"
+        }
+      ]
+    },
+    {
       "sha": "243f9e3ef81c7871fef034c744567ab551521e7c",
       "parents": [
         "6c0338d7ff73730c8a621a5e94e6e54c4bf5fef5"
@@ -24568,7 +24612,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "289dfd414e3fb4f82816df5e3bd8148b5b5161ae"
+    "sourceHead": "0bfa6224631bcbfb82c1d0c6acf72b0e9f6f44cd"
   },
-  "updatedAt": "2026-10-22T03:18:45.723445+00:00"
+  "updatedAt": "2026-10-22T03:20:27.953953+00:00"
 }
