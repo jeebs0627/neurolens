@@ -45,7 +45,8 @@ class GuardTests(unittest.TestCase):
     def tearDown(self): self.backend.stop();self.env.stop()
     def invoke(self,body=None,cookie=True,origin='https://www.neurolens.me',authorization=None):
         h=self.module.handler.__new__(self.module.handler);raw=json.dumps(body or {'mbti':'ENFP'}).encode()
-        h.headers={'Host':'www.neurolens.me','Origin':origin,'Content-Length':str(len(raw))}
+        h.headers={'Host':'www.neurolens.me','Origin':origin,'Content-Length':str(len(raw)),
+                   'X-Vercel-Forwarded-For':'127.0.0.1'}
         if cookie:h.headers['Cookie']=self.cookie
         if authorization:h.headers['Authorization']=authorization
         h.client_address=('127.0.0.1',1);h.rfile=io.BytesIO(raw);h.wfile=io.BytesIO();h.code=None
