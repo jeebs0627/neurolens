@@ -3,6 +3,72 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4",
+      "parents": [
+        "0162f2b11d2a2b9c34230f4a2b22577ff44e385c"
+      ],
+      "committedAt": "2026-10-24T22:26:10+09:00",
+      "subject": "Restrict client profile updates to names and protect administrator roles",
+      "url": "https://github.com/jeebs0627/neurolens/commit/2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4",
+      "files": [
+        {
+          "path": "SUPABASE_SETUP.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 1
+        },
+        {
+          "path": "supabase/migrations/20261024_profile_role_hardening.sql",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 0
+        },
+        {
+          "path": "tools/profile_role_security_test.cjs",
+          "status": "modified",
+          "additions": 73,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "research"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/supabase/migrations/20261024_profile_role_hardening.sql b/supabase/migrations/20261024_profile_role_hardening.sql\nnew file mode 100644\nindex 0000000..4d389c0\n--- /dev/null\n+++ b/supabase/migrations/20261024_profile_role_hardening.sql\n@@ -0,0 +1,17 @@\n+-- Client profile edits are limited to names. Existing roles and server grants are preserved.\n+begin;\n+set local lock_timeout = '5s';\n+set local statement_timeout = '30s';\n+\n+-- Table grants override column restrictions; remove both kinds of client UPDATE grants.\n+revoke update on public.profiles from public, anon, authenticated;\n+revoke update (id, email, name, role, created_at) on public.profiles from public, anon, authenticated;\n+grant update (name) on public.profiles to authenticated;\n+\n+drop policy if exists profiles_update_own on public.profiles;\n+create policy profiles_update_own on public.profiles\n+  for update to authenticated\n+  using (auth.uid() = id) with check (auth.uid() = id);\n+\n+notify pgrst, 'reload schema';\n+commit;\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-2ecd3c087a59-research",
+          "domain": "research",
+          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-2ecd3c087a59-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4\n변경 제목: Restrict client profile updates to names and protect administrator roles\n관련 파일: SUPABASE_SETUP.md, supabase/migrations/20261024_profile_role_hardening.sql, tools/profile_role_security_test.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-2ecd3c087a59-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-57164647526",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-24T13:26:16Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/4geQ7bfgsBfCqjRi1QSz8T9eQKiJ",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-24T13:26:37.836784+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "0ab1fcc303dbdb46963063627f4ed01edbd24fbd",
       "parents": [
         "6dc932bd4394365eb00cd6cf85df5b36cf4b93c8"
@@ -24765,9 +24831,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "89f3575387f62307ee000f84037f7df9ae956e2c"
+    "sourceHead": "2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4"
   },
-  "updatedAt": "2026-10-24T13:16:03.794680+00:00",
-  "aiCooldownUntil": "2026-10-24T13:20:35.570881+00:00",
+  "updatedAt": "2026-10-24T13:26:55.498782+00:00",
+  "aiCooldownUntil": "2026-10-24T13:31:54.759593+00:00",
   "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
