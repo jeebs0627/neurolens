@@ -3,6 +3,119 @@
   "repository": "jeebs0627/neurolens",
   "entries": [
     {
+      "sha": "0ab1fcc303dbdb46963063627f4ed01edbd24fbd",
+      "parents": [
+        "6dc932bd4394365eb00cd6cf85df5b36cf4b93c8"
+      ],
+      "committedAt": "2026-10-24T22:14:24+09:00",
+      "subject": "Limit hosted files and align canonical URLs with production domain",
+      "url": "https://github.com/jeebs0627/neurolens/commit/0ab1fcc303dbdb46963063627f4ed01edbd24fbd",
+      "files": [
+        {
+          "path": ".vercelignore",
+          "status": "modified",
+          "additions": 35,
+          "deletions": 2
+        },
+        {
+          "path": "DEPLOY.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "condition.html",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "dataset-workflow.browser.test.cjs",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "dataset-workspace.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 14
+        },
+        {
+          "path": "robots.txt",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "sitemap.xml",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "tools/deployment_safety_test.py",
+          "status": "modified",
+          "additions": 134,
+          "deletions": 0
+        }
+      ],
+      "domains": [
+        "measurement",
+        "research"
+      ],
+      "linkedTaskIds": [],
+      "patchExcerpt": "diff --git a/condition.html b/condition.html\nindex b5f56be..492a93a 100644\n--- a/condition.html\n+++ b/condition.html\n@@ -6,4 +6,5 @@\n <meta name=\"description\" content=\"웹캠으로 약 8분, 오늘의 마음 컨디션을 확인해 보세요. 또렷함·집중 조절·마음의 시선·몸의 회복력을 재고, 결과에 맞춘 케어 플랜까지 알려 드리는 NeuroLens 마인드 AI 컨디션 검사.\" />\n <title>마인드 AI 컨디션 검사 | NeuroLens</title>\n+<link rel=\"canonical\" href=\"https://www.neurolens.me/condition\" />\n <link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E1A33'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E\">\n <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\ndiff --git a/dataset-workspace.js b/dataset-workspace.js\nindex e6521a9..8ea1716 100644\n--- a/dataset-workspace.js\n+++ b/dataset-workspace.js\n@@ -3,5 +3,5 @@\n   const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\n   const labels={pulse:'맥파·융합',gaze:'시선·획득',measurement:'검사·해석',research:'데이터·연구'};\n-  const safeURL=url=>{try{const u=new URL(url);return u.protocol==='https:'&&['github.com','vercel.com','neurolens-xi.vercel.app'].includes(u.hostname)?u.href:null;}catch(_){return null;}};\n+  const safeURL=url=>{try{const u=new URL(url);return u.protocol==='https:'&&['github.com','vercel.com','neurolens-xi.vercel.app','www.neurolens.me','neurolens.me'].includes(u.hostname)?u.href:null;}catch(_){return null;}};\n   let ledger={entries:[]},state={rows:[],allowed:false},hooks={},taskLimit=12,releaseLimit=15,loading=false;\n   const date=v=>v?new Date(v).toLocaleString('ko-KR'):'미기록';\n",
+      "patchTruncated": false,
+      "filesTruncated": false,
+      "evidenceType": "source-change",
+      "accuracyValidated": false,
+      "tasks": [
+        {
+          "id": "evo-0ab1fcc303db-measurement",
+          "domain": "measurement",
+          "title": "검사·해석 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-0ab1fcc303db-measurement\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 0ab1fcc303dbdb46963063627f4ed01edbd24fbd\n변경 제목: Limit hosted files and align canonical URLs with production domain\n관련 파일: .vercelignore, DEPLOY.md, condition.html, dataset-workflow.browser.test.cjs, dataset-workspace.js, index.html, robots.txt, sitemap.xml, tools/deployment_safety_test.py\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 부분 완료·중단·오류를 포함해 측정 성공률과 제외 지표를 확인한다. 자극/입력 지연, 결과 해석의 불확실성과 회귀를 비교한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-0ab1fcc303db-measurement\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        },
+        {
+          "id": "evo-0ab1fcc303db-research",
+          "domain": "research",
+          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
+          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
+          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
+          "prompt": "NeuroLens 알고리즘 후속 과제 evo-0ab1fcc303db-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 0ab1fcc303dbdb46963063627f4ed01edbd24fbd\n변경 제목: Limit hosted files and align canonical URLs with production domain\n관련 파일: .vercelignore, DEPLOY.md, condition.html, dataset-workflow.browser.test.cjs, dataset-workspace.js, index.html, robots.txt, sitemap.xml, tools/deployment_safety_test.py\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-0ab1fcc303db-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
+          "generator": "rule",
+          "state": "proposed"
+        }
+      ],
+      "analysisState": "retry-pending",
+      "analysisAttempts": 1,
+      "deploymentEvents": [
+        {
+          "key": "check-57164310295",
+          "type": "commit-status",
+          "context": "Vercel",
+          "state": "pending",
+          "at": "2026-10-24T13:14:37Z",
+          "url": "https://vercel.com/ax-open-lab/neurolens/HeMCthzPp3XiR1C1qbpDmWxgs2NT",
+          "source": "github-commit-status"
+        }
+      ],
+      "lastAttemptAt": "2026-10-24T13:15:02.479351+00:00",
+      "analysisError": "HTTP_503",
+      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+    },
+    {
       "sha": "0bfa6224631bcbfb82c1d0c6acf72b0e9f6f44cd",
       "parents": [
         "a3941e25c3e9c6cc5b178fe87a173f825caf2594"
@@ -24632,7 +24745,9 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "27fb1bfe29524c12e29877f4d6df480699f1e01b"
+    "sourceHead": "0ab1fcc303dbdb46963063627f4ed01edbd24fbd"
   },
-  "updatedAt": "2026-10-22T13:13:33.761429+00:00"
+  "updatedAt": "2026-10-24T13:15:36.719478+00:00",
+  "aiCooldownUntil": "2026-10-24T13:20:35.570881+00:00",
+  "aiCooldownReason": "GEMINI_UNAVAILABLE"
 }
