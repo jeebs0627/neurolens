@@ -1,6 +1,7 @@
 """Offline checks for deployment exclusions and canonical URLs. No credentials needed."""
 import ast
 import json
+import os
 from html.parser import HTMLParser
 from pathlib import Path
 import re
@@ -32,8 +33,12 @@ class Page(HTMLParser):
 
 
 def main():
-    files = git('ls-files', '-z', '--cached', '--others', '--exclude-standard').decode().split('\0')
-    files = sorted(set(filter(None, files)))
+    # Vercel provides a source snapshot without Git metadata.
+    files = []
+    for parent, dirs, names in os.walk(ROOT):
+        dirs[:] = [name for name in dirs if not name.startswith('.') and name not in {'node_modules', '__pycache__'}]
+        files.extend((Path(parent) / name).relative_to(ROOT).as_posix() for name in names)
+    files = sorted(set(files))
     private = [
         'newbiz-core.test.js', 'condition-signal.test.cjs', 'api/rppg_test.py',
         'api/test_future.py', 'api/__pycache__/gemini.cpython-312.pyc',
