@@ -53,10 +53,11 @@ git push -u origin main
 - MindGaze 측 설정에 리턴 URL 도메인 제한이 있다면, 발급된
   `https://<프로젝트명>.vercel.app` 도메인을 허용 목록에 추가해야 할 수 있음
 
-## 로컬 개발 (기존과 동일)
+## 로컬 화면 개발
 
 `start.bat` 실행 → http://localhost:8080
-(server.py 는 gemini.key 파일에서 키를 읽음)
+`server.py`는 레거시 로컬 서버로 새 AI 세션·공유 한도 API를 구현하지 않습니다.
+AI 해설 연결은 서버 환경변수가 설정된 Vercel 미리보기에서 확인하세요.
 
 ## 주의
 
