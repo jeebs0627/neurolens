@@ -1,5 +1,38 @@
-# Vercel 은 저장소의 모든 파일을 공개 URL 로 서빙한다.
-# 문서·로컬 스크립트·비밀키·DB 소스는 배포본에 포함하지 않는다.
+# 새 문서와 폴더는 기본 제외. 서비스 자산과 서버 의존성만 배포한다.
+/*
+!/*.html
+!/*.js
+!/*.css
+!/api/
+!/img/
+!/models/
+!/newbiz-stim/
+!/neurolens2/
+!/model-registry.json
+!/release_policy.json
+!/training-ledger.json
+!/dataset-engine-log.json
+!/dataset-evolution-log.json
+!/requirements.txt
+!/dataset_evolution_core.py
+!/dataset-deploy-guard.cjs
+!/vercel.json
+!/robots.txt
+!/sitemap.xml
+
+# 공개 자산 안에서도 테스트·비밀정보·내부 문서는 제외한다.
+*.test.*
+*_test.py
+test_*.py
+*.pyc
+**/__pycache__/
+.env
+.env.*
+*.pem
+*.p12
+*.pfx
+*.sqlite*
+*.db
 *.md
 /server.py
 /start.bat

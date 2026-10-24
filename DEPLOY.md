@@ -70,3 +70,15 @@ git push -u origin main
 - `/last-result` 폴링 엔드포인트는 제거했습니다. 결과 전달은 `/rcvrslt` → localStorage + postMessage 입니다.
 - DB 함수(care_* RPC)의 원본은 `supabase/migrations/` 입니다. Supabase 대시보드에서 직접 고치지 말고
   마이그레이션 파일을 추가한 뒤 적용하세요.
+
+## 배포 파일·대표 주소 검증
+
+- 대표 주소는 `https://www.neurolens.me` 입니다. 메인·컨디션 canonical, 공유 이미지, JSON-LD,
+  `robots.txt`의 Sitemap, `sitemap.xml`을 함께 유지합니다. API·콜백의 호스트와 기존 접근 주소는 변경하지 않습니다.
+- `.vercelignore`는 루트 파일과 폴더를 기본 제외한 뒤 웹 자산·API·모델·연구 대시보드 JSON과
+  서버 의존성(`dataset_evolution_core.py`)·빌드 생략 검사(`dataset-deploy-guard.cjs`)만 허용합니다.
+  테스트, 로컬 도구, 출원 초안, 연구 원자료는 배포에 포함하지 않습니다.
+- 배포 전 `python -B tools/deployment_safety_test.py`를 실행해 제외 대상과 서비스 의존 파일·대표 주소의
+  일관성을 확인합니다. 별도 패키지 설치나 서비스 인증 정보는 필요하지 않습니다.
+- 새 자산 폴더나 서버 의존성을 추가할 때는 `.vercelignore`와 위 검사의 허용 경로도 함께 갱신합니다.
+  운영 반영 후 서비스 자산은 200, 제외 파일은 404인지 확인합니다. 기존 과거 배포 URL은 별도 관리 대상입니다.

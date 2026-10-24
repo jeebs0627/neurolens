@@ -14,4 +14,4 @@ Disallow: /rcvrslt
 Disallow: /last-result
 Disallow: /mg/
 
-Sitemap: https://neurolens-xi.vercel.app/sitemap.xml
+Sitemap: https://www.neurolens.me/sitemap.xml

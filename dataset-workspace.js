@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const labels={pulse:'맥파·융합',gaze:'시선·획득',measurement:'검사·해석',research:'데이터·연구'};
-  const safeURL=url=>{try{const u=new URL(url);return u.protocol==='https:'&&['github.com','vercel.com','neurolens-xi.vercel.app'].includes(u.hostname)?u.href:null;}catch(_){return null;}};
+  const safeURL=url=>{try{const u=new URL(url);return u.protocol==='https:'&&['github.com','vercel.com','neurolens-xi.vercel.app','www.neurolens.me','neurolens.me'].includes(u.hostname)?u.href:null;}catch(_){return null;}};
   let ledger={entries:[]},state={rows:[],allowed:false},hooks={},taskLimit=12,releaseLimit=15,loading=false;
   const date=v=>v?new Date(v).toLocaleString('ko-KR'):'미기록';
   function activate(view){
