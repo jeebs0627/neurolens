@@ -17,7 +17,12 @@ const server=http.createServer((req,res)=>{
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;
  try{
-  browser=await chromium.launch({headless:true,...(process.platform==='win32'&&fs.existsSync(edge)?{executablePath:edge}:{} )});
+  const launch={headless:true};
+  if(process.env.VERCEL&&process.platform==='linux'){
+   const {default:portable}=await import('@sparticuz/chromium');
+   launch.args=portable.args;launch.executablePath=await portable.executablePath();
+  }else if(process.platform==='win32'&&fs.existsSync(edge))launch.executablePath=edge;
+  browser=await chromium.launch(launch);
   const base='http://127.0.0.1:'+server.address().port;
   async function open(signedIn=false){
    const context=await browser.newContext();

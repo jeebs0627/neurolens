@@ -89,7 +89,9 @@ git push -u origin main
 
 - `npm ci --prefix ci`, `python -m pip install -r requirements.txt` 후 `python -B ci/check.py`를 실행합니다.
   Windows에서는 설치된 Edge를, Linux에서는 `node ci/node_modules/playwright/cli.js install chromium --only-shell`로
-  설치한 브라우저를 사용합니다. 검사에 실제 AI 키·회원 데이터는 사용하지 않습니다.
+  설치한 브라우저를 사용합니다. Vercel은 기본 OS에 브라우저 시스템 라이브러리가 없어 빌드 전용
+  `@sparticuz/chromium`을 사용하며 이 패키지는 공개 자산·서버 함수에 포함하지 않습니다.
+  검사에 실제 AI 키·회원 데이터는 사용하지 않습니다.
 - Vercel의 `buildCommand`도 같은 검사를 실행하며 하나라도 실패하면 배포 빌드가 실패합니다.
   모든 검사를 통과한 뒤에만 `.site` 정적 배포 폴더를 생성합니다. API는 기존 경로에서 서버 함수로 유지합니다.
 - 테스트·빌드 도구는 빌드에 필요해 업로드될 수 있지만 `.site`에 포함되지 않아 공개 URL로 제공되지 않습니다.

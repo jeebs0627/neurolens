@@ -95,7 +95,7 @@
       ]
     }
   ],
-  "installCommand": "npm ci --prefix ci && python3 -m pip install --target .ci-python -r requirements.txt && node ci/node_modules/playwright/cli.js install chromium --only-shell",
+  "installCommand": "npm ci --prefix ci && python3 -m pip install --target .ci-python -r requirements.txt",
   "buildCommand": "python3 -B ci/check.py",
   "outputDirectory": ".site"
 }
