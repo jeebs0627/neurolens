@@ -85,7 +85,14 @@ alter table public.test_results enable row level security;
 create policy "profiles_select" on public.profiles
   for select using (auth.uid() = id or public.is_admin());
 create policy "profiles_update_own" on public.profiles
-  for update using (auth.uid() = id);
+  for update to authenticated
+  using (auth.uid() = id) with check (auth.uid() = id);
+
+-- 일반 회원은 본인 이름만 수정. role 등 보호 열은 SQL Editor/서버에서만 변경.
+-- 테이블 전체 UPDATE 권한이 있으면 열별 제한을 우회하므로 먼저 회수한다.
+revoke update on public.profiles from public, anon, authenticated;
+revoke update (id, email, name, role, created_at) on public.profiles from public, anon, authenticated;
+grant update (name) on public.profiles to authenticated;
 
 -- 검사결과: 본인 것 조회/저장 + 관리자는 전체 조회
 create policy "results_select" on public.test_results
@@ -107,6 +114,10 @@ create policy "results_insert_own" on public.test_results
 ---
 
 ## 관리자 계정 만들기
+
+기존 운영 DB에는 `supabase/migrations/20261024_profile_role_hardening.sql`을 SQL Editor에서 실행하세요.
+이 마이그레이션은 기존 회원·관리자 역할을 변경하지 않으며, 브라우저의 프로필 수정은 이름만 허용합니다.
+브라우저로 로그인한 관리자도 `role`을 직접 바꿀 수 없습니다. 아래 SQL은 관리용 SQL Editor에서 실행합니다.
 
 1. 사이트에서 관리자로 쓸 이메일로 **일반 회원가입**을 먼저 합니다.
 2. SQL Editor에서 아래 한 줄 실행:
