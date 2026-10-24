@@ -10,3 +10,9 @@ __pycache__/
 # Training pipeline local data: authenticated exports, snapshots, checkpoints (research data, never commit)
 /training/
 /research_export/
+
+# Release-check dependencies and generated static output
+/ci/node_modules/
+/.ci-python/
+/.site/
+.env*

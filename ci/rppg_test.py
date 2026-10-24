@@ -5,7 +5,7 @@ import pathlib
 import subprocess
 import unittest
 
-API_DIR = pathlib.Path(__file__).parent
+API_DIR = pathlib.Path(__file__).resolve().parents[1] / 'api'
 spec = importlib.util.spec_from_file_location("rppg", API_DIR / "rppg.py")
 rppg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(rppg)

@@ -1139,7 +1139,8 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
       </div>
     </details>
     <div class="btns">
-      <button class="btn" id="goCheckin" disabled>검사 시작</button>
+      <p class="small muted" id="conditionAuthNotice">마인드컨디션 검사는 로그인 후 이용할 수 있어요. 샘플 리포트는 로그인 없이 볼 수 있어요.</p>
+      <button class="btn" id="goCheckin" disabled>로그인하고 검사 시작</button>
       <button class="btn ghost" id="goDemo" disabled>카메라 없이 체험하기</button>
     </div>
     <details class="qa" id="qaBox" hidden>
@@ -1277,6 +1278,8 @@ ol.refs li{font-size:12.5px;line-height:1.6;margin:4px 0;color:var(--ink-2);word
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
+<script src="ai-client.js"></script>
+<script src="condition-auth.js"></script>
 <script src="condition-signal.js"></script>
 <script src="condition-camera.js"></script>
 <script src="condition-fusion.js"></script>
@@ -1324,7 +1327,11 @@ const S = {
   sessionKind: 'condition', gazeLabels: null, gazeModel: null, calibRound: 0, calibDigests: null,
 };
 const referenceCollector=new NLReference.Collector(message=>{$('refStatus').textContent=message;});
-$('refConnect').onclick=async()=>{if(!$('rsOpt').checked){$('refStatus').textContent='연구 데이터 제공 동의 후 연결할 수 있어요.';return;}try{await referenceCollector.connect();}catch(e){$('refStatus').textContent=e.message;}};
+if(window.NLAuth)NLAuth.onAuth(user=>{
+  $('goCheckin').textContent=user?'검사 시작':'로그인하고 검사 시작';
+  if(!user&&S.stream){S.abort=true;S.recording=false;S.camera?.stop();S.stream.getTracks().forEach(track=>track.stop());S.stream=null;show('sIntro');}
+});
+$('refConnect').onclick=async()=>{if(!await NLConditionAuth.require())return;if(!$('rsOpt').checked){$('refStatus').textContent='연구 데이터 제공 동의 후 연결할 수 있어요.';return;}try{await referenceCollector.connect();}catch(e){$('refStatus').textContent=e.message;}};
 $('refDisconnect').onclick=()=>{referenceCollector.disconnect();$('refStatus').textContent='연결 해제됨';};
 window.addEventListener('online',()=>NLResearchStore.flush().catch(()=>{}));
 NLResearchStore.flush().catch(()=>{});
@@ -1441,7 +1448,7 @@ loadStimuli().then(refreshIntro);
 $('toSetup').addEventListener('click', () => $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('toSample').addEventListener('click', () => { $('simPersona').value = 'fatigue'; openSimReport('fatigue', 'full', { seed: 7, all: true }); });
 $('rsOpt').addEventListener('change', e => { $('rsPhq').disabled = !e.target.checked; if (!e.target.checked) { $('rsPhq').checked = false; referenceCollector.disconnect(); $('refStatus').textContent='연결 해제됨'; } });
-$('goCheckin').addEventListener('click', () => { S.demo = false; S.lab = null; S.sessionKind = 'condition'; S.mode = modeVal(); show('sCheckin'); });
+$('goCheckin').addEventListener('click', async () => { if(!await NLConditionAuth.require())return; S.demo = false; S.lab = null; S.sessionKind = 'condition'; S.mode = modeVal(); show('sCheckin'); });
 if (LABEL_MODE) {
   const c = labelCounts(), total = c.train + c.internal + c.holdout;
   $('labelCard').hidden = false;
@@ -1496,7 +1503,7 @@ if (Object.hasOwn(COLLECT_MODS, COLLECT_KEY) && (COLLECT_KEY === 'label') === LA
   show('sSetup');
   setTimeout(() => { if (!S.stream && !$('camStart').disabled) $('camStart').click(); });   // 카메라 버튼 처리기는 이 아래에서 등록된다
 }
-$('goDemo').addEventListener('click', () => { S.demo = true; S.lab = null; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
+$('goDemo').addEventListener('click', async () => { if(!await NLConditionAuth.require())return; S.demo = true; S.lab = null; S.mode = modeVal(); S.persona = $('simPersona').value; show('sCheckin'); });
 $('simReport').addEventListener('click', () => openSimReport($('simPersona').value, modeVal()));
 function openSimReport(persona, mode, opt = {}) {
   S.demo = true; S.mode = mode; S.persona = persona;
@@ -1630,6 +1637,7 @@ const takeLandmarker = only => {
 };
 
 $('camStart').addEventListener('click', async () => {
+  if(!await NLConditionAuth.require())return;
   const st = $('setupStatus');
   st.className = 'status'; st.textContent = '카메라와 얼굴 인식 모델을 준비하고 있어요… (처음 한 번은 10초 정도 걸릴 수 있어요)';
   $('camStart').disabled = true; $('camStart').hidden = true; S.camClickAt = now();
@@ -2303,6 +2311,7 @@ async function runStep(key, fn) {
   }
 }
 async function runSession() {
+  if(!await NLConditionAuth.require())return;
   Object.assign(S, { hidden: [], hideStart: null, landmarks: { idx: LM_IDX, rows: [] }, calibLog: null, research: null, phaseEvidence: {} });
   Object.assign(S, { abort: false, frames: [], trials: [], phases: {}, steps: {}, pursuit: null, saccade: [], sacCal: null, pvt: null, sart: null, stressScore: null, resized: false, gaze: null, cleanup: [], drift: { dx: 0, dy: 0 }, gazeOut: { n: 0, off: 0 }, latencyCal: null });
   S.attemptId=crypto.randomUUID();S.startedAt=now();S.endedAt=null;S.outcome='recording';S.errorCode=null;
@@ -3660,7 +3669,7 @@ async function summary(res, force) {
   el.innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk s2"></div>';
   try {
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
-    const r = await fetch('/rppg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(R.summaryPayload(res, S.hist)), signal: ctl.signal });
+    const r = await NLAI.fetch('/rppg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(R.summaryPayload(res, S.hist)), signal: ctl.signal });
     clearTimeout(to);
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.text) throw new Error(j.error || `HTTP ${r.status}`);

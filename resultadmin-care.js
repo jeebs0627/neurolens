@@ -158,7 +158,7 @@
     $('careAiRetry').hidden=true;
     showInterpretation(fallbackInterpretation(),'사전 체크인과 확인된 검사 항목을 조합했습니다. 맞춤 해석을 생성하고 있어요…');
     try{
-      const response=await fetch('/api/care-preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({checkin:care,signals,matchedIds:analysis.matched.map(item=>item.id),traitPatterns:(insights.care||[]).map(item=>item.id)})});
+      const response=await NLAI.fetch('/api/care-preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({checkin:care,signals,matchedIds:analysis.matched.map(item=>item.id),traitPatterns:(insights.care||[]).map(item=>item.id)})});
       if(!response.ok)throw Error(`HTTP ${response.status}`);
       const data=await response.json();
       if(typeof data.summary!=='string'||typeof data.direction!=='string'||typeof data.firstStep!=='string')throw Error('invalid response');
@@ -196,7 +196,7 @@
     };
     text('profileAiStatus','검사 결과 기반 특징 총평을 생성하고 있습니다…');
     try{
-      const response=await fetch('/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const response=await NLAI.fetch('/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(!response.ok)throw Error(`HTTP ${response.status}`);
       const data=await response.json();
       if(typeof data.text!=='string'||!data.text.trim())throw Error('빈 응답');

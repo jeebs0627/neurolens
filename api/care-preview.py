@@ -6,6 +6,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
+from ai_guard import GuardError, guarded, upstream
 
 MODEL = "gemini-2.5-flash"
 MAX_BODY = 8 * 1024
@@ -100,6 +101,7 @@ def build_prompt(body):
 
 
 class handler(BaseHTTPRequestHandler):
+    @guarded("care", MAX_BODY)
     def do_POST(self):
         host = (self.headers.get("X-Forwarded-Host") or self.headers.get("Host") or "").split(":")[0].lower()
         source = self.headers.get("Origin") or self.headers.get("Referer") or ""
@@ -135,7 +137,7 @@ class handler(BaseHTTPRequestHandler):
             data=payload, headers={"Content-Type": "application/json", "x-goog-api-key": key}, method="POST",
         )
         try:
-            with urllib.request.urlopen(request, timeout=50) as response:
+            with upstream(request, timeout=50) as response:
                 data = json.load(response)
             output = "".join(part.get("text", "") for part in data["candidates"][0]["content"]["parts"])
             if probe:
@@ -147,6 +149,8 @@ class handler(BaseHTTPRequestHandler):
         except urllib.error.HTTPError as error:
             print("care preview upstream HTTP", error.code)
             return self._send(502, {"error": "generation unavailable", "upstreamStatus": error.code})
+        except GuardError:
+            raise
         except Exception as error:  # noqa: BLE001
             print("care preview upstream error", type(error).__name__)
             return self._send(502, {"error": "generation unavailable", "errorType": type(error).__name__})

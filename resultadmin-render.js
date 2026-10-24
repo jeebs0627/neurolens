@@ -82,7 +82,7 @@ async function renderAdminMbti(mbti) {
   const fallback = `${info.d} ${dimensions[0]}이며 ${dimensions[1]}입니다. ${dimensions[2]}이고 ${dimensions[3]}입니다. ${info.k.slice(0, 2).join('·')} 같은 강점을 살릴 수 있는 환경을 탐색해 보세요. 이 유형은 성향을 이해하는 참고 자료이며, 개인의 능력이나 미래를 정해 주지는 않습니다.`;
   target.innerHTML = `<p>${esc(fallback)}</p><p class="source">유형별 기본 해설 · 상세 생성 중</p>`;
   try {
-    const response = await fetch('/api/mbti-preview', {
+    const response = await NLAI.fetch('/api/mbti-preview', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mbti: type }),
     });

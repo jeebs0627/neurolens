@@ -2483,6 +2483,7 @@ const authArea = document.getElementById('authArea');
 const authModal = document.getElementById('authModal');
 const myModal = document.getElementById('myModal');
 let authMode = 'login';
+const authReturnPath=(()=>{try{const value=new URLSearchParams(location.search).get('next');if(!value)return null;const target=new URL(value,location.origin);return target.origin===location.origin&&['/condition','/condition.html'].includes(target.pathname)?target.pathname+target.search:null;}catch(_){return null;}})();
 
 function fmtDate(iso) { const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function fmtTime(iso) { const d = new Date(iso); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
@@ -2508,6 +2509,7 @@ function renderAuthArea(user) {
 if (window.NLAuth) {
   NLAuth.onAuth(function (u) {
     renderAuthArea(u);
+    if(u&&authReturnPath){location.replace(authReturnPath);return;}
     savePendingResult(u); /* 비로그인 검사 → 가입/로그인 직후 결과를 계정에 저장 */
   });
 } else {

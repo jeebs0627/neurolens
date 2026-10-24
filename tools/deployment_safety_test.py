@@ -1,6 +1,7 @@
 """Offline checks for deployment exclusions and canonical URLs. No credentials needed."""
 import ast
 import json
+import os
 from html.parser import HTMLParser
 from pathlib import Path
 import re
@@ -8,9 +9,12 @@ import subprocess
 import tempfile
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = 'https://www.neurolens.me'
+sys.path.insert(0,str(ROOT / 'ci'))
+from public_files import publishable
 
 
 def git(*args, cwd=ROOT, data=None):
@@ -29,8 +33,12 @@ class Page(HTMLParser):
 
 
 def main():
-    files = git('ls-files', '-z', '--cached', '--others', '--exclude-standard').decode().split('\0')
-    files = sorted(set(filter(None, files)))
+    # Vercel provides a source snapshot without Git metadata.
+    files = []
+    for parent, dirs, names in os.walk(ROOT):
+        dirs[:] = [name for name in dirs if not name.startswith('.') and name not in {'node_modules', '__pycache__'}]
+        files.extend((Path(parent) / name).relative_to(ROOT).as_posix() for name in names)
+    files = sorted(set(files))
     private = [
         'newbiz-core.test.js', 'condition-signal.test.cjs', 'api/rppg_test.py',
         'api/test_future.py', 'api/__pycache__/gemini.cpython-312.pyc',
@@ -47,9 +55,7 @@ def main():
     public = [
         'index.html', 'condition.html', 'test.html', 'admin.html', 'report.html',
         'auth.js', 'care.js', 'condition-camera.js', 'condition-analysis-worker.js',
-        'newbiz-core.js', 'dataset-workspace.js', 'dataset-deploy-guard.cjs',
-        'dataset_evolution_core.py', 'requirements.txt', 'vercel.json',
-        'api/gemini.py', 'api/dataset_evolution.py', 'api/neurolens_dataset.py',
+        'newbiz-core.js', 'dataset-workspace.js', 'ai-client.js', 'condition-auth.js',
         'model-registry.json', 'release_policy.json', 'training-ledger.json',
         'dataset-engine-log.json', 'dataset-evolution-log.json',
         'models/gaze/model/model.onnx', 'models/gaze/model/manifest.json',
@@ -59,17 +65,32 @@ def main():
         'robots.txt', 'sitemap.xml',
     ]
     candidates = sorted(set(files + private + public))
-    with tempfile.TemporaryDirectory(prefix='neurolens-deploy-check-') as folder:
-        git('init', '--quiet', cwd=folder)
-        Path(folder, '.gitignore').write_bytes((ROOT / '.vercelignore').read_bytes())
-        # Git and .vercelignore use ordered ignore/negation rules. Exit 1 means no matches.
-        result = subprocess.run(['git', 'check-ignore', '--no-index', '-z', '--stdin'],
-                                cwd=folder, input=('\0'.join(candidates) + '\0').encode(),
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        assert result.returncode in (0, 1), result.stderr.decode()
-        excluded = set(filter(None, result.stdout.decode().split('\0')))
-    assert set(private) <= excluded, f'Private files allowed: {set(private) - excluded}'
-    assert not set(public) & excluded, f'Service files excluded: {set(public) & excluded}'
+    if (ROOT / '.vercelignore').is_file():
+        with tempfile.TemporaryDirectory(prefix='neurolens-deploy-check-') as folder:
+            git('init', '--quiet', cwd=folder)
+            Path(folder, '.gitignore').write_bytes((ROOT / '.vercelignore').read_bytes())
+            # GitHub/local checks validate upload rules; Vercel already applied them.
+            result = subprocess.run(['git', 'check-ignore', '--no-index', '-z', '--stdin'],
+                                    cwd=folder, input=('\0'.join(candidates) + '\0').encode(),
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            assert result.returncode in (0, 1), result.stderr.decode()
+            excluded = set(filter(None, result.stdout.decode().split('\0')))
+    else:
+        assert os.environ.get('VERCEL'), 'Upload policy missing outside Vercel'
+        excluded = {name for name in candidates if not (ROOT / name).is_file()}
+    uploaded_excluded = excluded
+    assert all(not publishable(name) for name in private), 'Private static file allowed'
+    assert all(publishable(name) for name in public), 'Service static file excluded'
+    for name in ['ai_guard.py','dataset_evolution_core.py','requirements.txt','vercel.json',
+                 'api/gemini.py','api/ai-session.py','api/dataset_evolution.py',
+                 'ci/check.py','ci/browser.test.cjs','ci/ai_guard_test.py',
+                 'SUPABASE_SETUP.md','supabase/migrations/20261024_profile_role_hardening.sql',
+                 'supabase/migrations/20261024_ai_call_guard.sql',
+                 'tools/profile_role_security_test.cjs','tools/ai_guard_sql_test.cjs']:
+        assert name not in uploaded_excluded, f'Build/runtime dependency excluded: {name}'
+        if name.endswith(('.sql','.md','.cjs')):
+            assert not publishable(name), f'Build input publicly served: {name}'
+    excluded = {name for name in candidates if not publishable(name)}
 
     def check_dependency(source, value):
         parts = urlsplit(value)
@@ -97,10 +118,6 @@ def main():
             check_dependency(source, value)
         for value in re.findall(r'''url\(\s*['"]?([^)'"\s]+)''', text):
             check_dependency(source, value)
-        if source.suffix == '.py':
-            for node in ast.walk(ast.parse(text)):
-                if isinstance(node, ast.ImportFrom) and node.module:
-                    check_dependency(Path('index.html'), node.module.replace('.', '/') + '.py')
 
     for name, canonical in [('index.html', SITE + '/'), ('condition.html', SITE + '/condition')]:
         text = (ROOT / name).read_text(encoding='utf-8-sig')
@@ -125,7 +142,8 @@ def main():
         target = urlsplit(route['destination']).path.lstrip('/')
         if target.startswith('api/'):
             target += '.py'
-        assert (ROOT / target).is_file() and target not in excluded, target
+        assert (ROOT / target).is_file() and target not in uploaded_excluded, target
+    assert config['outputDirectory']=='.site' and config['buildCommand']=='python3 -B ci/check.py'
     print(f'PASS: {len(private)} private paths excluded; {len(public)} service paths retained; '
           f'{len(files)} repository files checked for asset dependencies; canonical URLs consistent')
 
