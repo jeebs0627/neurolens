@@ -65,19 +65,23 @@ def main():
         'robots.txt', 'sitemap.xml',
     ]
     candidates = sorted(set(files + private + public))
-    with tempfile.TemporaryDirectory(prefix='neurolens-deploy-check-') as folder:
-        git('init', '--quiet', cwd=folder)
-        Path(folder, '.gitignore').write_bytes((ROOT / '.vercelignore').read_bytes())
-        # Git and .vercelignore use ordered ignore/negation rules. Exit 1 means no matches.
-        result = subprocess.run(['git', 'check-ignore', '--no-index', '-z', '--stdin'],
-                                cwd=folder, input=('\0'.join(candidates) + '\0').encode(),
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        assert result.returncode in (0, 1), result.stderr.decode()
-        excluded = set(filter(None, result.stdout.decode().split('\0')))
+    if (ROOT / '.vercelignore').is_file():
+        with tempfile.TemporaryDirectory(prefix='neurolens-deploy-check-') as folder:
+            git('init', '--quiet', cwd=folder)
+            Path(folder, '.gitignore').write_bytes((ROOT / '.vercelignore').read_bytes())
+            # GitHub/local checks validate upload rules; Vercel already applied them.
+            result = subprocess.run(['git', 'check-ignore', '--no-index', '-z', '--stdin'],
+                                    cwd=folder, input=('\0'.join(candidates) + '\0').encode(),
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            assert result.returncode in (0, 1), result.stderr.decode()
+            excluded = set(filter(None, result.stdout.decode().split('\0')))
+    else:
+        assert os.environ.get('VERCEL'), 'Upload policy missing outside Vercel'
+        excluded = {name for name in candidates if not (ROOT / name).is_file()}
     uploaded_excluded = excluded
     assert all(not publishable(name) for name in private), 'Private static file allowed'
     assert all(publishable(name) for name in public), 'Service static file excluded'
-    for name in ['ai_guard.py','dataset_evolution_core.py','requirements.txt','vercel.json','.vercelignore',
+    for name in ['ai_guard.py','dataset_evolution_core.py','requirements.txt','vercel.json',
                  'api/gemini.py','api/ai-session.py','api/dataset_evolution.py',
                  'ci/check.py','ci/browser.test.cjs','ci/ai_guard_test.py',
                  'SUPABASE_SETUP.md','supabase/migrations/20261024_profile_role_hardening.sql',
