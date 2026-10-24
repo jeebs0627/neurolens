@@ -18,12 +18,13 @@ def run(*args):
 
 for test in ['ci/care_preview_test.py','ci/rppg_test.py','ci/ai_guard_test.py']:
     run(sys.executable,'-B',test)
-for test in ['dataset-deploy-guard.test.cjs','newbiz-core.test.js','newbiz-battery.test.js',
-             'condition-signal.test.cjs','condition-fusion.test.cjs','condition-gaze-model.test.cjs',
-             'tools/profile_role_security_test.cjs','tools/ai_guard_sql_test.cjs']:
+for test in ['tools/profile_role_security_test.cjs','tools/ai_guard_sql_test.cjs']:
     run('node',test)
 run(sys.executable,'-B','tools/deployment_safety_test.py')
 run('node','ci/browser.test.cjs')
+for test in ['dataset-deploy-guard.test.cjs','newbiz-core.test.js','newbiz-battery.test.js',
+             'condition-signal.test.cjs','condition-fusion.test.cjs','condition-gaze-model.test.cjs']:
+    run('node',test)
 
 output=(ROOT/'.site').resolve()
 assert output.parent==ROOT and output.name=='.site'

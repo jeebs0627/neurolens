@@ -81,3 +81,12 @@ gemini.key
 !/tools/deployment_safety_test.py
 !/tools/profile_role_security_test.cjs
 !/tools/ai_guard_sql_test.cjs
+
+# SQL regression inputs; never included in the public .site output.
+!/SUPABASE_SETUP.md
+!/supabase/
+/supabase/*
+!/supabase/migrations/
+/supabase/migrations/*
+!/supabase/migrations/20261024_profile_role_hardening.sql
+!/supabase/migrations/20261024_ai_call_guard.sql
