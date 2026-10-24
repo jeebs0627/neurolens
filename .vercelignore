@@ -17,6 +17,7 @@
 !/dataset_evolution_core.py
 !/dataset-deploy-guard.cjs
 !/vercel.json
+!/.vercelignore
 !/robots.txt
 !/sitemap.xml
 

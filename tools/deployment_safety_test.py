@@ -77,7 +77,7 @@ def main():
     uploaded_excluded = excluded
     assert all(not publishable(name) for name in private), 'Private static file allowed'
     assert all(publishable(name) for name in public), 'Service static file excluded'
-    for name in ['ai_guard.py','dataset_evolution_core.py','requirements.txt','vercel.json',
+    for name in ['ai_guard.py','dataset_evolution_core.py','requirements.txt','vercel.json','.vercelignore',
                  'api/gemini.py','api/ai-session.py','api/dataset_evolution.py',
                  'ci/check.py','ci/browser.test.cjs','ci/ai_guard_test.py',
                  'SUPABASE_SETUP.md','supabase/migrations/20261024_profile_role_hardening.sql',
