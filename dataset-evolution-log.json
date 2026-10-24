@@ -43,16 +43,16 @@
         {
           "id": "evo-2ecd3c087a59-research",
           "domain": "research",
-          "title": "데이터·연구 자동화 변경 후 회귀·실측 검증",
-          "rationale": "해당 영역의 코드 변경이 관측됨. 효과는 아직 검증하지 않음.",
-          "validationPlan": "권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.",
-          "prompt": "NeuroLens 알고리즘 후속 과제 evo-2ecd3c087a59-research\n저장소: https://github.com/jeebs0627/neurolens\n기준 변경: 2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4\n변경 제목: Restrict client profile updates to names and protect administrator roles\n관련 파일: SUPABASE_SETUP.md, supabase/migrations/20261024_profile_role_hardening.sql, tools/profile_role_security_test.cjs\n현재 main과 최근 다른 개발자의 변경을 먼저 확인하고 원본 실측값을 유지하면서 개선하라.\n검증 계획: 권한·동의·철회·중복 재시도·원문 보존을 검증한다. 변경 출처와 실측 연결, 프롬프트 생성 실패 복구를 재현한다.\n실측 검토에서 관련 검사·메모를 연결하고 관측 사실과 원인 가설을 구분하라. 기준값이 없으면 정확도 미검증으로 남겨라. 배포 성공이나 커밋 설명만으로 성능 향상을 확정하지 말라. 실패 시도를 분모에 유지하고 활용률과 오차의 균형을 평가하라.\n보고: 수정 파일, 실제 커밋, 엔진 전후 버전, 실행한 테스트와 수치/표본/조건, 미실시 항목, 후속 과제.\n이 과제를 처리한 커밋 본문에 다음 연결 표식을 추가하라: Dataset-Task: evo-2ecd3c087a59-research\n검사 코드·개인 메모·실측값은 공개 GitHub 커밋에 넣지 말고 dataset 조치란에 기록하라.",
-          "generator": "rule",
-          "state": "proposed"
+          "generator": "gemini",
+          "state": "proposed",
+          "title": "Supabase 프로필 권한 강화에 따른 연구 수집 파이프라인 영향 평가 및 신호 회복 회귀 검증",
+          "rationale": "관측된 사실: 커밋 2ecd3c0에서 `public.profiles` 테이블에 대한 인증된 사용자의 UPDATE 권한이 `name` 컬럼으로 제한되고 RLS 정책이 재설정되었습니다. 제공된 patchExcerpt 외의 문서 및 테스트 파일 diff는 생략된 상태입니다.\n가설: 프로필 업데이트 권한 제한이 웹캠 측정 연구의 연구자/참가자 세션 메타데이터 바인딩 및 측정 파이프라인 권한 처리에 간섭하지 않으며, 약한 신호 수집 시의 세션 유효율 및 측정 성공률을 저해하지 않고 유지할 것이다.\n근거 구분: 커밋 주장의 보안 성과와 실제 연구 파이프라인에서의 신호 수집 무결성은 별개이며, 실측 데이터셋 연동을 통해 권한 변경이 데이터 수집 및 측정 오차 평가에 미치는 영향을 검증해야 합니다.",
+          "validationPlan": "1. 보안 테스트 연동: `tools/profile_role_security_test.cjs`를 실행하여 권한 제어 유효성을 확인하고, 연구용 클라이언트 세션에서의 접근 권한 오류 여부를 검증합니다.\n2. 신호 수집 회귀 평가: 세션 수집 파이프라인에서 참가자/기기/날짜별 분리 평가를 실시하여 권한 강화 전후의 측정 성공률, 부분 유효 신호 활용량, 세션 제외 비율을 비교합니다.\n3. 실측 데이터셋 연동: 자료 내 실측 성능 수치를 임의로 생성하지 않고, 데이터셋에 기록된 기존 세션 메모 및 측정 데이터 로그와 연결하여 프로필 바인딩 실패로 인한 데이터 손실 여부를 판정합니다.",
+          "prompt": "NeuroLens 연구 알고리즘 개발 AI는 다음 지침에 따라 검증 및 코드 확인 과제를 수행하십시오.\n\n1. 현재 코드 확인:\n- `supabase/migrations/20261024_profile_role_hardening.sql`의 SQL 스키마 권한 변경 내역과 `tools/profile_role_security_test.cjs` 테스트 스크립트를 확인하십시오.\n- 생략된 `SUPABASE_SETUP.md` 및 보안 테스트 코드의 세부 구현을 확인하고 세션 수집 파이프라인과의 접점을 파악하십시오.\n\n2. 변경 및 검증 과제:\n- 프로필 권한 강화 조치 이후 연구 데이터 수집 세션에서 참가자/연구자 프로필 연동 시 권한 오류가 발생하는지 평가하십시오.\n- 일상 웹캠 환경의 제한된 조건에서 수집되는 약한 신호의 수집 성공률 및 부분 유효 신호 활용량을 평가하십시오. 정상값을 임의로 만들어 채우거나 모든 약한 신호를 일률적으로 폐기하지 말고, 부분 유효 신호 활용량과 오차/불확실성 추정치를 함께 산출하십시오.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 클라이언트의 role 변경 시도는 차단되면서, 연구 세션의 정상 프로필 바인딩 및 데이터 수집 성공률이 저해되지 않을 것.\n- 회귀 기준: 권한 문제로 인한 데이터 수집 세션 탈락률 증가, 세션 메타데이터 누락, 또는 약한 신호 수집 파이프라인의 에러 발생.\n\n4. 결과 보고 양식:\n- 데이터셋의 관련 실측 로그 및 메모를 연결하여 결과를 보고하십시오. 없는 수치나 임상 진단 정확도를 만들어내지 마십시오.\n- 보고서에는 전체 시도 분모, 참가자/기기/날짜별 분리 평가 결과, 조건별 활용률-오차 매트릭스를 명시하십시오.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4\nDataset-Task: evo-2ecd3c087a59-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
         }
       ],
-      "analysisState": "retry-pending",
-      "analysisAttempts": 1,
+      "analysisState": "generated",
+      "analysisAttempts": 2,
       "deploymentEvents": [
         {
           "key": "check-57164647526",
@@ -84,9 +84,76 @@
           "source": "github-deployment-status"
         }
       ],
-      "lastAttemptAt": "2026-10-24T13:26:37.836784+00:00",
-      "analysisError": "HTTP_503",
-      "analysisErrorCode": "GEMINI_UNAVAILABLE"
+      "lastAttemptAt": "2026-10-24T14:34:51.155123+00:00",
+      "analysis": {
+        "summary": "2026-10-24 커밋(2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4)에서 `supabase/migrations/20261024_profile_role_hardening.sql` 파일이 추가되어 Client 프로필 수정 권한이 `name` 컬럼으로 제한되고, RLS 정책(`profiles_update_own`) 및 REVOKE/GRANT 구문이 적용되었습니다. 또한 `SUPABASE_SETUP.md` 수정 및 보안 테스트 코드(`tools/profile_role_security_test.cjs`)가 추가되었습니다. 제안된 자료의 patchExcerpt에는 SQL 마이그레이션 변경만 포함되어 있으며, `SUPABASE_SETUP.md` 및 `tools/profile_role_security_test.cjs`의 상세 diff는 생략되어 있습니다.\n\n커밋 메시지는 관리자 역할 보호 및 프로필 업데이트 제한을 주장하나 이는 검증된 임상/연구 성과가 아니며, `accuracyValidated`는 false 상태입니다. 본 보안 강화 변경이 웹캠 기반 약한 신호 수집 및 연구자/참가자 프로필 연동 파이프라인의 데이터 수집 성공률 및 오차 평가에 미치는 미검증 영향에 대해 후속 검증이 필요합니다.",
+        "tasks": [
+          {
+            "id": "evo-2ecd3c087a59-research",
+            "domain": "research",
+            "generator": "gemini",
+            "state": "proposed",
+            "title": "Supabase 프로필 권한 강화에 따른 연구 수집 파이프라인 영향 평가 및 신호 회복 회귀 검증",
+            "rationale": "관측된 사실: 커밋 2ecd3c0에서 `public.profiles` 테이블에 대한 인증된 사용자의 UPDATE 권한이 `name` 컬럼으로 제한되고 RLS 정책이 재설정되었습니다. 제공된 patchExcerpt 외의 문서 및 테스트 파일 diff는 생략된 상태입니다.\n가설: 프로필 업데이트 권한 제한이 웹캠 측정 연구의 연구자/참가자 세션 메타데이터 바인딩 및 측정 파이프라인 권한 처리에 간섭하지 않으며, 약한 신호 수집 시의 세션 유효율 및 측정 성공률을 저해하지 않고 유지할 것이다.\n근거 구분: 커밋 주장의 보안 성과와 실제 연구 파이프라인에서의 신호 수집 무결성은 별개이며, 실측 데이터셋 연동을 통해 권한 변경이 데이터 수집 및 측정 오차 평가에 미치는 영향을 검증해야 합니다.",
+            "validationPlan": "1. 보안 테스트 연동: `tools/profile_role_security_test.cjs`를 실행하여 권한 제어 유효성을 확인하고, 연구용 클라이언트 세션에서의 접근 권한 오류 여부를 검증합니다.\n2. 신호 수집 회귀 평가: 세션 수집 파이프라인에서 참가자/기기/날짜별 분리 평가를 실시하여 권한 강화 전후의 측정 성공률, 부분 유효 신호 활용량, 세션 제외 비율을 비교합니다.\n3. 실측 데이터셋 연동: 자료 내 실측 성능 수치를 임의로 생성하지 않고, 데이터셋에 기록된 기존 세션 메모 및 측정 데이터 로그와 연결하여 프로필 바인딩 실패로 인한 데이터 손실 여부를 판정합니다.",
+            "prompt": "NeuroLens 연구 알고리즘 개발 AI는 다음 지침에 따라 검증 및 코드 확인 과제를 수행하십시오.\n\n1. 현재 코드 확인:\n- `supabase/migrations/20261024_profile_role_hardening.sql`의 SQL 스키마 권한 변경 내역과 `tools/profile_role_security_test.cjs` 테스트 스크립트를 확인하십시오.\n- 생략된 `SUPABASE_SETUP.md` 및 보안 테스트 코드의 세부 구현을 확인하고 세션 수집 파이프라인과의 접점을 파악하십시오.\n\n2. 변경 및 검증 과제:\n- 프로필 권한 강화 조치 이후 연구 데이터 수집 세션에서 참가자/연구자 프로필 연동 시 권한 오류가 발생하는지 평가하십시오.\n- 일상 웹캠 환경의 제한된 조건에서 수집되는 약한 신호의 수집 성공률 및 부분 유효 신호 활용량을 평가하십시오. 정상값을 임의로 만들어 채우거나 모든 약한 신호를 일률적으로 폐기하지 말고, 부분 유효 신호 활용량과 오차/불확실성 추정치를 함께 산출하십시오.\n\n3. 성공 및 회귀 기준:\n- 성공 기준: 클라이언트의 role 변경 시도는 차단되면서, 연구 세션의 정상 프로필 바인딩 및 데이터 수집 성공률이 저해되지 않을 것.\n- 회귀 기준: 권한 문제로 인한 데이터 수집 세션 탈락률 증가, 세션 메타데이터 누락, 또는 약한 신호 수집 파이프라인의 에러 발생.\n\n4. 결과 보고 양식:\n- 데이터셋의 관련 실측 로그 및 메모를 연결하여 결과를 보고하십시오. 없는 수치나 임상 진단 정확도를 만들어내지 마십시오.\n- 보고서에는 전체 시도 분모, 참가자/기기/날짜별 분리 평가 결과, 조건별 활용률-오차 매트릭스를 명시하십시오.\n\n[추적 연결]\nRepository: jeebs0627/neurolens\nSource commit: 2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4\nDataset-Task: evo-2ecd3c087a59-research\n이 표식을 후속 변경 커밋 본문에 포함하고 실측값·개인 메모는 공개 GitHub에 기록하지 마세요. 배포 성공과 사람 대상 정확도 검증을 구분하세요."
+          }
+        ],
+        "evidenceHash": "3182daa3ac64d2fb1448fb52b8491cadaa197391db0040e7f93ae2eae3634a3d",
+        "ruleVersion": "evolution-followup-1",
+        "accuracyValidated": false,
+        "provenance": {
+          "model": "gemini-3.6-flash",
+          "modelVersion": "gemini-3.6-flash",
+          "attempts": 1,
+          "usage": {
+            "promptTokenCount": 1110,
+            "candidatesTokenCount": 1177,
+            "totalTokenCount": 3870
+          }
+        },
+        "generatedAt": "2026-10-24T14:35:08.893149+00:00",
+        "sourceSha": "2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4",
+        "sourceEvidence": {
+          "sha": "2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4",
+          "parents": [
+            "0162f2b11d2a2b9c34230f4a2b22577ff44e385c"
+          ],
+          "committedAt": "2026-10-24T13:26:10Z",
+          "subject": "Restrict client profile updates to names and protect administrator roles",
+          "url": "https://github.com/jeebs0627/neurolens/commit/2ecd3c087a59abbb7dc32a47c7b70dee81f7bac4",
+          "files": [
+            {
+              "path": "SUPABASE_SETUP.md",
+              "status": "modified",
+              "additions": 12,
+              "deletions": 1
+            },
+            {
+              "path": "supabase/migrations/20261024_profile_role_hardening.sql",
+              "status": "added",
+              "additions": 17,
+              "deletions": 0
+            },
+            {
+              "path": "tools/profile_role_security_test.cjs",
+              "status": "added",
+              "additions": 73,
+              "deletions": 0
+            }
+          ],
+          "domains": [
+            "research"
+          ],
+          "linkedTaskIds": [],
+          "patchExcerpt": "FILE supabase/migrations/20261024_profile_role_hardening.sql\n@@ -0,0 +1,17 @@\n+-- Client profile edits are limited to names. Existing roles and server grants are preserved.\n+begin;\n+set local lock_timeout = '5s';\n+set local statement_timeout = '30s';\n+\n+-- Table grants override column restrictions; remove both kinds of client UPDATE grants.\n+revoke update on public.profiles from public, anon, authenticated;\n+revoke update (id, email, name, role, created_at) on public.profiles from public, anon, authenticated;\n+grant update (name) on public.profiles to authenticated;\n+\n+drop policy if exists profiles_update_own on public.profiles;\n+create policy profiles_update_own on public.profiles\n+  for update to authenticated\n+  using (auth.uid() = id) with check (auth.uid() = id);\n+\n+notify pgrst, 'reload schema';\n+commit;",
+          "patchTruncated": false,
+          "filesTruncated": false,
+          "evidenceType": "source-change",
+          "accuracyValidated": false
+        },
+        "workflowRunId": "40103106074"
+      }
     },
     {
       "sha": "0ab1fcc303dbdb46963063627f4ed01edbd24fbd",
@@ -24851,7 +24918,7 @@
   "coverage": {
     "branch": "main",
     "deploymentScope": "latest-12-commits-and-delivery-events",
-    "sourceHead": "8d8c7fdb0fb2107e3ffc3108b649464a08158488"
+    "sourceHead": "1f921cef3d4dc66ee705276d70e42b838495bec9"
   },
-  "updatedAt": "2026-10-24T14:25:05.253342+00:00"
+  "updatedAt": "2026-10-24T14:35:09.416753+00:00"
 }
