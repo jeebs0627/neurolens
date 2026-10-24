@@ -28,6 +28,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
+from ai_guard import GuardError, guarded, upstream
 
 MODEL = os.environ.get("RPPG_MODEL", "gemini-3.6-flash")
 FALLBACK_MODEL = "gemini-2.5-flash"
@@ -245,7 +246,7 @@ def _call(model, prompt, api_key, max_tokens, thinking=True):
         f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
         data=payload, headers={"Content-Type": "application/json", "x-goog-api-key": api_key}, method="POST",
     )
-    with urllib.request.urlopen(req, timeout=55) as res:
+    with upstream(req, timeout=55) as res:
         data = json.loads(res.read().decode("utf-8"))
     cand = (data.get("candidates") or [{}])[0]
     parts = (cand.get("content") or {}).get("parts") or []     # 사고 토큰이 한도를 다 쓰면 parts 가 비어 올 수 있다
@@ -265,6 +266,8 @@ def generate(prompt, api_key, max_tokens):
                 last = e
                 try:
                     print("rppg upstream", model, thinking, e.code, e.read().decode("utf-8", "replace")[:400])
+                except GuardError:
+                    raise
                 except Exception:  # noqa: BLE001
                     pass
                 if e.code == 400 and thinking:
@@ -319,6 +322,7 @@ def fallback_summary(b):
 
 class handler(BaseHTTPRequestHandler):
 
+    @guarded("condition", MAX_BODY)
     def do_POST(self):
         api_key = _api_key()
         if not api_key:
@@ -339,6 +343,8 @@ class handler(BaseHTTPRequestHandler):
             prompt = "Reply with only OK." if probe else build_prompt(body)
         except ValueError as e:
             return self._send(400, {"error": str(e)})
+        except GuardError:
+            raise
         except Exception:  # noqa: BLE001
             return self._send(400, {"error": "잘못된 요청 본문"})
         try:
@@ -357,6 +363,8 @@ class handler(BaseHTTPRequestHandler):
             self._send(200, {"text": text.strip(), "model": model, "checked": True})
         except urllib.error.HTTPError as e:
             self._send(502, {"error": f"HTTP {e.code}"})
+        except GuardError:
+            raise
         except Exception as e:  # noqa: BLE001
             print("rppg error", repr(e)[:300])
             self._send(502, {"error": "upstream_error"})

@@ -26,6 +26,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
+from ai_guard import GuardError, guarded, upstream
 
 GEMINI_MODEL = "gemini-2.5-flash"
 MAX_BODY = 8 * 1024  # 구조화 필드만 받으므로 8KB 면 충분
@@ -136,6 +137,7 @@ def build_prompt(b):
 
 class handler(BaseHTTPRequestHandler):
 
+    @guarded("profile", MAX_BODY)
     def do_POST(self):
         api_key = os.environ.get("GEMINI_API_KEY", "")
         if not api_key:
@@ -159,6 +161,8 @@ class handler(BaseHTTPRequestHandler):
             prompt = "Reply with only OK." if probe else build_prompt(body)
         except ValueError as e:
             return self._send(400, {"error": str(e)})
+        except GuardError:
+            raise
         except Exception:  # noqa: BLE001
             return self._send(400, {"error": "잘못된 요청 본문"})
 
@@ -180,7 +184,7 @@ class handler(BaseHTTPRequestHandler):
                 headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=55) as res:
+            with upstream(req, timeout=55) as res:
                 data = json.loads(res.read().decode("utf-8"))
             parts = data["candidates"][0]["content"]["parts"]
             text = "".join(p.get("text", "") for p in parts)
@@ -191,9 +195,13 @@ class handler(BaseHTTPRequestHandler):
             # 제공사 응답 본문은 로그에만 남기고 클라이언트에는 상태 코드만 돌려준다
             try:
                 print("gemini upstream error", e.code, e.read().decode("utf-8", "replace")[:500])
+            except GuardError:
+                raise
             except Exception:  # noqa: BLE001
                 pass
             self._send(502, {"error": f"HTTP {e.code}"})
+        except GuardError:
+            raise
         except Exception as e:  # noqa: BLE001
             print("gemini error", repr(e)[:300])
             self._send(502, {"error": "upstream_error"})

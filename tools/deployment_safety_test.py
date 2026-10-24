@@ -8,9 +8,12 @@ import subprocess
 import tempfile
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = 'https://www.neurolens.me'
+sys.path.insert(0,str(ROOT / 'ci'))
+from public_files import publishable
 
 
 def git(*args, cwd=ROOT, data=None):
@@ -47,9 +50,7 @@ def main():
     public = [
         'index.html', 'condition.html', 'test.html', 'admin.html', 'report.html',
         'auth.js', 'care.js', 'condition-camera.js', 'condition-analysis-worker.js',
-        'newbiz-core.js', 'dataset-workspace.js', 'dataset-deploy-guard.cjs',
-        'dataset_evolution_core.py', 'requirements.txt', 'vercel.json',
-        'api/gemini.py', 'api/dataset_evolution.py', 'api/neurolens_dataset.py',
+        'newbiz-core.js', 'dataset-workspace.js', 'ai-client.js', 'condition-auth.js',
         'model-registry.json', 'release_policy.json', 'training-ledger.json',
         'dataset-engine-log.json', 'dataset-evolution-log.json',
         'models/gaze/model/model.onnx', 'models/gaze/model/manifest.json',
@@ -68,8 +69,14 @@ def main():
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         assert result.returncode in (0, 1), result.stderr.decode()
         excluded = set(filter(None, result.stdout.decode().split('\0')))
-    assert set(private) <= excluded, f'Private files allowed: {set(private) - excluded}'
-    assert not set(public) & excluded, f'Service files excluded: {set(public) & excluded}'
+    uploaded_excluded = excluded
+    assert all(not publishable(name) for name in private), 'Private static file allowed'
+    assert all(publishable(name) for name in public), 'Service static file excluded'
+    for name in ['ai_guard.py','dataset_evolution_core.py','requirements.txt','vercel.json',
+                 'api/gemini.py','api/ai-session.py','api/dataset_evolution.py',
+                 'ci/check.py','ci/browser.test.cjs','ci/ai_guard_test.py']:
+        assert name not in uploaded_excluded, f'Build/runtime dependency excluded: {name}'
+    excluded = {name for name in candidates if not publishable(name)}
 
     def check_dependency(source, value):
         parts = urlsplit(value)
@@ -97,10 +104,6 @@ def main():
             check_dependency(source, value)
         for value in re.findall(r'''url\(\s*['"]?([^)'"\s]+)''', text):
             check_dependency(source, value)
-        if source.suffix == '.py':
-            for node in ast.walk(ast.parse(text)):
-                if isinstance(node, ast.ImportFrom) and node.module:
-                    check_dependency(Path('index.html'), node.module.replace('.', '/') + '.py')
 
     for name, canonical in [('index.html', SITE + '/'), ('condition.html', SITE + '/condition')]:
         text = (ROOT / name).read_text(encoding='utf-8-sig')
@@ -125,7 +128,8 @@ def main():
         target = urlsplit(route['destination']).path.lstrip('/')
         if target.startswith('api/'):
             target += '.py'
-        assert (ROOT / target).is_file() and target not in excluded, target
+        assert (ROOT / target).is_file() and target not in uploaded_excluded, target
+    assert config['outputDirectory']=='.site' and config['buildCommand']=='python3 -B ci/check.py'
     print(f'PASS: {len(private)} private paths excluded; {len(public)} service paths retained; '
           f'{len(files)} repository files checked for asset dependencies; canonical URLs consistent')
 

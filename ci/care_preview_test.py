@@ -11,7 +11,7 @@ import urllib.request
 import uuid
 from http.server import HTTPServer
 
-API_DIR = pathlib.Path(__file__).parent
+API_DIR = pathlib.Path(__file__).resolve().parents[1] / 'api'
 
 
 def load(name, filename):

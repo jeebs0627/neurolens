@@ -62,3 +62,22 @@ gemini.key
 /docs/neurolens2-implementation.txt
 /output/neurolens2/
 /docs/neurolens2-v24-diagnostic.txt
+
+# Build checks are uploaded but only .site is served.
+!/ai_guard.py
+!/ci/
+!/ci/*.test.cjs
+!/ci/*_test.py
+**/node_modules/
+**/__pycache__/
+!/dataset-deploy-guard.test.cjs
+!/newbiz-core.test.js
+!/newbiz-battery.test.js
+!/condition-signal.test.cjs
+!/condition-fusion.test.cjs
+!/condition-gaze-model.test.cjs
+!/tools/
+/tools/*
+!/tools/deployment_safety_test.py
+!/tools/profile_role_security_test.cjs
+!/tools/ai_guard_sql_test.cjs

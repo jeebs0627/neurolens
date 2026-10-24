@@ -184,6 +184,7 @@ footer{border-top:1px solid var(--line);background:#fff;padding:24px 0;text-alig
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
+<script src="ai-client.js"></script>
 <script>
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 function fmtDate(iso){const d=new Date(iso);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -283,7 +284,7 @@ async function checkApis(){
     const item=document.getElementById(id),state=item.querySelector('.state');
     item.classList.remove('ok','fail');state.textContent='확인 중…';
     try{
-      const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({probe:true})});
+      const response=await NLAI.fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({probe:true})});
       const data=await response.json();
       if(!response.ok||data.ok!==true)throw Error(data.upstreamStatus?`Google ${data.upstreamStatus}`:data.error||`HTTP ${response.status}`);
       item.classList.add('ok');state.textContent='정상';

@@ -3,14 +3,14 @@
   "functions": {
     "api/neurolens_dataset.py": {
       "maxDuration": 120,
-      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**}"
+      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**,ci/**,.ci-python/**,.site/**}"
     },
     "api/dataset_evolution.py": {
       "maxDuration": 120,
-      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**}"
+      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**,ci/**,.ci-python/**,.site/**}"
     },
     "api/*.py": {
-      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**}"
+      "excludeFiles": "{img/**,newbiz-stim/**,neurolens2/**,models/**,*.html,*.js,*.cjs,*.css,*.json,*.md,.github/**,docs/**,tools/**,notebooks/**,training/**,research_export/**,supabase/**,output/**,ci/**,.ci-python/**,.site/**}"
     }
   },
   "rewrites": [
@@ -94,5 +94,8 @@
         }
       ]
     }
-  ]
+  ],
+  "installCommand": "npm ci --prefix ci && python3 -m pip install --target .ci-python -r requirements.txt && node ci/node_modules/playwright/cli.js install chromium --only-shell",
+  "buildCommand": "python3 -B ci/check.py",
+  "outputDirectory": ".site"
 }

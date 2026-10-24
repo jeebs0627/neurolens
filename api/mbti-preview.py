@@ -8,12 +8,14 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
+from ai_guard import GuardError, guarded, upstream
 
 MODEL = "gemini-3.6-flash"
 VALID_MBTI = re.compile(r"^[EI][NS][TF][JP]$")
 
 
 class handler(BaseHTTPRequestHandler):
+    @guarded("mbti", 256)
     def do_POST(self):
         host = (self.headers.get("X-Forwarded-Host") or self.headers.get("Host") or "").split(":")[0].lower()
         source = self.headers.get("Origin") or self.headers.get("Referer") or ""
@@ -56,7 +58,7 @@ class handler(BaseHTTPRequestHandler):
         )
         for attempt in range(2):
             try:
-                with urllib.request.urlopen(request, timeout=45) as response:
+                with upstream(request, timeout=45) as response:
                     data = json.load(response)
                 parts = data["candidates"][0]["content"]["parts"]
                 text = "".join(part.get("text", "") for part in parts).strip()
@@ -71,6 +73,8 @@ class handler(BaseHTTPRequestHandler):
                     time.sleep(0.8)
                     continue
                 return self._send(502, {"error": "generation unavailable", "upstreamStatus": error.code})
+            except GuardError:
+                raise
             except Exception as error:  # noqa: BLE001
                 print("MBTI preview upstream error", type(error).__name__)
                 return self._send(502, {"error": "generation unavailable", "errorType": type(error).__name__})

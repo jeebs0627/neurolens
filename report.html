@@ -378,6 +378,7 @@ footer p{font-size:12px;color:var(--gray)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
+<script src="ai-client.js"></script>
 <script src="care.js?v=19"></script>
 <script src="report-render.js"></script>
 <script>
@@ -623,7 +624,7 @@ async function requestSummary(r,mbti,info,values,jobs,holland,meta){
     jobs:jobs.slice(0,5).map(j=>({name:j.name,score:Math.round(j.score*10)/10})),
   };
   try{
-    const res=await fetch('/gemini',{
+    const res=await NLAI.fetch('/gemini',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload),
     });
